@@ -323,6 +323,74 @@ Click nbfs://nbhost/SystemFileSystem/Templates/JSP_Servlet/Html.html to edit thi
 
     /* toggle password */
     #togglePwd { cursor: pointer; }
+    
+    .btn-action {
+        display: flex;
+        align-items: center;
+        text-decoration: none;
+        padding: 12px 20px;
+        border-radius: 12px;
+        margin-bottom: 15px;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        border: 1px solid transparent;
+    }
+
+    .icon-box {
+        width: 40px;
+        height: 40px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-right: 15px;
+        font-size: 1.2rem;
+        transition: transform 0.3s;
+    }
+
+    .btn-action span {
+        font-weight: 600;
+        font-size: 0.95rem;
+    }
+
+    /* Style Đăng nhập (Xanh) */
+    .login-style {
+        background-color: #f0f7ff;
+        color: #1565c0;
+        border-color: #d0e3ff;
+    }
+    .login-style .icon-box {
+        background-color: #1565c0;
+        color: white;
+    }
+    .login-style:hover {
+        background-color: #1565c0;
+        color: white;
+        transform: translateY(-3px);
+        box-shadow: 0 10px 20px rgba(21, 101, 192, 0.2);
+    }
+
+    /* Style Đăng ký (Cam) */
+    .signup-style {
+        background-color: #fff5eb;
+        color: #ff6b00;
+        border-color: #ffe0c2;
+    }
+    .signup-style .icon-box {
+        background-color: #ff6b00;
+        color: white;
+    }
+    .signup-style:hover {
+        background-color: #ff6b00;
+        color: white;
+        transform: translateY(-3px);
+        box-shadow: 0 10px 20px rgba(255, 107, 0, 0.2);
+    }
+
+    .btn-action:hover .icon-box {
+        background-color: white;
+        color: inherit;
+        transform: scale(1.1);
+    }    
   </style>
 </head>
 <body>
@@ -444,57 +512,46 @@ Click nbfs://nbhost/SystemFileSystem/Templates/JSP_Servlet/Html.html to edit thi
 
 <!-- ══════════════════ RIGHT ══════════════════ -->
 <div class="right-panel">
-  <!-- VN flag -->
-  <div class="flag-btn" title="Tiếng Việt">
-    <svg viewBox="0 0 30 20" xmlns="http://www.w3.org/2000/svg">
-      <rect width="30" height="20" fill="#DA251D"/>
-      <polygon points="15,4 16.8,9.5 22.5,9.5 17.9,12.8 19.7,18.3 15,15 10.3,18.3 12.1,12.8 7.5,9.5 13.2,9.5" fill="#FFFF00"/>
-    </svg>
-  </div>
-
-  <!-- Logo -->
-  <div class="logo-wrap">
-    <div class="logo-hrm">
-      <span class="h">H</span><span class="r">R</span><span class="m">M</span>
-    </div>
-    <div class="logo-powered">Powered by <span>Group 2</span></div>
-  </div>
-
-  <!-- Form -->
-  <div class="login-form">
-    <h2>Đăng nhập</h2>
-
-    <div class="mb-3">
-      <label class="form-label">Email <span class="required">*</span></label>
-      <input type="email" class="form-control" placeholder="Nhập email"/>
+    <!-- VN flag -->
+    <div class="flag-btn" title="Tiếng Việt">
+        <svg viewBox="0 0 30 20" xmlns="http://www.w3.org/2000/svg">
+            <rect width="30" height="20" fill="#DA251D"/>
+            <polygon points="15,4 16.8,9.5 22.5,9.5 17.9,12.8 19.7,18.3 15,15 10.3,18.3 12.1,12.8 7.5,9.5 13.2,9.5" fill="#FFFF00"/>
+        </svg>
     </div>
 
-    <div class="mb-1">
-      <label class="form-label">Mật khẩu <span class="required">*</span></label>
-      <div class="input-group">
-        <input type="password" class="form-control" id="pwdInput" placeholder="Nhập mật khẩu"/>
-        <button class="btn-eye" type="button" id="togglePwd">
-          <i class="bi bi-eye" id="eyeIcon"></i>
-        </button>
-      </div>
+    <!-- Logo -->
+    <div class="logo-wrap">
+        <div class="logo-hrm">
+            <span class="h">H</span><span class="r">R</span><span class="m">M</span>
+        </div>
+        <div class="logo-powered">Powered by <span>Group 2</span></div>
     </div>
-    <a href="#" class="forgot-link">Quên mật khẩu?</a>
 
-    <button class="btn-login" type="button">Đăng nhập</button>
+    <div class="action-container" style="width: 100%; max-width: 320px; text-align: center;">
+        <h2 style="font-size: 1.25rem; font-weight: 600; color: #444; margin-bottom: 2rem;">Chào mừng bạn quay trở lại</h2>
 
-    <div class="divider"><span>Hoặc</span></div>
+        <!-- Button Đăng nhập -->
+        <a href="http://localhost:8080/HRM/v1/auth/login" class="btn-action login-style">
+            <div class="icon-box"><i class="bi bi-person-check"></i></div>
+            <span>Đăng nhập hệ thống</span>
+        </a>
 
-    <button class="btn-google" type="button">
-      <span class="g-logo"></span>
-      Tiếp tục với Google
-    </button>
+        <div style="margin: 1rem 0; color: #ccc; font-size: 0.8rem; font-weight: 500;">HOẶC</div>
 
-    <p class="signup-text">
-      Bạn chưa có tài khoản?&nbsp;<a href="#">Đăng ký sử dụng ngay</a>
-    </p>
-  </div>
+        <!-- Button Đăng ký -->
+        <a href="http://localhost:8080/HRM/v1/auth/register" class="btn-action signup-style">
+            <div class="icon-box"><i class="bi bi-person-plus"></i></div>
+            <span>Tạo tài khoản mới</span>
+        </a>
+
+        <p style="margin-top: 3rem; font-size: 0.75rem; color: #999; line-height: 1.5;">
+            Hệ thống quản trị nhân sự tập trung.<br>
+            Vui lòng liên hệ Admin nếu gặp sự cố truy cập.
+        </p>
+    </div>
 </div>
-
+  
 <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/js/bootstrap.bundle.min.js"></script>
 <script>
   // Generate stars
