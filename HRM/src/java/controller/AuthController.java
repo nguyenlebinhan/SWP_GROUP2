@@ -5,6 +5,7 @@
 
 package controller;
 
+import dao.UserDAO;
 import java.io.IOException;
 import java.io.PrintWriter;
 import jakarta.servlet.ServletException;
@@ -12,12 +13,16 @@ import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.util.logging.*;
+import model.User;
+import service.EmailService;
 /**
  *
  * @author ADMIN
  */
 public class AuthController extends HttpServlet {
     private static final Logger LOGGER = Logger.getLogger(AuthController.class.getName());
+    private static final UserDAO userDAO = new UserDAO();
+    private static final EmailService emailService = new EmailService();
     /** 
      * Processes requests for both HTTP <code>GET</code> and <code>POST</code> methods.
      * @param request servlet request
@@ -64,7 +69,7 @@ public class AuthController extends HttpServlet {
                 displayLoginForm(request, response);
                 break;
             case "/forget-password":
-                forgotPasswordForm(request, response);
+                displayForgetPasswordForm(request, response);
                 break;
             default:
                 response.sendRedirect(request.getContextPath() + "/");
@@ -119,8 +124,9 @@ public class AuthController extends HttpServlet {
     }
 
 
-    private void forgotPasswordForm(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+    private void displayForgetPasswordForm(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
         request.getRequestDispatcher("/public/auth/forget_password.jsp").forward(request, response);
+        
     }
 
     private void handleRegisterRequest(HttpServletRequest request, HttpServletResponse response) {
@@ -131,11 +137,38 @@ public class AuthController extends HttpServlet {
         throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
     }
 
-    private void handleForgetPasswordRequest(HttpServletRequest request, HttpServletResponse response) {
-        throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
+    private void handleForgetPasswordRequest(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {     
+        String email = request.getParameter("email");
+        LOGGER.log(Level.INFO,"Processing request for email : {0}",email);
+        if(email == null || email.isEmpty()){        
+            LOGGER.log(Level.WARNING, "Reset request failed: Email is empty");
+            request.setAttribute("error", "Please enter an email");
+            request.getRequestDispatcher("/public/auth/forget_password.jsp").forward(request, response);
+            return;                
+        }
+
+        User user = userDAO.getUserByEmail(email);
+        if(user == null){
+            LOGGER.log(Level.INFO, "User not found for email: {0} (not revealing to user)", email);
+            request.setAttribute("success", "If email exists, you can get a password to reset");
+            request.getRequestDispatcher("/jsp/auth/forget_password.jsp").forward(request, response);
+            return;            
+        }
+
+        LOGGER.log(Level.INFO,"User found with userId: {0} and username : {1}",new Object[]{user.getUserId(),user.getFullName()});
+
+        String password = userDAO.createResetPassword(user.getUserId());
+        if (password != null) {
+            LOGGER.log(Level.INFO, "Reset password created successfully for user id: {0}", user.getUserId());
+
+
+            emailService.sendPasswordResetEmail(user.getEmail(),user.getFullName(),password);
+            request.setAttribute("success", "A reset password has been sent to your email for a few second.");       
+        } else {
+            LOGGER.log(Level.SEVERE, "Failed to create reset token for user id: {0}", user.getUserId());
+            request.setAttribute("error", "Error");
+        }
+
+        request.getRequestDispatcher("/public/auth/forget_password.jsp").forward(request, response);
     }
-
-  
-
-
 }
