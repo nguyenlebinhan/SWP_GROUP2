@@ -83,6 +83,7 @@ public class DBInitializer {
                 + "dob DATE,"
                 + "address NVARCHAR(150),"
                 + "roleId INT NOT NULL,"
+                + "isTemporaryPassword BIT DEFAULT 0,"
                 + "createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,"
                 + "updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,"
                 + "FOREIGN KEY (roleId) REFERENCES Roles(roleId)"
@@ -297,9 +298,11 @@ public class DBInitializer {
 
             if (enforceReset) {
                 LOGGER.info("Enforce reset: Dropping all tables...");
+                execute(conn, "SET FOREIGN_KEY_CHECKS=0", "DISABLE FK CHECKS");
                 for (String table : dropOrder) {
                     dropTable(conn, table);
                 }
+                execute(conn, "SET FOREIGN_KEY_CHECKS=1", "ENABLE FK CHECKS");
             }
 
             for (String table : createOrder) {
@@ -334,9 +337,9 @@ public class DBInitializer {
         try {
             if (countRows(conn, "Roles") == 0) {
                 LOGGER.info("Starting to seed initial data...");
-                insertRole(conn, "ADMIN", "Admin");
-                insertRole(conn, "MANAGER", "Manager");
-                insertRole(conn, "EMPLOYEE", "Employee");
+                insertRole(conn, "AD", "SysAdmin");
+                insertRole(conn, "MA", "HRManager");
+                insertRole(conn, "EM", "HREmployee");
             }
             if (countRows(conn, "Users") == 0) {
                 insertUser(conn, "nguyenlebinhank63@gmail.com", "admin123", "Nguyễn Lê Bình An", "2006-01-06", "Phủ Lý, Hà Nam", 1);

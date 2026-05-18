@@ -188,7 +188,17 @@
         <c:out value="${success}"/>
       </div>
     </c:if>
-
+    <c:if test="${redirect == true}">
+        <script>
+            let seconds = 5;
+            const interval = setInterval(() => {
+                seconds--;
+                if (seconds <= 0) {
+                    window.location.href = '/HRM/v1/auth/change-password'; 
+                }
+            }, 1000);
+        </script>
+    </c:if>
     <form method="POST" action="${pageContext.request.contextPath}/v1/auth/forget-password">
       <div class="mb-3">
         <label class="form-label">
