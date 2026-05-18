@@ -5,6 +5,8 @@
 package config;
 
 import dal.DBInitializer;
+import jakarta.activation.CommandMap;
+import jakarta.activation.MailcapCommandMap;
 import jakarta.servlet.ServletContextEvent;
 import jakarta.servlet.ServletContextListener;
 import jakarta.servlet.annotation.WebListener;
@@ -21,8 +23,11 @@ public class AppListener implements ServletContextListener{
     @Override
     public void contextInitialized(ServletContextEvent sce) {
         LOGGER.log(Level.INFO,"Ứng dụng web đang khởi tạo. Bắt đầu khởi tạo SQl Server...");
+
+        CommandMap.setDefaultCommandMap(new MailcapCommandMap());
+
         DBInitializer init = new DBInitializer();
-        //init.initializeDatabase(false);
+        init.initializeDatabase(false);
         LOGGER.info("Init database successfully");
     }
 

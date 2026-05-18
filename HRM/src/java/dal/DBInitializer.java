@@ -50,6 +50,18 @@ public class DBInitializer {
                 + ")";
         execute(conn, SQL, "CREATE PERMISSIONS TABLE SUCCESSFULLY");
     }
+    public void createTableRolePermissions(Connection conn) {
+        String SQL = "CREATE TABLE Role_Permissions("
+                + "id INT PRIMARY KEY AUTO_INCREMENT,"
+                + "roleId INT NOT NULL,"
+                + "permissionId INT NOT NULL,"
+                + "createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,"
+                + "updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,"
+                + "FOREIGN KEY (roleId) REFERENCES Roles(roleId),"
+                + "FOREIGN KEY (permissionId) REFERENCES Permissions(permissionId)"
+                + ")";
+        execute(conn, SQL, "CREATE ROLE_PERMISSIONS TABLE SUCCESSFULLY");
+    }    
 
     public void createTableDepartments(Connection conn) {
         String SQL = "CREATE TABLE Departments("
@@ -68,10 +80,13 @@ public class DBInitializer {
                 + "email VARCHAR(50) NOT NULL UNIQUE,"
                 + "password VARCHAR(150) NOT NULL,"
                 + "fullName NVARCHAR(150) NOT NULL,"
-                + "dob DATETIME,"
+                + "dob DATE,"
                 + "address NVARCHAR(150),"
+                + "roleId INT NOT NULL,"
+                + "isTemporaryPassword BIT DEFAULT 0,"
                 + "createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,"
-                + "updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"
+                + "updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,"
+                + "FOREIGN KEY (roleId) REFERENCES Roles(roleId)"
                 + ")";
         execute(conn, SQL, "CREATE USERS TABLE SUCCESSFULLY");
     }
@@ -97,37 +112,8 @@ public class DBInitializer {
         execute(conn, SQL, "CREATE EMPLOYEES TABLE SUCCESSFULLY");
     }
 
-    public void createTableUserDepartmentRoles(Connection conn) {
-        String SQL = "CREATE TABLE User_Department_Roles("
-                + "id INT PRIMARY KEY AUTO_INCREMENT,"
-                + "userId INT NOT NULL,"
-                + "departmentId INT NOT NULL,"
-                + "roleId INT NOT NULL,"
-                + "createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,"
-                + "updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,"
-                + "UNIQUE KEY uq_user_dept_role (userId, departmentId, roleId),"
-                + "FOREIGN KEY (userId) REFERENCES Users(userId),"
-                + "FOREIGN KEY (departmentId) REFERENCES Departments(departmentId),"
-                + "FOREIGN KEY (roleId) REFERENCES Roles(roleId)"
-                + ")";
-        execute(conn, SQL, "CREATE USER_DEPARTMENT_ROLES TABLE SUCCESSFULLY");
-    }
 
-    public void createTableDepartmentRolePermissions(Connection conn) {
-        String SQL = "CREATE TABLE Department_Role_Permissions("
-                + "id INT PRIMARY KEY AUTO_INCREMENT,"
-                + "departmentId INT NOT NULL,"
-                + "roleId INT NOT NULL,"
-                + "permissionId INT NOT NULL,"
-                + "createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,"
-                + "updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,"
-                + "UNIQUE KEY uq_dept_role_perm (departmentId, roleId, permissionId),"
-                + "FOREIGN KEY (departmentId) REFERENCES Departments(departmentId),"
-                + "FOREIGN KEY (roleId) REFERENCES Roles(roleId),"
-                + "FOREIGN KEY (permissionId) REFERENCES Permissions(permissionId)"
-                + ")";
-        execute(conn, SQL, "CREATE DEPARTMENT_ROLE_PERMISSIONS TABLE SUCCESSFULLY");
-    }
+
 
 
     // Hồ sơ ứng viên (HoSoUngVien)
@@ -239,6 +225,35 @@ public class DBInitializer {
                 + ")";
         execute(conn, SQL, "CREATE PERFORMANCE TABLE SUCCESSFULLY");
     }
+    public void createTableEmailTemplates(Connection conn) {
+        String SQL = "CREATE TABLE Email_Templates("
+                + "templateId INT PRIMARY KEY AUTO_INCREMENT,"
+                + "templateCode VARCHAR(50) NOT NULL UNIQUE," 
+                + "subject NVARCHAR(200) NOT NULL,"
+                + "body NVARCHAR(2000) NOT NULL,"        
+                + "createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,"
+                + "updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"
+                + ")";
+        execute(conn, SQL, "CREATE EMAIL_TEMPLATES TABLE SUCCESSFULLY");
+    }
+    
+    public void createTableAuditLogs(Connection conn) {
+        String SQL = "CREATE TABLE Audit_Logs("
+                + "logId INT PRIMARY KEY AUTO_INCREMENT,"
+                + "userId INT,"                              // ai thực hiện (null nếu chưa login)
+                + "action VARCHAR(50) NOT NULL,"             // 'CREATE', 'UPDATE', 'DELETE', 'LOGIN', 'LOGOUT'
+                + "tableName VARCHAR(50),"                   // bảng bị tác động: 'Employees', 'Payroll'...
+                + "recordId INT,"                            // id của record bị tác động
+                + "oldValue NVARCHAR(1000),"                 // giá trị trước khi thay đổi (JSON)
+                + "newValue NVARCHAR(1000),"                 // giá trị sau khi thay đổi (JSON)
+                + "ipAddress VARCHAR(45),"                   // IPv4 hoặc IPv6
+                + "userAgent NVARCHAR(255),"                 // trình duyệt
+                + "status VARCHAR(10) DEFAULT 'SUCCESS',"    // 'SUCCESS', 'FAILED'
+                + "createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,"
+                + "FOREIGN KEY (userId) REFERENCES Users(userId)"
+                + ")";
+        execute(conn, SQL, "CREATE AUDIT_LOGS TABLE SUCCESSFULLY");
+    }    
 
     public void initializeDatabase(boolean enforceReset) {
         try (Connection conn = dbContext.getConnection()) {
@@ -249,15 +264,16 @@ public class DBInitializer {
 
             
             String[] dropOrder = {
+                "Audit_Logs",
                 "Performance",
                 "Payroll",
                 "Attendance",
                 "Jobs",
-                "Department_Role_Permissions",
-                "User_Department_Roles",
                 "Employees",
                 "Candidates",
                 "Users",
+                "Role_Permissions",
+                "Email_Templates",
                 "Permissions",
                 "Departments",
                 "Roles"
@@ -267,45 +283,49 @@ public class DBInitializer {
             String[] createOrder = {
                 "Roles",
                 "Permissions",
+                "Role_Permissions",
                 "Departments",
                 "Users",
                 "Candidates",
                 "Employees",
-                "User_Department_Roles",
-                "Department_Role_Permissions",
                 "Jobs",
                 "Attendance",
                 "Payroll",
-                "Performance"
+                "Performance",
+                "Email_Templates",
+                "Audit_Logs"
             };
 
             if (enforceReset) {
                 LOGGER.info("Enforce reset: Dropping all tables...");
+                execute(conn, "SET FOREIGN_KEY_CHECKS=0", "DISABLE FK CHECKS");
                 for (String table : dropOrder) {
                     dropTable(conn, table);
                 }
+                execute(conn, "SET FOREIGN_KEY_CHECKS=1", "ENABLE FK CHECKS");
             }
 
             for (String table : createOrder) {
                 if (enforceReset || !tableExists(conn, table)) {
                     switch (table) {
-                        case "Roles":                      createTableRoles(conn);                     break;
-                        case "Permissions":                createTablePermissions(conn);               break;
-                        case "Departments":                createTableDepartments(conn);               break;
-                        case "Users":                      createTableUsers(conn);                     break;
-                        case "Candidates":                 createTableCandidates(conn);                break;
-                        case "Employees":                  createTableEmployees(conn);                 break;
-                        case "User_Department_Roles":      createTableUserDepartmentRoles(conn);       break;
-                        case "Department_Role_Permissions":createTableDepartmentRolePermissions(conn); break;
-                        case "Jobs":                       createTableJobs(conn);                      break;
-                        case "Attendance":                 createTableAttendance(conn);                break;
-                        case "Payroll":                    createTablePayroll(conn);                   break;
-                        case "Performance":                createTablePerformance(conn);               break;
-                        default: LOGGER.warning("Unknown table: " + table);                           break;
+                        case "Roles":           createTableRoles(conn);             break;
+                        case "Permissions":     createTablePermissions(conn);       break;
+                        case "Role_Permissions":createTableRolePermissions(conn);   break;
+                        case "Departments":     createTableDepartments(conn);       break;
+                        case "Users":           createTableUsers(conn);             break;
+                        case "Candidates":      createTableCandidates(conn);        break;
+                        case "Employees":       createTableEmployees(conn);         break;
+                        case "Jobs":            createTableJobs(conn);              break;
+                        case "Attendance":      createTableAttendance(conn);        break;
+                        case "Payroll":         createTablePayroll(conn);           break;
+                        case "Performance":     createTablePerformance(conn);       break;
+                        case "Email_Templates": createTableEmailTemplates(conn);    break;
+                        case "Audit_Logs":      createTableAuditLogs(conn);        break;
+                        default: LOGGER.warning("Unknown table: " + table);        break;
                     }
                 }
             }
-
+            insertInitialData(conn);
             LOGGER.info("Database initialized successfully!");
 
         } catch (SQLException e) {
@@ -315,12 +335,39 @@ public class DBInitializer {
 
     private void insertInitialData(Connection conn) {
         try {
-            
+            if (countRows(conn, "Roles") == 0) {
+                LOGGER.info("Starting to seed initial data...");
+                insertRole(conn, "AD", "SysAdmin");
+                insertRole(conn, "MA", "HRManager");
+                insertRole(conn, "EM", "HREmployee");
+            }
+            if (countRows(conn, "Users") == 0) {
+                insertUser(conn, "nguyenlebinhank63@gmail.com", "admin123", "Nguyễn Lê Bình An", "2006-01-06", "Phủ Lý, Hà Nam", 1);
+            }
+            LOGGER.info("Seeding completed successfully.");
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "Cannot insert initial data", e);
         }
     }
 
+    private void insertRole(Connection conn, String code, String name) throws SQLException {
+        String sql = "INSERT INTO Roles (roleCode, roleName) VALUES (?, ?)";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, code);
+            ps.setString(2, name);
+            ps.executeUpdate();
+        }
+    }
+
+    
+    private int insertUser(Connection conn, String e, String p, String fn, String d, String a, int r) throws SQLException {
+        String sql = "INSERT INTO Users (email, password, fullName, dob, address, roleId) VALUES (?, ?, ?, ?, ?, ?)";
+        try (PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+            ps.setString(1, e); ps.setString(2, p); ps.setString(3, fn); ps.setDate(4, java.sql.Date.valueOf(d)); ps.setString(5, a); ps.setInt(6, r);
+            ps.executeUpdate();
+            try (ResultSet rs = ps.getGeneratedKeys()) { return rs.next() ? rs.getInt(1) : 0; }
+        }
+    }    
 
 
     private void execute(Connection conn, String sql, String label)  {
