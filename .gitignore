@@ -1,1 +1,3 @@
 /HRM/dist/
+/HRM/build/
+*.env
