@@ -142,6 +142,7 @@ public class AuthController extends HttpServlet {
         boolean isAlreadyChanged = userDAO.isPasswordChanged((String)request.getSession().getAttribute("email"));
         if(isAlreadyChanged){
             request.getRequestDispatcher("/public/auth/change_password.jsp").forward(request, response);
+            request.getSession().invalidate();
         }else{
             response.sendRedirect(request.getContextPath() + "/");
         }
