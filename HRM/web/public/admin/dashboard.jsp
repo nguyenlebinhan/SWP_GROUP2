@@ -334,7 +334,7 @@
       <span>System</span>
     </div>
     <nav class="nav">
-      <a class="active" href="${pageContext.request.contextPath}/v1/auth/dashboard"><i class="bi bi-grid-1x2-fill"></i><span>Tổng quan</span></a>
+      <a class="active" href="${pageContext.request.contextPath}/v1/login/admin/dashboard"><i class="bi bi-grid-1x2-fill"></i><span>Tổng quan</span></a>
       <a href="#"><i class="bi bi-clipboard-check"></i><span>Công việc</span></a>
       <a href="#"><i class="bi bi-people-fill"></i><span>Người dùng</span></a>
       <a href="#"><i class="bi bi-clock-fill"></i><span>Chấm công</span></a>
@@ -360,7 +360,7 @@
         <span class="icon-btn" title="Thông báo"><i class="bi bi-bell-fill"></i></span>
         <span class="avatar"><%= displayName.substring(0, 1).toUpperCase() %></span>
         <span><%= currentUser != null ? currentUser.getUsername() : "Admin" %></span>
-        <a class="logout-link" href="${pageContext.request.contextPath}/v1/auth/logout">
+        <a class="logout-link" href="${pageContext.request.contextPath}/v1/login/logout">
           <i class="bi bi-box-arrow-right"></i>
           <span class="logout-label">Đăng xuất</span>
         </a>

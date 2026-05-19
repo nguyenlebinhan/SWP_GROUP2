@@ -6,6 +6,6 @@
     </servlet>
     <servlet-mapping>
         <servlet-name>AuthController</servlet-name>
-        <url-pattern>/v1/auth/*</url-pattern>
+        <url-pattern>/v1/login/*</url-pattern>
     </servlet-mapping>
 </web-app>
