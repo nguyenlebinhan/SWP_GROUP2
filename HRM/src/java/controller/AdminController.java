@@ -5,7 +5,7 @@
 
 package controller;
 
-import dao.UserDAO;
+import dao.*;
 import java.io.IOException;
 import java.io.PrintWriter;
 import jakarta.servlet.ServletException;
@@ -14,8 +14,9 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 import java.util.logging.*;
-import model.User;
-import service.EmailService;
+import model.*;
+import service.*;
+import java.util.*;
 
 /**
  *
@@ -25,6 +26,7 @@ public class AdminController extends HttpServlet {
     private static final Logger LOGGER = Logger.getLogger(AdminController.class.getName());
     private static final UserDAO userDAO = new UserDAO();
     private static final EmailService emailService = new EmailService();
+    private static final RoleDAO roleDAO = new RoleDAO();
 
     protected void processRequest(HttpServletRequest request, HttpServletResponse response)
     throws ServletException, IOException {
@@ -93,6 +95,8 @@ public class AdminController extends HttpServlet {
         }
     }
     private void displayAddUserForm(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        List<Role>roles = roleDAO.getAllRoles();
+        request.setAttribute("roles", roles);
         request.getRequestDispatcher("/public/admin/add_user.jsp").forward(request, response);
     }    
 
@@ -107,7 +111,7 @@ public class AdminController extends HttpServlet {
         String dob       = request.getParameter("dob");
         String gender    = request.getParameter("gender");
         String address   = request.getParameter("address");
-        int roleId = Integer.parseInt(request.getParameter("roleId"));
+        int roleId = Integer.parseInt(request.getParameter("role_selection"));
 
         boolean isSuccess = userDAO.addUser(email, password, fullName, dob, gender ,address, roleId);
         if (!isSuccess){
