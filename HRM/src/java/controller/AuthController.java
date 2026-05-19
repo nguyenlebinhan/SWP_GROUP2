@@ -73,19 +73,11 @@ public class AuthController extends HttpServlet {
     throws ServletException, IOException {
         HttpSession session = request.getSession(false);
         User user = (session != null) ? (User) session.getAttribute("user") : null;
-
-//        if (user == null || user.getRoleName()== null || !"ADMIN".equalsIgnoreCase(user.getRoleName())) {
-//            response.sendRedirect(request.getContextPath() + "/login");
-//            return;
-//        }        
         String action = request.getPathInfo();
         LOGGER.log(Level.INFO,"Action received in AuthController (GET): {0}", action);
         switch (action != null ? action : "") {
-            case "/register":
-                displayRegisterForm(request, response,user);
-                break;
             case "/login":
-                displayLoginForm(request, response,user);
+                displayLoginForm(request, response);
                 break;
             case "/dashboard":
                 displayDashboard(request, response, user);
@@ -97,7 +89,7 @@ public class AuthController extends HttpServlet {
                 handleGoogleCallback(request, response);
                 break;
             case "/forget-password":
-                displayForgetPasswordForm(request, response,user);
+                displayForgetPasswordForm(request, response);
                 break;
             case "/change-password":
                 displayChangePassword(request,response);
@@ -127,11 +119,8 @@ public class AuthController extends HttpServlet {
         String action = request.getPathInfo();
         LOGGER.log(Level.INFO,"Action received in AuthController (POST): {0}", action);
         switch (action != null ? action : "") {
-            case "/register":
-                handleRegisterRequest(request, response,user);
-                break;
             case "/login":
-                handleLoginRequest(request, response,user);
+                handleLoginRequest(request, response);
                 break;
             case "/forget-password":
                 handleForgetPasswordRequest(request, response);
@@ -148,17 +137,9 @@ public class AuthController extends HttpServlet {
         }        
     }
 
-    /** 
-     * Returns a short description of the servlet.
-     * @return a String containing servlet description
-     */
     @Override
     public String getServletInfo() {
         return "Short description";
-    }// </editor-fold>
-
-    private void displayRegisterForm(HttpServletRequest request, HttpServletResponse response,User user) throws ServletException, IOException {
-        request.getRequestDispatcher("/public/auth/register.jsp").forward(request, response);
     }
     private void displayLoginForm(HttpServletRequest request, HttpServletResponse response,User user) throws IOException, IOException, ServletException  {
         if (user != null) {
@@ -181,13 +162,13 @@ public class AuthController extends HttpServlet {
         boolean isAlreadyChanged = userDAO.isPasswordChanged((String)request.getSession().getAttribute("email"));
         if(isAlreadyChanged){
             request.getRequestDispatcher("/public/auth/change_password.jsp").forward(request, response);
-            request.getSession().invalidate();
+
         }else{
             response.sendRedirect(request.getContextPath() + "/");
         }
     }
 
-    private void displayForgetPasswordForm(HttpServletRequest request, HttpServletResponse response,User user) throws ServletException, IOException {
+    private void displayForgetPasswordForm(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
         request.getRequestDispatcher("/public/auth/forget_password.jsp").forward(request, response);
         
     }
@@ -378,7 +359,7 @@ public class AuthController extends HttpServlet {
         String password = userDAO.createResetPassword(user.getUserId());
         if (password != null) {
             LOGGER.log(Level.INFO, "Reset password created successfully for user id: {0}", user.getUserId());
-            boolean isAlreadyChanged = userDAO.updateIsTemporaryPassword(user.getUserId());
+            boolean isAlreadyChanged = userDAO.updateIsTemporaryPassword(email,1);
             if(isAlreadyChanged){
                 emailService.sendResetPasswordEmailAsync(user.getEmail(),password);
                 request.setAttribute("success", "A reset password has been sent to your email for a few second.");      
@@ -399,35 +380,50 @@ public class AuthController extends HttpServlet {
         request.getRequestDispatcher("/public/auth/forget_password.jsp").forward(request, response);
     }
 
-    private void handleChangePassword(HttpServletRequest request, HttpServletResponse response, User user) throws ServletException, IOException {
-        if (user == null) {
-            response.sendRedirect(request.getContextPath() + "/v1/auth/login");
-            return;
-        }
+    private void handleChangePassword(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
 
-        LOGGER.log(Level.INFO, "Processing request for changing password for userId : {0}", user.getUserId());
+        LOGGER.log(Level.INFO, "Processing request for changing password for email : {0}", request.getSession().getAttribute("email"));
 
         String sysPassword = request.getParameter("sysPassword");
         String newPassword = request.getParameter("yourPassword");
+        
+        User user = userDAO.getUserByEmail((String)request.getSession().getAttribute("email"));
+        if(user == null){
+            LOGGER.log(Level.INFO, "User not found for email: {0} (not revealing to user)", user.getEmail());
+            request.setAttribute("success", "If email exists, you can get a password to reset");
+            request.getRequestDispatcher("/public/auth/forget_password.jsp").forward(request, response);
+            return;            
+        }        
 
         if (sysPassword == null || sysPassword.isEmpty() || newPassword == null || newPassword.isEmpty()) {
             request.setAttribute("error", "Vui lòng nhập đầy đủ thông tin");
             request.getRequestDispatcher("/public/auth/change_password.jsp").forward(request, response);
             return;
         }
-
+        
+        
+        
         if (!sysPassword.equals(user.getPassword())) {
             request.setAttribute("error", "Mật khẩu hệ thống không đúng");
             request.getRequestDispatcher("/public/auth/change_password.jsp").forward(request, response);
             return;
         }
 
-        boolean isSuccess = userDAO.updatePassword(user.getUserId(), newPassword);
+        boolean isSuccess = userDAO.updatePassword((String)request.getSession().getAttribute("email"), newPassword);
+        request.getSession().invalidate();
         if (isSuccess) {
+            boolean isAlreadyChanged = userDAO.updateIsTemporaryPassword((String)request.getSession().getAttribute("email"),0);
+            if(isAlreadyChanged){
+                request.setAttribute("success", "Your password has been reset");     
+            }else{
+                LOGGER.log(Level.SEVERE,"Failed to updated isTemporaryPassword for userId: {0} ",(String)request.getSession().getAttribute("email"));
+                request.setAttribute("error", "Error");
+                return;
+            }            
             user.setPassword(newPassword);
-            request.getSession().setAttribute("user", user);
             LOGGER.log(Level.INFO, "Password changed successfully for userId: {0}", user.getUserId());
-            request.setAttribute("success", "Đổi mật khẩu thành công");
+            request.getSession().setAttribute("success", "Đổi mật khẩu thành công");
+            response.sendRedirect(request.getPathInfo()+"/v1/auth/login");
         } else {
             LOGGER.log(Level.SEVERE, "Failed to change password for userId: {0}", user.getUserId());
             request.setAttribute("error", "Đổi mật khẩu thất bại. Vui lòng thử lại");
