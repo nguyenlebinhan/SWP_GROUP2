@@ -131,6 +131,11 @@
     }
     .pw-toggle:hover { color: #555; }
 
+    /* ẩn icon mắt mặc định của trình duyệt */
+    input[type="password"]::-ms-reveal,
+    input[type="password"]::-ms-clear { display: none; }
+    input[type="password"]::-webkit-credentials-auto-fill-button { display: none; }
+
    
     .btn-submit {
       width: 100%; height: 46px;
@@ -227,13 +232,10 @@
         <i class="bi bi-check-circle"></i>
         <span><c:out value="${success}"/></span>
       </div>
-      <p class="redirect-notice">
-        Chuyển hướng sau <span id="countdown">5</span> giây...
-      </p>
     </c:if>
 
     <c:if test="${empty success}">
-      <form method="POST" action="${pageContext.request.contextPath}/v1/login/change-password">
+      <form method="POST" action="${pageContext.request.contextPath}/v1/auth/change-password">
 
         <div class="mb-3">
           <label class="form-label" for="sysPassword">
@@ -247,6 +249,7 @@
               class="form-control"
               placeholder="Nhập mật khẩu hệ thống"
               autocomplete="current-password"
+              value ="${sysPassword}"
               required
             />
             <button type="button" class="pw-toggle" onclick="togglePw('sysPassword', this)" aria-label="Hiện/ẩn mật khẩu">
@@ -321,14 +324,14 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/js/bootstrap.bundle.min.js"></script>
 <script>
   function togglePw(inputId, btn) {
-    var input = document.getElementById(inputId);
+    var inp = document.getElementById(inputId);
     var icon = btn.querySelector('i');
-    if (input.type === 'password') {
-      input.type = 'text';
-      icon.classList.replace('bi-eye', 'bi-eye-slash');
+    if (inp.type === 'password') {
+      inp.type = 'text';
+      icon.className = 'bi bi-eye-slash';
     } else {
-      input.type = 'password';
-      icon.classList.replace('bi-eye-slash', 'bi-eye');
+      inp.type = 'password';
+      icon.className = 'bi bi-eye';
     }
   }
 
