@@ -88,6 +88,7 @@ public class DBInitializer {
                 + "roleId INT NOT NULL,"
                 + "avatar VARCHAR(500),"
                 + "isTemporaryPassword BIT DEFAULT 0,"
+                + "isActive BIT DEFAULT 1,"
                 + "createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,"
                 + "updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,"
                 + "FOREIGN KEY (roleId) REFERENCES Roles(roleId)"
