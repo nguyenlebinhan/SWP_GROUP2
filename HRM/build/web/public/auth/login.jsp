@@ -213,10 +213,33 @@
 <div class="right-panel">
   <div class="auth-card">
 
-    <div class="logo-wrap">
-      <div class="logo-icon"><i class="bi bi-people-fill"></i></div>
-      <div class="logo-hrm"><span>H</span><span>R</span><span>M</span></div>
-      <div class="logo-powered">Powered by <span>Group 2</span></div>
+  <div class="logo-wrap">
+    <div class="logo-hrm"><span>H</span><span>R</span><span>M</span></div>
+    <div class="logo-powered">Powered by <span>Group 2</span></div>
+  </div>
+
+  <form class="login-form" method="POST" action="${pageContext.request.contextPath}/v1/login/login">
+    <h2>Đăng nhập hệ thống</h2>
+
+    <c:if test="${not empty error}">
+      <div class="alert alert-danger">
+        <i class="bi bi-exclamation-circle me-1"></i>
+        <c:out value="${error}"/>
+      </div>
+    </c:if>
+
+    <div class="mb-3">
+      <label for="username" class="form-label">Username <span class="required">*</span></label>
+      <input
+        type="text"
+        id="username"
+        name="username"
+        class="form-control"
+        placeholder="Nhập username"
+        value="<c:out value='${param.username}'/>"
+        autocomplete="username"
+        required
+      />
     </div>
 
     <p class="form-heading">Đăng nhập hệ thống</p>
@@ -243,6 +266,8 @@
           required
         />
       </div>
+      <a href="${pageContext.request.contextPath}/v1/login/forget-password" class="forgot-link">Quên mật khẩu?</a>
+    </div>
 
       <div class="mb-1">
         <label for="pwdInput" class="form-label">Mật khẩu <span class="required">*</span></label>
