@@ -4,13 +4,12 @@
  */
 package dao;
 
+import at.favre.lib.crypto.bcrypt.BCrypt;
 import dal.DBContext;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Timestamp;
-import java.time.LocalDateTime;
 import java.util.UUID;
 import java.util.logging.*;
 import model.User;
@@ -26,6 +25,9 @@ public class UserDAO {
     public UserDAO() {
         this.dbContext = new DBContext();
     }    
+    
+    
+    
     public String createResetPassword(int userId) {
         LOGGER.log(Level.INFO, "Creating reset password for userId: {0}", userId);
         
@@ -54,49 +56,50 @@ public class UserDAO {
         return null;
     }
     
-    public boolean updatePassword(int userId , String oldPassword){
-        LOGGER.log(Level.INFO,"Updated password for user with userId: {0}",userId);
+    public boolean updatePassword(String email , String oldPassword){
+        LOGGER.log(Level.INFO,"Updated password for user with email: {0}",email);
         
-        String SQL = "UPDATE users u set u.password = ? WHERE u.userId = ?";
+        String SQL = "UPDATE users u set u.password = ? WHERE u.email = ?";
         try(Connection conn = dbContext.getConnection();
             PreparedStatement ps = conn.prepareCall(SQL)){
             
-            ps.setString(1, oldPassword);
-            ps.setInt(2, userId);
+            ps.setString(1, hashPassword(oldPassword));
+            ps.setString(2, email);
             
             int rowsAffected = ps.executeUpdate();
             if(rowsAffected > 0){
-                LOGGER.log(Level.INFO,"Update password successfully for userId: {0}",userId);
+                LOGGER.log(Level.INFO,"Update password successfully for email: {0}",email);
                 return true;
             }else{
-                LOGGER.log(Level.WARNING,"Updating password failed: no rows affected for userId: {0}",userId);
+                LOGGER.log(Level.WARNING,"Updating password failed: no rows affected for email: {0}",email);
                 return false;
             }
         }catch(SQLException e){
-            LOGGER.log(Level.SEVERE,"Error updating password for userId: "+ userId,e);
+            LOGGER.log(Level.SEVERE,"Error updating password for email: "+ email,e);
             return false;
         }
     } 
 
-    public boolean updateIsTemporaryPassword(int userId ){
-        LOGGER.log(Level.INFO,"Updated isTemporaryPassword for user with userId: {0}",userId);
+    public boolean updateIsTemporaryPassword(String email, int setTrueFalse ){
+        LOGGER.log(Level.INFO,"Updated isTemporaryPassword for user with email: {0}",email);
         
-        String SQL = "UPDATE users u set u.isTemporaryPassword = 1 WHERE u.userId = ?";
+        String SQL = "UPDATE users u set u.isTemporaryPassword = ? WHERE u.email = ?";
         try(Connection conn = dbContext.getConnection();
             PreparedStatement ps = conn.prepareCall(SQL)){
             
-            ps.setInt(1, userId);
+            ps.setInt(1, setTrueFalse);
+            ps.setString(2, email);
             
             int rowsAffected = ps.executeUpdate();
             if(rowsAffected > 0){
-                LOGGER.log(Level.INFO,"Update isTemporaryPassword successfully for userId: {0}",userId);
+                LOGGER.log(Level.INFO,"Update isTemporaryPassword successfully for email: {0}",email);
                 return true;
             }else{
-                LOGGER.log(Level.WARNING,"Updating isTemporaryPassword failed: no rows affected for userId: {0}",userId);
+                LOGGER.log(Level.WARNING,"Updating isTemporaryPassword failed: no rows affected for email: {0}",email);
                 return false;
             }
         }catch(SQLException e){
-            LOGGER.log(Level.SEVERE,"Error updating isTemporaryPassword for userId: "+ userId,e);
+            LOGGER.log(Level.SEVERE,"Error updating isTemporaryPassword for email: "+ email,e);
             return false;
         }
     }     
@@ -121,6 +124,76 @@ public class UserDAO {
         return isTemporaryPassword;
     }
     
+    public boolean isEmailExists(String email) {
+        String sql = "SELECT 1 FROM users WHERE email = ?";
+        try (Connection conn = dbContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, email);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next();
+            }
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Error checking email existence: " + email, e);
+        }
+        return false;
+    }
+
+    public boolean addUser(String email, String password, String fullName, String dob, String gender, String address, int roleId) {
+        LOGGER.log(Level.INFO, "Adding new user with email: {0}", email);
+
+        if (isEmailExists(email)) {
+            LOGGER.log(Level.WARNING, "Add user failed: email already exists: {0}", email);
+            return false;
+        }
+        String username = email.contains("@") ? email.substring(0, email.indexOf('@')) : email;
+        String sql = "INSERT INTO users (username, email, password, fullName, dob, address, roleId, isTemporaryPassword) VALUES (?, ?, ?, ?, ?, ?, ?, 1)";
+
+        try (Connection conn = dbContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, username);
+            ps.setString(2, email);
+            ps.setString(3, hashPassword(password));
+            ps.setString(4, fullName);
+            ps.setString(5, dob);
+            ps.setString(6, address);
+            ps.setInt(7, roleId);
+
+            int rowsAffected = ps.executeUpdate();
+            if (rowsAffected > 0) {
+                LOGGER.log(Level.INFO, "User added successfully with email: {0}", email);
+                return true;
+            } else {
+                LOGGER.log(Level.WARNING, "Add user failed: no rows affected for email: {0}", email);
+                return false;
+            }
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Error adding user with email: " + email, e);
+        }
+        return false;
+    }
+    
+    public boolean handleStatus(int status,int userId){
+        LOGGER.log(Level.INFO,"Handling new status account with userId: {0}", userId);
+        String SQL = "UPDATE users u SET u.status = ? WHERE u.userId = ? ";
+        try (Connection conn = dbContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(SQL)) {
+            ps.setInt(1, status);
+            ps.setInt(2, userId);
+
+            int rowsAffected = ps.executeUpdate();
+            if (rowsAffected > 0) {
+                LOGGER.log(Level.INFO, "User added successfully with userId: {0}", userId);
+                return true;
+            } else {
+                LOGGER.log(Level.WARNING, "Add user failed: no rows affected for userId: {0}", userId);
+                return false;
+            }
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Error adding user with userId: " + userId, e);
+        }
+        return false;        
+    }
+
     public User getUserByEmail(String email) {
         LOGGER.log(Level.INFO, "Get user by email: ", email);
         String SQL = "SELECT u.userId,u.username,u.email,u.password,u.fullName,u.dob,u.address,r.roleName,u.isTemporaryPassword FROM Users u JOIN Roles r on r.roleId = u.roleId WHERE u.email = ?  ";
@@ -161,12 +234,28 @@ public class UserDAO {
         return null;
     }
 
-    public User authenticate(String username, String password) {
-        User user = getUserByUsername(username);
-        if (user == null || password == null || !password.equals(user.getPassword())) {
-            return null;
+    public User authenticate(String identifier, String password) {
+        if (identifier == null || password == null) return null;
+        User user = getUserByUsername(identifier);
+        if (user == null) {
+            user = getUserByEmail(identifier);
         }
+        if (user == null) return null;
+        if (!checkPassword(password, user.getPassword())) return null;
         return user;
+    }
+
+    public static String hashPassword(String plainPassword) {
+        return BCrypt.withDefaults().hashToString(12, plainPassword.toCharArray());
+    }
+
+    public static boolean verifyPassword(String plainPassword, String hashedPassword) {
+        return BCrypt.verifyer().verify(plainPassword.toCharArray(), hashedPassword).verified;
+    }
+
+    private static boolean checkPassword(String plain, String stored) {
+        if (stored == null) return false;
+        return verifyPassword(plain, stored);
     }
 
     private User mapUser(ResultSet rs) throws SQLException {

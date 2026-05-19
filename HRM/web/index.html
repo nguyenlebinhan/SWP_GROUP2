@@ -1,14 +1,9 @@
 <!DOCTYPE html>
-<!--
-Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
-Click nbfs://nbhost/SystemFileSystem/Templates/JSP_Servlet/Html.html to edit this template
--->
-<!DOCTYPE html>
 <html lang="vi">
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>HRM</title>
+  <title>HRM - Hệ thống Quản trị Nhân sự</title>
   <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/css/bootstrap.min.css" rel="stylesheet"/>
   <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.11.3/font/bootstrap-icons.min.css" rel="stylesheet"/>
   <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
@@ -21,6 +16,7 @@ Click nbfs://nbhost/SystemFileSystem/Templates/JSP_Servlet/Html.html to edit thi
       display: flex;
       height: 100vh;
       overflow: hidden;
+      background: #0d1240;
     }
 
     /* ── LEFT PANEL ── */
@@ -28,564 +24,255 @@ Click nbfs://nbhost/SystemFileSystem/Templates/JSP_Servlet/Html.html to edit thi
       flex: 0 0 58%;
       position: relative;
       overflow: hidden;
-      background: #0b0e2a;
     }
 
-    /* deep space gradient background */
-    .left-panel::before {
-      content: '';
-      position: absolute; inset: 0;
-      background:
-        radial-gradient(ellipse 80% 60% at 20% 110%, #1a2a6c 0%, transparent 60%),
-        radial-gradient(ellipse 60% 50% at 80% -10%, #2d1b69 0%, transparent 55%),
-        radial-gradient(ellipse 40% 40% at 50% 50%, #0f1535 0%, transparent 80%),
-        linear-gradient(160deg, #08091f 0%, #0d1240 40%, #0a0e2e 100%);
-      z-index: 0;
+    .left-panel .panel-img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: center;
+      display: block;
     }
-
-    /* wavy dark blob at bottom */
-    .wave-blob {
-      position: absolute;
-      bottom: 0; left: 0; right: 0;
-      z-index: 1;
-    }
-
-    /* stars */
-    .stars {
-      position: absolute; inset: 0; z-index: 1;
-      overflow: hidden;
-    }
-    .star {
-      position: absolute;
-      background: #fff;
-      border-radius: 50%;
-      animation: twinkle var(--d) ease-in-out infinite alternate;
-    }
-    @keyframes twinkle {
-      from { opacity: var(--min); }
-      to   { opacity: var(--max); }
-    }
-
-    /* floating planets */
-    .planet {
-      position: absolute;
-      border-radius: 50%;
-      z-index: 2;
-    }
-    .planet-1 {
-      width: 90px; height: 90px;
-      background: radial-gradient(circle at 35% 35%, #7b5ea7, #3d2b6b);
-      top: 6%; right: 18%;
-      box-shadow: inset -8px -8px 20px rgba(0,0,0,.5);
-      animation: floatP 7s ease-in-out infinite;
-    }
-    .planet-1::after {
-      content: '';
-      position: absolute;
-      top: 50%; left: -30%;
-      width: 160%; height: 28%;
-      border: 3px solid rgba(180,140,220,.35);
-      border-radius: 50%;
-      transform: translateY(-50%) rotateX(70deg);
-    }
-    .planet-2 {
-      width: 38px; height: 38px;
-      background: radial-gradient(circle at 35% 35%, #4fc3f7, #1565c0);
-      top: 12%; right: 8%;
-      box-shadow: inset -4px -4px 10px rgba(0,0,0,.4);
-      animation: floatP 5s ease-in-out infinite reverse;
-    }
-    .planet-3 {
-      width: 22px; height: 22px;
-      background: radial-gradient(circle at 35% 35%, #a5d6a7, #2e7d32);
-      top: 28%; right: 6%;
-      animation: floatP 6s ease-in-out 1s infinite;
-    }
-    @keyframes floatP {
-      0%,100% { transform: translateY(0); }
-      50% { transform: translateY(-14px); }
-    }
-
-    /* tagline */
-    .tagline {
-      position: absolute;
-      top: 50%;
-      left: 7%;
-      transform: translateY(-58%);
-      z-index: 10;
-    }
-    .tagline h1 {
-      font-size: clamp(2.4rem, 4vw, 3.8rem);
-      font-weight: 800;
-      color: #fff;
-      line-height: 1.12;
-      letter-spacing: -.5px;
-    }
-
-    /* isometric illustration (CSS-drawn) */
-    .illustration {
-      position: absolute;
-      bottom: 10%;
-      left: 50%;
-      transform: translateX(-45%);
-      z-index: 10;
-      width: 420px;
-    }
-
-    /* bottom bar */
-    .bottom-bar {
-      position: absolute;
-      bottom: 1.5rem;
-      left: 0; right: 0;
-      display: flex;
-      justify-content: center;
-      z-index: 20;
-    }
-    .bottom-bar a {
-      color: rgba(255,255,255,.7);
-      font-size: .78rem;
-      text-decoration: none;
-      background: rgba(255,255,255,.08);
-      border: 1px solid rgba(255,255,255,.15);
-      padding: .45rem 1.1rem;
-      border-radius: 20px;
-      display: flex; align-items: center; gap: .5rem;
-      transition: background .2s;
-    }
-    .bottom-bar a:hover { background: rgba(255,255,255,.15); }
 
     /* ── RIGHT PANEL ── */
     .right-panel {
       flex: 0 0 42%;
-      background: #fff;
+      background: #f5f6fa;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
       padding: 2.5rem 3.5rem;
       position: relative;
+      /* subtle left border echoing the panel's blue glow */
+      border-left: 1px solid rgba(21, 101, 192, 0.12);
     }
+    
 
-    /* flag */
-    .flag-btn {
-      position: absolute;
-      top: 1.2rem; right: 1.2rem;
-      width: 34px; height: 24px;
-      border-radius: 3px;
-      overflow: hidden;
-      border: 1px solid #e0e0e0;
-      cursor: pointer;
+    /* card container */
+    .auth-card {
+      width: 100%;
+      max-width: 340px;
+      background: #fff;
+      border-radius: 20px;
+      padding: 2.8rem 2.4rem 2.2rem;
+      box-shadow:
+        0 2px 8px rgba(13,18,64,.06),
+        0 12px 40px rgba(13,18,64,.10);
     }
-    .flag-btn svg { width: 100%; height: 100%; }
 
     /* logo */
     .logo-wrap {
       text-align: center;
-      margin-bottom: 2.2rem;
+      margin-bottom: 2rem;
+    }
+    .logo-icon {
+      width: 56px;
+      height: 56px;
+      background: linear-gradient(135deg, #1565c0 0%, #0d47a1 100%);
+      border-radius: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto .9rem;
+      box-shadow: 0 4px 16px rgba(21,101,192,.3);
+    }
+    .logo-icon i {
+      font-size: 1.6rem;
+      color: #fff;
     }
     .logo-hrm {
-      font-size: 2rem;
+      font-size: 1.8rem;
       font-weight: 800;
       letter-spacing: -.5px;
+      line-height: 1;
     }
-    .logo-hrm .h { color: #ff6b00; }
-    .logo-hrm .r { color: #ff6b00; }
-    .logo-hrm .m { color: #ff6b00; }
+    .logo-hrm .h, .logo-hrm .r, .logo-hrm .m { color: #ff6b00; }
     .logo-powered {
       font-size: .72rem;
-      color: #999;
-      letter-spacing: .02em;
-      margin-top: .1rem;
+      color: #aaa;
+      margin-top: .25rem;
     }
     .logo-powered span { color: #ff6b00; font-weight: 600; }
 
-    /* form */
-    .login-form { width: 100%; max-width: 360px; }
-    .login-form h2 {
-      font-size: 1.5rem;
-      font-weight: 700;
-      text-align: center;
+    /* welcome heading */
+    .welcome-heading {
+      font-size: 1.1rem;
+      font-weight: 600;
       color: #1a1a2e;
-      margin-bottom: 1.8rem;
+      text-align: center;
+      margin-bottom: .5rem;
     }
-
-    .form-label {
-      font-size: .8rem;
-      font-weight: 600;
-      color: #333;
-      margin-bottom: .35rem;
-    }
-    .required { color: #e53935; margin-left: 2px; }
-
-    .form-control {
-      border: 1.5px solid #e0e0e0;
-      border-radius: 8px;
-      height: 46px;
-      font-size: .875rem;
-      color: #333;
-      transition: border-color .2s, box-shadow .2s;
-      padding: 0 .9rem;
-    }
-    .form-control:focus {
-      border-color: #1565c0;
-      box-shadow: 0 0 0 3px rgba(21,101,192,.1);
-      outline: none;
-    }
-    .form-control::placeholder { color: #bbb; }
-
-    .input-group .form-control { border-right: none; border-radius: 8px 0 0 8px; }
-    .input-group .btn-eye {
-      border: 1.5px solid #e0e0e0;
-      border-left: none;
-      background: #fff;
-      border-radius: 0 8px 8px 0;
-      color: #bbb;
-      padding: 0 .8rem;
-      transition: color .2s;
-    }
-    .input-group .btn-eye:hover { color: #555; }
-
-    .forgot-link {
-      display: block;
-      text-align: right;
+    .welcome-sub {
       font-size: .78rem;
-      color: #888;
-      text-decoration: none;
-      margin-top: .4rem;
-      transition: color .2s;
+      color: #9aa0b5;
+      text-align: center;
+      margin-bottom: 2rem;
+      line-height: 1.5;
     }
-    .forgot-link:hover { color: #1565c0; }
-
-    .btn-login {
-      width: 100%;
-      height: 48px;
-      background: #1565c0;
-      color: #fff;
-      border: none;
-      border-radius: 8px;
-      font-size: .95rem;
-      font-weight: 600;
-      letter-spacing: .02em;
-      margin-top: 1.4rem;
-      transition: background .2s, transform .1s, box-shadow .2s;
-      cursor: pointer;
-    }
-    .btn-login:hover {
-      background: #0d47a1;
-      box-shadow: 0 4px 16px rgba(21,101,192,.35);
-      transform: translateY(-1px);
-    }
-    .btn-login:active { transform: translateY(0); }
 
     /* divider */
     .divider {
-      display: flex; align-items: center; gap: .8rem;
-      margin: 1.2rem 0;
+      display: flex;
+      align-items: center;
+      gap: .7rem;
+      margin: 1.4rem 0;
     }
     .divider::before, .divider::after {
-      content: ''; flex: 1;
-      height: 1px; background: #ebebeb;
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: #eef0f5;
     }
-    .divider span { font-size: .78rem; color: #bbb; }
-
-    /* google btn */
-    .btn-google {
-      width: 100%;
-      height: 46px;
-      background: #f8f9fa;
-      border: 1.5px solid #e0e0e0;
-      border-radius: 8px;
-      font-size: .875rem;
-      font-weight: 500;
-      color: #444;
-      display: flex; align-items: center; justify-content: center; gap: .6rem;
-      cursor: pointer;
-      transition: background .2s, border-color .2s;
-    }
-    .btn-google:hover { background: #fff; border-color: #bbb; }
-    .g-logo {
-      width: 18px; height: 18px;
-      background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Cpath fill='%234285F4' d='M45.12 24.5c0-1.56-.14-3.06-.4-4.5H24v8.51h11.84c-.51 2.75-2.06 5.08-4.39 6.64v5.52h7.11c4.16-3.83 6.56-9.47 6.56-16.17z'/%3E%3Cpath fill='%2334A853' d='M24 46c5.94 0 10.92-1.97 14.56-5.33l-7.11-5.52c-1.97 1.32-4.49 2.1-7.45 2.1-5.73 0-10.58-3.87-12.31-9.07H4.34v5.7C7.96 41.07 15.4 46 24 46z'/%3E%3Cpath fill='%23FBBC05' d='M11.69 28.18C11.25 26.86 11 25.45 11 24s.25-2.86.69-4.18v-5.7H4.34C2.85 17.09 2 20.45 2 24c0 3.55.85 6.91 2.34 9.88l7.35-5.7z'/%3E%3Cpath fill='%23EA4335' d='M24 10.75c3.23 0 6.13 1.11 8.41 3.29l6.31-6.31C34.91 4.18 29.93 2 24 2 15.4 2 7.96 6.93 4.34 14.12l7.35 5.7c1.73-5.2 6.58-9.07 12.31-9.07z'/%3E%3C/svg%3E") center/contain no-repeat;
+    .divider span {
+      font-size: .72rem;
+      color: #c5c9d8;
     }
 
-    .signup-text {
-      text-align: center;
-      font-size: .82rem;
-      color: #888;
-      margin-top: 1.4rem;
-    }
-    .signup-text a {
-      color: #1565c0;
-      font-weight: 600;
-      text-decoration: none;
-    }
-    .signup-text a:hover { text-decoration: underline; }
-
-    /* toggle password */
-    #togglePwd { cursor: pointer; }
-    
+    /* action buttons */
     .btn-action {
-        display: flex;
-        align-items: center;
-        text-decoration: none;
-        padding: 12px 20px;
-        border-radius: 12px;
-        margin-bottom: 15px;
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        border: 1px solid transparent;
+      display: flex;
+      align-items: center;
+      text-decoration: none;
+      padding: .9rem 1.2rem;
+      border-radius: 12px;
+      margin-bottom: .85rem;
+      transition: all .25s cubic-bezier(.4, 0, .2, 1);
+      border: 1.5px solid transparent;
+      gap: .9rem;
     }
 
     .icon-box {
-        width: 40px;
-        height: 40px;
-        border-radius: 10px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        margin-right: 15px;
-        font-size: 1.2rem;
-        transition: transform 0.3s;
+      width: 38px;
+      height: 38px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.1rem;
+      flex-shrink: 0;
+      transition: transform .25s;
     }
 
-    .btn-action span {
-        font-weight: 600;
-        font-size: 0.95rem;
+    .btn-action .label {
+      font-weight: 600;
+      font-size: .9rem;
+      flex: 1;
     }
 
-    /* Style Đăng nhập (Xanh) */
+    .btn-action .arrow {
+      font-size: .8rem;
+      opacity: .45;
+      transition: opacity .2s, transform .2s;
+    }
+
+    /* login style */
     .login-style {
-        background-color: #f0f7ff;
-        color: #1565c0;
-        border-color: #d0e3ff;
+      background: #eef4ff;
+      color: #1565c0;
+      border-color: #d5e4ff;
     }
     .login-style .icon-box {
-        background-color: #1565c0;
-        color: white;
+      background: #1565c0;
+      color: #fff;
     }
     .login-style:hover {
-        background-color: #1565c0;
-        color: white;
-        transform: translateY(-3px);
-        box-shadow: 0 10px 20px rgba(21, 101, 192, 0.2);
+      background: #1565c0;
+      color: #fff;
+      border-color: #1565c0;
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(21,101,192,.25);
+    }
+    .login-style:hover .icon-box {
+      background: rgba(255,255,255,.2);
+      color: #fff;
+    }
+    .login-style:hover .arrow { opacity: .9; transform: translateX(3px); }
+
+    /* footer note */
+    .footer-note {
+      text-align: center;
+      font-size: .72rem;
+      color: #b0b6c8;
+      line-height: 1.6;
+      margin-top: 1.6rem;
+      padding-top: 1.2rem;
+      border-top: 1px solid #f0f2f8;
     }
 
-    /* Style Đăng ký (Cam) */
-    .signup-style {
-        background-color: #fff5eb;
-        color: #ff6b00;
-        border-color: #ffe0c2;
+    /* bottom brand strip outside card */
+    .brand-strip {
+      margin-top: 1.6rem;
+      display: flex;
+      align-items: center;
+      gap: .5rem;
+      font-size: .72rem;
+      color: #c0c5d4;
     }
-    .signup-style .icon-box {
-        background-color: #ff6b00;
-        color: white;
-    }
-    .signup-style:hover {
-        background-color: #ff6b00;
-        color: white;
-        transform: translateY(-3px);
-        box-shadow: 0 10px 20px rgba(255, 107, 0, 0.2);
+    .brand-strip .dot {
+      width: 4px;
+      height: 4px;
+      background: #d0d4e0;
+      border-radius: 50%;
     }
 
-    .btn-action:hover .icon-box {
-        background-color: white;
-        color: inherit;
-        transform: scale(1.1);
-    }    
+    /* responsive */
+    @media (max-width: 768px) {
+      .left-panel { display: none; }
+      .right-panel { flex: 1; padding: 2rem 1.5rem; }
+    }
   </style>
 </head>
 <body>
 
-<!-- ══════════════════ LEFT ══════════════════ -->
+<!-- ══════════════════ LEFT PANEL ══════════════════ -->
 <div class="left-panel">
-  <!-- stars -->
-  <div class="stars" id="stars"></div>
-
-  <!-- planets -->
-  <div class="planet planet-1"></div>
-  <div class="planet planet-2"></div>
-  <div class="planet planet-3"></div>
-
-  <!-- tagline -->
-  <div class="tagline">
-    <h1>Make<br>Business<br>Better</h1>
-  </div>
-
-  <!-- isometric SVG illustration -->
-  <div class="illustration">
-    <svg viewBox="0 0 500 340" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <!-- base platform -->
-      <ellipse cx="250" cy="290" rx="200" ry="30" fill="rgba(30,50,150,.3)"/>
-
-      <!-- main platform top -->
-      <path d="M100 220 L250 160 L400 220 L250 280 Z" fill="#1a3a8f"/>
-      <path d="M100 220 L100 240 L250 300 L250 280 Z" fill="#0d2060"/>
-      <path d="M400 220 L400 240 L250 300 L250 280 Z" fill="#1530a0"/>
-
-      <!-- glowing lines on platform -->
-      <path d="M140 230 L250 175 L360 230" stroke="rgba(100,180,255,.4)" stroke-width="1.5" fill="none"/>
-      <path d="M160 240 L250 190 L340 240" stroke="rgba(100,180,255,.25)" stroke-width="1" fill="none"/>
-
-      <!-- grid squares on platform -->
-      <rect x="165" y="200" width="24" height="24" rx="2" fill="rgba(50,120,255,.5)" transform="rotate(-30 177 212)"/>
-      <rect x="305" y="200" width="24" height="24" rx="2" fill="rgba(50,120,255,.5)" transform="rotate(30 317 212)"/>
-      <rect x="235" y="185" width="18" height="18" rx="2" fill="rgba(80,160,255,.6)" transform="rotate(-10 244 194)"/>
-
-      <!-- central monitor/screen -->
-      <rect x="195" y="100" width="110" height="80" rx="8" fill="#1e3c9a" stroke="rgba(100,180,255,.6)" stroke-width="2"/>
-      <rect x="200" y="105" width="100" height="70" rx="6" fill="#0d2270"/>
-      <!-- screen content -->
-      <circle cx="250" cy="140" r="22" fill="none" stroke="rgba(80,200,255,.7)" stroke-width="3"/>
-      <circle cx="250" cy="140" r="14" fill="none" stroke="rgba(80,200,255,.4)" stroke-width="2"/>
-      <circle cx="250" cy="140" r="6" fill="rgba(80,200,255,.8)"/>
-      <!-- screen base -->
-      <rect x="240" y="180" width="20" height="12" rx="2" fill="#1e3c9a"/>
-      <rect x="230" y="192" width="40" height="5" rx="2" fill="#1a3082"/>
-
-      <!-- character (sitting figure) -->
-      <!-- body -->
-      <ellipse cx="210" cy="195" rx="22" ry="25" fill="#e8923a"/>
-      <!-- head -->
-      <circle cx="210" cy="162" r="18" fill="#f5cba7"/>
-      <!-- hair -->
-      <path d="M192 158 Q210 145 228 158 Q225 150 210 147 Q195 150 192 158Z" fill="#6b3a2a"/>
-      <!-- left arm pointing to screen -->
-      <path d="M232 182 Q255 165 270 158" stroke="#e8923a" stroke-width="10" stroke-linecap="round" fill="none"/>
-      <!-- hand -->
-      <circle cx="272" cy="156" r="7" fill="#f5cba7"/>
-      <!-- legs -->
-      <path d="M198 218 Q190 235 185 250" stroke="#7b4fa0" stroke-width="12" stroke-linecap="round" fill="none"/>
-      <path d="M222 218 Q228 235 230 250" stroke="#7b4fa0" stroke-width="12" stroke-linecap="round" fill="none"/>
-      <!-- shoes -->
-      <ellipse cx="182" cy="253" rx="10" ry="6" fill="#4a3020"/>
-      <ellipse cx="232" cy="253" rx="10" ry="6" fill="#4a3020"/>
-
-      <!-- floating coins -->
-      <g transform="translate(65,205)">
-        <ellipse cx="0" cy="0" rx="26" ry="14" fill="#f5a623"/>
-        <ellipse cx="0" cy="-6" rx="26" ry="14" fill="#f7c948"/>
-        <text x="0" y="-2" text-anchor="middle" font-size="12" font-weight="bold" fill="#d4890a">$</text>
-      </g>
-      <g transform="translate(390,240)">
-        <ellipse cx="0" cy="0" rx="30" ry="16" fill="#f5a623"/>
-        <ellipse cx="0" cy="-7" rx="30" ry="16" fill="#f7c948"/>
-        <text x="0" y="-2" text-anchor="middle" font-size="14" font-weight="bold" fill="#d4890a">$</text>
-      </g>
-      <g transform="translate(120,290)">
-        <ellipse cx="0" cy="0" rx="20" ry="11" fill="#f5a623"/>
-        <ellipse cx="0" cy="-5" rx="20" ry="11" fill="#f7c948"/>
-        <text x="0" y="-1" text-anchor="middle" font-size="10" font-weight="bold" fill="#d4890a">$</text>
-      </g>
-
-      <!-- squiggly connectors -->
-      <path d="M100 270 Q120 255 140 270 Q160 285 180 265" stroke="rgba(100,180,255,.5)" stroke-width="2" fill="none" stroke-dasharray="4 3"/>
-      <path d="M340 275 Q360 260 380 275" stroke="rgba(100,180,255,.5)" stroke-width="2" fill="none" stroke-dasharray="4 3"/>
-
-      <!-- small isometric blocks -->
-      <path d="M310 230 L325 222 L340 230 L325 238 Z" fill="#3050d0"/>
-      <path d="M310 230 L310 242 L325 250 L325 238 Z" fill="#1a3080"/>
-      <path d="M340 230 L340 242 L325 250 L325 238 Z" fill="#2540b0"/>
-
-      <path d="M150 245 L163 238 L176 245 L163 252 Z" fill="#3050d0"/>
-      <path d="M150 245 L150 255 L163 262 L163 252 Z" fill="#1a3080"/>
-      <path d="M176 245 L176 255 L163 262 L163 252 Z" fill="#2540b0"/>
-
-      <!-- bottom character (small, peeking) -->
-      <circle cx="250" cy="318" r="12" fill="#f5cba7"/>
-      <path d="M238 318 Q250 308 262 318" fill="#5a2d10"/>
-      <circle cx="246" cy="316" r="2" fill="#5a2d10"/>
-      <circle cx="254" cy="316" r="2" fill="#5a2d10"/>
-
-      <!-- glow effects -->
-      <ellipse cx="250" cy="140" rx="60" ry="60" fill="rgba(50,120,255,.06)"/>
-      <ellipse cx="250" cy="220" rx="120" ry="50" fill="rgba(30,80,200,.08)"/>
-    </svg>
-  </div>
-
-  <!-- bottom label -->
-  <div class="bottom-bar">
-    <a href="#">
-      <i class="bi bi-box-arrow-up-right"></i>
-       HRM - Phần mềm Quản trị nhân sự
-    </a>
-  </div>
+  <img src="public/asset/Left Panel.jpg" alt="HRM System" class="panel-img"/>
 </div>
 
-<!-- ══════════════════ RIGHT ══════════════════ -->
+<!-- ══════════════════ RIGHT PANEL ══════════════════ -->
 <div class="right-panel">
-    <!-- VN flag -->
-    <div class="flag-btn" title="Tiếng Việt">
-        <svg viewBox="0 0 30 20" xmlns="http://www.w3.org/2000/svg">
-            <rect width="30" height="20" fill="#DA251D"/>
-            <polygon points="15,4 16.8,9.5 22.5,9.5 17.9,12.8 19.7,18.3 15,15 10.3,18.3 12.1,12.8 7.5,9.5 13.2,9.5" fill="#FFFF00"/>
-        </svg>
-    </div>
-
-    <!-- Logo -->
+  <div class="auth-card">
     <div class="logo-wrap">
-        <div class="logo-hrm">
-            <span class="h">H</span><span class="r">R</span><span class="m">M</span>
-        </div>
-        <div class="logo-powered">Powered by <span>Group 2</span></div>
+      <div class="logo-icon">
+        <i class="bi bi-people-fill"></i>
+      </div>
+      <div class="logo-hrm">
+        <span class="h">H</span><span class="r">R</span><span class="m">M</span>
+      </div>
+      <div class="logo-powered">Powered by <span>Group 2</span></div>
     </div>
 
-    <div class="action-container" style="width: 100%; max-width: 320px; text-align: center;">
-        <h2 style="font-size: 1.25rem; font-weight: 600; color: #444; margin-bottom: 2rem;">Chào mừng bạn quay trở lại</h2>
+    <!-- welcome -->
+    <p class="welcome-heading">Chào mừng trở lại!</p>
+    <p class="welcome-sub">Đăng nhập để quản lý nhân sự<br>và tổ chức của bạn</p>
 
-        <!-- Button Đăng nhập -->
-        <a href="http://localhost:8080/HRM/v1/login/login" class="btn-action login-style">
-            <div class="icon-box"><i class="bi bi-person-check"></i></div>
-            <span>Đăng nhập hệ thống</span>
-        </a>
+    <!-- login button -->
+    <a href="v1/auth/login" class="btn-action login-style">
+      <div class="icon-box"><i class="bi bi-person-check-fill"></i></div>
+      <span class="label">Đăng nhập hệ thống</span>
+      <i class="bi bi-arrow-right arrow"></i>
+    </a>
 
-        <div style="margin: 1rem 0; color: #ccc; font-size: 0.8rem; font-weight: 500;">HOẶC</div>
-
-        <!-- Button Đăng ký -->
-        <a href="http://localhost:8080/HRM/v1/login/register" class="btn-action signup-style">
-            <div class="icon-box"><i class="bi bi-person-plus"></i></div>
-            <span>Tạo tài khoản mới</span>
-        </a>
-
-        <p style="margin-top: 3rem; font-size: 0.75rem; color: #999; line-height: 1.5;">
-            Hệ thống quản trị nhân sự tập trung.<br>
-            Vui lòng liên hệ Admin nếu gặp sự cố truy cập.
-        </p>
+    <!-- footer note -->
+    <div class="footer-note">
+      Gặp sự cố truy cập? Vui lòng liên hệ<br>
+      <strong style="color:#9aa0b5;">Quản trị viên hệ thống</strong>
     </div>
+
+  </div>
+
+  <!-- brand strip -->
+  <div class="brand-strip">
+    <span>HRM System</span>
+    <span class="dot"></span>
+    <span>Phần mềm Quản trị Nhân sự</span>
+    <span class="dot"></span>
+    <span>v2.0</span>
+  </div>
+
 </div>
-  
-<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/js/bootstrap.bundle.min.js"></script>
-<script>
-  // Generate stars
-  const starsEl = document.getElementById('stars');
-  for (let i = 0; i < 120; i++) {
-    const s = document.createElement('div');
-    s.className = 'star';
-    const size = Math.random() * 2.5 + .5;
-    const minO = (Math.random() * .3 + .1).toFixed(2);
-    const maxO = (Math.random() * .5 + .4).toFixed(2);
-    s.style.cssText = `
-      width:${size}px; height:${size}px;
-      top:${Math.random()*100}%;
-      left:${Math.random()*100}%;
-      --d:${(Math.random()*3+2).toFixed(1)}s;
-      --min:${minO}; --max:${maxO};
-      animation-delay:${(Math.random()*3).toFixed(1)}s;
-    `;
-    starsEl.appendChild(s);
-  }
 
-  // Toggle password
-  document.getElementById('togglePwd').addEventListener('click', () => {
-    const inp = document.getElementById('pwdInput');
-    const icon = document.getElementById('eyeIcon');
-    if (inp.type === 'password') {
-      inp.type = 'text';
-      icon.className = 'bi bi-eye-slash';
-    } else {
-      inp.type = 'password';
-      icon.className = 'bi bi-eye';
-    }
-  });
-</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
-
