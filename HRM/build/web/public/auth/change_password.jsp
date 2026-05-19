@@ -196,7 +196,7 @@
     </c:if>
 
     <c:if test="${empty success}">
-      <form method="POST" action="${pageContext.request.contextPath}/v1/auth/change-password">
+      <form method="POST" action="${pageContext.request.contextPath}/v1/login/change-password">
 
         <div class="mb-3">
           <label class="form-label" for="sysPassword">
@@ -244,7 +244,7 @@
       </form>
     </c:if>
 
-    <a href="${pageContext.request.contextPath}/v1/auth/login" class="back-link">
+    <a href="${pageContext.request.contextPath}/v1/login/login" class="back-link">
       ← Quay lại đăng nhập
     </a>
   </div>
@@ -275,7 +275,7 @@
       countdownEl.textContent = seconds;
       if (seconds <= 0) {
         clearInterval(timer);
-        window.location.href = '${pageContext.request.contextPath}/v1/auth/login';
+        window.location.href = '${pageContext.request.contextPath}/v1/login/login';
       }
     }, 1000);
   }
