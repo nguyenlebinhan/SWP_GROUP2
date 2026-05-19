@@ -21,7 +21,6 @@
       background: #0d1240;
     }
 
-    /* LEFT PANEL */
     .left-panel {
       flex: 0 0 58%;
       position: relative;
@@ -35,7 +34,6 @@
       display: block;
     }
 
-    /* RIGHT PANEL */
     .right-panel {
       flex: 0 0 42%;
       background: #f5f6fa;
@@ -49,7 +47,6 @@
       overflow-y: auto;
     }
 
-    /* auth card */
     .auth-card {
       width: 100%;
       max-width: 360px;
@@ -59,30 +56,18 @@
       box-shadow: 0 2px 8px rgba(13,18,64,.06), 0 12px 40px rgba(13,18,64,.10);
     }
 
-    /* logo */
     .logo-wrap { text-align: center; margin-bottom: 1.6rem; }
-    .logo-icon {
-      width: 52px; height: 52px;
-      background: linear-gradient(135deg, #1565c0 0%, #0d47a1 100%);
-      border-radius: 14px;
-      display: flex; align-items: center; justify-content: center;
-      margin: 0 auto .75rem;
-      box-shadow: 0 4px 14px rgba(21,101,192,.3);
-    }
-    .logo-icon i { font-size: 1.5rem; color: #fff; }
     .logo-hrm { font-size: 1.7rem; font-weight: 800; letter-spacing: -.5px; line-height: 1; }
     .logo-hrm span { color: #ff6b00; }
     .logo-powered { font-size: .7rem; color: #aaa; margin-top: .2rem; }
     .logo-powered span { color: #ff6b00; font-weight: 600; }
 
-    /* form heading */
     .form-heading {
       font-size: 1.15rem; font-weight: 700;
       color: #1a1a2e; text-align: center;
       margin-bottom: 1.4rem;
     }
 
-    /* labels & inputs */
     .form-label {
       font-size: .78rem; font-weight: 600;
       color: #444; margin-bottom: .3rem; display: block;
@@ -103,7 +88,6 @@
     }
     .form-control::placeholder { color: #c0c4d0; }
 
-    /* password field */
     .pw-wrap { position: relative; }
     .pw-wrap .form-control { padding-right: 2.8rem; }
     .pw-toggle {
@@ -124,7 +108,6 @@
     }
     .forgot-link:hover { color: #1565c0; }
 
-    /* submit btn */
     .btn-submit {
       width: 100%; height: 46px;
       background: #1565c0; color: #fff;
@@ -142,7 +125,6 @@
     }
     .btn-submit:active { transform: translateY(0); }
 
-    /* divider */
     .divider {
       display: flex; align-items: center; gap: .7rem;
       margin: 1.1rem 0;
@@ -152,7 +134,6 @@
     }
     .divider span { font-size: .7rem; color: #c5c9d8; letter-spacing: .04em; }
 
-    /* google btn */
     .btn-google {
       width: 100%; height: 44px;
       background: #f8f9fa; border: 1.5px solid #e4e6ef;
@@ -166,7 +147,7 @@
     .btn-google:hover { background: #fff; border-color: #bbb; color: #222; }
     .g-logo {
       width: 17px; height: 17px; flex-shrink: 0;
-      background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Cpath fill='%234285F4' d='M45.12 24.5c0-1.56-.14-3.06-.4-4.5H24v8.51h11.84c-.51 2.75-2.06 5.08-4.39 6.64v5.52h7.11c4.16-3.83 6.56-9.47 6.56-16.17z'/%3E%3Cpath fill='%2334A853' d='M24 46c5.94 0 10.92-1.97 14.56-5.33l-7.11-5.52c-1.97 1.32-4.49 2.1-7.45 2.1-5.73 0-10.58-3.87-12.31-9.07H4.34v5.7C7.96 41.07 15.4 46 24 46z'/%3E%3Cpath fill='%23FBBC05' d='M11.69 28.18C11.25 26.86 11 25.45 11 24s.25-2.86.69-4.18v-5.7H4.34C2.85 17.09 2 20.45 2 24c0 3.55.85 6.91 2.34 9.88l7.35-5.7z'/%3E%3Cpath fill='%23EA4335' d='M24 10.75c3.23 0 6.13 1.11 8.41 3.29l6.31-6.31C34.91 4.18 29.93 2 24 2 15.4 2 7.96 6.93 4.34 14.12l7.35 5.7c1.73-5.2 6.58-9.07 12.31-9.07z'/%3E%3C/svg%3E") center/contain no-repeat;
+      background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Cpath fill='%234285F4' d='M45.12 24.5c0-1.56-.14-3.06-.4-4.5H24v8.51h11.84c-.51 2.75-2.06 5.08-4.39 6.64v5.52h7.11c4.16-3.83 6.56-9.47 6.56-16.17z'/%3E%3Cpath fill='%2334A853' d='M24 46c5.94 0 10.92-1.97 14.56-5.33l-7.11-5.52c-1.97 1.32-4.49 2.1-7.45 2.1-5.73 0-10.58-3.87-12.31-9.07H4.34v5.7C7.96 41.07 15.4 46 24 46z'/%3E%3Cpath fill='%23FBBC05' d='M11.69 28.18C11.25 26.86 11 25.45 11 24s.25-2.86.69-4.18v-5.7H4.34C2.85 17.09 2 20.45 2 24c0 3.55.85 6.91 2.34 9.88l7.35-5.7z'/%3E%3Cpath fill='%23EA4335' d='M24 10.75c3.23 0 6.13 1.11 8.41 3.29l6.31-6.31C34.91 4.18 29.93 2 24 2 15.4 2 7.96 6.93 4.34 14.12l7.35 5.7z'/%3E%3C/svg%3E") center/contain no-repeat;
     }
 
     .signup-text {
@@ -176,7 +157,6 @@
     .signup-text a { color: #1565c0; font-weight: 600; text-decoration: none; }
     .signup-text a:hover { text-decoration: underline; }
 
-    /* alert */
     .alert {
       border-radius: 9px; font-size: .8rem;
       padding: .7rem .9rem; margin-bottom: 1rem;
@@ -185,7 +165,6 @@
     }
     .alert-danger { background: #fff0f0; color: #c62828; border-color: #ffcdd2; }
 
-    /* brand strip */
     .brand-strip {
       margin-top: 1.4rem;
       display: flex; align-items: center; gap: .5rem;
@@ -204,42 +183,16 @@
 </head>
 <body>
 
-<!-- LEFT PANEL -->
 <div class="left-panel">
   <img src="${pageContext.request.contextPath}/public/asset/Left Panel.jpg" alt="HRM System" class="panel-img"/>
 </div>
 
-<!-- RIGHT PANEL -->
 <div class="right-panel">
   <div class="auth-card">
 
-  <div class="logo-wrap">
-    <div class="logo-hrm"><span>H</span><span>R</span><span>M</span></div>
-    <div class="logo-powered">Powered by <span>Group 2</span></div>
-  </div>
-
-  <form class="login-form" method="POST" action="${pageContext.request.contextPath}/v1/login/login">
-    <h2>Đăng nhập hệ thống</h2>
-
-    <c:if test="${not empty error}">
-      <div class="alert alert-danger">
-        <i class="bi bi-exclamation-circle me-1"></i>
-        <c:out value="${error}"/>
-      </div>
-    </c:if>
-
-    <div class="mb-3">
-      <label for="username" class="form-label">Username <span class="required">*</span></label>
-      <input
-        type="text"
-        id="username"
-        name="username"
-        class="form-control"
-        placeholder="Nhập username"
-        value="<c:out value='${param.username}'/>"
-        autocomplete="username"
-        required
-      />
+    <div class="logo-wrap">
+      <div class="logo-hrm"><span>H</span><span>R</span><span>M</span></div>
+      <div class="logo-powered">Powered by <span>Group 2</span></div>
     </div>
 
     <p class="form-heading">Đăng nhập hệ thống</p>
@@ -266,8 +219,6 @@
           required
         />
       </div>
-      <a href="${pageContext.request.contextPath}/v1/login/forget-password" class="forgot-link">Quên mật khẩu?</a>
-    </div>
 
       <div class="mb-1">
         <label for="pwdInput" class="form-label">Mật khẩu <span class="required">*</span></label>
@@ -299,11 +250,6 @@
         Đăng nhập bằng Google
       </a>
 
-      <div class="signup-text">
-        Chưa có tài khoản?
-        <a href="${pageContext.request.contextPath}/v1/auth/register">Đăng ký ngay</a>
-      </div>
-
     </form>
   </div>
 
@@ -314,7 +260,6 @@
     <span class="dot"></span>
     <span>v2.0</span>
   </div>
-
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/js/bootstrap.bundle.min.js"></script>

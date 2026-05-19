@@ -11,8 +11,6 @@
             <file>file:/C:/Users/ADMIN/Desktop/SWP_2/HRM/src/java/config/.gitignore</file>
             <file>file:/C:/Users/ADMIN/Desktop/SWP_2/HRM/web/public/auth/change_password.jsp</file>
             <file>file:/C:/Users/ADMIN/Desktop/SWP_2/HRM/src/java/service/EmailService.java</file>
-            <file>file:/C:/Users/ADMIN/Desktop/SWP_2/HRM/web/public/components/sidebar.jsp</file>
-            <file>file:/C:/Users/ADMIN/Desktop/SWP_2/HRM/src/java/helper/EmailSpec.java</file>
             <file>file:/C:/Users/ADMIN/Desktop/SWP_2/HRM/web/public/auth/login.jsp</file>
             <file>file:/C:/Users/ADMIN/Desktop/SWP_2/HRM/web/index.html</file>
             <file>file:/C:/Users/ADMIN/Desktop/SWP_2/HRM/web/public/admin/add_user.jsp</file>
@@ -20,6 +18,7 @@
             <file>file:/C:/Users/ADMIN/Desktop/SWP_2/HRM/web/public/auth/forget_password.jsp</file>
             <file>file:/C:/Users/ADMIN/Desktop/SWP_2/HRM/src/java/dao/UserDAO.java</file>
             <file>file:/C:/Users/ADMIN/Desktop/SWP_2/HRM/src/java/config/AppListener.java</file>
+            <file>file:/C:/Users/ADMIN/Desktop/SWP_2/HRM/nbproject/build-impl.xml</file>
             <file>file:/C:/Users/ADMIN/Desktop/SWP_2/HRM/src/java/config/.env</file>
             <file>file:/C:/Users/ADMIN/Desktop/SWP_2/HRM/src/java/model/User.java</file>
         </group>

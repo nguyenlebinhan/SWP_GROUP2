@@ -10,7 +10,7 @@
     </servlet>
     <servlet-mapping>
         <servlet-name>AuthController</servlet-name>
-        <url-pattern>/v1/login/*</url-pattern>
+        <url-pattern>/v1/auth/*</url-pattern>
     </servlet-mapping>
     <servlet-mapping>
         <servlet-name>AdminController</servlet-name>
