@@ -4,7 +4,6 @@
     <open-files xmlns="http://www.netbeans.org/ns/projectui-open-files/2">
         <group>
             <file>file:/C:/Users/PC/Documents/SWP_GROUP2/HRM/src/java/config/.env</file>
-<<<<<<< HEAD
             <file>file:/C:/Users/PC/Documents/SWP_GROUP2/HRM/web/public/admin/add_user.jsp</file>
             <file>file:/C:/Users/PC/Documents/SWP_GROUP2/HRM/web/public/auth/login.jsp</file>
             <file>file:/C:/Users/PC/Documents/SWP_GROUP2/HRM/src/java/model/User.java</file>
@@ -16,13 +15,9 @@
             <file>file:/C:/Users/PC/Documents/SWP_GROUP2/HRM/src/java/controller/AdminController.java</file>
             <file>file:/C:/Users/PC/Documents/SWP_GROUP2/HRM/web/public/auth/change_password.jsp</file>
             <file>file:/C:/Users/PC/Documents/SWP_GROUP2/HRM/src/java/dal/DBInitializer.java</file>
+            <file>file:/C:/Users/PC/Documents/SWP_GROUP2/HRM/src/java/config/.gitignore</file>
             <file>file:/C:/Users/PC/Documents/SWP_GROUP2/HRM/web/WEB-INF/web.xml</file>
             <file>file:/C:/Users/PC/Documents/SWP_GROUP2/HRM/src/java/controller/AuthController.java</file>
-=======
-            <file>file:/C:/Users/PC/Documents/SWP_GROUP2/HRM/src/java/dal/DBInitializer.java</file>
-            <file>file:/C:/Users/PC/Documents/SWP_GROUP2/HRM/src/java/config/.gitignore</file>
-            <file>file:/C:/Users/PC/Documents/SWP_GROUP2/HRM/src/java/entity/User.java</file>
->>>>>>> 60f3c114c393a54c1746aab09dec170134b56fc5
         </group>
     </open-files>
 </project-private>
