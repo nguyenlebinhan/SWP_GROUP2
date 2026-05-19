@@ -198,7 +198,7 @@
     <div class="logo-powered">Powered by <span>Group 2</span></div>
   </div>
 
-  <form class="login-form" method="POST" action="${pageContext.request.contextPath}/v1/auth/login">
+  <form class="login-form" method="POST" action="${pageContext.request.contextPath}/v1/login/login">
     <h2>Đăng nhập hệ thống</h2>
 
     <c:if test="${not empty error}">
@@ -238,21 +238,21 @@
           <i class="bi bi-eye" id="eyeIcon"></i>
         </button>
       </div>
-      <a href="${pageContext.request.contextPath}/v1/auth/forget-password" class="forgot-link">Quên mật khẩu?</a>
+      <a href="${pageContext.request.contextPath}/v1/login/forget-password" class="forgot-link">Quên mật khẩu?</a>
     </div>
 
     <button type="submit" class="btn-login">Đăng nhập</button>
 
     <div class="divider"><span>HOẶC</span></div>
 
-    <a href="${pageContext.request.contextPath}/v1/auth/google" class="btn-google">
+    <a href="${pageContext.request.contextPath}/v1/login/google" class="btn-google">
       <span class="g-logo" aria-hidden="true"></span>
       Đăng nhập bằng Google
     </a>
 
     <div class="signup-text">
       Chưa có tài khoản?
-      <a href="${pageContext.request.contextPath}/v1/auth/register">Đăng ký</a>
+      <a href="${pageContext.request.contextPath}/v1/login/register">Đăng ký</a>
     </div>
   </form>
 </div>
