@@ -78,6 +78,7 @@ public class DBInitializer {
     public void createTableUsers(Connection conn) {
         String SQL = "CREATE TABLE Users("
                 + "userId INT PRIMARY KEY AUTO_INCREMENT,"
+                + "username VARCHAR(100) NOT NULL UNIQUE,"
                 + "email VARCHAR(50) NOT NULL UNIQUE,"
                 + "password VARCHAR(150) NOT NULL,"
                 + "fullName NVARCHAR(150) NOT NULL,"
@@ -530,6 +531,7 @@ public class DBInitializer {
                     }
                 }
             }
+            ensureUsersUsernameColumn(conn);
             insertInitialData(conn);
             LOGGER.log(Level.INFO,"Database initialized successfully!");
 
@@ -547,8 +549,17 @@ public class DBInitializer {
                 insertRole(conn, "EM", "HREmployee");
             }
             if (countRows(conn, "Users") == 0) {
-                insertUser(conn, "nguyenlebinhank63@gmail.com", "admin123", "Nguyễn Lê Bình An", "2006-01-06", "Phủ Lý, Hà Nam", 1);
+                insertUser(conn, "admin", "nguyenlebinhank63@gmail.com", "admin123", "Nguyễn Lê Bình An", "2006-01-06", "Phủ Lý, Hà Nam", 1);
             }
+            seedUserIfMissing(
+                    conn,
+                    "minhquan",
+                    "minhquan153452@gmail.com",
+                    "google123",
+                    "Minh Quân",
+                    "2006-01-01",
+                    "Hà Nội",
+                    "AD");
             LOGGER.log(Level.INFO,"Seeding completed successfully.");
         } catch (SQLException e) {
             LOGGER.log(Level.SEVERE, "Cannot insert initial data", e);
@@ -564,12 +575,75 @@ public class DBInitializer {
         }
     }
 
-    private int insertUser(Connection conn, String e, String p, String fn, String d, String a, int r) throws SQLException {
-        String sql = "INSERT INTO Users (email, password, fullName, dob, address, roleId) VALUES (?, ?, ?, ?, ?, ?)";
+    private int insertUser(Connection conn, String username, String e, String p, String fn, String d, String a, int r) throws SQLException {
+        String sql = "INSERT INTO Users (username, email, password, fullName, dob, address, roleId) VALUES (?, ?, ?, ?, ?, ?, ?)";
         try (PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
-            ps.setString(1, e); ps.setString(2, p); ps.setString(3, fn); ps.setDate(4, java.sql.Date.valueOf(d)); ps.setString(5, a); ps.setInt(6, r);
+            ps.setString(1, username); ps.setString(2, e); ps.setString(3, p); ps.setString(4, fn); ps.setDate(5, java.sql.Date.valueOf(d)); ps.setString(6, a); ps.setInt(7, r);
             ps.executeUpdate();
             try (ResultSet rs = ps.getGeneratedKeys()) { return rs.next() ? rs.getInt(1) : 0; }
+        }
+    }
+
+    private void seedUserIfMissing(Connection conn, String username, String email, String password, String fullName, String dob, String address, String roleCode) throws SQLException {
+        if (userExistsByEmail(conn, email) || userExistsByUsername(conn, username)) {
+            return;
+        }
+
+        int roleId = getRoleIdByCode(conn, roleCode);
+        if (roleId == 0) {
+            LOGGER.log(Level.WARNING, "Cannot seed user {0}: role code {1} was not found", new Object[]{email, roleCode});
+            return;
+        }
+
+        insertUser(conn, username, email, password, fullName, dob, address, roleId);
+        LOGGER.log(Level.INFO, "Seeded test admin user: {0}", email);
+    }
+
+    private boolean userExistsByEmail(Connection conn, String email) throws SQLException {
+        String sql = "SELECT 1 FROM Users WHERE email = ? LIMIT 1";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, email);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next();
+            }
+        }
+    }
+
+    private boolean userExistsByUsername(Connection conn, String username) throws SQLException {
+        String sql = "SELECT 1 FROM Users WHERE username = ? LIMIT 1";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, username);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next();
+            }
+        }
+    }
+
+    private int getRoleIdByCode(Connection conn, String roleCode) throws SQLException {
+        String sql = "SELECT roleId FROM Roles WHERE roleCode = ? LIMIT 1";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, roleCode);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next() ? rs.getInt("roleId") : 0;
+            }
+        }
+    }
+
+    private void ensureUsersUsernameColumn(Connection conn) {
+        try {
+            if (tableExists(conn, "Users") && !columnExists(conn, "Users", "username")) {
+                execute(conn, "ALTER TABLE Users ADD COLUMN username VARCHAR(100) NULL AFTER userId", "ADD USERS.USERNAME COLUMN");
+                execute(conn, "UPDATE Users SET username = SUBSTRING_INDEX(email, '@', 1) WHERE username IS NULL OR username = ''", "BACKFILL USERS.USERNAME");
+            }
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Could not ensure Users.username column: {0}", e.getMessage());
+        }
+    }
+
+    private boolean columnExists(Connection conn, String tableName, String columnName) throws SQLException {
+        DatabaseMetaData meta = conn.getMetaData();
+        try (ResultSet rs = meta.getColumns(null, null, tableName, columnName)) {
+            return rs.next();
         }
     }
 
