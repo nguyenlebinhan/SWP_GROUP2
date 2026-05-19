@@ -115,28 +115,22 @@ public class DBInitializer {
                 + "status TINYINT DEFAULT 1,"        // 0: Inactive, 1: Active
                 + "region NVARCHAR(100),"
                 + "budget DECIMAL(15,2),"
-                + "parentDepartmentId INT,"
                 + "foundedDate DATE,"
                 + "createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,"
                 + "updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,"
-                + "FOREIGN KEY (parentDepartmentId) REFERENCES Departments(departmentId)"
+                + "FOREIGN KEY (managerId) REFERENCES Employees(employeeId)"
                 + ")";
         execute(conn, SQL, "CREATE DEPARTMENTS TABLE SUCCESSFULLY");
     }
 
-    public void addDepartmentsManagerFk(Connection conn) {
-        String SQL = "ALTER TABLE Departments "
-                + "ADD CONSTRAINT fk_dept_manager "
-                + "FOREIGN KEY (managerId) REFERENCES Employees(employeeId)";
-        execute(conn, SQL, "ADD DEPARTMENTS.managerId FK SUCCESSFULLY");
-    }
+
 
     public void createTableEmployees(Connection conn) {
         String SQL = "CREATE TABLE Employees("
                 + "employeeId INT PRIMARY KEY AUTO_INCREMENT,"
                 + "employeeCode VARCHAR(50) NOT NULL UNIQUE,"
                 + "userId INT NOT NULL,"
-                + "departmentId INT,"
+                + "departmentId INT NOT NULL,"
                 + "positionId INT NOT NULL,"
                 + "phoneNumber VARCHAR(20),"
                 + "skills NVARCHAR(255),"
@@ -147,7 +141,6 @@ public class DBInitializer {
                 + "status TINYINT DEFAULT 1,"        // 0: Inactive, 1: Active, 2: On Leave
                 + "managerId INT,"
                 + "nationalId VARCHAR(20),"          // CCCD/CMND
-                + "personalEmail VARCHAR(100),"
                 + "contractType VARCHAR(50),"        // Full-time, Part-time, Thử việc
                 + "createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,"
                 + "updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,"
@@ -218,6 +211,7 @@ public class DBInitializer {
         execute(conn, SQL, "CREATE LEAVE_REQUESTS TABLE SUCCESSFULLY");
     }
 
+    //cache để giúp tính toán số ngày còn lại nhanh hơn
     public void createTableLeaveBalance(Connection conn) {
         String SQL = "CREATE TABLE Leave_Balance("
                 + "balanceId INT PRIMARY KEY AUTO_INCREMENT,"
@@ -444,7 +438,7 @@ public class DBInitializer {
     public void initializeDatabase(boolean enforceReset) {
         try (Connection conn = dbContext.getConnection()) {
             if (conn == null) {
-                LOGGER.severe("Cannot get database connection!");
+                LOGGER.log(Level.SEVERE,"Cannot get database connection!");
                 return;
             }
 
@@ -499,7 +493,7 @@ public class DBInitializer {
             };
 
             if (enforceReset) {
-                LOGGER.info("Enforce reset: Dropping all tables...");
+                LOGGER.log(Level.INFO,"Enforce reset: Dropping all tables...");
                 execute(conn, "SET FOREIGN_KEY_CHECKS=0", "DISABLE FK CHECKS");
                 for (String table : dropOrder) {
                     dropTable(conn, table);
@@ -518,7 +512,6 @@ public class DBInitializer {
                         case "Departments":       createTableDepartments(conn);       break;
                         case "Users":             createTableUsers(conn);             break;
                         case "Employees":         createTableEmployees(conn);
-                                                  addDepartmentsManagerFk(conn);      break;
                         case "Candidates":        createTableCandidates(conn);        break;
                         case "Leave_Types":       createTableLeaveTypes(conn);        break;
                         case "Leave_Requests":    createTableLeaveRequests(conn);     break;
@@ -533,15 +526,15 @@ public class DBInitializer {
                         case "Performance":       createTablePerformance(conn);       break;
                         case "Notifications":     createTableNotifications(conn);     break;
                         case "Audit_Logs":        createTableAuditLogs(conn);         break;
-                        default: LOGGER.warning("Unknown table: " + table);           break;
+                        default: LOGGER.log(Level.WARNING,"Unknown table: {0}", table);           break;
                     }
                 }
             }
             insertInitialData(conn);
-            LOGGER.info("Database initialized successfully!");
+            LOGGER.log(Level.INFO,"Database initialized successfully!");
 
         } catch (SQLException e) {
-            LOGGER.severe("Database initialization failed: " + e.getMessage());
+            LOGGER.log(Level.SEVERE,"Database initialization failed: {0} ", e.getMessage());
         }
     }
 
@@ -556,8 +549,8 @@ public class DBInitializer {
             if (countRows(conn, "Users") == 0) {
                 insertUser(conn, "nguyenlebinhank63@gmail.com", "admin123", "Nguyễn Lê Bình An", "2006-01-06", "Phủ Lý, Hà Nam", 1);
             }
-            LOGGER.info("Seeding completed successfully.");
-        } catch (Exception e) {
+            LOGGER.log(Level.INFO,"Seeding completed successfully.");
+        } catch (SQLException e) {
             LOGGER.log(Level.SEVERE, "Cannot insert initial data", e);
         }
     }
@@ -583,18 +576,18 @@ public class DBInitializer {
     private void execute(Connection conn, String sql, String label) {
         try (Statement stmt = conn.createStatement()) {
             stmt.execute(sql);
-            LOGGER.log(Level.INFO, "EXECUTED: " + label);
+            LOGGER.log(Level.INFO, "EXECUTED: {0}", label);
         } catch (SQLException e) {
-            LOGGER.log(Level.SEVERE, "CANNOT EXECUTE: " + label);
+            LOGGER.log(Level.SEVERE, "CANNOT EXECUTE: {0}", label);
         }
     }
 
     private void dropTable(Connection conn, String tableName) {
         try (Statement stmt = conn.createStatement()) {
             stmt.execute("DROP TABLE IF EXISTS " + tableName);
-            LOGGER.info("DROPPED TABLE: " + tableName);
+            LOGGER.log(Level.INFO,"DROPPED TABLE:{0} ", tableName);
         } catch (SQLException e) {
-            LOGGER.severe("COULD NOT DROP " + tableName + ": " + e.getMessage());
+            LOGGER.log(Level.SEVERE,"COULD NOT DROP {0} : {1}" ,new Object[]{tableName,e.getMessage()});
         }
     }
 
