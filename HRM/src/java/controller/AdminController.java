@@ -2,7 +2,6 @@
  * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
  * Click nbfs://nbhost/SystemFileSystem/Templates/JSP_Servlet/Servlet.java to edit this template
  */
-
 package controller;
 
 import dao.*;
@@ -23,46 +22,56 @@ import java.util.*;
  * @author ADMIN
  */
 public class AdminController extends HttpServlet {
+
     private static final Logger LOGGER = Logger.getLogger(AdminController.class.getName());
     private static final UserDAO userDAO = new UserDAO();
     private static final EmailService emailService = new EmailService();
     private static final RoleDAO roleDAO = new RoleDAO();
 
     protected void processRequest(HttpServletRequest request, HttpServletResponse response)
-    throws ServletException, IOException {
+            throws ServletException, IOException {
         response.setContentType("text/html;charset=UTF-8");
         try (PrintWriter out = response.getWriter()) {
             /* TODO output your page here. You may use following sample code. */
             out.println("<!DOCTYPE html>");
             out.println("<html>");
             out.println("<head>");
-            out.println("<title>Servlet AdminController</title>");  
+            out.println("<title>Servlet AdminController</title>");
             out.println("</head>");
             out.println("<body>");
-            out.println("<h1>Servlet AdminController at " + request.getContextPath () + "</h1>");
+            out.println("<h1>Servlet AdminController at " + request.getContextPath() + "</h1>");
             out.println("</body>");
             out.println("</html>");
         }
-    } 
+    }
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
-    throws ServletException, IOException {
+            throws ServletException, IOException {
         String action = request.getPathInfo();
 
         HttpSession session = request.getSession(false);
         User user = (session != null) ? (User) session.getAttribute("user") : null;
 
-        if (user == null || user.getRoleName()== null || !"ADMIN".equalsIgnoreCase(user.getRoleName())) {
+        if (user == null || user.getRoleName() == null || !"ADMIN".equalsIgnoreCase(user.getRoleName())) {
             response.sendRedirect(request.getContextPath() + "/login");
             return;
         }
-        switch (action != null ? action : "") {
+        if (action == null || action.equals("/")) {
+            displayDashboard(request, response);
+            return;
+        }
+        switch (action) {
+            case "/dashboard":
+                displayDashboard(request, response);
+                break;
+            case "/user-list":
+                displayUserList(request, response);
             case "/add-user":
-                displayAddUserForm(request,response);
+                displayAddUserForm(request, response);
                 break;
             case "/change-status":
-                displayChangeStatus(request,response);
+                displayChangeStatus(request, response);
                 break;
             default:
                 response.sendRedirect(request.getContextPath() + "/");
@@ -72,49 +81,54 @@ public class AdminController extends HttpServlet {
 
     @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response)
-    throws ServletException, IOException {
+            throws ServletException, IOException {
         String action = request.getPathInfo();
 
         HttpSession session = request.getSession(false);
         User user = (session != null) ? (User) session.getAttribute("user") : null;
 
-        if (user == null || user.getRoleName()== null || !"ADMIN".equalsIgnoreCase(user.getRoleName())) {
+        if (user == null || user.getRoleName() == null || !"ADMIN".equalsIgnoreCase(user.getRoleName())) {
             response.sendRedirect(request.getContextPath() + "/login");
             return;
         }
-        switch (action != null ? action : "") {
+        if (action == null || action.equals("/")) {
+            displayDashboard(request, response);
+            return;
+        }
+        switch (action) {
             case "/add-user":
                 handleAddUser(request, response);
                 break;
             case "/change-status":
-                handleChangingStatus(request,response,user);
-                break;                
+                handleChangingStatus(request, response, user);
+                break;
             default:
                 response.sendRedirect(request.getContextPath() + "/");
                 break;
         }
     }
+
     private void displayAddUserForm(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-        List<Role>roles = roleDAO.getAllRoles();
+        List<Role> roles = roleDAO.getAllRoles();
         request.setAttribute("roles", roles);
         request.getRequestDispatcher("/public/admin/add_user.jsp").forward(request, response);
-    }    
+    }
 
     private void displayChangeStatus(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
         request.getRequestDispatcher("/public/admin/change_status.jsp").forward(request, response);
-    }    
+    }
 
-    private void handleAddUser(HttpServletRequest request, HttpServletResponse response)throws ServletException, IOException {
-        String email     = request.getParameter("email");
-        String password  = request.getParameter("password");
-        String fullName  = request.getParameter("fullName");
-        String dob       = request.getParameter("dob");
-        String gender    = request.getParameter("gender");
-        String address   = request.getParameter("address");
+    private void handleAddUser(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        String email = request.getParameter("email");
+        String password = request.getParameter("password");
+        String fullName = request.getParameter("fullName");
+        String dob = request.getParameter("dob");
+        String gender = request.getParameter("gender");
+        String address = request.getParameter("address");
         int roleId = Integer.parseInt(request.getParameter("role_selection"));
 
-        boolean isSuccess = userDAO.addUser(email, password, fullName, dob, gender ,address, roleId);
-        if (!isSuccess){
+        boolean isSuccess = userDAO.addUser(email, password, fullName, dob, gender, address, roleId);
+        if (!isSuccess) {
             request.setAttribute("error", "Thêm người dùng thất bại. Email có thể đã tồn tại.");
             request.getRequestDispatcher("/public/admin/add_user.jsp").forward(request, response);
             return;
@@ -125,17 +139,37 @@ public class AdminController extends HttpServlet {
         request.getRequestDispatcher("/public/admin/add_user.jsp").forward(request, response);
     }
 
-
-    private void handleChangingStatus(HttpServletRequest request, HttpServletResponse response,User user) throws ServletException, IOException {
+    private void handleChangingStatus(HttpServletRequest request, HttpServletResponse response, User user) throws ServletException, IOException {
         int status = Integer.parseInt(request.getParameter("status"));
         boolean isUpdated = userDAO.handleStatus(status, user.getUserId());
-        if(isUpdated){
+        if (isUpdated) {
             request.setAttribute("success", "Cập nhật trạng thái thành công");
-        }else{
+        } else {
             request.setAttribute("error", "Cập nhật trạng thái không thành công");
         }
-        
+
         request.getRequestDispatcher("/public/admin/add_user.jsp").forward(request, response);
+    }
+
+    private void displayDashboard(HttpServletRequest request,
+            HttpServletResponse response)
+            throws ServletException, IOException {
+
+        request.getRequestDispatcher("/public/admin/dashboard.jsp")
+                .forward(request, response);
+    }
+    
+    private void displayUserList(HttpServletRequest request,
+            HttpServletResponse response)
+            throws ServletException, IOException {
+        
+        UserDAO dao = new UserDAO();
+        List<User> list = dao.getAllUsers();
+        
+        request.setAttribute("list", list);
+        
+        request.getRequestDispatcher("/public/admin/user_list.jsp")
+                .forward(request, response);
     }
 
     @Override
