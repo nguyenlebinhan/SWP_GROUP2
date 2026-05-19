@@ -4,6 +4,8 @@
  */
 package dal;
 
+import at.favre.lib.crypto.bcrypt.BCrypt;
+import dao.UserDAO;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.PreparedStatement;
@@ -542,15 +544,16 @@ public class DBInitializer {
     }
 
     private void insertInitialData(Connection conn) {
+        UserDAO userDao = new UserDAO();
         try {
             if (countRows(conn, "Roles") == 0) {
                 LOGGER.info("Starting to seed initial data...");
-                insertRole(conn, "AD", "SysAdmin");
+                insertRole(conn, "AD", "Admin");
                 insertRole(conn, "MA", "HRManager");
                 insertRole(conn, "EM", "HREmployee");
             }
             if (countRows(conn, "Users") == 0) {
-                insertUser(conn, "admin", "nguyenlebinhank63@gmail.com", "admin123", "Nguyễn Lê Bình An", "2006-01-06", "Phủ Lý, Hà Nam", 1);
+                insertUser(conn, "admin", "nguyenlebinhank63@gmail.com",BCrypt.withDefaults().hashToString(12, "admin123".toCharArray()), "Nguyễn Lê Bình An", "2006-01-06", "Phủ Lý, Hà Nam", 1);
             }
             seedUserIfMissing(
                     conn,
