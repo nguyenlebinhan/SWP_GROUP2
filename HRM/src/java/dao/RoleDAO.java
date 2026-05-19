@@ -39,11 +39,34 @@ public class RoleDAO {
         return roles;
     }
     
+    public boolean handleStatus(int status,int roleId){
+        LOGGER.log(Level.INFO,"Handling new status role with roleId: {0}", roleId);
+        String SQL = "UPDATE users u SET u.status = ? WHERE u.userId = ? ";
+        try (Connection conn = dbContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(SQL)) {
+            ps.setInt(1, status);
+            ps.setInt(2, roleId);
+
+            int rowsAffected = ps.executeUpdate();
+            if (rowsAffected > 0) {
+                LOGGER.log(Level.INFO, "Role updated successfully with roleId: {0}", roleId);
+                return true;
+            } else {
+                LOGGER.log(Level.WARNING, "Updated roles failed: no rows affected for roleId: {0}", roleId);
+                return false;
+            }
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Error updating roles with roleId: " + roleId, e);
+        }
+        return false;        
+    }    
+    
     private Role mapRole(ResultSet rs) throws SQLException{
         Role role = new Role();
         role.setRoleId(rs.getInt("roleId"));
         role.setRoleCode(rs.getString("roleCode"));
         role.setRoleName(rs.getString("roleName"));
+        role.setIsActive(rs.getInt("isActive"));
         return role;
     }
         
