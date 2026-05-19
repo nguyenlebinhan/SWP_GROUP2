@@ -32,7 +32,7 @@ import com.google.gson.JsonParser;
  */
 public class AuthController extends HttpServlet {
     private static final Logger LOGGER = Logger.getLogger(AuthController.class.getName());
-    private static final String LOGIN_BASE_PATH = "/v1/login";
+    private static final String AUTH_BASE_PATH = "/v1/auth";
     private static final UserDAO userDAO = new UserDAO();
     private static final EmailService emailService = new EmailService();
     private static final ConfigManager configManager = ConfigManager.getInstance();
@@ -76,10 +76,10 @@ public class AuthController extends HttpServlet {
         LOGGER.log(Level.INFO,"Action received in AuthController (GET): {0}", action);
         switch (action != null ? action : "") {
             case "/login":
-                displayLoginForm(request, response,user);
+                displayLoginForm(request, response);
                 break;
             case "/dashboard":
-                displayDashboard(request, response, user);
+                displayDashboard(request, response);
                 break;
             case "/google":
                 handleGoogleLoginRequest(request, response);
@@ -139,19 +139,13 @@ public class AuthController extends HttpServlet {
         return "Short description";
     }// </editor-fold>
 
-    private void displayRegisterForm(HttpServletRequest request, HttpServletResponse response,User user) throws ServletException, IOException {
-        request.getRequestDispatcher("/public/auth/register.jsp").forward(request, response);
-    }
-    private void displayLoginForm(HttpServletRequest request, HttpServletResponse response,User user) throws IOException, IOException, ServletException  {
-        if (user != null) {
-            response.sendRedirect(request.getContextPath() + "/v1/auth/dashboard");
-            return;
-        }
+    private void displayLoginForm(HttpServletRequest request, HttpServletResponse response) throws IOException, IOException, ServletException  {
         request.getRequestDispatcher("/public/auth/login.jsp").forward(request, response);
         
     }
 
-    private void displayDashboard(HttpServletRequest request, HttpServletResponse response, User user) throws ServletException, IOException {
+    private void displayDashboard(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        String user = (String)request.getSession().getAttribute("user");
         if (user == null) {
             response.sendRedirect(request.getContextPath() + "/v1/auth/login");
             return;
@@ -200,7 +194,7 @@ public class AuthController extends HttpServlet {
         LOGGER.log(Level.INFO, "Login successful for userId: {0}", user.getUserId());
 
         if (user.getIsTemporaryPassword()) {
-            response.sendRedirect(request.getContextPath() + LOGIN_BASE_PATH + "/change-password");
+            response.sendRedirect(request.getContextPath() + AUTH_BASE_PATH + "/change-password");
             return;
         }
         response.sendRedirect(request.getContextPath() + getDashboardPathByRole(user));
@@ -320,7 +314,7 @@ public class AuthController extends HttpServlet {
             return configured.trim();
         }
         return request.getScheme() + "://" + request.getServerName() + ":" + request.getServerPort()
-                + request.getContextPath() + LOGIN_BASE_PATH + "/google/callback";
+                + request.getContextPath() + AUTH_BASE_PATH + "/google/callback";
     }
 
     private String encode(String value) {
@@ -332,7 +326,7 @@ public class AuthController extends HttpServlet {
         if (session != null) {
             session.invalidate();
         }
-        response.sendRedirect(request.getContextPath() + LOGIN_BASE_PATH + "/login");
+        response.sendRedirect(request.getContextPath() + AUTH_BASE_PATH + "/login");
     }
 
     private void handleForgetPasswordRequest(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {     
@@ -379,11 +373,7 @@ public class AuthController extends HttpServlet {
         request.getRequestDispatcher("/public/auth/forget_password.jsp").forward(request, response);
     }
 
-    private void handleChangePassword(HttpServletRequest request, HttpServletResponse response, User user) throws ServletException, IOException {
-        if (user == null) {
-            response.sendRedirect(request.getContextPath() + "/v1/auth/login");
-            return;
-        }
+    private void handleChangePassword(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
 
         LOGGER.log(Level.INFO, "Processing request for changing password for email : {0}", request.getSession().getAttribute("email"));
 
@@ -391,71 +381,73 @@ public class AuthController extends HttpServlet {
         String newPassword = request.getParameter("yourPassword");
         String confirmationPassword = request.getParameter("confirmationPassword");
         
-        User user = userDAO.getUserByEmail((String)request.getSession().getAttribute("email"));
-        if(user == null){
-            LOGGER.log(Level.INFO, "User not found for email: {0} (not revealing to user)", user.getEmail());
-            request.setAttribute("success", "If email exists, you can get a password to reset");
-            request.getRequestDispatcher("/public/auth/forget_password.jsp").forward(request, response);
-            return;            
-        }        
+        String email = (String) request.getSession().getAttribute("email");
+        User user = userDAO.getUserByEmail(email);
+        if (user == null) {
+            LOGGER.log(Level.INFO, "User not found for email: {0}", email);
+            request.setAttribute("error", "Không tìm thấy tài khoản. Vui lòng đăng nhập lại");
+            request.getRequestDispatcher("/public/auth/change_password.jsp").forward(request, response);
+            return;
+        }
 
         if (sysPassword == null || sysPassword.isEmpty() || newPassword == null || newPassword.isEmpty()) {
             request.setAttribute("error", "Vui lòng nhập đầy đủ thông tin");
             request.getRequestDispatcher("/public/auth/change_password.jsp").forward(request, response);
             return;
         }
-        
-        
-        
-        if (!sysPassword.equals(user.getPassword())) {
+
+        boolean sysPasswordMatch = UserDAO.verifyPassword(sysPassword, user.getPassword())
+                || sysPassword.equals(user.getPassword());
+        if (!sysPasswordMatch) {
             request.setAttribute("error", "Mật khẩu hệ thống không đúng");
             request.getRequestDispatcher("/public/auth/change_password.jsp").forward(request, response);
             return;
         }
 
-        boolean isSuccess = userDAO.updatePassword((String)request.getSession().getAttribute("email"), newPassword);
-        request.getSession().invalidate();
+        if (!newPassword.equals(confirmationPassword)) {
+            request.setAttribute("error", "Mật khẩu xác thực đang không đúng");
+            request.getRequestDispatcher("/public/auth/change_password.jsp").forward(request, response);
+            return;
+        }
+
+        boolean isSuccess = userDAO.updatePassword(email, newPassword);
         if (isSuccess) {
-            boolean isAlreadyChanged = userDAO.updateIsTemporaryPassword((String)request.getSession().getAttribute("email"),0);
-            if(isAlreadyChanged){
-                request.setAttribute("success", "Your password has been reset");     
-            }else{
-                LOGGER.log(Level.SEVERE,"Failed to updated isTemporaryPassword for userId: {0} ",(String)request.getSession().getAttribute("email"));
-                request.setAttribute("error", "Error");
+            boolean updated = userDAO.updateIsTemporaryPassword(email, 0);
+            if (!updated) {
+                LOGGER.log(Level.SEVERE, "Failed to update isTemporaryPassword for email: {0}", email);
+                request.setAttribute("error", "Lỗi hệ thống. Vui lòng thử lại");
+                request.getRequestDispatcher("/public/auth/change_password.jsp").forward(request, response);
                 return;
-            }            
-            user.setPassword(newPassword);
+            }
             LOGGER.log(Level.INFO, "Password changed successfully for userId: {0}", user.getUserId());
-            request.getSession().setAttribute("success", "Đổi mật khẩu thành công");
-            response.sendRedirect(request.getPathInfo()+"/v1/auth/login");
+            request.getSession().invalidate();
+            response.sendRedirect(request.getContextPath() +  "/v1/auth/login");
         } else {
             LOGGER.log(Level.SEVERE, "Failed to change password for userId: {0}", user.getUserId());
             request.setAttribute("error", "Đổi mật khẩu thất bại. Vui lòng thử lại");
+            request.getRequestDispatcher("/public/auth/change_password.jsp").forward(request, response);
         }
-
-        request.getRequestDispatcher("/public/auth/change_password.jsp").forward(request, response);
     }
 
     private String getDashboardPathByRole(User user) {
         if (user == null || user.getRoleName() == null) {
-            return LOGIN_BASE_PATH + "/login";
+            return AUTH_BASE_PATH + "/login";
         }
-
         String role = user.getRoleName().trim().replaceAll("[^A-Za-z0-9]", "").toLowerCase();
         switch (role) {
             case "sysadmin":
             case "admin":
             case "administrator":
-                return LOGIN_BASE_PATH + "/admin/dashboard";
+                return "/v1/admin/add-user";
             case "hrmanager":
             case "manager":
-                return LOGIN_BASE_PATH + "/manager/dashboard";
+                return "/v1/manager/dashboard";
             case "hremployee":
             case "employee":
-                return LOGIN_BASE_PATH + "/employee/dashboard";
+                return "/v1/employee/dashboard";
             default:
                 LOGGER.log(Level.WARNING, "Unknown role for userId {0}: {1}", new Object[]{user.getUserId(), user.getRoleName()});
-                return LOGIN_BASE_PATH + "/dashboard";
+                return AUTH_BASE_PATH + "/login";
         }
     }
 }
