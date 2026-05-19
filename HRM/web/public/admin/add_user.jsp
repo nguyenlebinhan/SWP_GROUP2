@@ -11,7 +11,6 @@
     <style>
         body { background: #f5f6fa; font-family: 'Segoe UI', sans-serif; }
 
-        /* ===== SIDEBAR ===== */
         .sidebar {
             width: 250px; height: 100vh; background: #0B0E2A;
             position: fixed; top: 0; left: 0; color: white; z-index: 100;
@@ -24,7 +23,6 @@
         .sidebar a:hover { background: #1565C0; color: white; border-radius: 5px; }
         .sidebar a.active-menu { background: #2b6cb0; color: white; border-radius: 5px; }
 
-        /* ===== TOPBAR ===== */
         .topbar {
             height: 70px; background: white;
             display: flex; justify-content: space-between; align-items: center;
@@ -40,10 +38,8 @@
             width: 8px; height: 8px; background: red; border-radius: 50%;
         }
 
-        /* ===== MAIN ===== */
         .main { margin-left: 250px; padding: 25px; }
 
-        /* ===== FORM CARD ===== */
         .form-card {
             background: white; border-radius: 12px;
             box-shadow: 0 2px 10px rgba(0,0,0,0.06); padding: 32px;
@@ -69,7 +65,7 @@
 </head>
 <body>
 
-<!-- ================= SIDEBAR ================= -->
+
 <div class="sidebar">
     <h4><i class="fa fa-building me-2"></i>HRM System</h4>
     <a href="${pageContext.request.contextPath}/"><i class="fa fa-chart-line me-2"></i>Tổng quan</a>
@@ -85,7 +81,7 @@
     <a><i class="fa fa-chart-bar me-2"></i>Báo cáo</a>
 </div>
 
-<!-- ================= MAIN ================= -->
+
 <div class="main">
 
     <!-- Topbar -->
@@ -171,11 +167,11 @@
                 </div>
                 <div class="col-md-6">
                     <label class="form-label" for="roleId">Vai trò <span class="text-danger">*</span></label>
-                    <select id="roleId" name="roleId" class="form-select" required>
+                    <select id="roleId" name="role_selection" class="form-select" required>
                         <option value="" disabled <c:if test="${empty param.roleId}">selected</c:if>>-- Chọn vai trò --</option>
-                        <option value="1" <c:if test="${param.roleId == '1'}">selected</c:if>>SysAdmin</option>
-                        <option value="2" <c:if test="${param.roleId == '2'}">selected</c:if>>HRManager</option>
-                        <option value="3" <c:if test="${param.roleId == '3'}">selected</c:if>>HREmployee</option>
+                        <c:forEach items="${roles}" var ="r">
+                            <option value="${r.roleId}">${r.roleName}</option>
+                        </c:forEach>
                     </select>
                 </div>
                 <div class="col-12">

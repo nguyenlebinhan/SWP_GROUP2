@@ -11,109 +11,136 @@
   <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    :root {
-      --bs-body-font-family: 'Be Vietnam Pro', sans-serif;
-      --bs-font-sans-serif: 'Be Vietnam Pro', sans-serif;
-    }
+    html, body { height: 100%; }
+
     body {
       font-family: 'Be Vietnam Pro', sans-serif;
       display: flex;
       height: 100vh;
       overflow: hidden;
+      background: #0d1240;
     }
 
+    /* LEFT PANEL */
+    .left-panel {
+      flex: 0 0 58%;
+      position: relative;
+      overflow: hidden;
+    }
+    .left-panel .panel-img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: center;
+      display: block;
+    }
+
+    /* RIGHT PANEL */
     .right-panel {
       flex: 0 0 42%;
-      background: #fff;
+      background: #f5f6fa;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      padding: 2.5rem 3.5rem;
+      padding: 2rem 3rem;
       position: relative;
+      border-left: 1px solid rgba(21,101,192,.12);
     }
 
-    .flag-btn {
-      position: absolute;
-      top: 1.2rem; right: 1.2rem;
-      width: 34px; height: 24px;
-      border-radius: 3px;
-      overflow: hidden;
-      border: 1px solid #e0e0e0;
-      cursor: pointer;
-    }
-    .flag-btn svg { width: 100%; height: 100%; }
 
-    .logo-wrap { text-align: center; margin-bottom: 2rem; }
-    .logo-hrm { font-size: 2rem; font-weight: 800; letter-spacing: -.5px; }
+    /* auth card */
+    .auth-card {
+      width: 100%;
+      max-width: 360px;
+      background: #fff;
+      border-radius: 20px;
+      padding: 2.4rem 2.2rem 2rem;
+      box-shadow: 0 2px 8px rgba(13,18,64,.06), 0 12px 40px rgba(13,18,64,.10);
+    }
+
+    /* logo */
+    .logo-wrap { text-align: center; margin-bottom: 1.6rem; }
+    .logo-icon {
+      width: 52px; height: 52px;
+      background: linear-gradient(135deg, #1565c0 0%, #0d47a1 100%);
+      border-radius: 14px;
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto .75rem;
+      box-shadow: 0 4px 14px rgba(21,101,192,.3);
+    }
+    .logo-icon i { font-size: 1.5rem; color: #fff; }
+    .logo-hrm { font-size: 1.7rem; font-weight: 800; letter-spacing: -.5px; line-height: 1; }
     .logo-hrm span { color: #ff6b00; }
-    .logo-powered { font-size: .72rem; color: #999; letter-spacing: .02em; margin-top: .1rem; }
+    .logo-powered { font-size: .7rem; color: #aaa; margin-top: .2rem; }
     .logo-powered span { color: #ff6b00; font-weight: 600; }
 
-    .auth-form { width: 100%; max-width: 360px; }
-    .auth-form h2 {
-      font-size: 1.5rem; font-weight: 700;
-      text-align: center; color: #1a1a2e; margin-bottom: .6rem;
+    
+    .icon-badge {
+      width: 60px; height: 60px;
+      background: #eef4ff;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 1rem;
     }
-    .auth-form .subtitle {
-      font-size: .82rem; color: #888;
-      text-align: center; margin-bottom: 1.8rem; line-height: 1.5;
+    .icon-badge i { font-size: 1.6rem; color: #1565c0; }
+
+    
+    .form-heading {
+      font-size: 1.15rem; font-weight: 700;
+      color: #1a1a2e; text-align: center;
+      margin-bottom: .4rem;
+    }
+    .form-sub {
+      font-size: .78rem; color: #9aa0b5;
+      text-align: center; margin-bottom: 1.6rem;
+      line-height: 1.55;
     }
 
+    
     .form-label {
-      font-size: .8rem; font-weight: 600;
-      color: #333; margin-bottom: .35rem; display: block;
+      font-size: .78rem; font-weight: 600;
+      color: #444; margin-bottom: .3rem; display: block;
     }
     .required { color: #e53935; margin-left: 2px; }
 
-    /* Password field wrapper để chứa icon toggle */
-    .input-password-wrap {
-      position: relative;
-    }
-    .input-password-wrap .form-control {
-      padding-right: 2.8rem; /* chừa chỗ cho icon */
-    }
-    .toggle-pw {
-      position: absolute;
-      right: .75rem;
-      top: 50%;
-      transform: translateY(-50%);
-      background: none;
-      border: none;
-      padding: 0;
-      color: #aaa;
-      cursor: pointer;
-      font-size: 1.05rem;
-      line-height: 1;
-      transition: color .2s;
-    }
-    .toggle-pw:hover { color: #555; }
-
     .form-control {
-      border: 1.5px solid #e0e0e0;
-      border-radius: 8px;
-      height: 46px;
-      font-size: .875rem;
-      color: #333;
+      border: 1.5px solid #e4e6ef;
+      border-radius: 9px; height: 44px;
+      font-size: .875rem; color: #333;
       transition: border-color .2s, box-shadow .2s;
-      padding: 0 .9rem;
-      width: 100%;
-      outline: none;
+      padding: 0 .9rem; width: 100%; outline: none;
+      font-family: inherit;
     }
     .form-control:focus {
       border-color: #1565c0;
       box-shadow: 0 0 0 3px rgba(21,101,192,.1);
     }
-    .form-control::placeholder { color: #bbb; }
+    .form-control::placeholder { color: #c0c4d0; }
 
+    /* password wrap */
+    .pw-wrap { position: relative; }
+    .pw-wrap .form-control { padding-right: 2.8rem; }
+    .pw-toggle {
+      position: absolute; right: .75rem; top: 50%;
+      transform: translateY(-50%);
+      background: none; border: none; padding: 0;
+      color: #b0b6c8; cursor: pointer;
+      font-size: 1rem; line-height: 1;
+      transition: color .2s;
+    }
+    .pw-toggle:hover { color: #555; }
+
+   
     .btn-submit {
-      width: 100%; height: 48px;
+      width: 100%; height: 46px;
       background: #1565c0; color: #fff;
-      border: none; border-radius: 8px;
-      font-size: .95rem; font-weight: 600;
-      letter-spacing: .02em; margin-top: 1.4rem;
+      border: none; border-radius: 9px;
+      font-size: .9rem; font-weight: 600;
+      letter-spacing: .02em; margin-top: 1.2rem;
       transition: background .2s, transform .1s, box-shadow .2s;
-      cursor: pointer;
+      cursor: pointer; font-family: inherit;
+      display: flex; align-items: center; justify-content: center; gap: .4rem;
     }
     .btn-submit:hover {
       background: #0d47a1;
@@ -122,77 +149,87 @@
     }
     .btn-submit:active { transform: translateY(0); }
     .btn-submit:disabled {
-      background: #90a4ae;
-      cursor: not-allowed;
-      transform: none;
-      box-shadow: none;
+      background: #90a4ae; cursor: not-allowed;
+      transform: none; box-shadow: none;
     }
 
+    /* back link */
     .back-link {
-      display: block; text-align: center;
-      font-size: .82rem; color: #1565c0;
-      font-weight: 600; text-decoration: none;
-      margin-top: 1.4rem; transition: color .2s;
+      display: flex; align-items: center; justify-content: center; gap: .35rem;
+      font-size: .8rem; color: #9aa0b5; font-weight: 500;
+      text-decoration: none; margin-top: 1.1rem;
+      transition: color .2s;
     }
-    .back-link:hover { color: #0d47a1; text-decoration: underline; }
+    .back-link:hover { color: #1565c0; }
 
+    /* alert */
     .alert {
-      border-radius: 8px; font-size: .83rem;
-      padding: .75rem 1rem; margin-bottom: 1.2rem;
+      border-radius: 9px; font-size: .8rem;
+      padding: .7rem .9rem; margin-bottom: 1rem;
       border: 1px solid transparent;
+      display: flex; align-items: flex-start; gap: .5rem;
     }
     .alert-danger  { background: #fff0f0; color: #c62828; border-color: #ffcdd2; }
     .alert-success { background: #f0fff4; color: #2e7d32; border-color: #c8e6c9; }
 
-    /* Countdown badge */
+    /* redirect countdown */
     .redirect-notice {
-      margin-top: .6rem;
-      font-size: .8rem;
-      color: #2e7d32;
-      text-align: center;
+      font-size: .78rem; color: #2e7d32;
+      text-align: center; margin-top: .5rem;
     }
-    .redirect-notice span {
-      font-weight: 700;
+    .redirect-notice span { font-weight: 700; }
+
+    /* brand strip */
+    .brand-strip {
+      margin-top: 1.4rem;
+      display: flex; align-items: center; gap: .5rem;
+      font-size: .7rem; color: #c0c5d4;
+    }
+    .brand-strip .dot { width: 3px; height: 3px; background: #d0d4e0; border-radius: 50%; }
+
+    @media (max-width: 768px) {
+      .left-panel { display: none; }
+      .right-panel { flex: 1; padding: 2rem 1.5rem; }
     }
   </style>
 </head>
 <body>
 
-<jsp:include page="/public/components/sidebar.jsp" />
+<!-- LEFT PANEL -->
+<div class="left-panel">
+  <img src="${pageContext.request.contextPath}/public/asset/Left Panel.jpg" alt="HRM System" class="panel-img"/>
+</div>
 
+<!-- RIGHT PANEL -->
 <div class="right-panel">
+  <div class="auth-card">
 
-  <div class="flag-btn" title="Tiếng Việt">
-    <svg viewBox="0 0 30 20" xmlns="http://www.w3.org/2000/svg">
-      <rect width="30" height="20" fill="#DA251D"/>
-      <polygon points="15,4 16.8,9.5 22.5,9.5 17.9,12.8 19.7,18.3 15,15 10.3,18.3 12.1,12.8 7.5,9.5 13.2,9.5" fill="#FFFF00"/>
-    </svg>
-  </div>
-
-  <div class="logo-wrap">
-    <div class="logo-hrm">
-      <span>H</span><span>R</span><span>M</span>
+    <div class="logo-wrap">
+      <div class="logo-icon"><i class="bi bi-people-fill"></i></div>
+      <div class="logo-hrm"><span>H</span><span>R</span><span>M</span></div>
+      <div class="logo-powered">Powered by <span>Group 2</span></div>
     </div>
-    <div class="logo-powered">Powered by <span>Group 2</span></div>
-  </div>
 
-  <div class="auth-form">
-    <h2>Đặt lại mật khẩu</h2>
-    <p class="subtitle">Nhập mật khẩu hệ thống đã gửi và mật khẩu mới của bạn.</p>
+    <div class="icon-badge"><i class="bi bi-shield-lock"></i></div>
 
-    <%-- Thông báo lỗi --%>
+    <p class="form-heading">Đặt lại mật khẩu</p>
+    <p class="form-sub">Nhập mật khẩu hệ thống đã gửi<br>và mật khẩu mới của bạn.</p>
+
     <c:if test="${not empty error}">
       <div class="alert alert-danger">
-        <i class="bi bi-exclamation-circle me-1"></i>
-        <c:out value="${error}"/>
+        <i class="bi bi-exclamation-circle"></i>
+        <span><c:out value="${error}"/></span>
       </div>
     </c:if>
 
     <c:if test="${not empty success}">
       <div class="alert alert-success">
-        <i class="bi bi-check-circle me-1"></i>
-        <c:out value="${success}"/>
+        <i class="bi bi-check-circle"></i>
+        <span><c:out value="${success}"/></span>
       </div>
+      <p class="redirect-notice">
+        Chuyển hướng sau <span id="countdown">5</span> giây...
+      </p>
     </c:if>
 
     <c:if test="${empty success}">
@@ -200,9 +237,9 @@
 
         <div class="mb-3">
           <label class="form-label" for="sysPassword">
-            Mật khẩu hệ thống gửi<span class="required">*</span>
+            Mật khẩu hệ thống gửi <span class="required">*</span>
           </label>
-          <div class="input-password-wrap">
+          <div class="pw-wrap">
             <input
               type="password"
               id="sysPassword"
@@ -212,7 +249,7 @@
               autocomplete="current-password"
               required
             />
-            <button type="button" class="toggle-pw" onclick="togglePw('sysPassword', this)" aria-label="Hiện/ẩn mật khẩu">
+            <button type="button" class="pw-toggle" onclick="togglePw('sysPassword', this)" aria-label="Hiện/ẩn mật khẩu">
               <i class="bi bi-eye"></i>
             </button>
           </div>
@@ -220,9 +257,9 @@
 
         <div class="mb-3">
           <label class="form-label" for="yourPassword">
-            Mật khẩu mới<span class="required">*</span>
+            Mật khẩu mới <span class="required">*</span>
           </label>
-          <div class="input-password-wrap">
+          <div class="pw-wrap">
             <input
               type="password"
               id="yourPassword"
@@ -232,31 +269,60 @@
               autocomplete="new-password"
               required
             />
-            <button type="button" class="toggle-pw" onclick="togglePw('yourPassword', this)" aria-label="Hiện/ẩn mật khẩu">
+            <button type="button" class="pw-toggle" onclick="togglePw('yourPassword', this)" aria-label="Hiện/ẩn mật khẩu">
               <i class="bi bi-eye"></i>
             </button>
           </div>
         </div>
 
+        <div class="mb-3">
+          <label class="form-label" for="yourPassword">
+            Xác nhận mật khẩu <span class="required">*</span>
+          </label>
+          <div class="pw-wrap">
+            <input
+              type="password"
+              id="confirmationPassword"
+              name="confirmationPassword"
+              class="form-control"
+              placeholder="Xác nhận mật khẩu"
+              autocomplete="new-password"
+              required
+            />
+            <button type="button" class="pw-toggle" onclick="togglePw('confirmationPassword', this)" aria-label="Hiện/ẩn mật khẩu">
+              <i class="bi bi-eye"></i>
+            </button>
+          </div>
+        </div>
+          
         <button type="submit" class="btn-submit">
-          <i class="bi bi-shield-lock me-1"></i> Thay đổi mật khẩu
+          <i class="bi bi-shield-check"></i> Thay đổi mật khẩu
         </button>
+
       </form>
     </c:if>
 
     <a href="${pageContext.request.contextPath}/v1/auth/login" class="back-link">
-      ← Quay lại đăng nhập
+      <i class="bi bi-arrow-left"></i> Quay lại đăng nhập
     </a>
+
+  </div>
+
+  <div class="brand-strip">
+    <span>HRM System</span>
+    <span class="dot"></span>
+    <span>Phần mềm Quản trị Nhân sự</span>
+    <span class="dot"></span>
+    <span>v2.0</span>
   </div>
 
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/js/bootstrap.bundle.min.js"></script>
 <script>
-  // Toggle show/hide password
   function togglePw(inputId, btn) {
-    const input = document.getElementById(inputId);
-    const icon  = btn.querySelector('i');
+    var input = document.getElementById(inputId);
+    var icon = btn.querySelector('i');
     if (input.type === 'password') {
       input.type = 'text';
       icon.classList.replace('bi-eye', 'bi-eye-slash');
@@ -266,11 +332,10 @@
     }
   }
 
-  // Countdown redirect sau khi đổi mật khẩu thành công
-  const countdownEl = document.getElementById('countdown');
+  var countdownEl = document.getElementById('countdown');
   if (countdownEl) {
-    let seconds = 5;
-    const timer = setInterval(() => {
+    var seconds = 5;
+    var timer = setInterval(function () {
       seconds--;
       countdownEl.textContent = seconds;
       if (seconds <= 0) {

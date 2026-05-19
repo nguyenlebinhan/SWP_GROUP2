@@ -4,13 +4,12 @@
  */
 package dao;
 
+import at.favre.lib.crypto.bcrypt.BCrypt;
 import dal.DBContext;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Timestamp;
-import java.time.LocalDateTime;
 import java.util.UUID;
 import java.util.logging.*;
 import model.User;
@@ -26,6 +25,9 @@ public class UserDAO {
     public UserDAO() {
         this.dbContext = new DBContext();
     }    
+    
+    
+    
     public String createResetPassword(int userId) {
         LOGGER.log(Level.INFO, "Creating reset password for userId: {0}", userId);
         
@@ -61,7 +63,7 @@ public class UserDAO {
         try(Connection conn = dbContext.getConnection();
             PreparedStatement ps = conn.prepareCall(SQL)){
             
-            ps.setString(1, oldPassword);
+            ps.setString(1, hashPassword(oldPassword));
             ps.setString(2, email);
             
             int rowsAffected = ps.executeUpdate();
@@ -148,7 +150,7 @@ public class UserDAO {
         try (Connection conn = dbContext.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, email);
-            ps.setString(2, password);
+            ps.setString(2, hashPassword(password));
             ps.setString(3, fullName);
             ps.setString(4, dob);
             ps.setString(5, address);
@@ -232,10 +234,18 @@ public class UserDAO {
 
     public User authenticate(String username, String password) {
         User user = getUserByUsername(username);
-        if (user == null || password == null || !password.equals(user.getPassword())) {
+        if (user == null || password == null || !verifyPassword(password, user.getPassword())) {
             return null;
         }
         return user;
+    }
+
+    public static String hashPassword(String plainPassword) {
+        return BCrypt.withDefaults().hashToString(12, plainPassword.toCharArray());
+    }
+
+    public static boolean verifyPassword(String plainPassword, String hashedPassword) {
+        return BCrypt.verifyer().verify(plainPassword.toCharArray(), hashedPassword).verified;
     }
 
     private User mapUser(ResultSet rs) throws SQLException {
