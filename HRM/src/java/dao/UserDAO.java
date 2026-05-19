@@ -145,16 +145,18 @@ public class UserDAO {
             LOGGER.log(Level.WARNING, "Add user failed: email already exists: {0}", email);
             return false;
         }
-        String sql = "INSERT INTO users (email, password, fullName, dob, address, roleId, isTemporaryPassword) VALUES (?, ?, ?, ?, ?, ?, 1)";
+        String username = email.contains("@") ? email.substring(0, email.indexOf('@')) : email;
+        String sql = "INSERT INTO users (username, email, password, fullName, dob, address, roleId, isTemporaryPassword) VALUES (?, ?, ?, ?, ?, ?, ?, 1)";
 
         try (Connection conn = dbContext.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setString(1, email);
-            ps.setString(2, hashPassword(password));
-            ps.setString(3, fullName);
-            ps.setString(4, dob);
-            ps.setString(5, address);
-            ps.setInt(6, roleId);
+            ps.setString(1, username);
+            ps.setString(2, email);
+            ps.setString(3, hashPassword(password));
+            ps.setString(4, fullName);
+            ps.setString(5, dob);
+            ps.setString(6, address);
+            ps.setInt(7, roleId);
 
             int rowsAffected = ps.executeUpdate();
             if (rowsAffected > 0) {
@@ -232,11 +234,14 @@ public class UserDAO {
         return null;
     }
 
-    public User authenticate(String username, String password) {
-        User user = getUserByUsername(username);
-        if (user == null || password == null || !verifyPassword(password, user.getPassword())) {
-            return null;
+    public User authenticate(String identifier, String password) {
+        if (identifier == null || password == null) return null;
+        User user = getUserByUsername(identifier);
+        if (user == null) {
+            user = getUserByEmail(identifier);
         }
+        if (user == null) return null;
+        if (!checkPassword(password, user.getPassword())) return null;
         return user;
     }
 
@@ -246,6 +251,11 @@ public class UserDAO {
 
     public static boolean verifyPassword(String plainPassword, String hashedPassword) {
         return BCrypt.verifyer().verify(plainPassword.toCharArray(), hashedPassword).verified;
+    }
+
+    private static boolean checkPassword(String plain, String stored) {
+        if (stored == null) return false;
+        return verifyPassword(plain, stored);
     }
 
     private User mapUser(ResultSet rs) throws SQLException {
