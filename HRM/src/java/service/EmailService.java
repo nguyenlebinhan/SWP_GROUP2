@@ -80,22 +80,6 @@ public class EmailService {
     }    
 
 
-    public void sendWelcomeEmailAsync(String toEmail, String username, String fullName) {
-        EMAIL_EXECUTOR.submit(() -> {
-            String subject = "Welcome to the Thesis Management System";
-            String name = (fullName != null && !fullName.isEmpty()) ? fullName : "User";
-            
-            String body = "<html><head><meta charset='UTF-8'></head><body>" +
-                          "<p>Hello <strong>" + name + "</strong>,</p>" +
-                          "<p>Congratulations! You have successfully registered an account: <strong>" + username + "</strong></p>" +
-                          "<p>You can log in to the system now.</p>" +
-                          "<p>Best regards,<br/>System Admin</p>" +
-                          "</body></html>";
-            
-            sendEmail(toEmail, subject, body);
-        });
-    }
-
 
     public void sendResetPasswordEmailAsync(String toEmail, String password) {
         EMAIL_EXECUTOR.submit(() -> {
@@ -111,16 +95,7 @@ public class EmailService {
             sendEmail(toEmail, subject, body);
         });
     }
-    
-    public void sendEmailToStudent(String toEmail,String message){
-        EMAIL_EXECUTOR.submit(() ->{
-            String subject = "Message From Lecturer";
-            String body = "<html><head><meta charset='UTF-8'></head><body>" 
-                           +message+
-                          "</body></html>";
-            sendEmail(toEmail, subject, body);
-        });
-    }
+   
     
     public void shutdown(){
         EMAIL_EXECUTOR.shutdown();
