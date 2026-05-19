@@ -4,8 +4,16 @@
         <servlet-name>AuthController</servlet-name>
         <servlet-class>controller.AuthController</servlet-class>
     </servlet>
+    <servlet>
+        <servlet-name>AdminController</servlet-name>
+        <servlet-class>controller.AdminController</servlet-class>
+    </servlet>
     <servlet-mapping>
         <servlet-name>AuthController</servlet-name>
         <url-pattern>/v1/auth/*</url-pattern>
+    </servlet-mapping>
+    <servlet-mapping>
+        <servlet-name>AdminController</servlet-name>
+        <url-pattern>/v1/admin/*</url-pattern>
     </servlet-mapping>
 </web-app>
