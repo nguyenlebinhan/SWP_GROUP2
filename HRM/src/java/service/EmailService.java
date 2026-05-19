@@ -4,7 +4,6 @@
  */
 package service;
 
-import helper.EmailSpec;
 import jakarta.activation.DataHandler;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;

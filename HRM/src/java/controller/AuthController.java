@@ -71,16 +71,11 @@ public class AuthController extends HttpServlet {
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
     throws ServletException, IOException {
-        HttpSession session = request.getSession(false);
-        User user = (session != null) ? (User) session.getAttribute("user") : null;
         String action = request.getPathInfo();
         LOGGER.log(Level.INFO,"Action received in AuthController (GET): {0}", action);
         switch (action != null ? action : "") {
             case "/login":
                 displayLoginForm(request, response);
-                break;
-            case "/dashboard":
-                displayDashboard(request, response, user);
                 break;
             case "/google":
                 handleGoogleLoginRequest(request, response);
@@ -114,8 +109,6 @@ public class AuthController extends HttpServlet {
     protected void doPost(HttpServletRequest request, HttpServletResponse response)
     throws ServletException, IOException {
         //processRequest(request, response);
-        HttpSession session = request.getSession(false);
-        User user = (session != null) ? (User) session.getAttribute("user") : null;
         String action = request.getPathInfo();
         LOGGER.log(Level.INFO,"Action received in AuthController (POST): {0}", action);
         switch (action != null ? action : "") {
@@ -126,7 +119,7 @@ public class AuthController extends HttpServlet {
                 handleForgetPasswordRequest(request, response);
                 break;
             case "/change-password":
-                handleChangePassword(request,response,user);
+                handleChangePassword(request,response);
                 break;
             case "/logout":
                 handleLogoutRequest(request, response);
@@ -141,22 +134,12 @@ public class AuthController extends HttpServlet {
     public String getServletInfo() {
         return "Short description";
     }
-    private void displayLoginForm(HttpServletRequest request, HttpServletResponse response,User user) throws IOException, IOException, ServletException  {
-        if (user != null) {
-            response.sendRedirect(request.getContextPath() + "/v1/auth/dashboard");
-            return;
-        }
+    private void displayLoginForm(HttpServletRequest request, HttpServletResponse response) throws IOException, IOException, ServletException  {
         request.getRequestDispatcher("/public/auth/login.jsp").forward(request, response);
         
     }
 
-    private void displayDashboard(HttpServletRequest request, HttpServletResponse response, User user) throws ServletException, IOException {
-        if (user == null) {
-            response.sendRedirect(request.getContextPath() + "/v1/auth/login");
-            return;
-        }
-        request.getRequestDispatcher("/public/admin/dashboard.jsp").forward(request, response);
-    }
+
 
     private void displayChangePassword(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
         boolean isAlreadyChanged = userDAO.isPasswordChanged((String)request.getSession().getAttribute("email"));
@@ -173,11 +156,9 @@ public class AuthController extends HttpServlet {
         
     }
 
-    private void handleRegisterRequest(HttpServletRequest request, HttpServletResponse response,User user) {
-        throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
-    }
 
-    private void handleLoginRequest(HttpServletRequest request, HttpServletResponse response,User currentUser) throws ServletException, IOException {
+
+    private void handleLoginRequest(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
         String identifier = request.getParameter("username");
         String password = request.getParameter("password");
 
@@ -386,6 +367,7 @@ public class AuthController extends HttpServlet {
 
         String sysPassword = request.getParameter("sysPassword");
         String newPassword = request.getParameter("yourPassword");
+        String confirmationPassword = request.getParameter("confirmationPassword");
         
         User user = userDAO.getUserByEmail((String)request.getSession().getAttribute("email"));
         if(user == null){
