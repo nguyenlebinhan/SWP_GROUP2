@@ -22,7 +22,7 @@ public class AppListener implements ServletContextListener{
     public void contextInitialized(ServletContextEvent sce) {
         LOGGER.log(Level.INFO,"Ứng dụng web đang khởi tạo. Bắt đầu khởi tạo SQl Server...");
         DBInitializer init = new DBInitializer();
-        //init.initializeDatabase(false);
+        init.initializeDatabase(false);
         LOGGER.info("Init database successfully");
     }
 

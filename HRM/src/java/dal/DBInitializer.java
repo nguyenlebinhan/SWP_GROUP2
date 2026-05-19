@@ -12,6 +12,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import utils.PasswordUtil;
 
 /**
  *
@@ -65,12 +66,18 @@ public class DBInitializer {
         String SQL ="CREATE TABLE Users("
                 + "userId INT PRIMARY KEY AUTO_INCREMENT,"
                 + "username VARCHAR(50) NOT NULL UNIQUE,"
-                + "email VARCHAR(50) NOT NULL UNIQUE,"
+                + "email VARCHAR(100) NOT NULL UNIQUE,"
+                + "passwordHash VARCHAR(255),"
                 + "fullName NVARCHAR(150) NOT NULL,"
                 + "dob DATETIME,"
                 + "roleId INT NOT NULL,"
+                + "authProvider VARCHAR(20) NOT NULL DEFAULT 'LOCAL',"
+                + "googleId VARCHAR(128) UNIQUE,"
+                + "avatarUrl VARCHAR(255),"
+                + "isActive BOOLEAN NOT NULL DEFAULT TRUE,"
                 + "createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,"
                 + "updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,"
+                + "CONSTRAINT chk_users_auth_provider CHECK (authProvider IN ('LOCAL','GOOGLE')),"
                 + "FOREIGN KEY (roleId) REFERENCES Roles(roleId)"
                 + ")";
         execute(conn,SQL,"CREATE USERS TABLE SUCCESSFULLY");
@@ -102,11 +109,12 @@ public class DBInitializer {
             }
 
             String[] dropOrder = {        
+                "Employees",
                 "Users",            
                 "Roles"
             };
             String[] createOrder = {
-                 "Roles","Users"
+                 "Roles","Users","Employees"
             };
 
             if (enforceReset) {
@@ -121,9 +129,12 @@ public class DBInitializer {
                     switch (table) {
                         case "Roles":createTableRoles (conn); break;
                         case "Users":createTableUsers (conn); break;
+                        case "Employees":createTableEmployees(conn); break;
                     }
                 }
             }
+
+            ensureUserLoginColumns(conn);
             
             insertInitialData(conn);
             LOGGER.info("Database initialization completed successfully!");
@@ -136,10 +147,92 @@ public class DBInitializer {
 
     private void insertInitialData(Connection conn) {
         try {
-            if (countRows(conn, "Users") > 0) return;
+            if (countRows(conn, "Roles") == 0) {
+                insertDefaultRoles(conn);
+            }
+
+            if (countRows(conn, "Users") == 0) {
+                insertDefaultUsers(conn);
+            }
         }catch(Exception e){
-            LOGGER.log(Level.SEVERE,"CANNOT INSERT TABLE");
+            LOGGER.log(Level.SEVERE,"CANNOT INSERT INITIAL DATA", e);
         }
+    }
+
+    private void ensureUserLoginColumns(Connection conn) throws SQLException {
+        if (!tableExists(conn, "Users")) {
+            return;
+        }
+
+        addColumnIfMissing(conn, "Users", "passwordHash", "ALTER TABLE Users ADD COLUMN passwordHash VARCHAR(255)");
+        addColumnIfMissing(conn, "Users", "authProvider", "ALTER TABLE Users ADD COLUMN authProvider VARCHAR(20) NOT NULL DEFAULT 'LOCAL'");
+        addColumnIfMissing(conn, "Users", "googleId", "ALTER TABLE Users ADD COLUMN googleId VARCHAR(128) UNIQUE");
+        addColumnIfMissing(conn, "Users", "avatarUrl", "ALTER TABLE Users ADD COLUMN avatarUrl VARCHAR(255)");
+        addColumnIfMissing(conn, "Users", "isActive", "ALTER TABLE Users ADD COLUMN isActive BOOLEAN NOT NULL DEFAULT TRUE");
+    }
+
+    private void addColumnIfMissing(Connection conn, String tableName, String columnName, String sql) throws SQLException {
+        if (!columnExists(conn, tableName, columnName)) {
+            execute(conn, sql, "ADD COLUMN " + tableName + "." + columnName);
+        }
+    }
+
+    private void insertDefaultRoles(Connection conn) throws SQLException {
+        String sql = "INSERT INTO Roles(roleCode, roleName) VALUES (?, ?), (?, ?)";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, "ADMIN");
+            ps.setString(2, "Administrator");
+            ps.setString(3, "EMPLOYEE");
+            ps.setString(4, "Employee");
+            ps.executeUpdate();
+            LOGGER.info("INSERTED DEFAULT ROLES");
+        }
+    }
+
+    private void insertDefaultUsers(Connection conn) throws SQLException {
+        String sql = "INSERT INTO Users(username, email, passwordHash, fullName, dob, roleId, authProvider, googleId) "
+                + "VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            int adminRoleId = getRoleId(conn, "ADMIN");
+            int employeeRoleId = getRoleId(conn, "EMPLOYEE");
+
+            ps.setString(1, "admin");
+            ps.setString(2, "admin@gmail.com");
+            ps.setString(3, PasswordUtil.hashPassword("123456"));
+            ps.setString(4, "System Administrator");
+            ps.setDate(5, null);
+            ps.setInt(6, adminRoleId);
+            ps.setString(7, "LOCAL");
+            ps.setString(8, null);
+            ps.addBatch();
+
+            ps.setString(1, "google_user");
+            ps.setString(2, "group2@gmail.com");
+            ps.setString(3, null);
+            ps.setString(4, "Google User");
+            ps.setDate(5, null);
+            ps.setInt(6, employeeRoleId);
+            ps.setString(7, "GOOGLE");
+            ps.setString(8, "google-group2-demo");
+            ps.addBatch();
+
+            ps.executeBatch();
+            LOGGER.info("INSERTED DEFAULT USERS");
+        }
+    }
+
+    private int getRoleId(Connection conn, String roleCode) throws SQLException {
+        String sql = "SELECT roleId FROM Roles WHERE roleCode = ?";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, roleCode);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt("roleId");
+                }
+            }
+        }
+        throw new SQLException("Role not found: " + roleCode);
     }
 
 
@@ -165,6 +258,13 @@ public class DBInitializer {
     private boolean tableExists(Connection conn, String tableName) throws SQLException {
         DatabaseMetaData meta = conn.getMetaData();
         try (ResultSet rs = meta.getTables(null, null, tableName, new String[]{"TABLE"})) {
+            return rs.next();
+        }
+    }
+
+    private boolean columnExists(Connection conn, String tableName, String columnName) throws SQLException {
+        DatabaseMetaData meta = conn.getMetaData();
+        try (ResultSet rs = meta.getColumns(null, null, tableName, columnName)) {
             return rs.next();
         }
     }

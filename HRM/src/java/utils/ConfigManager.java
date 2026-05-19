@@ -31,17 +31,25 @@ public class ConfigManager {
     private void loadProperties(){
         properties = new Properties();
         
-        try(InputStream input = ConfigManager.class.getClassLoader().getResourceAsStream("config/.env")){
+        try(InputStream input = getConfigStream()){
             if(input == null){
-                LOGGER.log(Level.WARNING, "Cannot find .env file in config directory");
+                LOGGER.log(Level.WARNING, "Cannot find .env or .env.properties file in config directory");
                 return;
             }
             
             properties.load(new java.io.InputStreamReader(input, java.nio.charset.StandardCharsets.UTF_8));
-            LOGGER.log(Level.INFO,"Successfully loade .env cofiguration file");
+            LOGGER.log(Level.INFO,"Successfully loaded .env cofiguration file");
         }catch(IOException e){
             LOGGER.log(Level.SEVERE,"Error reading .env file", e);
         }
+    }
+
+    private InputStream getConfigStream() {
+        InputStream input = ConfigManager.class.getClassLoader().getResourceAsStream("config/.env");
+        if (input != null) {
+            return input;
+        }
+        return ConfigManager.class.getClassLoader().getResourceAsStream("config/.env.properties");
     }
     
     public String getProperty(String key){
@@ -49,7 +57,7 @@ public class ConfigManager {
         String envValue = System.getenv(envKey);
         
         if(envValue != null){
-            LOGGER.log(Level.INFO,"Loaded from ENV: {0} = {1}", new Object[]{envKey,maskIfSenstive(envKey,envValue)});
+            LOGGER.log(Level.INFO,"Loaded from ENV: {0} = {1}", new Object[]{envKey,maskIfSensitive(envKey,envValue)});
             return envValue;
         }
         
@@ -101,7 +109,7 @@ public class ConfigManager {
     }
     
     
-    public String maskIfSenstive(String key, String value){
+    public String maskIfSensitive(String key, String value){
         if(key.toLowerCase().contains("password") || key.toLowerCase().contains("secret")){
             return "*********";
         }
