@@ -34,6 +34,7 @@ public class DBInitializer {
                 + "roleId INT PRIMARY KEY AUTO_INCREMENT,"
                 + "roleCode VARCHAR(100) NOT NULL UNIQUE,"
                 + "roleName VARCHAR(50) NOT NULL UNIQUE,"
+                + "isActive BIT DEFAULT 1,"
                 + "createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,"
                 + "updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"
                 + ")";
@@ -554,16 +555,8 @@ public class DBInitializer {
             }
             if (countRows(conn, "Users") == 0) {
                 insertUser(conn, "admin", "nguyenlebinhank63@gmail.com",BCrypt.withDefaults().hashToString(12, "admin123".toCharArray()), "Nguyễn Lê Bình An", "2006-01-06", "Phủ Lý, Hà Nam", 1);
+                insertUser(conn,"minhquan","minhquan153452@gmail.com",BCrypt.withDefaults().hashToString(12, "google123".toCharArray()),"Minh Quân","2006-01-01","Hà Nội",1);
             }
-            seedUserIfMissing(
-                    conn,
-                    "minhquan",
-                    "minhquan153452@gmail.com",
-                    "google123",
-                    "Minh Quân",
-                    "2006-01-01",
-                    "Hà Nội",
-                    "AD");
             LOGGER.log(Level.INFO,"Seeding completed successfully.");
         } catch (SQLException e) {
             LOGGER.log(Level.SEVERE, "Cannot insert initial data", e);
@@ -588,20 +581,7 @@ public class DBInitializer {
         }
     }
 
-    private void seedUserIfMissing(Connection conn, String username, String email, String password, String fullName, String dob, String address, String roleCode) throws SQLException {
-        if (userExistsByEmail(conn, email) || userExistsByUsername(conn, username)) {
-            return;
-        }
 
-        int roleId = getRoleIdByCode(conn, roleCode);
-        if (roleId == 0) {
-            LOGGER.log(Level.WARNING, "Cannot seed user {0}: role code {1} was not found", new Object[]{email, roleCode});
-            return;
-        }
-
-        insertUser(conn, username, email, password, fullName, dob, address, roleId);
-        LOGGER.log(Level.INFO, "Seeded test admin user: {0}", email);
-    }
 
     private boolean userExistsByEmail(Connection conn, String email) throws SQLException {
         String sql = "SELECT 1 FROM Users WHERE email = ? LIMIT 1";
