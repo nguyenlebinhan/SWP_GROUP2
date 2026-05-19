@@ -123,21 +123,14 @@ public class UserDAO {
     
     public User getUserByEmail(String email) {
         LOGGER.log(Level.INFO, "Get user by email: ", email);
-        String SQL = "SELECT u.userId,u.password,u.fullName,u.dob,u.address,r.roleName,u.isTemporaryPassword FROM Users u JOIN Roles r on r.roleId = u.roleId WHERE u.email = ?  ";
+        String SQL = "SELECT u.userId,u.username,u.email,u.password,u.fullName,u.dob,u.address,r.roleName,u.isTemporaryPassword FROM Users u JOIN Roles r on r.roleId = u.roleId WHERE u.email = ?  ";
         try(Connection conn = dbContext.getConnection();
             PreparedStatement ps = conn.prepareStatement(SQL)){
             ps.setString(1, email);
             try(ResultSet rs = ps.executeQuery()){
                 if(rs.next()){
-                    int userId = rs.getInt("userId");
-                    String password = rs.getString("password");
-                    String fullName = rs.getNString("fullName");
-                    String dateOfBirth = rs.getString("dob");
-                    String address = rs.getString("address");
-                    String roleName = rs.getString("roleName");
-                    boolean isTemporaryPassword = rs.getBoolean("isTemporaryPassword");
-                    User user = new User (userId,email,password,fullName,dateOfBirth,address,roleName,isTemporaryPassword);
-                    LOGGER.log(Level.INFO, "User found: userId ={0}, fullName={1}", new Object[]{userId,fullName}); 
+                    User user = mapUser(rs);
+                    LOGGER.log(Level.INFO, "User found: userId ={0}, fullName={1}", new Object[]{user.getUserId(),user.getFullName()}); 
                     return user;
                 }else{
                     LOGGER.log(Level.WARNING, "User not found with email: {0}", email);
@@ -147,5 +140,45 @@ public class UserDAO {
             LOGGER.log(Level.SEVERE, "Error getting user by email: " + email, e);               
         }
         return null;
+    }
+
+    public User getUserByUsername(String username) {
+        LOGGER.log(Level.INFO, "Get user by username: {0}", username);
+        String SQL = "SELECT u.userId,u.username,u.email,u.password,u.fullName,u.dob,u.address,r.roleName,u.isTemporaryPassword "
+                + "FROM Users u JOIN Roles r on r.roleId = u.roleId "
+                + "WHERE u.username = ?";
+        try(Connection conn = dbContext.getConnection();
+            PreparedStatement ps = conn.prepareStatement(SQL)){
+            ps.setString(1, username);
+            try(ResultSet rs = ps.executeQuery()){
+                if(rs.next()){
+                    return mapUser(rs);
+                }
+            }
+        }catch(SQLException e){
+            LOGGER.log(Level.SEVERE, "Error getting user by username: " + username, e);
+        }
+        return null;
+    }
+
+    public User authenticate(String username, String password) {
+        User user = getUserByUsername(username);
+        if (user == null || password == null || !password.equals(user.getPassword())) {
+            return null;
+        }
+        return user;
+    }
+
+    private User mapUser(ResultSet rs) throws SQLException {
+        int userId = rs.getInt("userId");
+        String username = rs.getString("username");
+        String email = rs.getString("email");
+        String password = rs.getString("password");
+        String fullName = rs.getNString("fullName");
+        String dateOfBirth = rs.getString("dob");
+        String address = rs.getString("address");
+        String roleName = rs.getString("roleName");
+        boolean isTemporaryPassword = rs.getBoolean("isTemporaryPassword");
+        return new User(userId, username, email, password, fullName, dateOfBirth, address, roleName, isTemporaryPassword);
     }
 }

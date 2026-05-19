@@ -31,9 +31,9 @@ public class ConfigManager {
     private void loadProperties(){
         properties = new Properties();
         
-        try(InputStream input = ConfigManager.class.getClassLoader().getResourceAsStream("config/.env")){
+        try(InputStream input = openConfigStream()){
             if(input == null){
-                LOGGER.log(Level.WARNING, "Cannot find .env file in config directory");
+                LOGGER.log(Level.WARNING, "Cannot find database config file in config directory");
                 return;
             }
             
@@ -42,6 +42,12 @@ public class ConfigManager {
         }catch(IOException e){
             LOGGER.log(Level.SEVERE,"Error reading .env file", e);
         }
+    }
+
+    private InputStream openConfigStream() {
+        ClassLoader classLoader = ConfigManager.class.getClassLoader();
+        InputStream input = classLoader.getResourceAsStream("config/.env.properties");
+        return (input != null) ? input : classLoader.getResourceAsStream("config/.env");
     }
     
     public String getProperty(String key){
