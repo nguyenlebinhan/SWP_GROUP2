@@ -194,12 +194,12 @@
             const interval = setInterval(() => {
                 seconds--;
                 if (seconds <= 0) {
-                    window.location.href = '/HRM/v1/auth/change-password'; 
+                    window.location.href = '/HRM/v1/login/change-password'; 
                 }
             }, 1000);
         </script>
     </c:if>
-    <form method="POST" action="${pageContext.request.contextPath}/v1/auth/forget-password">
+    <form method="POST" action="${pageContext.request.contextPath}/v1/login/forget-password">
       <div class="mb-3">
         <label class="form-label">
           Email <span class="required">*</span>
@@ -219,7 +219,7 @@
       </button>
     </form>
 
-    <a href="${pageContext.request.contextPath}/v1/auth/login" class="back-link">
+    <a href="${pageContext.request.contextPath}/v1/login/login" class="back-link">
       ← Quay lại đăng nhập
     </a>
   </div>
