@@ -138,14 +138,13 @@ public class UserDAO {
         return false;
     }
 
-    public boolean addUser(String email, String password, String fullName, String dob, String gender, String address, int roleId) {
+    public boolean addUser(String username,String email, String password, String fullName, String dob, String gender, String address, int roleId) {
         LOGGER.log(Level.INFO, "Adding new user with email: {0}", email);
 
         if (isEmailExists(email)) {
             LOGGER.log(Level.WARNING, "Add user failed: email already exists: {0}", email);
             return false;
         }
-        String username = email.contains("@") ? email.substring(0, email.indexOf('@')) : email;
         String sql = "INSERT INTO users (username, email, password, fullName, dob, address, roleId, isTemporaryPassword) VALUES (?, ?, ?, ?, ?, ?, ?, 1)";
 
         try (Connection conn = dbContext.getConnection();
@@ -193,6 +192,9 @@ public class UserDAO {
         }
         return false;        
     }
+    
+    
+    
 
     public User getUserByEmail(String email) {
         LOGGER.log(Level.INFO, "Get user by email: ", email);
@@ -219,7 +221,7 @@ public class UserDAO {
         LOGGER.log(Level.INFO, "Get user by username: {0}", username);
         String SQL = "SELECT u.userId,u.username,u.email,u.password,u.fullName,u.dob,u.address,r.roleName,u.isTemporaryPassword "
                 + "FROM Users u JOIN Roles r on r.roleId = u.roleId "
-                + "WHERE u.username = ?";
+                + "WHERE u.username = ? AND u.isActive = 1";
         try(Connection conn = dbContext.getConnection();
             PreparedStatement ps = conn.prepareStatement(SQL)){
             ps.setString(1, username);
