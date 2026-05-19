@@ -13,9 +13,19 @@ import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
+import java.net.URI;
+import java.net.URLEncoder;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
+import java.util.UUID;
 import java.util.logging.*;
 import model.User;
 import service.EmailService;
+import utils.ConfigManager;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 /**
  *
  * @author ADMIN
@@ -24,6 +34,8 @@ public class AuthController extends HttpServlet {
     private static final Logger LOGGER = Logger.getLogger(AuthController.class.getName());
     private static final UserDAO userDAO = new UserDAO();
     private static final EmailService emailService = new EmailService();
+    private static final ConfigManager configManager = ConfigManager.getInstance();
+    private static final HttpClient httpClient = HttpClient.newHttpClient();
     /** 
      * Processes requests for both HTTP <code>GET</code> and <code>POST</code> methods.
      * @param request servlet request
@@ -75,11 +87,23 @@ public class AuthController extends HttpServlet {
             case "/login":
                 displayLoginForm(request, response,user);
                 break;
+            case "/dashboard":
+                displayDashboard(request, response, user);
+                break;
+            case "/google":
+                handleGoogleLoginRequest(request, response);
+                break;
+            case "/google/callback":
+                handleGoogleCallback(request, response);
+                break;
             case "/forget-password":
                 displayForgetPasswordForm(request, response,user);
                 break;
             case "/change-password":
                 displayChangePassword(request,response);
+                break;
+            case "/logout":
+                handleLogoutRequest(request, response);
                 break;
             default:
                 response.sendRedirect(request.getContextPath() + "/");
@@ -114,7 +138,10 @@ public class AuthController extends HttpServlet {
                 break;
             case "/change-password":
                 handleChangePassword(request,response,user);
-                break;                
+                break;
+            case "/logout":
+                handleLogoutRequest(request, response);
+                break;
             default:
                 response.sendRedirect(request.getContextPath() + "/");
                 break;
@@ -134,8 +161,20 @@ public class AuthController extends HttpServlet {
         request.getRequestDispatcher("/public/auth/register.jsp").forward(request, response);
     }
     private void displayLoginForm(HttpServletRequest request, HttpServletResponse response,User user) throws IOException, IOException, ServletException  {
+        if (user != null) {
+            response.sendRedirect(request.getContextPath() + "/v1/auth/dashboard");
+            return;
+        }
         request.getRequestDispatcher("/public/auth/login.jsp").forward(request, response);
         
+    }
+
+    private void displayDashboard(HttpServletRequest request, HttpServletResponse response, User user) throws ServletException, IOException {
+        if (user == null) {
+            response.sendRedirect(request.getContextPath() + "/v1/auth/login");
+            return;
+        }
+        request.getRequestDispatcher("/public/admin/dashboard.jsp").forward(request, response);
     }
 
     private void displayChangePassword(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
@@ -157,8 +196,163 @@ public class AuthController extends HttpServlet {
         throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
     }
 
-    private void handleLoginRequest(HttpServletRequest request, HttpServletResponse response,User user) {
-        throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
+    private void handleLoginRequest(HttpServletRequest request, HttpServletResponse response,User currentUser) throws ServletException, IOException {
+        String identifier = request.getParameter("username");
+        String password = request.getParameter("password");
+
+        if (identifier == null || identifier.trim().isEmpty() || password == null || password.isEmpty()) {
+            request.setAttribute("error", "Vui lòng nhập username và mật khẩu");
+            request.getRequestDispatcher("/public/auth/login.jsp").forward(request, response);
+            return;
+        }
+
+        User user = userDAO.authenticate(identifier.trim(), password);
+        if (user == null) {
+            LOGGER.log(Level.WARNING, "Login failed for identifier: {0}", identifier);
+            request.setAttribute("error", "Username hoặc mật khẩu không đúng");
+            request.getRequestDispatcher("/public/auth/login.jsp").forward(request, response);
+            return;
+        }
+
+        HttpSession session = request.getSession(true);
+        session.setAttribute("user", user);
+        session.setAttribute("email", user.getEmail());
+        LOGGER.log(Level.INFO, "Login successful for userId: {0}", user.getUserId());
+
+        if (user.getIsTemporaryPassword()) {
+            response.sendRedirect(request.getContextPath() + "/v1/auth/change-password");
+            return;
+        }
+        response.sendRedirect(request.getContextPath() + "/v1/auth/dashboard");
+    }
+
+    private void handleGoogleLoginRequest(HttpServletRequest request, HttpServletResponse response) throws IOException, ServletException {
+        String clientId = configManager.getProperty("google.client.id");
+        if (clientId == null || clientId.trim().isEmpty()) {
+            request.setAttribute("error", "Đăng nhập Google chưa được cấu hình OAuth client id");
+            request.getRequestDispatcher("/public/auth/login.jsp").forward(request, response);
+            return;
+        }
+
+        HttpSession session = request.getSession(true);
+        String state = UUID.randomUUID().toString();
+        session.setAttribute("googleOAuthState", state);
+
+        String redirectUri = getGoogleRedirectUri(request);
+        String authUrl = "https://accounts.google.com/o/oauth2/v2/auth"
+                + "?client_id=" + encode(clientId)
+                + "&redirect_uri=" + encode(redirectUri)
+                + "&response_type=code"
+                + "&scope=" + encode("openid email profile")
+                + "&state=" + encode(state)
+                + "&prompt=select_account";
+        response.sendRedirect(authUrl);
+    }
+
+    private void handleGoogleCallback(HttpServletRequest request, HttpServletResponse response) throws IOException, ServletException {
+        HttpSession session = request.getSession(false);
+        String expectedState = (session != null) ? (String) session.getAttribute("googleOAuthState") : null;
+        String actualState = request.getParameter("state");
+        String code = request.getParameter("code");
+        String oauthError = request.getParameter("error");
+
+        if (oauthError != null) {
+            request.setAttribute("error", "Google từ chối đăng nhập: " + oauthError);
+            request.getRequestDispatcher("/public/auth/login.jsp").forward(request, response);
+            return;
+        }
+        if (expectedState == null || actualState == null || !expectedState.equals(actualState) || code == null || code.isEmpty()) {
+            request.setAttribute("error", "Phiên đăng nhập Google không hợp lệ");
+            request.getRequestDispatcher("/public/auth/login.jsp").forward(request, response);
+            return;
+        }
+
+        try {
+            String accessToken = exchangeGoogleCode(request, code);
+            String email = fetchGoogleEmail(accessToken);
+            User user = userDAO.getUserByEmail(email);
+            if (user == null) {
+                request.setAttribute("error", "Tài khoản Google này chưa được cấp quyền trong hệ thống");
+                request.getRequestDispatcher("/public/auth/login.jsp").forward(request, response);
+                return;
+            }
+
+            session.removeAttribute("googleOAuthState");
+            session.setAttribute("user", user);
+            session.setAttribute("email", user.getEmail());
+            response.sendRedirect(request.getContextPath() + "/v1/auth/dashboard");
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Google login failed", e);
+            request.setAttribute("error", "Không thể đăng nhập bằng Google. Vui lòng thử lại sau");
+            request.getRequestDispatcher("/public/auth/login.jsp").forward(request, response);
+        }
+    }
+
+    private String exchangeGoogleCode(HttpServletRequest request, String code) throws IOException, InterruptedException {
+        String clientId = configManager.getProperty("google.client.id");
+        String clientSecret = configManager.getProperty("google.client.secret");
+        if (clientSecret == null || clientSecret.trim().isEmpty()) {
+            throw new IOException("Missing Google OAuth client secret");
+        }
+
+        String body = "code=" + encode(code)
+                + "&client_id=" + encode(clientId)
+                + "&client_secret=" + encode(clientSecret)
+                + "&redirect_uri=" + encode(getGoogleRedirectUri(request))
+                + "&grant_type=authorization_code";
+
+        HttpRequest tokenRequest = HttpRequest.newBuilder()
+                .uri(URI.create("https://oauth2.googleapis.com/token"))
+                .header("Content-Type", "application/x-www-form-urlencoded")
+                .POST(HttpRequest.BodyPublishers.ofString(body))
+                .build();
+        HttpResponse<String> tokenResponse = httpClient.send(tokenRequest, HttpResponse.BodyHandlers.ofString());
+        if (tokenResponse.statusCode() < 200 || tokenResponse.statusCode() >= 300) {
+            throw new IOException("Google token endpoint returned " + tokenResponse.statusCode());
+        }
+
+        JsonObject tokenJson = JsonParser.parseString(tokenResponse.body()).getAsJsonObject();
+        return tokenJson.get("access_token").getAsString();
+    }
+
+    private String fetchGoogleEmail(String accessToken) throws IOException, InterruptedException {
+        HttpRequest userInfoRequest = HttpRequest.newBuilder()
+                .uri(URI.create("https://openidconnect.googleapis.com/v1/userinfo"))
+                .header("Authorization", "Bearer " + accessToken)
+                .GET()
+                .build();
+        HttpResponse<String> userInfoResponse = httpClient.send(userInfoRequest, HttpResponse.BodyHandlers.ofString());
+        if (userInfoResponse.statusCode() < 200 || userInfoResponse.statusCode() >= 300) {
+            throw new IOException("Google userinfo endpoint returned " + userInfoResponse.statusCode());
+        }
+
+        JsonObject userInfo = JsonParser.parseString(userInfoResponse.body()).getAsJsonObject();
+        boolean verified = userInfo.has("email_verified") && userInfo.get("email_verified").getAsBoolean();
+        if (!userInfo.has("email") || !verified) {
+            throw new IOException("Google account email is not verified");
+        }
+        return userInfo.get("email").getAsString();
+    }
+
+    private String getGoogleRedirectUri(HttpServletRequest request) {
+        String configured = configManager.getProperty("google.redirect.uri");
+        if (configured != null && !configured.trim().isEmpty()) {
+            return configured.trim();
+        }
+        return request.getScheme() + "://" + request.getServerName() + ":" + request.getServerPort()
+                + request.getContextPath() + "/v1/auth/google/callback";
+    }
+
+    private String encode(String value) {
+        return URLEncoder.encode(value, StandardCharsets.UTF_8);
+    }
+
+    private void handleLogoutRequest(HttpServletRequest request, HttpServletResponse response) throws IOException {
+        HttpSession session = request.getSession(false);
+        if (session != null) {
+            session.invalidate();
+        }
+        response.sendRedirect(request.getContextPath() + "/v1/auth/login");
     }
 
     private void handleForgetPasswordRequest(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {     
