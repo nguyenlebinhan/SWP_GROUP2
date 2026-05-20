@@ -386,7 +386,7 @@ public class UserDAO {
     public List<User> getUsersByRoleId(int roleId) {
         LOGGER.log(Level.INFO, "Getting users by roleId: {0}", roleId);
         List<User> users = new ArrayList<>();
-        String sql = "SELECT u.userId, u.username, u.email, u.password, u.fullName, u.dob, u.address, "
+        String sql = "SELECT u.userId, u.username, u.email, u.password, u.fullName, u.dob,u.gender , u.address, "
                 + "r.roleName, u.isTemporaryPassword, u.isActive "
                 + "FROM Users u "
                 + "JOIN Roles r ON r.roleId = u.roleId "

@@ -34,6 +34,7 @@ public class DBInitializer {
                 + "roleId INT PRIMARY KEY AUTO_INCREMENT,"
                 + "roleCode VARCHAR(100) NOT NULL UNIQUE,"
                 + "roleName VARCHAR(50) NOT NULL UNIQUE,"
+                + "description TEXT NULL,"
                 + "isActive BIT DEFAULT 1,"
                 + "createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,"
                 + "updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"
@@ -525,9 +526,9 @@ public class DBInitializer {
         try {
             if (countRows(conn, "Roles") == 0) {
                 LOGGER.info("Starting to seed initial data...");
-                insertRole(conn, "AD", "Admin");
-                insertRole(conn, "MA", "HRManager");
-                insertRole(conn, "EM", "HREmployee");
+                insertRole(conn, "AD", "Admin","Người quản trị hệ thống và đưa ra các quyền hạn với user account");
+                insertRole(conn, "MA", "HRManager", "Người tuyển nhận sự ");
+                insertRole(conn, "EM", "HREmployee","Người làm nhân sự ");
             }
             if (countRows(conn, "Users") == 0) {
                 insertUser(conn, "admin", "nguyenlebinhank63@gmail.com",BCrypt.withDefaults().hashToString(12, "admin123".toCharArray()), "Nguyễn Lê Bình An", "2006-01-06", "Phủ Lý, Hà Nam", 1);
@@ -540,11 +541,12 @@ public class DBInitializer {
         }
     }
 
-    private void insertRole(Connection conn, String code, String name) throws SQLException {
-        String sql = "INSERT INTO Roles (roleCode, roleName) VALUES (?, ?)";
+    private void insertRole(Connection conn, String code, String name,String description) throws SQLException {
+        String sql = "INSERT INTO Roles (roleCode, roleName, description) VALUES (?, ?, ?)";
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, code);
             ps.setString(2, name);
+            ps.setNull(3, java.sql.Types.VARCHAR);
             ps.executeUpdate();
         }
     }

@@ -47,7 +47,6 @@
             <h4>HRM System</h4>
 
             <a href="${pageContext.request.contextPath}/v1/admin/dashboard"><i class="fa fa-chart-line"></i> Tổng quan</a>
-            <a href="${pageContext.request.contextPath}/v1/admin/my-profile"><i class="fa fa-user-gear"></i> Hồ sơ của tôi</a>
 <!--            <a><i class="fa fa-briefcase"></i> Công việc</a>-->
             <a href="${pageContext.request.contextPath}/v1/admin/user-list" ><i class="fa fa-users"></i> Người dùng</a>
 <!--            <a><i class="fa fa-clock"></i> Chấm công</a>
