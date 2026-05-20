@@ -448,63 +448,33 @@ public class DBInitializer {
             }
 
             String[] dropOrder = {
-                "Audit_Logs",
-                "Notifications",
-                "Performance",
-                "Payroll",
-                "Attendance",
-                "Uploaded_Files",
-                "Job_Subtasks",
-                "Job_Attachments",
-                "Job_Comments",
-                "Jobs",
-                "Leave_Balance",
-                "Leave_Requests",
-                "Leave_Types",
-                "Candidates",
-                "Employees",
-                "Users",
-                "Role_Permissions",
-                "Permissions",
-                "Email_Templates",
-                "Departments",
-                "Positions",
-                "Roles"
+                "Audit_Logs", "Notifications", "Performance", "Payroll", "Attendance",
+                "Uploaded_Files", "Job_Subtasks", "Job_Attachments", "Job_Comments", "Jobs",
+                "Leave_Balance", "Leave_Requests", "Leave_Types", "Candidates", "Employees",
+                "Users", "Role_Permissions", "Permissions", "Email_Templates", "Departments",
+                "Positions", "Roles"
             };
 
             String[] createOrder = {
-                "Roles",
-                "Permissions",
-                "Role_Permissions",
-                "Email_Templates",
-                "Positions",
-                "Departments",
-                "Users",
-                "Employees",          
-                "Candidates",
-                "Leave_Types",
-                "Leave_Requests",
-                "Leave_Balance",
-                "Jobs",
-                "Job_Comments",
-                "Job_Attachments",
-                "Job_Subtasks",
-                "Uploaded_Files",
-                "Attendance",
-                "Payroll",
-                "Performance",
-                "Notifications",
-                "Audit_Logs"
+                "Roles", "Permissions", "Role_Permissions", "Email_Templates", "Positions",
+                "Departments", "Users", "Employees", "Candidates", "Leave_Types", 
+                "Leave_Requests", "Leave_Balance", "Jobs", "Job_Comments", "Job_Attachments", 
+                "Job_Subtasks", "Uploaded_Files", "Attendance", "Payroll", "Performance", 
+                "Notifications", "Audit_Logs"
             };
 
             if (enforceReset) {
                 LOGGER.log(Level.INFO,"Enforce reset: Dropping all tables...");
-                execute(conn, "SET FOREIGN_KEY_CHECKS=0", "DISABLE FK CHECKS");
+                execute(conn, "SET FOREIGN_KEY_CHECKS=0", "DISABLE FK CHECKS FOR DROP");
                 for (String table : dropOrder) {
                     dropTable(conn, table);
                 }
-                execute(conn, "SET FOREIGN_KEY_CHECKS=1", "ENABLE FK CHECKS");
+                execute(conn, "SET FOREIGN_KEY_CHECKS=1", "ENABLE FK CHECKS AFTER DROP");
             }
+
+            // --- BẮT ĐẦU ĐOẠN SỬA ĐỔI QUAN TRỌNG CHẮN LỖI TẠO BẢNG CHÉO ---
+            LOGGER.log(Level.INFO, "Tạm thời tắt kiểm tra khóa ngoại để tiến hành tạo bảng tuần tự...");
+            execute(conn, "SET FOREIGN_KEY_CHECKS=0", "DISABLE FK CHECKS FOR CREATE");
 
             for (String table : createOrder) {
                 if (enforceReset || !tableExists(conn, table)) {
@@ -516,7 +486,7 @@ public class DBInitializer {
                         case "Positions":         createTablePosition(conn);          break;
                         case "Departments":       createTableDepartments(conn);       break;
                         case "Users":             createTableUsers(conn);             break;
-                        case "Employees":         createTableEmployees(conn);
+                        case "Employees":         createTableEmployees(conn);         break; // Đã thêm break bị thiếu ở đây
                         case "Candidates":        createTableCandidates(conn);        break;
                         case "Leave_Types":       createTableLeaveTypes(conn);        break;
                         case "Leave_Requests":    createTableLeaveRequests(conn);     break;
@@ -531,10 +501,16 @@ public class DBInitializer {
                         case "Performance":       createTablePerformance(conn);       break;
                         case "Notifications":     createTableNotifications(conn);     break;
                         case "Audit_Logs":        createTableAuditLogs(conn);         break;
-                        default: LOGGER.log(Level.WARNING,"Unknown table: {0}", table);           break;
+                        default: LOGGER.log(Level.WARNING,"Unknown table: {0}", table);     break;
                     }
                 }
             }
+
+            // Sau khi tất cả các bảng đã được tạo dựng thành công, bật lại ràng buộc để bảo vệ dữ liệu toàn vẹn
+            execute(conn, "SET FOREIGN_KEY_CHECKS=1", "ENABLE FK CHECKS AFTER CREATE");
+            LOGGER.log(Level.INFO, "Đã kích hoạt lại toàn bộ kiểm tra khóa ngoại hệ thống.");
+            // --- KẾT THÚC ĐOẠN SỬA ĐỔI ---
+
             ensureUsersUsernameColumn(conn);
             insertInitialData(conn);
             LOGGER.log(Level.INFO,"Database initialized successfully!");
@@ -556,6 +532,7 @@ public class DBInitializer {
             if (countRows(conn, "Users") == 0) {
                 insertUser(conn, "admin", "nguyenlebinhank63@gmail.com",BCrypt.withDefaults().hashToString(12, "admin123".toCharArray()), "Nguyễn Lê Bình An", "2006-01-06", "Phủ Lý, Hà Nam", 1);
                 insertUser(conn,"minhquan","minhquan153452@gmail.com",BCrypt.withDefaults().hashToString(12, "google123".toCharArray()),"Minh Quân","2006-01-01","Hà Nội",1);
+                insertUser(conn, "vu", "didoan482@gmail.com", BCrypt.withDefaults().hashToString(12, "soss123".toCharArray()), "Phạm Vũ", "2006-10-17", "Thanh Hóa", 1);
             }
             LOGGER.log(Level.INFO,"Seeding completed successfully.");
         } catch (SQLException e) {
