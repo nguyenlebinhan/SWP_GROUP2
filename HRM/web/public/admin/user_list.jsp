@@ -189,9 +189,7 @@
             <c:remove var="error" scope="session"/>
         </c:if>
 
-        <!-- Header -->
-        <div class="page-header">
-            <h5><i class="fa fa-users me-2" style="color:#ff8c00"></i>Quản lý người dùng</h5>
+        <div class="d-flex justify-content-end mb-4">
             <a href="${pageContext.request.contextPath}/v1/admin/add-user" class="btn-add">
                 <i class="fa fa-user-plus"></i> Thêm người dùng
             </a>
