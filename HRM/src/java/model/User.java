@@ -15,23 +15,43 @@ public class User {
     private String password;
     private String fullName;    
     private String dob;
+    private String gender;
     private String address;
+    private String roleId;
     private String roleName;
+    private String avatar;
     private boolean isTemporaryPassword;
     private int isActive;
 
     public User() {
     }
 
-    public User(int userId, String username, String email, String password, String fullName, String dob, String address, String roleName, boolean isTemporaryPassword, int isActive) {
+    public User(int userId, String username, String email, String password, String fullName, String dob,String gender, String address, String roleName, boolean isTemporaryPassword, int isActive) {
         this.userId = userId;
         this.username = username;
         this.email = email;
         this.password = password;
         this.fullName = fullName;
         this.dob = dob;
+        this.gender =gender;
         this.address = address;
         this.roleName = roleName;
+        this.isTemporaryPassword = isTemporaryPassword;
+        this.isActive = isActive;
+    }
+
+    public User(int userId, String username, String email, String password, String fullName, String dob, String gender, String address, String roleId, String roleName, String avatar, boolean isTemporaryPassword, int isActive) {
+        this.userId = userId;
+        this.username = username;
+        this.email = email;
+        this.password = password;
+        this.fullName = fullName;
+        this.dob = dob;
+        this.gender = gender;
+        this.address = address;
+        this.roleId = roleId;
+        this.roleName = roleName;
+        this.avatar = avatar;
         this.isTemporaryPassword = isTemporaryPassword;
         this.isActive = isActive;
     }
@@ -118,6 +138,30 @@ public class User {
 
     public void setIsActive(int isActive) {
         this.isActive = isActive;
+    }
+
+    public String getGender() {
+        return gender;
+    }
+
+    public void setGender(String gender) {
+        this.gender = gender;
+    }
+
+    public String getRoleId() {
+        return roleId;
+    }
+
+    public void setRoleId(String roleId) {
+        this.roleId = roleId;
+    }
+
+    public String getAvatar() {
+        return avatar;
+    }
+
+    public void setAvatar(String avatar) {
+        this.avatar = avatar;
     }
     
     
