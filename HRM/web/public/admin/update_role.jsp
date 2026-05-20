@@ -19,35 +19,6 @@
             padding: 30px;
         }
 
-        .page-header {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            margin-bottom: 24px;
-        }
-
-        .page-header a {
-            width: 36px;
-            height: 36px;
-            background: white;
-            border: 1px solid #e5e7eb;
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #6b7280;
-            text-decoration: none;
-            transition: background .2s;
-        }
-
-        .page-header a:hover { background: #f3f4f6; }
-
-        .page-header h5 {
-            font-weight: 700;
-            color: #0B0E2A;
-            margin: 0;
-        }
-
         .card {
             border: none;
             border-radius: 12px;
@@ -142,13 +113,10 @@
 <jsp:include page="/public/components/adminSideBar.jsp" />
 
 <div class="main-content">
-
-    <div class="page-header">
-        <a href="${pageContext.request.contextPath}/v1/admin/role-list" title="Quay lại">
-            <i class="fa fa-arrow-left"></i>
-        </a>
-        <h5><i class="fa fa-shield-halved me-2" style="color:#ff8c00"></i>Cập nhật vai trò</h5>
-    </div>
+    <jsp:include page="/public/components/adminTopBar.jsp">
+        <jsp:param name="title" value="Cập nhật vai trò" />
+        <jsp:param name="backUrl" value="/v1/admin/role-list" />
+    </jsp:include>
 
     <c:if test="${not empty error}">
         <div class="alert alert-danger alert-flash alert-dismissible fade show" role="alert">
@@ -171,8 +139,8 @@
                 <div class="card">
                     <div class="card-body p-4">
                         <div class="section-label"><i class="fa fa-shield-halved"></i>Thông tin vai trò</div>
-                        <div class="row g-3 mb-4">
-                            <div class="col-md-4">
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-6">
                                 <input type="hidden" value="${selectedRole.roleId}" name="roleId">
                                 <label class="form-label" for="roleCode">Mã vai trò <span class="required">*</span></label>
                                 <input type="text" id="roleCode" name="roleCode" class="form-control"
@@ -180,18 +148,19 @@
                                        value="<c:out value='${selectedRole.roleCode}'/>" required/>
                                 <div class="form-text"><i class="fa fa-info-circle me-1"></i>Mã duy nhất, không trùng lặp</div>
                             </div>
-                            <div class="col-md-4">
+                            <div class="col-md-6">
                                 <label class="form-label" for="roleName">Tên vai trò <span class="required">*</span></label>
                                 <input type="text" id="roleName" name="roleName" class="form-control"
                                        placeholder="vd: Quản trị viên"
                                        value="<c:out value='${selectedRole.roleName}'/>" required/>
                             </div>
-                            <div class="col-md-4">
-                                <label class="form-label" for="isActive">Trạng thái</label>
-                                <select id="isActive" name="isActive" class="form-select">
-                                    <option value="1" <c:if test="${selectedRole.isActive == 1}">selected</c:if>>Hoạt động</option>
-                                    <option value="0" <c:if test="${selectedRole.isActive == 0}">selected</c:if>>Vô hiệu</option>
-                                </select>
+                        </div>
+                        <div class="row g-3 mb-4">
+                            <div class="col-12">
+                                <label class="form-label" for="description">Mô tả</label>
+                                <textarea id="description" name="description" class="form-control"
+                                          style="height:90px;resize:vertical;padding:10px 14px"
+                                          placeholder="Mô tả ngắn về vai trò này..."><c:out value="${selectedRole.description}"/></textarea>
                             </div>
                         </div>
 

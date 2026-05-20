@@ -106,14 +106,15 @@ public class RoleDAO {
         }
         return false;        
     }    
-    public boolean addRole(String roleCode, String roleName) {
+    public boolean addRole(String roleCode, String roleName, String description) {
         LOGGER.log(Level.INFO, "Adding new role  {0}", roleCode);
 
-        String sql = "INSERT INTO Roles (roleCode,roleName) VALUES (?, ?)";
+        String sql = "INSERT INTO Roles (roleCode, roleName, description) VALUES (?, ?, ?)";
 
         try (Connection conn = dbContext.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, roleCode);
-            ps.setString(2,roleName);
+            ps.setString(2, roleName);
+            ps.setString(3, description);
 
             int rowsAffected = ps.executeUpdate();
             if (rowsAffected > 0) {
@@ -149,14 +150,14 @@ public class RoleDAO {
         return false;
     }
 
-    public boolean updateRole(int roleId, String roleCode, String roleName, int isActive) {
+    public boolean updateRole(int roleId, String roleCode, String roleName, String description) {
         LOGGER.log(Level.INFO, "Updating role with roleId: {0}", roleId);
-        String SQL = "UPDATE roles SET roleCode = ?, roleName = ?, isActive = ? WHERE roleId = ?";
+        String SQL = "UPDATE roles SET roleCode = ?, roleName = ?, description = ? WHERE roleId = ?";
         try (Connection conn = dbContext.getConnection();
              PreparedStatement ps = conn.prepareStatement(SQL)) {
             ps.setString(1, roleCode);
             ps.setString(2, roleName);
-            ps.setInt(3, isActive);
+            ps.setString(3, description);
             ps.setInt(4, roleId);
 
             int rowsAffected = ps.executeUpdate();
@@ -180,6 +181,7 @@ public class RoleDAO {
         role.setRoleId(rs.getInt("roleId"));
         role.setRoleCode(rs.getString("roleCode"));
         role.setRoleName(rs.getString("roleName"));
+        role.setDescription(rs.getString("description"));
         role.setIsActive(rs.getInt("isActive"));
         return role;
     }

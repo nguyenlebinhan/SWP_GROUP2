@@ -246,15 +246,8 @@
 <div class="main-content">
     <jsp:include page="/public/components/adminTopBar.jsp">
         <jsp:param name="title" value="Chi tiết người dùng" />
+        <jsp:param name="backUrl" value="/v1/admin/user-list" />
     </jsp:include>
-
-    <!-- Header -->
-    <div class="page-header">
-        <a href="${pageContext.request.contextPath}/v1/admin/user-list" class="back-btn" title="Quay lại">
-            <i class="fa fa-arrow-left"></i>
-        </a>
-        <h5><i class="fa fa-user me-2" style="color:#ff8c00"></i>Chi tiết người dùng</h5>
-    </div>
 
     <!-- Flash messages -->
     <c:if test="${not empty error}">

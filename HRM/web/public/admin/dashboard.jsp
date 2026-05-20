@@ -75,8 +75,6 @@
                 <jsp:param name="title" value="Dashboard" />
             </jsp:include>
 
-            <h3>Dashboard</h3>
-            <p>Xin chào, Admin. Hôm nay: ${todayDate}</p>
 
             <!-- ===== STATS ===== -->
             <div class="row g-4">

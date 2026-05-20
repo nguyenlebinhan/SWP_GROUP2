@@ -18,21 +18,6 @@
             margin-bottom: 24px;
         }
         .page-header h5 { font-weight: 700; color: #0B0E2A; margin: 0; }
-        .btn-add {
-            background: #ff8c00;
-            color: #fff;
-            border: none;
-            padding: 9px 18px;
-            border-radius: 8px;
-            font-weight: 600;
-            font-size: 14px;
-            text-decoration: none;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            opacity: .62;
-            cursor: not-allowed;
-        }
         .stat-card,
         .table-card {
             background: #fff;
@@ -139,10 +124,26 @@
 <jsp:include page="/public/components/adminSideBar.jsp" />
 
 <div class="main-content">
-    <jsp:include page="/public/components/adminTopBar.jsp"/>
-       
-    <div class="page-header">
-        <h5><i class="fa fa-shield-halved me-2" style="color:#ff8c00"></i>Quản lý vai trò</h5>
+    <jsp:include page="/public/components/adminTopBar.jsp">
+        <jsp:param name="title" value="Quản lý phân quyền" />
+    </jsp:include>
+
+    <c:if test="${not empty sessionScope.success}">
+        <div class="alert alert-success alert-dismissible fade show" style="border-radius:8px;font-size:14px;margin-bottom:20px" role="alert">
+            <i class="fa fa-circle-check me-2"></i><c:out value="${sessionScope.success}"/>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        <c:remove var="success" scope="session"/>
+    </c:if>
+    <c:if test="${not empty sessionScope.error}">
+        <div class="alert alert-danger alert-dismissible fade show" style="border-radius:8px;font-size:14px;margin-bottom:20px" role="alert">
+            <i class="fa fa-circle-exclamation me-2"></i><c:out value="${sessionScope.error}"/>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        <c:remove var="error" scope="session"/>
+    </c:if>
+
+    <div class="d-flex justify-content-end mb-4">
         <a href="${pageContext.request.contextPath}/v1/admin/add-role" class="btn-add">
             <i class="fa fa-plus"></i> Thêm vai trò
         </a>
@@ -183,6 +184,7 @@
                         <th>#</th>
                         <th>Mã vai trò</th>
                         <th>Tên vai trò</th>
+                        <th>Mô tả</th>
                         <th>Người dùng</th>
                         <th>Quyền</th>
                         <th>Trạng thái</th>
@@ -193,7 +195,7 @@
                     <c:choose>
                         <c:when test="${empty roles}">
                             <tr>
-                                <td colspan="7">
+                                <td colspan="8">
                                     <div class="empty-state">
                                         <i class="fa fa-shield"></i>
                                         Chưa có vai trò nào
@@ -207,6 +209,12 @@
                                     <td style="color:#9ca3af">${loop.index + 1}</td>
                                     <td><span class="role-code"><c:out value="${r.roleCode}"/></span></td>
                                     <td><strong><c:out value="${r.roleName}"/></strong></td>
+                                    <td style="color:#6b7280;max-width:200px">
+                                        <c:choose>
+                                            <c:when test="${not empty r.description}"><c:out value="${r.description}"/></c:when>
+                                            <c:otherwise><span style="color:#d1d5db">—</span></c:otherwise>
+                                        </c:choose>
+                                    </td>
                                     <td><span class="count-pill">${userCounts[r.roleId]}</span></td>
                                     <td><span class="count-pill">${permissionCounts[r.roleId]}</span></td>
                                     <td>
@@ -226,7 +234,7 @@
                                             </a>
                                             <a href="${pageContext.request.contextPath}/v1/admin/update-role?id=${r.roleId}" class="btn-action btn-view">
                                                 <i class="fa fa-pen"></i> Sửa
-                                            </span>
+                                            </a>
                                             <c:choose>
                                                 <c:when test="${r.roleName == 'Admin'}">
                                                     <span class="btn-action btn-disabled" title="Không thể thay đổi trạng thái vai trò ADMIN">
@@ -248,7 +256,6 @@
                                                     </a>
                                                 </c:otherwise>
                                             </c:choose>
-                                            </a>
                                             <a href="${pageContext.request.contextPath}/v1/admin/delete-role?id=${r.roleId}" class="btn-action btn-delete">
                                                 <i class="fa fa-trash"></i> Xóa
                                             </a>

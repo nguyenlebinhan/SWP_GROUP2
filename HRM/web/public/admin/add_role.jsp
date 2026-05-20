@@ -106,14 +106,8 @@
 <div class="main-content">
     <jsp:include page="/public/components/adminTopBar.jsp">
         <jsp:param name="title" value="Thêm vai trò" />
+        <jsp:param name="backUrl" value="/v1/admin/role-list" />
     </jsp:include>
-
-    <div class="page-header">
-        <a href="${pageContext.request.contextPath}/v1/admin/role-list" title="Quay lại">
-            <i class="fa fa-arrow-left"></i>
-        </a>
-        <h5><i class="fa fa-shield-halved me-2" style="color:#ff8c00"></i>Thêm vai trò</h5>
-    </div>
 
     <c:if test="${not empty error}">
         <div class="alert alert-danger alert-flash alert-dismissible fade show" role="alert">
@@ -126,7 +120,7 @@
         <div class="card">
             <div class="card-body p-4">
                 <div class="section-label"><i class="fa fa-shield-halved"></i>Thông tin vai trò</div>
-                <div class="row g-3 mb-4">
+                <div class="row g-3 mb-3">
                     <div class="col-md-6">
                         <label class="form-label" for="roleCode">Mã vai trò <span class="required">*</span></label>
                         <input type="text" id="roleCode" name="roleCode" class="form-control"
@@ -139,6 +133,14 @@
                         <input type="text" id="roleName" name="roleName" class="form-control"
                                placeholder="vd: Quản trị viên"
                                required/>
+                    </div>
+                </div>
+                <div class="row g-3 mb-4">
+                    <div class="col-12">
+                        <label class="form-label" for="description">Mô tả</label>
+                        <textarea id="description" name="description" class="form-control"
+                                  style="height:90px;resize:vertical;padding:10px 14px"
+                                  placeholder="Mô tả ngắn về vai trò này..."></textarea>
                     </div>
                 </div>
 

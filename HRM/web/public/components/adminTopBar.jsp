@@ -149,9 +149,18 @@
 <c:set var="topbarDisplayName" value="${empty topbarUser.fullName ? topbarUser.username : topbarUser.fullName}" />
 
 <div class="admin-topbar">
-    <h4 class="admin-topbar-title">
-        <%--<c:out value="${empty param.title ? 'HRM Admin' : param.title}" />--%>
-    </h4>
+    <div style="display:flex;align-items:center;gap:12px">
+        <c:if test="${not empty param.backUrl}">
+            <a href="${pageContext.request.contextPath}${param.backUrl}"
+               style="width:34px;height:34px;background:#f3f4f6;border:1px solid #e5e7eb;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;color:#6b7280;text-decoration:none;flex-shrink:0"
+               title="Quay lại">
+                <i class="fa fa-arrow-left" style="font-size:13px"></i>
+            </a>
+        </c:if>
+        <h4 class="admin-topbar-title">
+            <c:out value="${empty param.title ? 'HRM Admin' : param.title}" />
+        </h4>
+    </div>
 
     <div class="admin-topbar-actions">
         <span class="admin-notification" title="Thông báo">
