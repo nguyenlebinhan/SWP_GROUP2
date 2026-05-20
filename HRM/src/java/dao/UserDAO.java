@@ -330,6 +330,30 @@ public class UserDAO {
         }
         return null;
     }  
+
+    public List<User> getUsersByRoleId(int roleId) {
+        LOGGER.log(Level.INFO, "Getting users by roleId: {0}", roleId);
+        List<User> users = new ArrayList<>();
+        String sql = "SELECT u.userId, u.username, u.email, u.password, u.fullName, u.dob, u.address, "
+                + "r.roleName, u.isTemporaryPassword, u.isActive "
+                + "FROM Users u "
+                + "JOIN Roles r ON r.roleId = u.roleId "
+                + "WHERE u.roleId = ? "
+                + "ORDER BY u.fullName";
+        try (Connection conn = dbContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, roleId);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    users.add(mapUser(rs));
+                }
+            }
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Error getting users by roleId: " + roleId, e);
+        }
+        return users;
+    }
+
     private User mapUser(ResultSet rs) throws SQLException {
         int userId = rs.getInt("userId");
         String username = rs.getString("username");
