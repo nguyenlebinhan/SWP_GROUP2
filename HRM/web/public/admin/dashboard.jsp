@@ -83,12 +83,12 @@
 
                 <div class="col-md-3">
                     <div class="card card-stat p-4">
-                        <h2>128</h2>
-                        <p>Tổng nhân viên</p>
+                        <h2>${userSize}</h2>
+                        <p>Tổng người dùng</p>
                     </div>
                 </div>
 
-                <div class="col-md-3">
+<!--                <div class="col-md-3">
                     <div class="card card-stat p-4">
                         <h2>115</h2>
                         <p>Đang làm việc</p>
@@ -107,7 +107,7 @@
                         <h2>12</h2>
                         <p>Phòng ban</p>
                     </div>
-                </div>
+                </div>-->
 
             </div>
             <!-- ===== CHART + EMPLOYEE ===== -->

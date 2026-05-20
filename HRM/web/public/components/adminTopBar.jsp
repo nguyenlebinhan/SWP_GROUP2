@@ -150,7 +150,7 @@
 
 <div class="admin-topbar">
     <h4 class="admin-topbar-title">
-        <c:out value="${empty param.title ? 'HRM Admin' : param.title}" />
+        <%--<c:out value="${empty param.title ? 'HRM Admin' : param.title}" />--%>
     </h4>
 
     <div class="admin-topbar-actions">
