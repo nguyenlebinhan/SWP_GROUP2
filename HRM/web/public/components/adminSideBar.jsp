@@ -54,7 +54,7 @@
             <a><i class="fa fa-user-plus"></i> Tuyển dụng</a>
             <a><i class="fa fa-money-bill"></i> Bảng lương</a>
             <a><i class="fa fa-building"></i> Phòng ban</a>-->
-            <a><i class="fa fa-key"></i> Phân quyền</a>
+            <a href="${pageContext.request.contextPath}/v1/admin/role-list"><i class="fa fa-key"></i> Phân quyền</a>
 <!--            <a><i class="fa fa-chart-bar"></i> Báo cáo</a>-->
 
         </div>
