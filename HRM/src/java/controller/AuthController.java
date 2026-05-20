@@ -362,8 +362,7 @@ public class AuthController extends HttpServlet {
                 
             }else{
                 LOGGER.log(Level.SEVERE,"Failed to updated isTemporaryPassword for userId: {0} ",user.getUserId());
-                request.setAttribute("error", "Error");
-                return;
+                request.setAttribute("error", "Có lỗi xảy ra khi xử lý yêu cầu. Vui lòng thử lại");
             }
         } else {
             LOGGER.log(Level.SEVERE, "Failed to create reset password for user id: {0}", user.getUserId());
