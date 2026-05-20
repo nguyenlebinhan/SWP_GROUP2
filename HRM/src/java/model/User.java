@@ -18,11 +18,12 @@ public class User {
     private String address;
     private String roleName;
     private boolean isTemporaryPassword;
+    private int isActive;
 
     public User() {
     }
 
-    public User(int userId, String username, String email, String password, String fullName, String dob, String address, String roleName, boolean isTemporaryPassword) {
+    public User(int userId, String username, String email, String password, String fullName, String dob, String address, String roleName, boolean isTemporaryPassword, int isActive) {
         this.userId = userId;
         this.username = username;
         this.email = email;
@@ -32,7 +33,10 @@ public class User {
         this.address = address;
         this.roleName = roleName;
         this.isTemporaryPassword = isTemporaryPassword;
+        this.isActive = isActive;
     }
+
+
 
 
 
@@ -106,6 +110,14 @@ public class User {
 
     public void setIsTemporaryPassword(boolean isTemporaryPassword) {
         this.isTemporaryPassword = isTemporaryPassword;
+    }
+
+    public int getIsActive() {
+        return isActive;
+    }
+
+    public void setIsActive(int isActive) {
+        this.isActive = isActive;
     }
     
     
