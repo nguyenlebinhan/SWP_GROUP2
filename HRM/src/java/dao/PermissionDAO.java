@@ -39,10 +39,33 @@ public class PermissionDAO {
         }
         return permissions;
     }
+
+    public List<Permission> getPermissionsByRoleId(int roleId) {
+        LOGGER.log(Level.INFO, "Getting permissions by roleId through role_permissions: {0}", roleId);
+        List<Permission> permissions = new ArrayList<>();
+        String SQL = "SELECT p.permissionId, p.permissionCode, p.permissionName, p.description "
+                + "FROM permissions p "
+                + "JOIN role_permissions rp ON rp.permissionId = p.permissionId "
+                + "WHERE rp.roleId = ? "
+                + "ORDER BY p.permissionName";
+        try (Connection conn = dbContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(SQL)) {
+            ps.setInt(1, roleId);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    permissions.add(mapPermission(rs));
+                }
+            }
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Cannot retrieve permissions by roleId: " + roleId, e);
+        }
+        return permissions;
+    }
+
     private Permission mapPermission(ResultSet rs) throws SQLException{
         Permission permission  = new Permission();
         permission.setPermissionId(rs.getInt("permissionId"));
-        permission.setPermissionCode("permissionCode");
+        permission.setPermissionCode(rs.getString("permissionCode"));
         permission.setPermissionName(rs.getString("permissionName"));
         permission.setDescription(rs.getNString("description"));
         return permission;
