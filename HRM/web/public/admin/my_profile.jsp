@@ -213,9 +213,6 @@
         <jsp:param name="title" value="Hồ sơ của tôi" />
     </jsp:include>
 
-    <div class="page-header">
-        <h5><i class="fa fa-user-gear me-2" style="color:#ff8c00"></i>Hồ sơ của tôi</h5>
-    </div>
 
     <c:if test="${not empty sessionScope.success}">
         <div class="alert alert-success alert-flash alert-dismissible fade show" role="alert">

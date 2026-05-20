@@ -154,13 +154,10 @@
 <jsp:include page="/public/components/adminSideBar.jsp" />
 
 <div class="main-content">
-
-    <div class="page-header">
-        <a href="${pageContext.request.contextPath}/v1/admin/user-list" title="Quay lại">
-            <i class="fa fa-arrow-left"></i>
-        </a>
-        <h5><i class="fa fa-user-plus me-2" style="color:#ff8c00"></i>Cập nhật người dùng</h5>
-    </div>
+    <jsp:include page="/public/components/adminTopBar.jsp">
+        <jsp:param name="title" value="Cập nhật người dùng" />
+        <jsp:param name="backUrl" value="/v1/admin/user-list" />
+    </jsp:include>
 
     <c:if test="${not empty error}">
         <div class="alert alert-danger alert-flash alert-dismissible fade show" role="alert">
