@@ -38,6 +38,51 @@ public class RoleDAO {
         }
         return roles;
     }
+
+    public Role getRoleById(int roleId) {
+        LOGGER.log(Level.INFO, "Get role by roleId: {0}", roleId);
+        String SQL = "SELECT * FROM roles WHERE roleId = ?";
+        try (Connection conn = dbContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(SQL)) {
+            ps.setInt(1, roleId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return mapRole(rs);
+                }
+            }
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Cannot retrieve role by roleId: " + roleId, e);
+        }
+        return null;
+    }
+
+    public int countUsersByRoleId(int roleId) {
+        String SQL = "SELECT COUNT(*) FROM users WHERE roleId = ?";
+        try (Connection conn = dbContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(SQL)) {
+            ps.setInt(1, roleId);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next() ? rs.getInt(1) : 0;
+            }
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Cannot count users by roleId: " + roleId, e);
+        }
+        return 0;
+    }
+
+    public int countPermissionsByRoleId(int roleId) {
+        String SQL = "SELECT COUNT(*) FROM role_permissions WHERE roleId = ?";
+        try (Connection conn = dbContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(SQL)) {
+            ps.setInt(1, roleId);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next() ? rs.getInt(1) : 0;
+            }
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Cannot count permissions by roleId: " + roleId, e);
+        }
+        return 0;
+    }
     
     public boolean handleStatus(int status,int roleId){
         LOGGER.log(Level.INFO,"Handling new status role with roleId: {0}", roleId);
