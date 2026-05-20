@@ -188,6 +188,42 @@ public class UserDAO {
         }
         return false;
     }
+
+    public boolean isUsernameExistsForOtherUser(String username, int userId) {
+        String sql = "SELECT 1 FROM users WHERE username = ? AND userId <> ?";
+        try (Connection conn = dbContext.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, username);
+            ps.setInt(2, userId);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next();
+            }
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Error checking username existence: " + username, e);
+        }
+        return true;
+    }
+
+    public boolean updateMyProfile(int userId, String username, String fullName, String dob, String address) {
+        LOGGER.log(Level.INFO, "Updating profile for userId: {0}", userId);
+        String sql = "UPDATE users SET username = ?, fullName = ?, dob = ?, address = ? WHERE userId = ?";
+        try (Connection conn = dbContext.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, username);
+            ps.setString(2, fullName);
+            ps.setString(3, dob);
+            ps.setString(4, address);
+            ps.setInt(5, userId);
+
+            int rowsAffected = ps.executeUpdate();
+            if (rowsAffected > 0) {
+                LOGGER.log(Level.INFO, "Profile updated successfully for userId: {0}", userId);
+                return true;
+            }
+            LOGGER.log(Level.WARNING, "Profile update failed: no rows affected for userId: {0}", userId);
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Error updating profile for userId: " + userId, e);
+        }
+        return false;
+    }
     
     
     
@@ -346,6 +382,30 @@ public class UserDAO {
         }
         return null;
     }      
+
+    public List<User> getUsersByRoleId(int roleId) {
+        LOGGER.log(Level.INFO, "Getting users by roleId: {0}", roleId);
+        List<User> users = new ArrayList<>();
+        String sql = "SELECT u.userId, u.username, u.email, u.password, u.fullName, u.dob, u.address, "
+                + "r.roleName, u.isTemporaryPassword, u.isActive "
+                + "FROM Users u "
+                + "JOIN Roles r ON r.roleId = u.roleId "
+                + "WHERE u.roleId = ? "
+                + "ORDER BY u.fullName";
+        try (Connection conn = dbContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, roleId);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    users.add(mapUser(rs));
+                }
+            }
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Error getting users by roleId: " + roleId, e);
+        }
+        return users;
+    }
+
     private User mapUser(ResultSet rs) throws SQLException {
         int userId = rs.getInt("userId");
         String username = rs.getString("username");
