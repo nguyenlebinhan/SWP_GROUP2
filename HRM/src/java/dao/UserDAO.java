@@ -36,11 +36,11 @@ public class UserDAO {
 
         LOGGER.log(Level.FINE, "Generated password: {0}", password);
 
-        String sql = "UPDATE users u SET u.password = ? WHERE u.userId = ? ";
+        String sql = "UPDATE users u SET u.password = ? WHERE u.userId = ? and u.isActive = 1 ";
 
         try (Connection conn = dbContext.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
 
-            ps.setString(1, password);
+            ps.setString(1, hashPassword(password));
             ps.setInt(2, userId);
 
             int rowsAffected = ps.executeUpdate();
@@ -140,7 +140,7 @@ public class UserDAO {
             LOGGER.log(Level.WARNING, "Add user failed: email already exists: {0}", email);
             return false;
         }
-        String sql = "INSERT INTO users (username, email, password, fullName, dob, address, roleId, isTemporaryPassword) VALUES (?, ?, ?, ?, ?, ?, ?, 1)";
+        String sql = "INSERT INTO users (username, email, password, fullName, dob, gender, address, roleId, isTemporaryPassword) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1)";
 
         try (Connection conn = dbContext.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, username);
@@ -148,8 +148,9 @@ public class UserDAO {
             ps.setString(3, hashPassword(password));
             ps.setString(4, fullName);
             ps.setString(5, dob);
-            ps.setString(6, address);
-            ps.setInt(7, roleId);
+            ps.setString(6, gender);
+            ps.setString(7, address);
+            ps.setInt(8, roleId);
 
             int rowsAffected = ps.executeUpdate();
             if (rowsAffected > 0) {
@@ -167,7 +168,7 @@ public class UserDAO {
 
     public boolean handleStatus(int status, int userId) {
         LOGGER.log(Level.INFO, "Handling new status account with userId: {0}", userId);
-        String SQL = "UPDATE users u SET u.status = ? WHERE u.userId = ? ";
+        String SQL = "UPDATE users u SET u.isActive = ? WHERE u.userId = ? ";
         try (Connection conn = dbContext.getConnection(); PreparedStatement ps = conn.prepareStatement(SQL)) {
             ps.setInt(1, status);
             ps.setInt(2, userId);
@@ -191,7 +192,7 @@ public class UserDAO {
 
     public User getUserByEmail(String email) {
         LOGGER.log(Level.INFO, "Get user by email: ", email);
-        String SQL = "SELECT u.userId,u.username,u.email,u.password,u.fullName,u.dob,u.address,r.roleName,u.isTemporaryPassword FROM Users u JOIN Roles r on r.roleId = u.roleId WHERE u.email = ?  ";
+        String SQL = "SELECT u.userId,u.username,u.email,u.password,u.fullName,u.dob,u.address,r.roleName,u.isTemporaryPassword,isActive FROM Users u JOIN Roles r on r.roleId = u.roleId WHERE u.email = ?  ";
         try (Connection conn = dbContext.getConnection(); PreparedStatement ps = conn.prepareStatement(SQL)) {
             ps.setString(1, email);
             try (ResultSet rs = ps.executeQuery()) {
@@ -211,16 +212,10 @@ public class UserDAO {
 
     public User getUserByUsername(String username) {
         LOGGER.log(Level.INFO, "Get user by username: {0}", username);
-        String SQL = "SELECT u.userId,u.username,u.email,u.password,u.fullName,u.dob,u.address,r.roleName,u.isTemporaryPassword "
+        String SQL = "SELECT u.userId,u.username,u.email,u.password,u.fullName,u.dob,u.address,r.roleName,u.isTemporaryPassword,u.isActive "
                 + "FROM Users u JOIN Roles r on r.roleId = u.roleId "
-<<<<<<< HEAD
                 + "WHERE u.username = ? AND u.isActive = 1";
-        try(Connection conn = dbContext.getConnection();
-            PreparedStatement ps = conn.prepareStatement(SQL)){
-=======
-                + "WHERE u.username = ?";
         try (Connection conn = dbContext.getConnection(); PreparedStatement ps = conn.prepareStatement(SQL)) {
->>>>>>> main
             ps.setString(1, username);
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
@@ -238,13 +233,13 @@ public class UserDAO {
             return null;
         }
         User user = getUserByUsername(identifier);
-        if (user == null) {
-            user = getUserByEmail(identifier);
-        }
+//        if (user == null) {
+//            user = getUserByEmail(identifier);
+//        }
         if (user == null) {
             return null;
         }
-        if (!checkPassword(password, user.getPassword())) {
+        if (!verifyPassword(password, user.getPassword())) {
             return null;
         }
         return user;
@@ -258,31 +253,12 @@ public class UserDAO {
         return BCrypt.verifyer().verify(plainPassword.toCharArray(), hashedPassword).verified;
     }
 
-    private static boolean checkPassword(String plain, String stored) {
-        if (stored == null) {
-            return false;
-        }
-        return verifyPassword(plain, stored);
-    }
-
-    private User mapUser(ResultSet rs) throws SQLException {
-        int userId = rs.getInt("userId");
-        String username = rs.getString("username");
-        String email = rs.getString("email");
-        String password = rs.getString("password");
-        String fullName = rs.getNString("fullName");
-        String dateOfBirth = rs.getString("dob");
-        String address = rs.getString("address");
-        String roleName = rs.getString("roleName");
-        boolean isTemporaryPassword = rs.getBoolean("isTemporaryPassword");
-        return new User(userId, username, email, password, fullName, dateOfBirth, address, roleName, isTemporaryPassword);
-    }
 
     public List<User> getAllUsers() {
         LOGGER.log(Level.INFO, "Getting all users");
         List<User> users = new ArrayList<>();
-        String SQL = "SELECT u.userId, u.username, u.email, u.password, u.fullName, u.dob, u.address, r.roleName, u.isTemporaryPassword "
-                + "FROM users u JOIN roles r ON r.roleId = u.roleId";
+        String SQL = "SELECT u.userId, u.username, u.email, u.password, u.fullName, u.dob, u.address, r.roleName, u.isTemporaryPassword,u.isActive "
+                + "FROM Users u JOIN Roles r ON r.roleId = u.roleId";
 
         try (Connection conn = dbContext.getConnection(); PreparedStatement ps = conn.prepareStatement(SQL); ResultSet rs = ps.executeQuery()) {
 
@@ -296,5 +272,39 @@ public class UserDAO {
         }
         return users;
     }
+    
+    public User getUserById(int userId) {
+        LOGGER.log(Level.INFO,"Getting user by userId: {0}",userId);
+        String sql = "SELECT u.userId, u.username, u.email,u.password, u.fullName, u.dob, u.address, "
+                + "r.roleName, u.isTemporaryPassword,u.isActive "
+                + "FROM Users u "
+                + "JOIN Roles r ON r.roleId = u.roleId "
+                + "WHERE u.userId = ?";
 
+        try (Connection conn = dbContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, userId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return mapUser(rs);
+                }
+            }
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Error getting user detail for admin view: " + userId, e);
+        }
+        return null;
+    }  
+    private User mapUser(ResultSet rs) throws SQLException {
+        int userId = rs.getInt("userId");
+        String username = rs.getString("username");
+        String email = rs.getString("email");
+        String password = rs.getString("password");
+        String fullName = rs.getNString("fullName");
+        String dateOfBirth = rs.getString("dob");
+        String address = rs.getString("address");
+        String roleName = rs.getString("roleName");
+        boolean isTemporaryPassword = rs.getBoolean("isTemporaryPassword");
+        int isActive = rs.getInt("isActive");
+        return new User(userId, username, email, password, fullName, dateOfBirth, address, roleName, isTemporaryPassword,isActive);
+    }    
 }
