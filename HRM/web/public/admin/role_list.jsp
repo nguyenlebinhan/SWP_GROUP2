@@ -107,6 +107,8 @@
             font-weight: 600;
         }
         .btn-view { background: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; }
+        .btn-deactivate { background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
+        .btn-activate { background: #d1fae5; color: #065f46; border: 1px solid #a7f3d0; }
         .btn-disabled {
             background: #f3f4f6;
             color: #9ca3af;
@@ -122,10 +124,8 @@
 <jsp:include page="/public/components/adminSideBar.jsp" />
 
 <div class="main-content">
-    <jsp:include page="/public/components/adminTopBar.jsp">
-        <jsp:param name="title" value="Quản lý vai trò" />
-    </jsp:include>
-
+    <jsp:include page="/public/components/adminTopBar.jsp"/>
+       
     <div class="page-header">
         <h5><i class="fa fa-shield-halved me-2" style="color:#ff8c00"></i>Quản lý vai trò</h5>
         <span class="btn-add" title="Chức năng sẽ được bổ sung sau">
@@ -212,9 +212,27 @@
                                             <span class="btn-action btn-disabled" title="Chức năng sẽ được bổ sung sau">
                                                 <i class="fa fa-pen"></i> Sửa
                                             </span>
-                                            <span class="btn-action btn-disabled" title="Chức năng sẽ được bổ sung sau">
-                                                <i class="fa fa-trash"></i> Xóa
-                                            </span>
+                                            <c:choose>
+                                                <c:when test="${r.roleName == 'Admin'}">
+                                                    <span class="btn-action btn-disabled" title="Không thể thay đổi trạng thái vai trò ADMIN">
+                                                        <i class="fa fa-lock"></i> Được bảo vệ
+                                                    </span>
+                                                </c:when>
+                                                <c:when test="${r.isActive == 1}">
+                                                    <a href="${pageContext.request.contextPath}/v1/admin/change-status-role?id=${r.roleId}&status=0"
+                                                       class="btn-action btn-deactivate"
+                                                       onclick="return confirm('Vô hiệu hóa vai trò ${r.roleName}?')">
+                                                        <i class="fa fa-ban"></i> Vô hiệu hóa
+                                                    </a>
+                                                </c:when>
+                                                <c:otherwise>
+                                                    <a href="${pageContext.request.contextPath}/v1/admin/change-status-role?id=${r.roleId}&status=1"
+                                                       class="btn-action btn-activate"
+                                                       onclick="return confirm('Kích hoạt vai trò ${r.roleName}?')">
+                                                        <i class="fa fa-circle-check"></i> Kích hoạt
+                                                    </a>
+                                                </c:otherwise>
+                                            </c:choose>
                                         </div>
                                     </td>
                                 </tr>
