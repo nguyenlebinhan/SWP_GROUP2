@@ -134,6 +134,54 @@
             font-size: 14px;
             cursor: not-allowed;
         }
+        .btn-edit-role {
+            height: 40px;
+            padding: 0 18px;
+            border-radius: 8px;
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            background: #e0f2fe;
+            color: #0369a1;
+            border: 1px solid #bae6fd;
+            font-weight: 700;
+            font-size: 14px;
+            text-decoration: none;
+            transition: opacity .2s;
+        }
+        .btn-edit-role:hover { opacity: .85; color: #0369a1; }
+        .btn-add-role {
+            height: 40px;
+            padding: 0 18px;
+            border-radius: 8px;
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            background: #ff8c00;
+            color: white;
+            border: 1px solid #ff8c00;
+            font-weight: 700;
+            font-size: 14px;
+            text-decoration: none;
+            transition: opacity .2s;
+        }
+        .btn-add-role:hover { opacity: .85; color: white; }
+        .btn-delete-role {
+            height: 40px;
+            padding: 0 18px;
+            border-radius: 8px;
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            background: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #fecaca;
+            font-weight: 700;
+            font-size: 14px;
+            text-decoration: none;
+            transition: opacity .2s;
+        }
+        .btn-delete-role:hover { opacity: .85; color: #991b1b; }
         .alert-flash { border-radius: 8px; font-size: 14px; margin-bottom: 20px; }
         .empty-card {
             background: #fff;
@@ -214,12 +262,15 @@
                 <div class="col-lg-9 col-md-8">
                     <div class="detail-panel">
                         <div class="d-flex gap-2 justify-content-end mb-3">
-                            <span class="btn-disabled" title="Chức năng sẽ được bổ sung sau">
+                            <a href="${pageContext.request.contextPath}/v1/admin/add-role" class="btn-add-role">
+                                <i class="fa fa-plus"></i> Thêm vai trò
+                            </a>
+                            <a href="${pageContext.request.contextPath}/v1/admin/update-role?id=${selectedRole.roleId}" class="btn-edit-role">
                                 <i class="fa fa-pen"></i> Sửa vai trò
-                            </span>
-                            <span class="btn-disabled" title="Chức năng sẽ được bổ sung sau">
+                            </a>
+                            <a href="${pageContext.request.contextPath}/v1/admin/delete-role?id=${selectedRole.roleId}" class="btn-delete-role">
                                 <i class="fa fa-trash"></i> Xóa vai trò
-                            </span>
+                            </a>
                         </div>
 
                         <div class="section-block">
