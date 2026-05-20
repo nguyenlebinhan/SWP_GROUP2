@@ -26,50 +26,6 @@
                 font-family:Segoe UI;
             }
 
-            /* ===== TOPBAR ===== */
-
-            .topbar{
-                height:70px;
-                background:white;
-                display:flex;
-                justify-content:space-between;
-                align-items:center;
-                padding:0 30px;
-                border-radius:10px;
-                box-shadow:0 2px 8px rgba(0,0,0,0.05);
-                margin-bottom:20px;
-            }
-
-            .admin-box{
-                display:flex;
-                align-items:center;
-                gap:15px;
-            }
-
-            .bell{
-                font-size:20px;
-                position:relative;
-                cursor:pointer;
-            }
-
-            .bell::after{
-                content:'';
-                position:absolute;
-                top:2px;
-                right:-2px;
-                width:8px;
-                height:8px;
-                background:red;
-                border-radius:50%;
-            }
-
-            .admin-avatar{
-                width:40px;
-                height:40px;
-                background:#2b6cb0;
-                border-radius:50%;
-            }
-
             /* ===== MAIN ===== */
 
             .main{
@@ -113,30 +69,11 @@
         <!-- ================= SIDEBAR ================= -->
             <jsp:include page="/public/components/adminSideBar.jsp" />
 
-        <!-- ===== TOPBAR ===== -->
-        <div class="topbar">
-
-            <h4 class="mb-0">Dashboard</h4>
-
-            <div class="admin-box">
-
-                <!-- Notification -->
-                <div class="bell">
-                    <i class="fa-solid fa-bell"></i>
-                </div>
-
-                <!-- Admin -->
-                <div class="d-flex align-items-center gap-2">
-                    <div class="admin-avatar"></div>
-                    <span>Admin</span>
-                </div>
-
-            </div>
-
-        </div>
-
         <!-- ================= MAIN ================= -->
         <div class="main">
+            <jsp:include page="/public/components/adminTopBar.jsp">
+                <jsp:param name="title" value="Dashboard" />
+            </jsp:include>
 
             <h3>Dashboard</h3>
             <p>Xin chào, Admin. Hôm nay: ${todayDate}</p>
