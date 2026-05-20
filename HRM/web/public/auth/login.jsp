@@ -205,6 +205,12 @@
           <span><c:out value="${error}"/></span>
         </div>
       </c:if>
+      <c:if test="${param.required == '1'}">
+        <div class="alert alert-danger">
+          <i class="bi bi-exclamation-circle"></i>
+          <span>bạn chưa đăng nhập</span>
+        </div>
+      </c:if>
 
       <div class="mb-3">
         <label for="username" class="form-label">Username <span class="required">*</span></label>
