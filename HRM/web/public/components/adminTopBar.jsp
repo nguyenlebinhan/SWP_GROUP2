@@ -22,6 +22,32 @@
         margin: 0;
     }
 
+    .admin-topbar-heading {
+        min-width: 0;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .admin-topbar-back {
+        width: 36px;
+        height: 36px;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background: #fff;
+        color: #6b7280;
+        text-decoration: none;
+        flex: 0 0 auto;
+    }
+
+    .admin-topbar-back:hover {
+        background: #f3f4f6;
+        color: #374151;
+    }
+
     .admin-topbar-actions {
         display: flex;
         align-items: center;
@@ -149,9 +175,16 @@
 <c:set var="topbarDisplayName" value="${empty topbarUser.fullName ? topbarUser.username : topbarUser.fullName}" />
 
 <div class="admin-topbar">
-    <h4 class="admin-topbar-title">
-        <c:out value="${empty param.title ? 'HRM Admin' : param.title}" />
-    </h4>
+    <div class="admin-topbar-heading">
+        <c:if test="${not empty param.backHref}">
+            <a href="${param.backHref}" class="admin-topbar-back" title="Quay lại" aria-label="Quay lại">
+                <i class="fa-solid fa-arrow-left"></i>
+            </a>
+        </c:if>
+        <h4 class="admin-topbar-title">
+            <c:out value="${empty param.title ? 'HRM Admin' : param.title}" />
+        </h4>
+    </div>
 
     <div class="admin-topbar-actions">
         <span class="admin-notification" title="Thông báo">

@@ -34,33 +34,6 @@
             background: var(--page);
         }
 
-        .page-header {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            margin-bottom: 24px;
-        }
-
-        .back-btn {
-            width: 36px;
-            height: 36px;
-            background: #fff;
-            border: 1px solid #e5e7eb;
-            border-radius: 8px;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            color: #6b7280;
-            text-decoration: none;
-        }
-
-        .page-header h5 {
-            margin: 0;
-            color: #0B0E2A;
-            font-size: 18px;
-            font-weight: 700;
-        }
-
         .alert-flash {
             border: 0;
             border-radius: 8px;
@@ -323,14 +296,8 @@
 <div class="main-content">
     <jsp:include page="/public/components/adminTopBar.jsp">
         <jsp:param name="title" value="Quản lý phân quyền" />
+        <jsp:param name="backHref" value="${context}/v1/admin/role-list" />
     </jsp:include>
-
-    <div class="page-header">
-        <a href="${context}/v1/admin/role-list" class="back-btn" title="Quay lại">
-            <i class="fa fa-arrow-left"></i>
-        </a>
-        <h5><i class="fa fa-key me-2" style="color:#ff8c00"></i>Quản lý phân quyền</h5>
-    </div>
 
     <c:if test="${not empty success}">
         <div class="alert alert-success alert-flash">
