@@ -47,13 +47,13 @@
             <h4>HRM System</h4>
 
             <a href="${pageContext.request.contextPath}/v1/admin/dashboard"><i class="fa fa-chart-line"></i> Tổng quan</a>
-            <a><i class="fa fa-briefcase"></i> Công việc</a>
+<!--            <a><i class="fa fa-briefcase"></i> Công việc</a>-->
             <a href="${pageContext.request.contextPath}/v1/admin/user-list" ><i class="fa fa-users"></i> Người dùng</a>
-            <a><i class="fa fa-clock"></i> Chấm công</a>
+<!--            <a><i class="fa fa-clock"></i> Chấm công</a>
             <a><i class="fa fa-user-plus"></i> Tuyển dụng</a>
             <a><i class="fa fa-money-bill"></i> Bảng lương</a>
-            <a><i class="fa fa-building"></i> Phòng ban</a>
+            <a><i class="fa fa-building"></i> Phòng ban</a>-->
             <a><i class="fa fa-key"></i> Phân quyền</a>
-            <a><i class="fa fa-chart-bar"></i> Báo cáo</a>
+<!--            <a><i class="fa fa-chart-bar"></i> Báo cáo</a>-->
 
         </div>
