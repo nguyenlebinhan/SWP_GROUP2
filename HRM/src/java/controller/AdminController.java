@@ -90,7 +90,10 @@ public class AdminController extends HttpServlet {
                 displayRoleDetail(request, response);
                 break;
             case "/change-status":
-                handleChangingStatus(request, response,user);
+                handleChangingStatus(request, response, user);
+                break;
+            case "/change-status-role":
+                handleChangingStatusRole(request, response);
                 break;
             default:
                 response.sendRedirect(request.getContextPath() + "/");
@@ -170,6 +173,8 @@ public class AdminController extends HttpServlet {
      
     
     private void displayDashboard(HttpServletRequest request,HttpServletResponse response)throws ServletException, IOException {
+        List<User> users = userDAO.getAllUsers();
+        request.setAttribute("userSize", users.size());
         request.getRequestDispatcher("/public/admin/dashboard.jsp").forward(request, response);
     }
     
@@ -260,17 +265,17 @@ public class AdminController extends HttpServlet {
     }
 
 
-//    private void handleChangingStatusRole(HttpServletRequest request, HttpServletResponse response) {
-//        int roleStatus = Integer.parseInt(request.getParameter("roleStatus"));
-//        boolean isUpdated = roleDAO.handleStatus(roleStatus, );
-//        if(isUpdated){
-//            request.getSession().setAttribute("success", "Cập nhật trạng thái thành công");
-//            response.sendRedirect(request.getContextPath() +"/");
-//        }else{
-//            request.setAttribute("error", "Cập nhật trạng thái không thành công");
-//            request.getRequestDispatcher("/public/admin/add_user.jsp").forward(request, response);
-//        }
-//    }
+    private void handleChangingStatusRole(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        int status = Integer.parseInt(request.getParameter("status"));
+        int roleId = Integer.parseInt(request.getParameter("id"));
+        boolean isUpdated = roleDAO.handleStatus(status, roleId);
+        if (isUpdated) {
+            request.getSession().setAttribute("success", "Cập nhật trạng thái vai trò thành công");
+        } else {
+            request.getSession().setAttribute("error", "Cập nhật trạng thái vai trò không thành công");
+        }
+        response.sendRedirect(request.getContextPath() + "/v1/admin/role-list");
+    }
 
 
 

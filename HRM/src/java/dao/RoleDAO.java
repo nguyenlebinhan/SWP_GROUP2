@@ -85,9 +85,9 @@ public class RoleDAO {
         return 0;
     }
     
-    public boolean handleStatus(int status,int roleId){
+    public boolean handleStatus(int status, int roleId){
         LOGGER.log(Level.INFO,"Handling new status role with roleId: {0}", roleId);
-        String SQL = "UPDATE users u SET u.status = ? WHERE u.userId = ? ";
+        String SQL = "UPDATE roles SET isActive = ? WHERE roleId = ? AND roleName != 'ADMIN'";
         try (Connection conn = dbContext.getConnection();
              PreparedStatement ps = conn.prepareStatement(SQL)) {
             ps.setInt(1, status);
