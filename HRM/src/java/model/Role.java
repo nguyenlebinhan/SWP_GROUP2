@@ -12,15 +12,19 @@ public class Role {
     private int roleId;
     private String roleCode;
     private String roleName;
+    private int isActive;
 
     public Role() {
     }
 
-    public Role(int roleId, String roleCode, String roleName) {
+    public Role(int roleId, String roleCode, String roleName, int isActive) {
         this.roleId = roleId;
         this.roleCode = roleCode;
         this.roleName = roleName;
+        this.isActive = isActive;
     }
+
+
 
     public int getRoleId() {
         return roleId;
@@ -45,6 +49,16 @@ public class Role {
     public void setRoleName(String roleName) {
         this.roleName = roleName;
     }
+
+    public int getIsActive() {
+        return isActive;
+    }
+
+    public void setIsActive(int isActive) {
+        this.isActive = isActive;
+    }
+    
+    
     
     
 }
