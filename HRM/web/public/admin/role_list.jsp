@@ -109,6 +109,21 @@
         .btn-view { background: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; }
         .btn-deactivate { background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
         .btn-activate { background: #d1fae5; color: #065f46; border: 1px solid #a7f3d0; }
+        .btn-delete { background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
+        .btn-add {
+            background: #ff8c00;
+            color: #fff;
+            border: none;
+            padding: 9px 18px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 14px;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .btn-add:hover { background: #e07b00; color: #fff; }
         .btn-disabled {
             background: #f3f4f6;
             color: #9ca3af;
@@ -128,9 +143,9 @@
        
     <div class="page-header">
         <h5><i class="fa fa-shield-halved me-2" style="color:#ff8c00"></i>Quản lý vai trò</h5>
-        <span class="btn-add" title="Chức năng sẽ được bổ sung sau">
+        <a href="${pageContext.request.contextPath}/v1/admin/add-role" class="btn-add">
             <i class="fa fa-plus"></i> Thêm vai trò
-        </span>
+        </a>
     </div>
 
     <div class="row g-4 mb-4">
@@ -209,7 +224,7 @@
                                             <a href="${pageContext.request.contextPath}/v1/admin/role-detail?id=${r.roleId}" class="btn-action btn-view">
                                                 <i class="fa fa-eye"></i> Chi tiết
                                             </a>
-                                            <span class="btn-action btn-disabled" title="Chức năng sẽ được bổ sung sau">
+                                            <a href="${pageContext.request.contextPath}/v1/admin/update-role?id=${r.roleId}" class="btn-action btn-view">
                                                 <i class="fa fa-pen"></i> Sửa
                                             </span>
                                             <c:choose>
@@ -233,6 +248,10 @@
                                                     </a>
                                                 </c:otherwise>
                                             </c:choose>
+                                            </a>
+                                            <a href="${pageContext.request.contextPath}/v1/admin/delete-role?id=${r.roleId}" class="btn-action btn-delete">
+                                                <i class="fa fa-trash"></i> Xóa
+                                            </a>
                                         </div>
                                     </td>
                                 </tr>

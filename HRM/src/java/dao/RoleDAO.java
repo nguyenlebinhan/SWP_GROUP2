@@ -127,6 +127,50 @@ public class RoleDAO {
             LOGGER.log(Level.SEVERE, "Error adding roles with roleCode: " + roleCode, e);
         }
         return false;
+    }
+
+    public boolean deleteRole(int roleId) {
+        LOGGER.log(Level.INFO, "Deleting role with roleId: {0}", roleId);
+        String SQL = "DELETE FROM roles WHERE roleId = ?";
+        try (Connection conn = dbContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(SQL)) {
+            ps.setInt(1, roleId);
+            int rowsAffected = ps.executeUpdate();
+            if (rowsAffected > 0) {
+                LOGGER.log(Level.INFO, "Role deleted successfully with roleId: {0}", roleId);
+                return true;
+            } else {
+                LOGGER.log(Level.WARNING, "Delete role failed: no rows affected for roleId: {0}", roleId);
+                return false;
+            }
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Error deleting role with roleId: " + roleId, e);
+        }
+        return false;
+    }
+
+    public boolean updateRole(int roleId, String roleCode, String roleName, int isActive) {
+        LOGGER.log(Level.INFO, "Updating role with roleId: {0}", roleId);
+        String SQL = "UPDATE roles SET roleCode = ?, roleName = ?, isActive = ? WHERE roleId = ?";
+        try (Connection conn = dbContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(SQL)) {
+            ps.setString(1, roleCode);
+            ps.setString(2, roleName);
+            ps.setInt(3, isActive);
+            ps.setInt(4, roleId);
+
+            int rowsAffected = ps.executeUpdate();
+            if (rowsAffected > 0) {
+                LOGGER.log(Level.INFO, "Role updated successfully with roleId: {0}", roleId);
+                return true;
+            } else {
+                LOGGER.log(Level.WARNING, "Update role failed: no rows affected for roleId: {0}", roleId);
+                return false;
+            }
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Error updating role with roleId: " + roleId, e);
+        }
+        return false;
     }    
     
     
