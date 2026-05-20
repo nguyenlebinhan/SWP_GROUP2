@@ -438,7 +438,7 @@ public class AuthController extends HttpServlet {
             case "sysadmin":
             case "admin":
             case "administrator":
-                return "/v1/admin/add-user";
+                return "/v1/admin/dashboard";
             case "hrmanager":
             case "manager":
                 return "/v1/manager/dashboard";
