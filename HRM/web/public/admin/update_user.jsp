@@ -155,15 +155,13 @@
 
 <div class="main-content">
 
-    <!-- Header -->
     <div class="page-header">
         <a href="${pageContext.request.contextPath}/v1/admin/user-list" title="Quay lại">
             <i class="fa fa-arrow-left"></i>
         </a>
-        <h5><i class="fa fa-user-plus me-2" style="color:#ff8c00"></i>Thêm người dùng mới</h5>
+        <h5><i class="fa fa-user-plus me-2" style="color:#ff8c00"></i>Cập nhật người dùng</h5>
     </div>
 
-    <!-- Flash messages -->
     <c:if test="${not empty error}">
         <div class="alert alert-danger alert-flash alert-dismissible fade show" role="alert">
             <i class="fa fa-circle-exclamation me-2"></i><c:out value="${error}"/>
@@ -178,27 +176,26 @@
     </c:if>
 
     <!-- Form -->
-    <form action="${pageContext.request.contextPath}/v1/admin/add-user" method="POST">
+    <form action="${pageContext.request.contextPath}/v1/admin/update-user" method="POST">
         <div class="card">
             <div class="card-body p-4">
-
-                <!-- Thông tin tài khoản -->
                 <div class="section-label"><i class="fa fa-lock"></i>Thông tin tài khoản</div>
                 <div class="row g-3 mb-4">
                     <div class="col-md-4">
+                        <input type="hidden" value="${userId}" name="userId">
                         <label class="form-label" for="username">Tên đăng nhập <span class="required">*</span></label>
                         <input type="text" id="username" name="username" class="form-control"
                                placeholder="vd: nguyenvana"
-                               value="<c:out value='${param.username}'/>" required/>
+                               value="<c:out value='${user.username}'/>" required/>
                     </div>
                     <div class="col-md-4">
                         <label class="form-label" for="email">Email <span class="required">*</span></label>
                         <input type="email" id="email" name="email" class="form-control"
                                placeholder="vd: nguyenvana@company.com"
-                               value="<c:out value='${param.email}'/>" required/>
+                               value="<c:out value='${user.email}'/>" required/>
                     </div>
                     <div class="col-md-4">
-                        <label class="form-label" for="password">Mật khẩu tạm thời <span class="required">*</span></label>
+                        <label class="form-label" for="password">Mật khẩu<span class="required">*</span></label>
                         <div class="input-group">
                             <input type="password" id="password" name="password" class="form-control"
                                    placeholder="············" required/>
@@ -217,35 +214,33 @@
                         <label class="form-label" for="fullName">Họ và tên <span class="required">*</span></label>
                         <input type="text" id="fullName" name="fullName" class="form-control"
                                placeholder="vd: Nguyễn Văn A"
-                               value="<c:out value='${param.fullName}'/>" required/>
+                               value="<c:out value='${user.fullName}'/>" required/>
                     </div>
                     <div class="col-md-3">
                         <label class="form-label" for="dob">Ngày sinh</label>
                         <input type="date" id="dob" name="dob" class="form-control"
-                               value="<c:out value='${param.dob}'/>" required/>
+                               value="<c:out value='${user.dob}'/>" required/>
                     </div>
                     <div class="col-md-3">
                         <label class="form-label" for="gender">Giới tính</label>
                         <select id="gender" name="gender" class="form-select" required>
-                            <option value="" disabled <c:if test="${empty param.gender}">selected</c:if>>-- Chọn --</option>
-                            <option value="Nam"  <c:if test="${param.gender == 'Nam'}">selected</c:if>>Nam</option>
-                            <option value="Nữ"   <c:if test="${param.gender == 'Nữ'}">selected</c:if>>Nữ</option>
-                            <option value="Khác" <c:if test="${param.gender == 'Khác'}">selected</c:if>>Khác</option>
+                            <option value="Nam"  <c:if test="${user.gender == 'Nam'}">selected</c:if>>Nam</option>
+                            <option value="Nữ"   <c:if test="${user.gender == 'Nữ'}">selected</c:if>>Nữ</option>
+                            <option value="Khác" <c:if test="${user.gender == 'Khác'}">selected</c:if>>Khác</option>
                         </select>
                     </div>
                     <div class="col-md-6">
                         <label class="form-label" for="address">Địa chỉ</label>
                         <input type="text" id="address" name="address" class="form-control"
                                placeholder="Số nhà, đường, quận/huyện, tỉnh/thành phố"
-                               value="<c:out value='${param.address}'/>" required/>
+                               value="<c:out value='${user.address}'/>"/>
                     </div>
                     <div class="col-md-6">
                         <label class="form-label" for="roleId">Vai trò <span class="required">*</span></label>
                         <select id="roleId" name="role_selection" class="form-select" required>
-                            <option value="" disabled <c:if test="${empty param.role_selection}">selected</c:if>>-- Chọn vai trò --</option>
                             <c:forEach items="${roles}" var="r">
                                 <option value="${r.roleId}"
-                                    <c:if test="${param.role_selection == r.roleId}">selected</c:if>>
+                                    <c:if test="${user.roleId == r.roleId}">selected</c:if>>
                                     ${r.roleName}
                                 </option>
                             </c:forEach>
@@ -256,7 +251,7 @@
                 <!-- Actions -->
                 <div class="d-flex gap-3 pt-2">
                     <button type="submit" class="btn-save">
-                        <i class="fa fa-user-plus me-2"></i>Thêm người dùng
+                        <i class="fa fa-user-plus me-2"></i>Cập nhật người dùng
                     </button>
                     <a href="${pageContext.request.contextPath}/v1/admin/user-list" class="btn-cancel-link">
                         Hủy
