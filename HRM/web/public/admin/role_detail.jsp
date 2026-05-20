@@ -200,14 +200,8 @@
 <div class="main-content">
     <jsp:include page="/public/components/adminTopBar.jsp">
         <jsp:param name="title" value="Chi tiết vai trò" />
+        <jsp:param name="backUrl" value="/v1/admin/role-list" />
     </jsp:include>
-
-    <div class="page-header">
-        <a href="${pageContext.request.contextPath}/v1/admin/role-list" class="back-btn" title="Quay lại">
-            <i class="fa fa-arrow-left"></i>
-        </a>
-        <h5><i class="fa fa-shield-halved me-2" style="color:#ff8c00"></i>Chi tiết vai trò</h5>
-    </div>
 
     <c:if test="${not empty error}">
         <div class="alert alert-danger alert-flash">
@@ -261,17 +255,6 @@
 
                 <div class="col-lg-9 col-md-8">
                     <div class="detail-panel">
-                        <div class="d-flex gap-2 justify-content-end mb-3">
-                            <a href="${pageContext.request.contextPath}/v1/admin/add-role" class="btn-add-role">
-                                <i class="fa fa-plus"></i> Thêm vai trò
-                            </a>
-                            <a href="${pageContext.request.contextPath}/v1/admin/update-role?id=${selectedRole.roleId}" class="btn-edit-role">
-                                <i class="fa fa-pen"></i> Sửa vai trò
-                            </a>
-                            <a href="${pageContext.request.contextPath}/v1/admin/delete-role?id=${selectedRole.roleId}" class="btn-delete-role">
-                                <i class="fa fa-trash"></i> Xóa vai trò
-                            </a>
-                        </div>
 
                         <div class="section-block">
                             <div class="section-title">
