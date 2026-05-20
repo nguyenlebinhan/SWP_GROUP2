@@ -177,12 +177,6 @@
     .alert-danger  { background: #fff0f0; color: #c62828; border-color: #ffcdd2; }
     .alert-success { background: #f0fff4; color: #2e7d32; border-color: #c8e6c9; }
 
-    /* redirect countdown */
-    .redirect-notice {
-      font-size: .78rem; color: #2e7d32;
-      text-align: center; margin-top: .5rem;
-    }
-    .redirect-notice span { font-weight: 700; }
 
     /* brand strip */
     .brand-strip {
@@ -335,18 +329,7 @@
     }
   }
 
-  var countdownEl = document.getElementById('countdown');
-  if (countdownEl) {
-    var seconds = 5;
-    var timer = setInterval(function () {
-      seconds--;
-      countdownEl.textContent = seconds;
-      if (seconds <= 0) {
-        clearInterval(timer);
-        window.location.href = '${pageContext.request.contextPath}/v1/login/login';
-      }
-    }, 1000);
-  }
+
 </script>
 </body>
 </html>

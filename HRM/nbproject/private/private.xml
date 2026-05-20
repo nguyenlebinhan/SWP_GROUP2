@@ -7,7 +7,6 @@
             <file>file:/C:/Users/ADMIN/Desktop/SWP_2/HRM/web/public/components/adminTopBar.jsp</file>
             <file>file:/C:/Users/ADMIN/Desktop/SWP_2/HRM/src/java/controller/AuthController.java</file>
             <file>file:/C:/Users/ADMIN/Desktop/SWP_2/HRM/src/java/config/.gitignore</file>
-            <file>file:/C:/Users/ADMIN/Desktop/SWP_2/HRM/src/java/service/EmailService.java</file>
             <file>file:/C:/Users/ADMIN/Desktop/SWP_2/HRM/web/public/admin/role_detail.jsp</file>
             <file>file:/C:/Users/ADMIN/Desktop/SWP_2/HRM/web/public/admin/user_detail.jsp</file>
             <file>file:/C:/Users/ADMIN/Desktop/SWP_2/HRM/web/public/admin/add_user.jsp</file>
@@ -21,6 +20,7 @@
             <file>file:/C:/Users/ADMIN/Desktop/SWP_2/HRM/src/java/controller/AdminController.java</file>
             <file>file:/C:/Users/ADMIN/Desktop/SWP_2/HRM/src/java/dao/PermissionDAO.java</file>
             <file>file:/C:/Users/ADMIN/Desktop/SWP_2/HRM/src/java/dao/RoleDAO.java</file>
+            <file>file:/C:/Users/ADMIN/Desktop/SWP_2/HRM/web/public/admin/update_role.jsp</file>
             <file>file:/C:/Users/ADMIN/Desktop/SWP_2/HRM/src/java/dal/DBContext.java</file>
             <file>file:/C:/Users/ADMIN/Desktop/SWP_2/HRM/web/public/auth/change_password.jsp</file>
             <file>file:/C:/Users/ADMIN/Desktop/SWP_2/HRM/web/public/admin/update_user.jsp</file>
@@ -33,12 +33,6 @@
             <file>file:/C:/Users/ADMIN/Desktop/SWP_2/HRM/src/java/dao/UserDAO.java</file>
             <file>file:/C:/Users/ADMIN/Desktop/SWP_2/HRM/src/java/config/AppListener.java</file>
             <file>file:/C:/Users/ADMIN/Desktop/SWP_2/HRM/nbproject/build-impl.xml</file>
-            <file>file:/C:/Users/Default/Documents/SWP_GROUP2/HRM/nbproject/ant-deploy.xml</file>
-            <file>file:/C:/Users/Default/Documents/SWP_GROUP2/HRM/src/java/dal/DBContext.java</file>
-            <file>file:/C:/Users/Default/Documents/SWP_GROUP2/HRM/src/java/dal/DBInitializer.java</file>
-            <file>file:/C:/Users/Default/Documents/SWP_GROUP2/HRM/nbproject/build-impl.xml</file>
-            <file>file:/C:/Users/Default/Documents/SWP_GROUP2/HRM/src/java/config/.env</file>
-            <file>file:/C:/Users/Default/Documents/SWP_GROUP2/HRM/src/java/controller/AdminController.java</file>
         </group>
     </open-files>
 </project-private>
