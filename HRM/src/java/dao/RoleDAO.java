@@ -5,6 +5,7 @@
 package dao;
 
 import dal.DBContext;
+import static dao.UserDAO.hashPassword;
 import java.util.logging.*;
 import java.util.*;
 import java.sql.*;
@@ -105,6 +106,30 @@ public class RoleDAO {
         }
         return false;        
     }    
+    public boolean addRole(String roleCode, String roleName) {
+        LOGGER.log(Level.INFO, "Adding new role  {0}", roleCode);
+
+        String sql = "INSERT INTO Roles (roleCode,roleName) VALUES (?, ?)";
+
+        try (Connection conn = dbContext.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, roleCode);
+            ps.setString(2,roleName);
+
+            int rowsAffected = ps.executeUpdate();
+            if (rowsAffected > 0) {
+                LOGGER.log(Level.INFO, "Roles added successfully with roleCode: {0}", roleCode);
+                return true;
+            } else {
+                LOGGER.log(Level.WARNING, "Add roles failed: no rows affected for roleCode: {0}", roleCode);
+                return false;
+            }
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Error adding roles with roleCode: " + roleCode, e);
+        }
+        return false;
+    }    
+    
+    
     
     private Role mapRole(ResultSet rs) throws SQLException{
         Role role = new Role();
