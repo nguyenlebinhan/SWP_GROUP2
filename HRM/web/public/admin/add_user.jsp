@@ -154,6 +154,9 @@
 <jsp:include page="/public/components/adminSideBar.jsp" />
 
 <div class="main-content">
+    <jsp:include page="/public/components/adminTopBar.jsp">
+        <jsp:param name="title" value="Thêm người dùng" />
+    </jsp:include>
 
     <!-- Header -->
     <div class="page-header">
