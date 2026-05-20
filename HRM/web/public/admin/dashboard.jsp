@@ -139,7 +139,7 @@
         <div class="main">
 
             <h3>Dashboard</h3>
-            <p>Xin chào, Admin 👋 Hôm nay: ${todayDate}</p>
+            <p>Xin chào, Admin. Hôm nay: ${todayDate}</p>
 
             <!-- ===== STATS ===== -->
             <div class="row g-4">
