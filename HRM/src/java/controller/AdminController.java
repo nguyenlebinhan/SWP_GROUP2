@@ -27,6 +27,7 @@ public class AdminController extends HttpServlet {
     private static final UserDAO userDAO = new UserDAO();
     private static final EmailService emailService = new EmailService();
     private static final RoleDAO roleDAO = new RoleDAO();
+    private static final PermissionDAO permissionDAO = new PermissionDAO();
 
     protected void processRequest(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
@@ -77,6 +78,12 @@ public class AdminController extends HttpServlet {
                 break;
             case "/my-profile":
                 displayMyProfile(request, response);
+                break;
+            case "/role-list":
+                displayRoleList(request, response);
+                break;
+            case "/role-detail":
+                displayRoleDetail(request, response);
                 break;
             case "/change-status":
                 handleChangingStatus(request, response);
@@ -216,6 +223,65 @@ public class AdminController extends HttpServlet {
         }
         request.setAttribute("selectedUser", selectedUser);        
         request.getRequestDispatcher("/public/admin/user_detail.jsp").forward(request, response);
+    }
+
+    private void displayRoleList(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        List<Role> roles = roleDAO.getAllRoles();
+        Map<Integer, Integer> userCounts = new HashMap<>();
+        Map<Integer, Integer> permissionCounts = new HashMap<>();
+        int activeRoleCount = 0;
+        int totalUserAssignments = 0;
+        int totalPermissionAssignments = 0;
+
+        for (Role role : roles) {
+            if (role.getIsActive() == 1) {
+                activeRoleCount++;
+            }
+            int userCount = roleDAO.countUsersByRoleId(role.getRoleId());
+            int permissionCount = roleDAO.countPermissionsByRoleId(role.getRoleId());
+            userCounts.put(role.getRoleId(), userCount);
+            permissionCounts.put(role.getRoleId(), permissionCount);
+            totalUserAssignments += userCount;
+            totalPermissionAssignments += permissionCount;
+        }
+
+        request.setAttribute("roles", roles);
+        request.setAttribute("userCounts", userCounts);
+        request.setAttribute("permissionCounts", permissionCounts);
+        request.setAttribute("activeRoleCount", activeRoleCount);
+        request.setAttribute("totalUserAssignments", totalUserAssignments);
+        request.setAttribute("totalPermissionAssignments", totalPermissionAssignments);
+        request.getRequestDispatcher("/public/admin/role_list.jsp").forward(request, response);
+    }
+
+    private void displayRoleDetail(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        String rawRoleId = request.getParameter("id");
+        if (rawRoleId == null || rawRoleId.trim().isEmpty()) {
+            request.setAttribute("error", "Không thể hiển thị vai trò");
+            request.getRequestDispatcher("/public/admin/role_detail.jsp").forward(request, response);
+            return;
+        }
+
+        int roleId;
+        try {
+            roleId = Integer.parseInt(rawRoleId);
+        } catch (NumberFormatException e) {
+            request.setAttribute("error", "Mã vai trò không hợp lệ");
+            request.getRequestDispatcher("/public/admin/role_detail.jsp").forward(request, response);
+            return;
+        }
+
+        Role selectedRole = roleDAO.getRoleById(roleId);
+        if (selectedRole == null) {
+            request.setAttribute("error", "Không tìm thấy vai trò");
+            request.getRequestDispatcher("/public/admin/role_detail.jsp").forward(request, response);
+            return;
+        }
+
+        request.setAttribute("selectedRole", selectedRole);
+        request.setAttribute("permissions", permissionDAO.getPermissionsByRoleId(roleId));
+        request.setAttribute("roleUsers", userDAO.getUsersByRoleId(roleId));
+        request.getRequestDispatcher("/public/admin/role_detail.jsp").forward(request, response);
     }
 
     private void displayMyProfile(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
