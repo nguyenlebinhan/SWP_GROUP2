@@ -557,6 +557,12 @@ public class DBInitializer {
                 insertUser(conn, "admin", "nguyenlebinhank63@gmail.com",BCrypt.withDefaults().hashToString(12, "admin123".toCharArray()), "Nguyễn Lê Bình An", "2006-01-06", "Phủ Lý, Hà Nam", 1);
                 insertUser(conn,"minhquan","minhquan153452@gmail.com",BCrypt.withDefaults().hashToString(12, "google123".toCharArray()),"Minh Quân","2006-01-01","Hà Nội",1);
             }
+            if (countRows(conn, "Permissions") == 0) {
+                insertDefaultPermissions(conn);
+            }
+            if (countRows(conn, "Role_Permissions") == 0 && countRows(conn, "Permissions") > 0) {
+                insertDefaultRolePermissions(conn);
+            }
             LOGGER.log(Level.INFO,"Seeding completed successfully.");
         } catch (SQLException e) {
             LOGGER.log(Level.SEVERE, "Cannot insert initial data", e);
@@ -568,6 +574,97 @@ public class DBInitializer {
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, code);
             ps.setString(2, name);
+            ps.executeUpdate();
+        }
+    }
+
+    private void insertDefaultPermissions(Connection conn) throws SQLException {
+        String[][] features = {
+            {"EMPLOYEE", "Qu\u1ea3n l\u00fd nh\u00e2n vi\u00ean"},
+            {"ATTENDANCE", "Ch\u1ea5m c\u00f4ng"},
+            {"LEAVE", "Ngh\u1ec9 ph\u00e9p"},
+            {"PAYROLL", "B\u1ea3ng l\u01b0\u01a1ng"},
+            {"DEPARTMENT", "Ph\u00f2ng ban"},
+            {"REPORT", "B\u00e1o c\u00e1o"},
+            {"JOB", "C\u00f4ng vi\u1ec7c"}
+        };
+        String[][] actions = {
+            {"VIEW", "Xem"},
+            {"CREATE", "T\u1ea1o"},
+            {"EDIT", "S\u1eeda"},
+            {"DELETE", "X\u00f3a"}
+        };
+
+        for (String[] feature : features) {
+            for (String[] action : actions) {
+                insertPermission(conn, feature[0] + "_" + action[0], feature[1] + " - " + action[1], feature[1]);
+            }
+        }
+    }
+
+    private void insertPermission(Connection conn, String code, String name, String description) throws SQLException {
+        String sql = "INSERT INTO Permissions (permissionCode, permissionName, description) VALUES (?, ?, ?)";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, code);
+            ps.setString(2, name);
+            ps.setString(3, description);
+            ps.executeUpdate();
+        }
+    }
+
+    private void insertDefaultRolePermissions(Connection conn) throws SQLException {
+        int adminRoleId = getRoleIdByCode(conn, "AD");
+        int managerRoleId = getRoleIdByCode(conn, "MA");
+        int employeeRoleId = getRoleIdByCode(conn, "EM");
+
+        if (adminRoleId > 0) {
+            grantAllPermissionsToRole(conn, adminRoleId);
+        }
+        if (managerRoleId > 0) {
+            grantRolePermissionsByCodes(conn, managerRoleId, new String[]{
+                "EMPLOYEE_VIEW", "EMPLOYEE_CREATE", "EMPLOYEE_EDIT", "EMPLOYEE_DELETE",
+                "ATTENDANCE_VIEW", "ATTENDANCE_CREATE", "ATTENDANCE_EDIT", "ATTENDANCE_DELETE",
+                "LEAVE_VIEW", "LEAVE_CREATE", "LEAVE_EDIT", "LEAVE_DELETE",
+                "DEPARTMENT_VIEW", "DEPARTMENT_CREATE", "DEPARTMENT_EDIT", "DEPARTMENT_DELETE"
+            });
+        }
+        if (employeeRoleId > 0) {
+            grantRolePermissionsByCodes(conn, employeeRoleId, new String[]{
+                "EMPLOYEE_VIEW",
+                "ATTENDANCE_VIEW",
+                "LEAVE_VIEW", "LEAVE_CREATE",
+                "PAYROLL_VIEW",
+                "DEPARTMENT_VIEW",
+                "REPORT_VIEW",
+                "JOB_VIEW"
+            });
+        }
+    }
+
+    private void grantAllPermissionsToRole(Connection conn, int roleId) throws SQLException {
+        String sql = "INSERT INTO Role_Permissions (roleId, permissionId) "
+                + "SELECT ?, permissionId FROM Permissions";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, roleId);
+            ps.executeUpdate();
+        }
+    }
+
+    private void grantRolePermissionsByCodes(Connection conn, int roleId, String[] permissionCodes) throws SQLException {
+        if (permissionCodes == null) {
+            return;
+        }
+        for (String permissionCode : permissionCodes) {
+            grantRolePermissionByCode(conn, roleId, permissionCode);
+        }
+    }
+
+    private void grantRolePermissionByCode(Connection conn, int roleId, String permissionCode) throws SQLException {
+        String sql = "INSERT INTO Role_Permissions (roleId, permissionId) "
+                + "SELECT ?, permissionId FROM Permissions WHERE permissionCode = ?";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, roleId);
+            ps.setString(2, permissionCode);
             ps.executeUpdate();
         }
     }

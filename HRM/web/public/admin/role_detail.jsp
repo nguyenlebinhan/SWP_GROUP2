@@ -119,7 +119,81 @@
             font-size: 12px;
             font-weight: 700;
         }
+        .permission-table-wrap {
+            overflow: hidden;
+            border: 1px solid #e8ebf0;
+            border-radius: 8px;
+        }
+        .permission-table {
+            width: 100%;
+            margin: 0;
+            border-collapse: collapse;
+            table-layout: fixed;
+        }
+        .permission-table thead th {
+            height: 44px;
+            background: #f3f5f8;
+            color: #42526e;
+            border-bottom: 1px solid #e8ebf0;
+            font-size: 12px;
+            font-weight: 700;
+            text-align: center;
+        }
+        .permission-table thead th:first-child {
+            width: 42%;
+            padding-left: 18px;
+            text-align: left;
+        }
+        .permission-table tbody td {
+            height: 52px;
+            padding: 0 18px;
+            border-bottom: 1px solid #eef1f5;
+            color: #263238;
+            font-size: 13px;
+            vertical-align: middle;
+            text-align: center;
+        }
+        .permission-table tbody tr:nth-child(even) td { background: #fbfbfd; }
+        .permission-table tbody tr:last-child td { border-bottom: 0; }
+        .permission-table tbody td:first-child {
+            text-align: left;
+            font-weight: 500;
+        }
+        .matrix-check {
+            width: 18px;
+            height: 18px;
+            margin: 0;
+            border-radius: 5px;
+            accent-color: #1f70c8;
+            pointer-events: none;
+        }
+        .permission-empty {
+            width: 18px;
+            height: 18px;
+            display: inline-block;
+            border-radius: 5px;
+            background: #f0f2f5;
+        }
         .muted { color: #6b7280; font-size: 13px; }
+        .btn-edit-permissions {
+            height: 40px;
+            padding: 0 18px;
+            border-radius: 8px;
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            background: #1f70c8;
+            color: #fff;
+            border: 1px solid #1f70c8;
+            font-weight: 700;
+            font-size: 14px;
+            text-decoration: none;
+        }
+        .btn-edit-permissions:hover {
+            color: #fff;
+            background: #185ca6;
+            border-color: #185ca6;
+        }
         .btn-disabled {
             height: 40px;
             padding: 0 18px;
@@ -217,6 +291,9 @@
                             <span class="btn-disabled" title="Chức năng sẽ được bổ sung sau">
                                 <i class="fa fa-pen"></i> Sửa vai trò
                             </span>
+                            <a class="btn-edit-permissions" href="${pageContext.request.contextPath}/v1/admin/role-permissions?roleId=${selectedRole.roleId}">
+                                <i class="fa fa-pen"></i> Sửa phân quyền
+                            </a>
                             <span class="btn-disabled" title="Chức năng sẽ được bổ sung sau">
                                 <i class="fa fa-trash"></i> Xóa vai trò
                             </span>
@@ -244,6 +321,41 @@
                                     </c:forEach>
                                 </c:otherwise>
                             </c:choose>
+                            <c:if test="${not empty permissionMatrixRows}">
+                                <div class="permission-table-wrap mt-3">
+                                    <table class="permission-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Tính năng</th>
+                                                <c:forEach items="${permissionActions}" var="action">
+                                                    <th><c:out value="${action.label}"/></th>
+                                                </c:forEach>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <c:forEach items="${permissionMatrixRows}" var="row">
+                                                <tr>
+                                                    <td><c:out value="${row.featureName}"/></td>
+                                                    <c:forEach items="${permissionActions}" var="action">
+                                                        <c:set var="permission" value="${row.permissionsByAction[action.key]}"/>
+                                                        <td>
+                                                            <c:choose>
+                                                                <c:when test="${not empty permission}">
+                                                                    <input class="matrix-check" type="checkbox" disabled
+                                                                           <c:if test="${grantedPermissionMap[permission.permissionId]}">checked</c:if>/>
+                                                                </c:when>
+                                                                <c:otherwise>
+                                                                    <span class="permission-empty" aria-hidden="true"></span>
+                                                                </c:otherwise>
+                                                            </c:choose>
+                                                        </td>
+                                                    </c:forEach>
+                                                </tr>
+                                            </c:forEach>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </c:if>
                         </div>
 
                         <div class="section-block">

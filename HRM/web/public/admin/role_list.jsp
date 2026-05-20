@@ -107,6 +107,7 @@
             font-weight: 600;
         }
         .btn-view { background: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; }
+        .btn-edit { background: #dbeafe; color: #1f70c8; border: 1px solid #bfdbfe; }
         .btn-disabled {
             background: #f3f4f6;
             color: #9ca3af;
@@ -208,6 +209,9 @@
                                         <div style="display:flex;gap:6px;flex-wrap:wrap">
                                             <a href="${pageContext.request.contextPath}/v1/admin/role-detail?id=${r.roleId}" class="btn-action btn-view">
                                                 <i class="fa fa-eye"></i> Chi tiết
+                                            </a>
+                                            <a href="${pageContext.request.contextPath}/v1/admin/role-permissions?roleId=${r.roleId}" class="btn-action btn-edit">
+                                                <i class="fa fa-pen"></i> Sửa quyền
                                             </a>
                                             <span class="btn-action btn-disabled" title="Chức năng sẽ được bổ sung sau">
                                                 <i class="fa fa-pen"></i> Sửa
