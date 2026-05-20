@@ -89,6 +89,15 @@ public class AdminController extends HttpServlet {
             case "/role-detail":
                 displayRoleDetail(request, response);
                 break;
+            case "/update-role":
+                displayUpdateRoleForm(request, response);
+                break;
+            case "/delete-role":
+                displayDeleteRoleForm(request, response);
+                break;
+            case "/add-role":
+                displayAddRoleForm(request, response);
+                break;
             case "/change-status":
                 handleChangingStatus(request, response,user);
                 break;
@@ -128,6 +137,15 @@ public class AdminController extends HttpServlet {
 //            case "/change-status-role":
 //                handleChangingStatusRole(request,response);
 //                break;
+            case "/update-role":
+                handleUpdateRole(request, response);
+                break;
+            case "/delete-role":
+                handleDeleteRole(request, response);
+                break;
+            case "/add-role":
+                handleAddRole(request, response);
+                break;
             default:
                 response.sendRedirect(request.getContextPath() + "/");
                 break;
@@ -273,6 +291,188 @@ public class AdminController extends HttpServlet {
 //    }
 
 
+
+    private void displayUpdateRoleForm(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        String rawRoleId = request.getParameter("id");
+        if (rawRoleId == null || rawRoleId.trim().isEmpty()) {
+            request.setAttribute("error", "Không thể xác định vai trò cần cập nhật");
+            request.getRequestDispatcher("/public/admin/update_role.jsp").forward(request, response);
+            return;
+        }
+
+        int roleId;
+        try {
+            roleId = Integer.parseInt(rawRoleId);
+        } catch (NumberFormatException e) {
+            request.setAttribute("error", "Mã vai trò không hợp lệ");
+            request.getRequestDispatcher("/public/admin/update_role.jsp").forward(request, response);
+            return;
+        }
+
+        Role selectedRole = roleDAO.getRoleById(roleId);
+        if (selectedRole == null) {
+            request.setAttribute("error", "Không tìm thấy vai trò");
+            request.getRequestDispatcher("/public/admin/update_role.jsp").forward(request, response);
+            return;
+        }
+
+        request.setAttribute("selectedRole", selectedRole);
+        request.getRequestDispatcher("/public/admin/update_role.jsp").forward(request, response);
+    }
+
+    private void handleUpdateRole(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        String rawRoleId = request.getParameter("roleId");
+        String roleCode = request.getParameter("roleCode");
+        String roleName = request.getParameter("roleName");
+        String rawIsActive = request.getParameter("isActive");
+
+        if (isBlank(roleCode) || isBlank(roleName)) {
+            Role fallback = null;
+            try {
+                fallback = roleDAO.getRoleById(Integer.parseInt(rawRoleId));
+            } catch (Exception ignored) {}
+            request.setAttribute("error", "Mã vai trò và tên vai trò không được để trống");
+            request.setAttribute("selectedRole", fallback);
+            request.getRequestDispatcher("/public/admin/update_role.jsp").forward(request, response);
+            return;
+        }
+
+        if (isBlank(rawRoleId)) {
+            request.getSession().setAttribute("error", "Thiếu mã vai trò");
+            response.sendRedirect(request.getContextPath() + "/v1/admin/role-list");
+            return;
+        }
+
+        int roleId;
+        try {
+            roleId = Integer.parseInt(rawRoleId);
+        } catch (NumberFormatException e) {
+            request.getSession().setAttribute("error", "Mã vai trò không hợp lệ");
+            response.sendRedirect(request.getContextPath() + "/v1/admin/role-list");
+            return;
+        }
+
+        int isActive = 0;
+        try {
+            isActive = Integer.parseInt(rawIsActive);
+        } catch (NumberFormatException ignored) {}
+
+        roleCode = roleCode.trim();
+        roleName = roleName.trim();
+
+        boolean updated = roleDAO.updateRole(roleId, roleCode, roleName, isActive);
+        if (!updated) {
+            Role fallback = roleDAO.getRoleById(roleId);
+            request.setAttribute("error", "Cập nhật vai trò thất bại. Mã vai trò có thể đã tồn tại.");
+            request.setAttribute("selectedRole", fallback);
+            request.getRequestDispatcher("/public/admin/update_role.jsp").forward(request, response);
+            return;
+        }
+
+        LOGGER.log(Level.INFO, "Role updated successfully: roleId={0}", roleId);
+        request.getSession().setAttribute("success", "Cập nhật vai trò thành công");
+        response.sendRedirect(request.getContextPath() + "/v1/admin/role-detail?id=" + roleId);
+    }
+
+    private void displayDeleteRoleForm(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        String rawRoleId = request.getParameter("id");
+        if (rawRoleId == null || rawRoleId.trim().isEmpty()) {
+            request.getSession().setAttribute("error", "Không thể xác định vai trò cần xóa");
+            response.sendRedirect(request.getContextPath() + "/v1/admin/role-list");
+            return;
+        }
+
+        int roleId;
+        try {
+            roleId = Integer.parseInt(rawRoleId);
+        } catch (NumberFormatException e) {
+            request.getSession().setAttribute("error", "Mã vai trò không hợp lệ");
+            response.sendRedirect(request.getContextPath() + "/v1/admin/role-list");
+            return;
+        }
+
+        Role selectedRole = roleDAO.getRoleById(roleId);
+        if (selectedRole == null) {
+            request.getSession().setAttribute("error", "Không tìm thấy vai trò");
+            response.sendRedirect(request.getContextPath() + "/v1/admin/role-list");
+            return;
+        }
+
+        int userCount = roleDAO.countUsersByRoleId(roleId);
+        if (userCount > 0) {
+            request.getSession().setAttribute("error", "Không thể xóa vai trò đang được gán cho " + userCount + " người dùng");
+            response.sendRedirect(request.getContextPath() + "/v1/admin/role-detail?id=" + roleId);
+            return;
+        }
+
+        request.setAttribute("selectedRole", selectedRole);
+        request.getRequestDispatcher("/public/admin/delete_role.jsp").forward(request, response);
+    }
+
+    private void handleDeleteRole(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        String rawRoleId = request.getParameter("roleId");
+        if (isBlank(rawRoleId)) {
+            request.getSession().setAttribute("error", "Thiếu mã vai trò");
+            response.sendRedirect(request.getContextPath() + "/v1/admin/role-list");
+            return;
+        }
+
+        int roleId;
+        try {
+            roleId = Integer.parseInt(rawRoleId);
+        } catch (NumberFormatException e) {
+            request.getSession().setAttribute("error", "Mã vai trò không hợp lệ");
+            response.sendRedirect(request.getContextPath() + "/v1/admin/role-list");
+            return;
+        }
+
+        int userCount = roleDAO.countUsersByRoleId(roleId);
+        if (userCount > 0) {
+            request.getSession().setAttribute("error", "Không thể xóa vai trò đang được gán cho người dùng");
+            response.sendRedirect(request.getContextPath() + "/v1/admin/role-detail?id=" + roleId);
+            return;
+        }
+
+        boolean deleted = roleDAO.deleteRole(roleId);
+        if (!deleted) {
+            request.getSession().setAttribute("error", "Xóa vai trò thất bại");
+            response.sendRedirect(request.getContextPath() + "/v1/admin/role-detail?id=" + roleId);
+            return;
+        }
+
+        LOGGER.log(Level.INFO, "Role deleted successfully: roleId={0}", roleId);
+        request.getSession().setAttribute("success", "Xóa vai trò thành công");
+        response.sendRedirect(request.getContextPath() + "/v1/admin/role-list");
+    }
+
+    private void displayAddRoleForm(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        request.getRequestDispatcher("/public/admin/add_role.jsp").forward(request, response);
+    }
+
+    private void handleAddRole(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        String roleCode = request.getParameter("roleCode");
+        String roleName = request.getParameter("roleName");
+
+        if (isBlank(roleCode) || isBlank(roleName)) {
+            request.setAttribute("error", "Mã vai trò và tên vai trò không được để trống");
+            request.getRequestDispatcher("/public/admin/add_role.jsp").forward(request, response);
+            return;
+        }
+
+        roleCode = roleCode.trim().toUpperCase();
+        roleName = roleName.trim();
+
+        boolean added = roleDAO.addRole(roleCode, roleName);
+        if (!added) {
+            request.setAttribute("error", "Thêm vai trò thất bại. Mã vai trò có thể đã tồn tại.");
+            request.getRequestDispatcher("/public/admin/add_role.jsp").forward(request, response);
+            return;
+        }
+
+        LOGGER.log(Level.INFO, "Role added successfully: roleCode={0}", roleCode);
+        request.getSession().setAttribute("success", "Thêm vai trò thành công");
+        response.sendRedirect(request.getContextPath() + "/v1/admin/role-list");
+    }
 
     private void displayRoleList(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
         List<Role> roles = roleDAO.getAllRoles();
