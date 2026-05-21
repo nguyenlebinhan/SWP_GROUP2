@@ -292,24 +292,27 @@ public class UserDAO {
     }
 
 
-    public List<User> getAllUsers() {
-        LOGGER.log(Level.INFO, "Getting all users");
-        List<User> users = new ArrayList<>();
-        String SQL = "SELECT u.userId, u.username, u.email, u.password, u.fullName, u.dob,u.gender,u.address, r.roleName, u.isTemporaryPassword,u.isActive "
-                + "FROM Users u JOIN Roles r ON r.roleId = u.roleId";
-
-        try (Connection conn = dbContext.getConnection(); PreparedStatement ps = conn.prepareStatement(SQL); ResultSet rs = ps.executeQuery()) {
-
-            while (rs.next()) {
-                users.add(mapUser(rs));
+        public List<User> getAllUsers() {
+            LOGGER.log(Level.INFO, "Getting all users");
+            List<User> users = new ArrayList<>();
+            String SQL = 
+                "SELECT u.userId, u.username, u.email, u.password, u.fullName, u.dob, u.gender, u.address, " +
+                "CASE WHEN r.isDeleted = 1 THEN '' ELSE r.roleName END AS roleName, " +
+                "u.isTemporaryPassword, u.isActive " +
+                "FROM Users u JOIN Roles r ON r.roleId = u.roleId "
+            ;
+            try (Connection conn = dbContext.getConnection();
+                 PreparedStatement ps = conn.prepareStatement(SQL);
+                 ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    users.add(mapUser(rs));
+                }
+                LOGGER.log(Level.INFO, "Retrieved {0} users", users.size());
+            } catch (SQLException e) {
+                LOGGER.log(Level.SEVERE, "Error getting all users", e);
             }
-            LOGGER.log(Level.INFO, "Retrieved {0} users", users.size());
-
-        } catch (SQLException e) {
-            LOGGER.log(Level.SEVERE, "Error getting all users", e);
+            return users;
         }
-        return users;
-    }
     
     public boolean updateUser(int userId, String username, String email,String password, String fullName,String dob,String gender, String address, int roleId){
         LOGGER.log(Level.INFO,"Update user with userId: {0}",userId);

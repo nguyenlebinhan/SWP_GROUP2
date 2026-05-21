@@ -235,6 +235,9 @@
                                             <a href="${pageContext.request.contextPath}/v1/admin/update-role?id=${r.roleId}" class="btn-action btn-view">
                                                 <i class="fa fa-pen"></i> Sửa
                                             </a>
+                                            <a href="${pageContext.request.contextPath}/v1/admin/edit-role-permissions?id=${r.roleId}" class="btn-action" style="background:#fef3c7;color:#92400e;border:1px solid #fde68a">
+                                                <i class="fa fa-key"></i> Phân quyền
+                                            </a>
                                             <c:choose>
                                                 <c:when test="${r.roleName == 'Admin'}">
                                                     <span class="btn-action btn-disabled" title="Không thể thay đổi trạng thái vai trò ADMIN">
@@ -256,9 +259,19 @@
                                                     </a>
                                                 </c:otherwise>
                                             </c:choose>
-                                            <a href="${pageContext.request.contextPath}/v1/admin/delete-role?id=${r.roleId}" class="btn-action btn-delete">
-                                                <i class="fa fa-trash"></i> Xóa
-                                            </a>
+                                            <c:choose>    
+                                                <c:when test="${r.roleName == 'Admin'}">
+                                                    <span class="btn-action btn-disabled" title="Không thể xóa vai trò ADMIN">
+                                                        <i class="fa fa-lock"></i> Được bảo vệ
+                                                    </span>
+                                                </c:when>  
+                                                <c:otherwise>
+                                                    <a href="${pageContext.request.contextPath}/v1/admin/delete-role?id=${r.roleId}" class="btn-action btn-delete">
+                                                        <i class="fa fa-trash"></i> Xóa
+                                                    </a>                                        
+                                                </c:otherwise>
+            
+                                            </c:choose>
                                         </div>
                                     </td>
                                 </tr>

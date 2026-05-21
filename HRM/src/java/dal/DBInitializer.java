@@ -36,6 +36,7 @@ public class DBInitializer {
                 + "roleName VARCHAR(50) NOT NULL UNIQUE,"
                 + "description TEXT NULL,"
                 + "isActive BIT DEFAULT 1,"
+                + "isDeleted BIT DEFAULT 0,"
                 + "createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,"
                 + "updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"
                 + ")";
@@ -535,9 +536,31 @@ public class DBInitializer {
                 insertUser(conn,"minhquan","minhquan153452@gmail.com",BCrypt.withDefaults().hashToString(12, "google123".toCharArray()),"Minh Quân","2006-01-01","Hà Nội",1);
                 insertUser(conn, "vu", "didoan482@gmail.com", BCrypt.withDefaults().hashToString(12, "soss123".toCharArray()), "Phạm Vũ", "2006-10-17", "Thanh Hóa", 1);
             }
+            if (countRows(conn, "Permissions") == 0) {
+                insertPermission(conn, "VIEW_USERS",       "Xem người dùng",         "Quyền xem danh sách và chi tiết người dùng");
+                insertPermission(conn, "ADD_USER",         "Thêm người dùng",         "Quyền thêm mới người dùng");
+                insertPermission(conn, "EDIT_USER",        "Sửa người dùng",          "Quyền chỉnh sửa thông tin người dùng");
+                insertPermission(conn, "DELETE_USER",      "Xóa người dùng",          "Quyền xóa / vô hiệu hóa người dùng");
+                insertPermission(conn, "VIEW_ROLES",       "Xem vai trò",             "Quyền xem danh sách và chi tiết vai trò");
+                insertPermission(conn, "ADD_ROLE",         "Thêm vai trò",            "Quyền thêm mới vai trò");
+                insertPermission(conn, "EDIT_ROLE",        "Sửa vai trò",             "Quyền chỉnh sửa thông tin vai trò");
+                insertPermission(conn, "DELETE_ROLE",      "Xóa vai trò",             "Quyền xóa vai trò");
+                insertPermission(conn, "MANAGE_PERMISSIONS","Quản lý phân quyền",     "Quyền gán / thu hồi quyền cho vai trò");
+ 
+            }
             LOGGER.log(Level.INFO,"Seeding completed successfully.");
         } catch (SQLException e) {
             LOGGER.log(Level.SEVERE, "Cannot insert initial data", e);
+        }
+    }
+
+    private void insertPermission(Connection conn, String code, String name, String description) throws SQLException {
+        String sql = "INSERT INTO Permissions (permissionCode, permissionName, description) VALUES (?, ?, ?)";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, code);
+            ps.setString(2, name);
+            ps.setNString(3, description);
+            ps.executeUpdate();
         }
     }
 
@@ -546,7 +569,7 @@ public class DBInitializer {
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, code);
             ps.setString(2, name);
-            ps.setNull(3, java.sql.Types.VARCHAR);
+            ps.setString(3, description);
             ps.executeUpdate();
         }
     }
