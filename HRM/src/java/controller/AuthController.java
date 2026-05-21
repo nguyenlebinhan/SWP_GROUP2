@@ -362,8 +362,7 @@ public class AuthController extends HttpServlet {
                 
             }else{
                 LOGGER.log(Level.SEVERE,"Failed to updated isTemporaryPassword for userId: {0} ",user.getUserId());
-                request.setAttribute("error", "Error");
-                return;
+                request.setAttribute("error", "Có lỗi xảy ra khi xử lý yêu cầu. Vui lòng thử lại");
             }
         } else {
             LOGGER.log(Level.SEVERE, "Failed to create reset password for user id: {0}", user.getUserId());
@@ -435,16 +434,8 @@ public class AuthController extends HttpServlet {
         }
         String role = user.getRoleName().trim().replaceAll("[^A-Za-z0-9]", "").toLowerCase();
         switch (role) {
-            case "sysadmin":
             case "admin":
-            case "administrator":
                 return "/v1/admin/dashboard";
-            case "hrmanager":
-            case "manager":
-                return "/v1/manager/dashboard";
-            case "hremployee":
-            case "employee":
-                return "/v1/employee/dashboard";
             default:
                 LOGGER.log(Level.WARNING, "Unknown role for userId {0}: {1}", new Object[]{user.getUserId(), user.getRoleName()});
                 return AUTH_BASE_PATH + "/login";

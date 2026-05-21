@@ -6,6 +6,8 @@ package dao;
 
 import at.favre.lib.crypto.bcrypt.BCrypt;
 import dal.DBContext;
+
+import dto.UserUpdateRequestDTO;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -60,7 +62,7 @@ public class UserDAO {
         LOGGER.log(Level.INFO, "Updated password for user with email: {0}", email);
 
         String SQL = "UPDATE users u set u.password = ? WHERE u.email = ?";
-        try (Connection conn = dbContext.getConnection(); PreparedStatement ps = conn.prepareCall(SQL)) {
+        try (Connection conn = dbContext.getConnection(); PreparedStatement ps = conn.prepareStatement(SQL)) {
 
             ps.setString(1, hashPassword(oldPassword));
             ps.setString(2, email);
@@ -83,7 +85,7 @@ public class UserDAO {
         LOGGER.log(Level.INFO, "Updated isTemporaryPassword for user with email: {0}", email);
 
         String SQL = "UPDATE users u set u.isTemporaryPassword = ? WHERE u.email = ?";
-        try (Connection conn = dbContext.getConnection(); PreparedStatement ps = conn.prepareCall(SQL)) {
+        try (Connection conn = dbContext.getConnection(); PreparedStatement ps = conn.prepareStatement(SQL)) {
 
             ps.setInt(1, setTrueFalse);
             ps.setString(2, email);
@@ -106,7 +108,7 @@ public class UserDAO {
         LOGGER.log(Level.INFO, "Verify user changing password for user with email: {0}", email);
         boolean isTemporaryPassword = false;
         String SQL = "SELECT u.isTemporaryPassword FROM users u WHERE u.email = ?";
-        try (Connection conn = dbContext.getConnection(); PreparedStatement ps = conn.prepareCall(SQL)) {
+        try (Connection conn = dbContext.getConnection(); PreparedStatement ps = conn.prepareStatement(SQL)) {
             ps.setString(1, email);
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
@@ -228,7 +230,7 @@ public class UserDAO {
 
     public User getUserByEmail(String email) {
         LOGGER.log(Level.INFO, "Get user by email: ", email);
-        String SQL = "SELECT u.userId,u.username,u.email,u.password,u.fullName,u.dob,u.address,r.roleName,u.isTemporaryPassword,isActive FROM Users u JOIN Roles r on r.roleId = u.roleId WHERE u.email = ?  ";
+        String SQL = "SELECT u.userId,u.username,u.email,u.password,u.fullName,u.dob,u.gender,u.address,r.roleName,u.isTemporaryPassword,u.isActive FROM Users u JOIN Roles r on r.roleId = u.roleId WHERE u.email = ? AND u.isActive = 1  ";
         try (Connection conn = dbContext.getConnection(); PreparedStatement ps = conn.prepareStatement(SQL)) {
             ps.setString(1, email);
             try (ResultSet rs = ps.executeQuery()) {
@@ -248,7 +250,7 @@ public class UserDAO {
 
     public User getUserByUsername(String username) {
         LOGGER.log(Level.INFO, "Get user by username: {0}", username);
-        String SQL = "SELECT u.userId,u.username,u.email,u.password,u.fullName,u.dob,u.address,r.roleName,u.isTemporaryPassword,u.isActive "
+        String SQL = "SELECT u.userId,u.username,u.email,u.password,u.fullName,u.dob,u.gender,u.address,r.roleName,u.isTemporaryPassword,u.isActive "
                 + "FROM Users u JOIN Roles r on r.roleId = u.roleId "
                 + "WHERE u.username = ? AND u.isActive = 1";
         try (Connection conn = dbContext.getConnection(); PreparedStatement ps = conn.prepareStatement(SQL)) {
@@ -290,29 +292,61 @@ public class UserDAO {
     }
 
 
-    public List<User> getAllUsers() {
-        LOGGER.log(Level.INFO, "Getting all users");
-        List<User> users = new ArrayList<>();
-        String SQL = "SELECT u.userId, u.username, u.email, u.password, u.fullName, u.dob, u.address, r.roleName, u.isTemporaryPassword,u.isActive "
-                + "FROM Users u JOIN Roles r ON r.roleId = u.roleId";
-
-        try (Connection conn = dbContext.getConnection(); PreparedStatement ps = conn.prepareStatement(SQL); ResultSet rs = ps.executeQuery()) {
-
-            while (rs.next()) {
-                users.add(mapUser(rs));
+        public List<User> getAllUsers() {
+            LOGGER.log(Level.INFO, "Getting all users");
+            List<User> users = new ArrayList<>();
+            String SQL = 
+                "SELECT u.userId, u.username, u.email, u.password, u.fullName, u.dob, u.gender, u.address, " +
+                "CASE WHEN r.isDeleted = 1 THEN '' ELSE r.roleName END AS roleName, " +
+                "u.isTemporaryPassword, u.isActive " +
+                "FROM Users u JOIN Roles r ON r.roleId = u.roleId "
+            ;
+            try (Connection conn = dbContext.getConnection();
+                 PreparedStatement ps = conn.prepareStatement(SQL);
+                 ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    users.add(mapUser(rs));
+                }
+                LOGGER.log(Level.INFO, "Retrieved {0} users", users.size());
+            } catch (SQLException e) {
+                LOGGER.log(Level.SEVERE, "Error getting all users", e);
             }
-            LOGGER.log(Level.INFO, "Retrieved {0} users", users.size());
-
-        } catch (SQLException e) {
-            LOGGER.log(Level.SEVERE, "Error getting all users", e);
+            return users;
         }
-        return users;
+    
+    public boolean updateUser(int userId, String username, String email,String password, String fullName,String dob,String gender, String address, int roleId){
+        LOGGER.log(Level.INFO,"Update user with userId: {0}",userId);
+        String SQL = "UPDATE Users u SET u.username = ?,u.email =? ,u.password = ?,u.fullName =? ,u.dob =?,u.gender = ?,u.address =?,u.roleId = ? WHERE u.userId = ?";
+    
+        try (Connection conn = dbContext.getConnection();
+            PreparedStatement ps = conn.prepareStatement(SQL)) {
+            ps.setString(1,username);
+            ps.setString(2, email);
+            ps.setString(3,hashPassword(password));
+            ps.setString(4, fullName);
+            ps.setString(5, dob);
+            ps.setString(6, gender);
+            ps.setString(7, address);
+            ps.setInt(8, roleId);
+            ps.setInt(9, userId);
+            int rowsAffected = ps.executeUpdate();
+            if (rowsAffected > 0) {
+                LOGGER.log(Level.INFO, "User updated successfully: id={0}", userId);
+                return true;
+            } else {
+                LOGGER.log(Level.WARNING, "User update failed: no rows affected for id={0}", userId);
+                return false;
+            }
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Error updating userId : " , e);
+            return false;
+        }
     }
     
     public User getUserById(int userId) {
         LOGGER.log(Level.INFO,"Getting user by userId: {0}",userId);
-        String sql = "SELECT u.userId, u.username, u.email,u.password, u.fullName, u.dob, u.address, "
-                + "r.roleName, u.isTemporaryPassword,u.isActive "
+        String sql = "SELECT u.userId, u.username, u.email,u.password, u.fullName, u.dob,u.gender, u.address, "
+                + "r.roleName,  u.isTemporaryPassword,u.isActive "
                 + "FROM Users u "
                 + "JOIN Roles r ON r.roleId = u.roleId "
                 + "WHERE u.userId = ?";
@@ -330,11 +364,32 @@ public class UserDAO {
         }
         return null;
     }  
+    
+    public UserUpdateRequestDTO getUserDTOById(int userId) {
+        LOGGER.log(Level.INFO,"Getting user by userId: {0}",userId);
+        String sql = "SELECT u.userId, u.username, u.email, u.fullName, u.dob,u.gender ,u.address, "
+                + "u.roleId "
+                + "FROM Users u "
+                + "WHERE u.userId = ?";
+
+        try (Connection conn = dbContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, userId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return new UserUpdateRequestDTO(rs.getInt("roleId"),rs.getString("username"),rs.getString("email"),rs.getNString("fullName"),rs.getString("dob"),rs.getString("gender"),rs.getNString("address"),rs.getInt("roleId"));
+                }
+            }
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Error getting user detail for admin view: " + userId, e);
+        }
+        return null;
+    }      
 
     public List<User> getUsersByRoleId(int roleId) {
         LOGGER.log(Level.INFO, "Getting users by roleId: {0}", roleId);
         List<User> users = new ArrayList<>();
-        String sql = "SELECT u.userId, u.username, u.email, u.password, u.fullName, u.dob, u.address, "
+        String sql = "SELECT u.userId, u.username, u.email, u.password, u.fullName, u.dob,u.gender , u.address, "
                 + "r.roleName, u.isTemporaryPassword, u.isActive "
                 + "FROM Users u "
                 + "JOIN Roles r ON r.roleId = u.roleId "
@@ -361,10 +416,12 @@ public class UserDAO {
         String password = rs.getString("password");
         String fullName = rs.getNString("fullName");
         String dateOfBirth = rs.getString("dob");
+        String gender = rs.getNString("gender");
         String address = rs.getString("address");
         String roleName = rs.getString("roleName");
+        //String avatar = rs.getString("avatar");
         boolean isTemporaryPassword = rs.getBoolean("isTemporaryPassword");
         int isActive = rs.getInt("isActive");
-        return new User(userId, username, email, password, fullName, dateOfBirth, address, roleName, isTemporaryPassword,isActive);
+        return new User(userId, username, email, password, fullName, dateOfBirth, gender, address, roleName, isTemporaryPassword,isActive);
     }    
 }

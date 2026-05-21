@@ -5,6 +5,7 @@
 package controller;
 
 import dao.*;
+import dto.UserUpdateRequestDTO;
 import java.io.IOException;
 import java.io.PrintWriter;
 import jakarta.servlet.ServletException;
@@ -56,7 +57,7 @@ public class AdminController extends HttpServlet {
         User user = (session != null) ? (User) session.getAttribute("user") : null;
 
         if (user == null || user.getRoleName() == null || !"ADMIN".equalsIgnoreCase(user.getRoleName())) {
-            response.sendRedirect(request.getContextPath() + "/v1/auth/login?required=1");
+            response.sendRedirect(request.getContextPath() + "/v1/auth/login");
             return;
         }
         if (action == null || action.equals("/")) {
@@ -73,6 +74,9 @@ public class AdminController extends HttpServlet {
             case "/add-user":
                 displayAddUserForm(request, response);
                 break;
+            case "/update-user":
+                displayUpdateUserForm(request, response);
+                break;                
             case "/view-user-detail":
                 displayUserDetail(request,response);
                 break;
@@ -85,8 +89,23 @@ public class AdminController extends HttpServlet {
             case "/role-detail":
                 displayRoleDetail(request, response);
                 break;
+            case "/update-role":
+                displayUpdateRoleForm(request, response);
+                break;
+            case "/delete-role":
+                handleDeleteRole(request, response);
+                break;
+            case "/add-role":
+                displayAddRoleForm(request, response);
+                break;
+            case "/edit-role-permissions":
+                displayEditRolePermissionsForm(request, response);
+                break;
             case "/change-status":
-                handleChangingStatus(request, response);
+                handleChangingStatus(request, response, user);
+                break;
+            case "/change-status-role":
+                handleChangingStatusRole(request, response);
                 break;
             default:
                 response.sendRedirect(request.getContextPath() + "/");
@@ -104,7 +123,7 @@ public class AdminController extends HttpServlet {
         User user = (session != null) ? (User) session.getAttribute("user") : null;
 
         if (user == null || user.getRoleName() == null || !"ADMIN".equalsIgnoreCase(user.getRoleName())) {
-            response.sendRedirect(request.getContextPath() + "/v1/auth/login?required=1");
+            response.sendRedirect(request.getContextPath() + "/v1/auth/login");
             return;
         }
         if (action == null || action.equals("/")) {
@@ -114,13 +133,22 @@ public class AdminController extends HttpServlet {
         switch (action) {
             case "/add-user":
                 handleAddUser(request, response);
+                break; 
+            case "/update-user":
+                handleUpdateUserInfo(request,response);
                 break;  
             case "/my-profile":
                 handleUpdateMyProfile(request, response, user);
                 break;
-//            case "/change-status-role":
-//                handleChangingStatusRole(request,response);
-//                break;
+            case "/update-role":
+                handleUpdateRole(request, response);
+                break;
+            case "/add-role":
+                handleAddRole(request, response);
+                break;
+            case "/edit-role-permissions":
+                handleUpdateRolePermissions(request, response);
+                break;
             default:
                 response.sendRedirect(request.getContextPath() + "/");
                 break;
@@ -128,59 +156,21 @@ public class AdminController extends HttpServlet {
     }
 
     private void displayAddUserForm(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-        List<Role> roles = roleDAO.getAllRoles();
+        List<Role> roles = roleDAO.getAllActiveRoles();
         request.setAttribute("roles", roles);
         request.getRequestDispatcher("/public/admin/add_user.jsp").forward(request, response);
     }
 
-    private void displayChangeStatus(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-        request.getRequestDispatcher("/public/admin/change_status.jsp").forward(request, response);
-    }
+     
 
-
-      
-
-    private void handleAddUser(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-        String username  = request.getParameter("username");
-        String email     = request.getParameter("email");
-        String password  = request.getParameter("password");
-        String fullName  = request.getParameter("fullName");
-        String dob       = request.getParameter("dob");
-        String gender    = request.getParameter("gender");
-        String address   = request.getParameter("address");
-        int roleId = Integer.parseInt(request.getParameter("role_selection"));
-        
-
-        boolean isSuccess = userDAO.addUser(username,email, password, fullName, dob, gender ,address, roleId);
-        if (!isSuccess) {
-            request.setAttribute("roles", roleDAO.getAllRoles());
-            request.setAttribute("error", "Thêm người dùng thất bại. Email có thể đã tồn tại.");
-            request.getRequestDispatcher("/public/admin/add_user.jsp").forward(request, response);
-            return;
-        }
-        emailService.sendResetPasswordEmailAsync(email, password);
-        LOGGER.log(Level.INFO, "User added and password sent to: {0}", email);
-        request.getSession().setAttribute("success", "Thêm người dùng thành công. Mật khẩu tạm thời đã được gửi đến email.");
-        response.sendRedirect(request.getContextPath() + "/v1/admin/user-list");
-    }
-    
-    
-
-    private void handleChangingStatus(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-        int status = Integer.parseInt(request.getParameter("status"));
+    private void displayUpdateUserForm(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        List<Role> roles = roleDAO.getAllActiveRoles();
         int userId = Integer.parseInt(request.getParameter("id"));
-        boolean isUpdated = userDAO.handleStatus(status, userId);
-
-        if (isUpdated) {
-            request.getSession().setAttribute("success", "Cập nhật trạng thái thành công");
-        } else {
-            request.getSession().setAttribute("error", "Cập nhật trạng thái không thành công");
-        }
-        response.sendRedirect(request.getContextPath() + "/v1/admin/user-list");
-    }
-
-    private void displayDashboard(HttpServletRequest request,HttpServletResponse response)throws ServletException, IOException {
-        request.getRequestDispatcher("/public/admin/dashboard.jsp").forward(request, response);
+        UserUpdateRequestDTO user = userDAO.getUserDTOById(userId);
+        request.setAttribute("userId", userId);        
+        request.setAttribute("roles", roles);
+        request.setAttribute("user", user);
+        request.getRequestDispatcher("/public/admin/update_user.jsp").forward(request, response);
     }
     
     private void displayUserList(HttpServletRequest request,
@@ -194,20 +184,15 @@ public class AdminController extends HttpServlet {
         
         request.getRequestDispatcher("/public/admin/user_list.jsp")
                 .forward(request, response);
+    }    
+     
+    
+    private void displayDashboard(HttpServletRequest request,HttpServletResponse response)throws ServletException, IOException {
+        List<User> users = userDAO.getAllUsers();
+        request.setAttribute("userSize", users.size());
+        request.getRequestDispatcher("/public/admin/dashboard.jsp").forward(request, response);
     }
-
-//    private void handleChangingStatusRole(HttpServletRequest request, HttpServletResponse response) {
-//        int roleStatus = Integer.parseInt(request.getParameter("roleStatus"));
-//        boolean isUpdated = roleDAO.handleStatus(roleStatus, );
-//        if(isUpdated){
-//            request.getSession().setAttribute("success", "Cập nhật trạng thái thành công");
-//            response.sendRedirect(request.getContextPath() +"/");
-//        }else{
-//            request.setAttribute("error", "Cập nhật trạng thái không thành công");
-//            request.getRequestDispatcher("/public/admin/add_user.jsp").forward(request, response);
-//        }
-//    }
-
+    
     private void displayUserDetail(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
         String rawUserId = request.getParameter("id");
         if (rawUserId == null || rawUserId.trim().isEmpty()) {
@@ -223,6 +208,225 @@ public class AdminController extends HttpServlet {
         }
         request.setAttribute("selectedUser", selectedUser);        
         request.getRequestDispatcher("/public/admin/user_detail.jsp").forward(request, response);
+    }    
+    
+    private void handleAddUser(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        String username  = request.getParameter("username");
+        String email     = request.getParameter("email");
+        String password  = request.getParameter("password");
+        String fullName  = request.getParameter("fullName");
+        String dob       = request.getParameter("dob");
+        String gender    = request.getParameter("gender");
+        String address   = request.getParameter("address");
+        int roleId = Integer.parseInt(request.getParameter("role_selection"));
+        
+
+        boolean isSuccess = userDAO.addUser(username,email, password, fullName, dob, gender ,address, roleId);
+        if (!isSuccess) {
+            request.setAttribute("roles", roleDAO.getAllRoles());
+            request.setAttribute("error", "Thêm người dùng thất bại. Email hoặc username có thể đã tồn tại.");
+            request.getRequestDispatcher("/public/admin/add_user.jsp").forward(request, response);
+            return;
+        }
+        emailService.sendResetPasswordEmailAsync(email, password);
+        LOGGER.log(Level.INFO, "User added and password sent to: {0}", email);
+        request.getSession().setAttribute("success", "Thêm người dùng thành công. Mật khẩu tạm thời đã được gửi đến email.");
+        response.sendRedirect(request.getContextPath() + "/v1/admin/user-list");
+    }
+    
+    private void handleUpdateUserInfo(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        int userId = Integer.parseInt(request.getParameter("userId"));        
+        String username  = request.getParameter("username");
+        String email     = request.getParameter("email");
+        String password  = request.getParameter("password");
+        String fullName  = request.getParameter("fullName");
+        String dob       = request.getParameter("dob");
+        String gender    = request.getParameter("gender");
+        String address   = request.getParameter("address");
+        int roleId = Integer.parseInt(request.getParameter("role_selection"));
+        
+
+        boolean isSuccess = userDAO.updateUser(userId,username,email, password, fullName, dob, gender ,address, roleId);
+        if (!isSuccess) {
+            request.setAttribute("roles", roleDAO.getAllRoles());
+            request.setAttribute("error", "Cập nhật người dùng thất bại. Email có thể đã tồn tại.");
+            request.getRequestDispatcher("/public/admin/update_user.jsp").forward(request, response);
+            return;
+        }
+        emailService.sendResetPasswordEmailAsync(email, password);
+        LOGGER.log(Level.INFO, "User updated  and password sent to: {0}", email);
+        request.getSession().setAttribute("success", "Cập nhật người dùng thành công. Mật khẩu tạm thời đã được gửi đến email.");
+        response.sendRedirect(request.getContextPath() + "/v1/admin/user-list");        
+    }    
+    
+    
+
+    private void handleChangingStatus(HttpServletRequest request, HttpServletResponse response, User user) throws ServletException, IOException {
+        int status = Integer.parseInt(request.getParameter("status"));
+        int userId = Integer.parseInt(request.getParameter("id"));
+        if(userId == user.getUserId()){
+            request.getSession().setAttribute("error", "Không thể tự activate/deactive bản thân");
+            response.sendRedirect(request.getContextPath() + "/v1/admin/user-list");
+            return;
+        }
+        boolean isUpdated = userDAO.handleStatus(status, userId);
+
+        if (isUpdated) {
+            request.getSession().setAttribute("success", "Cập nhật trạng thái thành công");
+        } else {
+            request.getSession().setAttribute("error", "Cập nhật trạng thái không thành công");
+        }
+        response.sendRedirect(request.getContextPath() + "/v1/admin/user-list");
+    }
+
+
+    private void handleChangingStatusRole(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        int status = Integer.parseInt(request.getParameter("status"));
+        int roleId = Integer.parseInt(request.getParameter("id"));
+        boolean isUpdated = roleDAO.handleStatus(status, roleId);
+        if (isUpdated) {
+            request.getSession().setAttribute("success", "Cập nhật trạng thái vai trò thành công");
+        } else {
+            request.getSession().setAttribute("error", "Cập nhật trạng thái vai trò không thành công");
+        }
+        response.sendRedirect(request.getContextPath() + "/v1/admin/role-list");
+    }
+
+
+
+    private void displayUpdateRoleForm(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        String rawRoleId = request.getParameter("id");
+        if (rawRoleId == null || rawRoleId.trim().isEmpty()) {
+            request.setAttribute("error", "Không thể xác định vai trò cần cập nhật");
+            request.getRequestDispatcher("/public/admin/update_role.jsp").forward(request, response);
+            return;
+        }
+
+        int roleId;
+        try {
+            roleId = Integer.parseInt(rawRoleId);
+        } catch (NumberFormatException e) {
+            request.setAttribute("error", "Mã vai trò không hợp lệ");
+            request.getRequestDispatcher("/public/admin/update_role.jsp").forward(request, response);
+            return;
+        }
+
+        Role selectedRole = roleDAO.getRoleById(roleId);
+        if (selectedRole == null) {
+            request.setAttribute("error", "Không tìm thấy vai trò");
+            request.getRequestDispatcher("/public/admin/update_role.jsp").forward(request, response);
+            return;
+        }
+
+        request.setAttribute("selectedRole", selectedRole);
+        request.getRequestDispatcher("/public/admin/update_role.jsp").forward(request, response);
+    }
+
+    private void handleUpdateRole(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        String rawRoleId = request.getParameter("roleId");
+        String roleCode = request.getParameter("roleCode").trim();
+        String roleName = request.getParameter("roleName").trim();
+        String description = request.getParameter("description").trim();
+
+        if (isBlank(roleCode) || isBlank(roleName)) {
+            Role fallback = null;
+            try {
+                fallback = roleDAO.getRoleById(Integer.parseInt(rawRoleId));
+            } catch (Exception ignored) {}
+            request.setAttribute("error", "Mã vai trò và tên vai trò không được để trống");
+            request.setAttribute("selectedRole", fallback);
+            request.getRequestDispatcher("/public/admin/update_role.jsp").forward(request, response);
+            return;
+        }
+
+        if (isBlank(rawRoleId)) {
+            request.getSession().setAttribute("error", "Thiếu mã vai trò");
+            response.sendRedirect(request.getContextPath() + "/v1/admin/role-list");
+            return;
+        }
+
+        int roleId;
+        try {
+            roleId = Integer.parseInt(rawRoleId);
+        } catch (NumberFormatException e) {
+            request.getSession().setAttribute("error", "Mã vai trò không hợp lệ");
+            response.sendRedirect(request.getContextPath() + "/v1/admin/role-list");
+            return;
+        }
+
+        description = isBlank(description) ? null : description.trim();
+
+        boolean updated = roleDAO.updateRole(roleId, roleCode, roleName, description);
+        if (!updated) {
+            Role fallback = roleDAO.getRoleById(roleId);
+            request.setAttribute("error", "Cập nhật vai trò thất bại. Mã vai trò có thể đã tồn tại.");
+            request.setAttribute("selectedRole", fallback);
+            request.getRequestDispatcher("/public/admin/update_role.jsp").forward(request, response);
+            return;
+        }
+
+        LOGGER.log(Level.INFO, "Role updated successfully: roleId={0}", roleId);
+        request.getSession().setAttribute("success", "Cập nhật vai trò thành công");
+        response.sendRedirect(request.getContextPath() + "/v1/admin/role-list" );
+    }
+
+
+    private void handleDeleteRole(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        String rawRoleId = request.getParameter("id");
+        if (isBlank(rawRoleId)) {
+            request.getSession().setAttribute("error", "Thiếu mã vai trò");
+            response.sendRedirect(request.getContextPath() + "/v1/admin/role-list");
+            return;
+        }
+
+        int roleId;
+        try {
+            roleId = Integer.parseInt(rawRoleId);
+        } catch (NumberFormatException e) {
+            request.getSession().setAttribute("error", "Mã vai trò không hợp lệ");
+            response.sendRedirect(request.getContextPath() + "/v1/admin/role-list");
+            return;
+        }
+        boolean deleted = roleDAO.deleteRole(roleId);
+        if (!deleted) {
+            request.getSession().setAttribute("error", "Xóa vai trò thất bại");
+            response.sendRedirect(request.getContextPath() + "/v1/admin/role-detail?id=" + roleId);
+            return;
+        }
+        LOGGER.log(Level.INFO, "Role deleted successfully: roleId={0}", roleId);
+        request.getSession().setAttribute("success", "Xóa vai trò thành công");
+        response.sendRedirect(request.getContextPath() + "/v1/admin/role-list");
+    }
+
+    private void displayAddRoleForm(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        request.getRequestDispatcher("/public/admin/add_role.jsp").forward(request, response);
+    }
+
+    private void handleAddRole(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        String roleCode = request.getParameter("roleCode");
+        String roleName = request.getParameter("roleName");
+        String description = request.getParameter("description");
+
+        if (isBlank(roleCode) || isBlank(roleName)) {
+            request.setAttribute("error", "Mã vai trò và tên vai trò không được để trống");
+            request.getRequestDispatcher("/public/admin/add_role.jsp").forward(request, response);
+            return;
+        }
+
+        roleCode = roleCode.trim().toUpperCase();
+        roleName = roleName.trim();
+        description = isBlank(description) ? null : description.trim();
+
+        boolean added = roleDAO.addRole(roleCode, roleName, description);
+        if (!added) {
+            request.setAttribute("error", "Thêm vai trò thất bại. Mã vai trò có thể đã tồn tại.");
+            request.getRequestDispatcher("/public/admin/add_role.jsp").forward(request, response);
+            return;
+        }
+
+        LOGGER.log(Level.INFO, "Role added successfully: roleCode={0}", roleCode);
+        request.getSession().setAttribute("success", "Thêm vai trò thành công");
+        response.sendRedirect(request.getContextPath() + "/v1/admin/role-list");
     }
 
     private void displayRoleList(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
@@ -262,14 +466,7 @@ public class AdminController extends HttpServlet {
             return;
         }
 
-        int roleId;
-        try {
-            roleId = Integer.parseInt(rawRoleId);
-        } catch (NumberFormatException e) {
-            request.setAttribute("error", "Mã vai trò không hợp lệ");
-            request.getRequestDispatcher("/public/admin/role_detail.jsp").forward(request, response);
-            return;
-        }
+        int roleId = Integer.parseInt(rawRoleId);
 
         Role selectedRole = roleDAO.getRoleById(roleId);
         if (selectedRole == null) {
@@ -278,8 +475,16 @@ public class AdminController extends HttpServlet {
             return;
         }
 
+        List<Permission> assignedPerms = permissionDAO.getPermissionsByRoleId(roleId);
+        Set<Integer> assignedIds = new HashSet<>();
+        for (model.Permission p : assignedPerms) {
+            assignedIds.add(p.getPermissionId());
+        }
+
         request.setAttribute("selectedRole", selectedRole);
-        request.setAttribute("permissions", permissionDAO.getPermissionsByRoleId(roleId));
+        request.setAttribute("allPermissions", permissionDAO.getAllPermissions());
+        request.setAttribute("assignedPermissionIds", assignedIds);
+        request.setAttribute("assignedCount", assignedPerms.size());
         request.setAttribute("roleUsers", userDAO.getUsersByRoleId(roleId));
         request.getRequestDispatcher("/public/admin/role_detail.jsp").forward(request, response);
     }
@@ -336,6 +541,79 @@ public class AdminController extends HttpServlet {
         response.sendRedirect(request.getContextPath() + "/v1/admin/my-profile");
     }
 
+    private void displayEditRolePermissionsForm(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        String rawRoleId = request.getParameter("id");
+        if (isBlank(rawRoleId)) {
+            request.getSession().setAttribute("error", "Thiếu mã vai trò");
+            response.sendRedirect(request.getContextPath() + "/v1/admin/role-list");
+            return;
+        }
+
+        int roleId;
+        try {
+            roleId = Integer.parseInt(rawRoleId);
+        } catch (NumberFormatException e) {
+            request.getSession().setAttribute("error", "Mã vai trò không hợp lệ");
+            response.sendRedirect(request.getContextPath() + "/v1/admin/role-list");
+            return;
+        }
+
+        Role selectedRole = roleDAO.getRoleById(roleId);
+        if (selectedRole == null) {
+            request.getSession().setAttribute("error", "Không tìm thấy vai trò");
+            response.sendRedirect(request.getContextPath() + "/v1/admin/role-list");
+            return;
+        }
+
+        List<Permission> allPermissions = permissionDAO.getAllPermissions();
+        List<Permission> rolePermissions = permissionDAO.getPermissionsByRoleId(roleId);
+
+        Set<Integer> assignedIds = new HashSet<>();
+        for (Permission p : rolePermissions) {
+            assignedIds.add(p.getPermissionId());
+        }
+
+        request.setAttribute("selectedRole", selectedRole);
+        request.setAttribute("allPermissions", allPermissions);
+        request.setAttribute("assignedPermissionIds", assignedIds);
+        request.getRequestDispatcher("/public/admin/edit_role_permissions.jsp").forward(request, response);
+    }
+
+    private void handleUpdateRolePermissions(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        String rawRoleId = request.getParameter("roleId");
+        if (isBlank(rawRoleId)) {
+            request.getSession().setAttribute("error", "Thiếu mã vai trò");
+            response.sendRedirect(request.getContextPath() + "/v1/admin/role-list");
+            return;
+        }
+
+        int roleId;
+        try {
+            roleId = Integer.parseInt(rawRoleId);
+        } catch (NumberFormatException e) {
+            request.getSession().setAttribute("error", "Mã vai trò không hợp lệ");
+            response.sendRedirect(request.getContextPath() + "/v1/admin/role-list");
+            return;
+        }
+
+        String[] permissionValues = request.getParameterValues("permissionIds");
+        List<Integer> permissionIds = new ArrayList<>();
+        if (permissionValues != null) {
+            for (String val : permissionValues) {
+                permissionIds.add(Integer.parseInt(val));
+            }
+        }
+
+        boolean updated = permissionDAO.updateRolePermissions(roleId, permissionIds);
+        if (!updated) {
+            request.getSession().setAttribute("error", "Cập nhật quyền thất bại. Vui lòng thử lại.");
+        } else {
+            LOGGER.log(Level.INFO, "Role permissions updated: roleId={0}, count={1}", new Object[]{roleId, permissionIds.size()});
+            request.getSession().setAttribute("success", "Cập nhật quyền cho vai trò thành công");
+        }
+        response.sendRedirect(request.getContextPath() + "/v1/admin/role-list");
+    }
+
     private boolean isBlank(String value) {
         return value == null || value.trim().isEmpty();
     }
@@ -345,4 +623,5 @@ public class AdminController extends HttpServlet {
         response.setHeader("Pragma", "no-cache");
         response.setDateHeader("Expires", 0);
     }
+
 }

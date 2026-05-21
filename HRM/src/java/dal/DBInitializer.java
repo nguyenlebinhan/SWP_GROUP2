@@ -34,7 +34,9 @@ public class DBInitializer {
                 + "roleId INT PRIMARY KEY AUTO_INCREMENT,"
                 + "roleCode VARCHAR(100) NOT NULL UNIQUE,"
                 + "roleName VARCHAR(50) NOT NULL UNIQUE,"
+                + "description TEXT NULL,"
                 + "isActive BIT DEFAULT 1,"
+                + "isDeleted BIT DEFAULT 0,"
                 + "createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,"
                 + "updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"
                 + ")";
@@ -448,63 +450,33 @@ public class DBInitializer {
             }
 
             String[] dropOrder = {
-                "Audit_Logs",
-                "Notifications",
-                "Performance",
-                "Payroll",
-                "Attendance",
-                "Uploaded_Files",
-                "Job_Subtasks",
-                "Job_Attachments",
-                "Job_Comments",
-                "Jobs",
-                "Leave_Balance",
-                "Leave_Requests",
-                "Leave_Types",
-                "Candidates",
-                "Employees",
-                "Users",
-                "Role_Permissions",
-                "Permissions",
-                "Email_Templates",
-                "Departments",
-                "Positions",
-                "Roles"
+                "Audit_Logs", "Notifications", "Performance", "Payroll", "Attendance",
+                "Uploaded_Files", "Job_Subtasks", "Job_Attachments", "Job_Comments", "Jobs",
+                "Leave_Balance", "Leave_Requests", "Leave_Types", "Candidates", "Employees",
+                "Users", "Role_Permissions", "Permissions", "Email_Templates", "Departments",
+                "Positions", "Roles"
             };
 
             String[] createOrder = {
-                "Roles",
-                "Permissions",
-                "Role_Permissions",
-                "Email_Templates",
-                "Positions",
-                "Departments",
-                "Users",
-                "Employees",          
-                "Candidates",
-                "Leave_Types",
-                "Leave_Requests",
-                "Leave_Balance",
-                "Jobs",
-                "Job_Comments",
-                "Job_Attachments",
-                "Job_Subtasks",
-                "Uploaded_Files",
-                "Attendance",
-                "Payroll",
-                "Performance",
-                "Notifications",
-                "Audit_Logs"
+                "Roles", "Permissions", "Role_Permissions", "Email_Templates", "Positions",
+                "Departments", "Users", "Employees", "Candidates", "Leave_Types", 
+                "Leave_Requests", "Leave_Balance", "Jobs", "Job_Comments", "Job_Attachments", 
+                "Job_Subtasks", "Uploaded_Files", "Attendance", "Payroll", "Performance", 
+                "Notifications", "Audit_Logs"
             };
 
             if (enforceReset) {
                 LOGGER.log(Level.INFO,"Enforce reset: Dropping all tables...");
-                execute(conn, "SET FOREIGN_KEY_CHECKS=0", "DISABLE FK CHECKS");
+                execute(conn, "SET FOREIGN_KEY_CHECKS=0", "DISABLE FK CHECKS FOR DROP");
                 for (String table : dropOrder) {
                     dropTable(conn, table);
                 }
-                execute(conn, "SET FOREIGN_KEY_CHECKS=1", "ENABLE FK CHECKS");
+                execute(conn, "SET FOREIGN_KEY_CHECKS=1", "ENABLE FK CHECKS AFTER DROP");
             }
+
+            // --- BẮT ĐẦU ĐOẠN SỬA ĐỔI QUAN TRỌNG CHẮN LỖI TẠO BẢNG CHÉO ---
+            LOGGER.log(Level.INFO, "Tạm thời tắt kiểm tra khóa ngoại để tiến hành tạo bảng tuần tự...");
+            execute(conn, "SET FOREIGN_KEY_CHECKS=0", "DISABLE FK CHECKS FOR CREATE");
 
             for (String table : createOrder) {
                 if (enforceReset || !tableExists(conn, table)) {
@@ -516,7 +488,7 @@ public class DBInitializer {
                         case "Positions":         createTablePosition(conn);          break;
                         case "Departments":       createTableDepartments(conn);       break;
                         case "Users":             createTableUsers(conn);             break;
-                        case "Employees":         createTableEmployees(conn);
+                        case "Employees":         createTableEmployees(conn);         break; // Đã thêm break bị thiếu ở đây
                         case "Candidates":        createTableCandidates(conn);        break;
                         case "Leave_Types":       createTableLeaveTypes(conn);        break;
                         case "Leave_Requests":    createTableLeaveRequests(conn);     break;
@@ -531,10 +503,16 @@ public class DBInitializer {
                         case "Performance":       createTablePerformance(conn);       break;
                         case "Notifications":     createTableNotifications(conn);     break;
                         case "Audit_Logs":        createTableAuditLogs(conn);         break;
-                        default: LOGGER.log(Level.WARNING,"Unknown table: {0}", table);           break;
+                        default: LOGGER.log(Level.WARNING,"Unknown table: {0}", table);     break;
                     }
                 }
             }
+
+            // Sau khi tất cả các bảng đã được tạo dựng thành công, bật lại ràng buộc để bảo vệ dữ liệu toàn vẹn
+            execute(conn, "SET FOREIGN_KEY_CHECKS=1", "ENABLE FK CHECKS AFTER CREATE");
+            LOGGER.log(Level.INFO, "Đã kích hoạt lại toàn bộ kiểm tra khóa ngoại hệ thống.");
+            // --- KẾT THÚC ĐOẠN SỬA ĐỔI ---
+
             ensureUsersUsernameColumn(conn);
             insertInitialData(conn);
             LOGGER.log(Level.INFO,"Database initialized successfully!");
@@ -549,13 +527,26 @@ public class DBInitializer {
         try {
             if (countRows(conn, "Roles") == 0) {
                 LOGGER.info("Starting to seed initial data...");
-                insertRole(conn, "AD", "Admin");
-                insertRole(conn, "MA", "HRManager");
-                insertRole(conn, "EM", "HREmployee");
+                insertRole(conn, "AD", "Admin","Người quản trị hệ thống và đưa ra các quyền hạn với user account");
+                insertRole(conn, "MA", "HRManager", "Người tuyển nhận sự ");
+                insertRole(conn, "EM", "HREmployee","Người làm nhân sự ");
             }
             if (countRows(conn, "Users") == 0) {
                 insertUser(conn, "admin", "nguyenlebinhank63@gmail.com",BCrypt.withDefaults().hashToString(12, "admin123".toCharArray()), "Nguyễn Lê Bình An", "2006-01-06", "Phủ Lý, Hà Nam", 1);
                 insertUser(conn,"minhquan","minhquan153452@gmail.com",BCrypt.withDefaults().hashToString(12, "google123".toCharArray()),"Minh Quân","2006-01-01","Hà Nội",1);
+                insertUser(conn, "vu", "didoan482@gmail.com", BCrypt.withDefaults().hashToString(12, "soss123".toCharArray()), "Phạm Vũ", "2006-10-17", "Thanh Hóa", 1);
+            }
+            if (countRows(conn, "Permissions") == 0) {
+                insertPermission(conn, "VIEW_USERS",       "Xem người dùng",         "Quyền xem danh sách và chi tiết người dùng");
+                insertPermission(conn, "ADD_USER",         "Thêm người dùng",         "Quyền thêm mới người dùng");
+                insertPermission(conn, "EDIT_USER",        "Sửa người dùng",          "Quyền chỉnh sửa thông tin người dùng");
+                insertPermission(conn, "DELETE_USER",      "Xóa người dùng",          "Quyền xóa / vô hiệu hóa người dùng");
+                insertPermission(conn, "VIEW_ROLES",       "Xem vai trò",             "Quyền xem danh sách và chi tiết vai trò");
+                insertPermission(conn, "ADD_ROLE",         "Thêm vai trò",            "Quyền thêm mới vai trò");
+                insertPermission(conn, "EDIT_ROLE",        "Sửa vai trò",             "Quyền chỉnh sửa thông tin vai trò");
+                insertPermission(conn, "DELETE_ROLE",      "Xóa vai trò",             "Quyền xóa vai trò");
+                insertPermission(conn, "MANAGE_PERMISSIONS","Quản lý phân quyền",     "Quyền gán / thu hồi quyền cho vai trò");
+ 
             }
             LOGGER.log(Level.INFO,"Seeding completed successfully.");
         } catch (SQLException e) {
@@ -563,11 +554,22 @@ public class DBInitializer {
         }
     }
 
-    private void insertRole(Connection conn, String code, String name) throws SQLException {
-        String sql = "INSERT INTO Roles (roleCode, roleName) VALUES (?, ?)";
+    private void insertPermission(Connection conn, String code, String name, String description) throws SQLException {
+        String sql = "INSERT INTO Permissions (permissionCode, permissionName, description) VALUES (?, ?, ?)";
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, code);
             ps.setString(2, name);
+            ps.setNString(3, description);
+            ps.executeUpdate();
+        }
+    }
+
+    private void insertRole(Connection conn, String code, String name,String description) throws SQLException {
+        String sql = "INSERT INTO Roles (roleCode, roleName, description) VALUES (?, ?, ?)";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, code);
+            ps.setString(2, name);
+            ps.setString(3, description);
             ps.executeUpdate();
         }
     }

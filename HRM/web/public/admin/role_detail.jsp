@@ -90,6 +90,53 @@
             margin-bottom: 4px;
         }
         .meta-value { display: block; color: #111827; font-size: 14px; font-weight: 700; }
+        .perm-group-title {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: .5px;
+            color: #9ca3af;
+            margin: 18px 0 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .perm-group-title::after { content: ''; flex: 1; height: 1px; background: #f1f3f5; }
+        .perm-tile {
+            border: 1.5px solid #e5e7eb;
+            border-radius: 10px;
+            padding: 12px 14px;
+            background: #fafafa;
+            transition: border-color .15s;
+        }
+        .perm-tile.assigned {
+            border-color: #6366f1;
+            background: #eef2ff;
+        }
+        .perm-tile-name {
+            font-size: 13px;
+            font-weight: 700;
+            color: #374151;
+            margin-bottom: 3px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .perm-tile.assigned .perm-tile-name { color: #3730a3; }
+        .perm-tile-code {
+            display: inline-block;
+            font-size: 10px;
+            font-weight: 700;
+            padding: 1px 8px;
+            border-radius: 20px;
+            background: #e5e7eb;
+            color: #6b7280;
+        }
+        .perm-tile.assigned .perm-tile-code { background: #c7d2fe; color: #3730a3; }
+        .perm-tile-desc { font-size: 11px; color: #9ca3af; margin-top: 4px; line-height: 1.4; }
+        .perm-tile.assigned .perm-tile-desc { color: #6366f1; }
+        .perm-check { color: #6366f1; font-size: 13px; }
+        .perm-uncheck { color: #d1d5db; font-size: 13px; }
         .detail-panel { padding: 32px 34px; }
         .section-title {
             font-size: 14px;
@@ -134,6 +181,54 @@
             font-size: 14px;
             cursor: not-allowed;
         }
+        .btn-edit-role {
+            height: 40px;
+            padding: 0 18px;
+            border-radius: 8px;
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            background: #e0f2fe;
+            color: #0369a1;
+            border: 1px solid #bae6fd;
+            font-weight: 700;
+            font-size: 14px;
+            text-decoration: none;
+            transition: opacity .2s;
+        }
+        .btn-edit-role:hover { opacity: .85; color: #0369a1; }
+        .btn-add-role {
+            height: 40px;
+            padding: 0 18px;
+            border-radius: 8px;
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            background: #ff8c00;
+            color: white;
+            border: 1px solid #ff8c00;
+            font-weight: 700;
+            font-size: 14px;
+            text-decoration: none;
+            transition: opacity .2s;
+        }
+        .btn-add-role:hover { opacity: .85; color: white; }
+        .btn-delete-role {
+            height: 40px;
+            padding: 0 18px;
+            border-radius: 8px;
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            background: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #fecaca;
+            font-weight: 700;
+            font-size: 14px;
+            text-decoration: none;
+            transition: opacity .2s;
+        }
+        .btn-delete-role:hover { opacity: .85; color: #991b1b; }
         .alert-flash { border-radius: 8px; font-size: 14px; margin-bottom: 20px; }
         .empty-card {
             background: #fff;
@@ -152,14 +247,8 @@
 <div class="main-content">
     <jsp:include page="/public/components/adminTopBar.jsp">
         <jsp:param name="title" value="Chi tiết vai trò" />
+        <jsp:param name="backUrl" value="/v1/admin/role-list" />
     </jsp:include>
-
-    <div class="page-header">
-        <a href="${pageContext.request.contextPath}/v1/admin/role-list" class="back-btn" title="Quay lại">
-            <i class="fa fa-arrow-left"></i>
-        </a>
-        <h5><i class="fa fa-shield-halved me-2" style="color:#ff8c00"></i>Chi tiết vai trò</h5>
-    </div>
 
     <c:if test="${not empty error}">
         <div class="alert alert-danger alert-flash">
@@ -200,8 +289,8 @@
                                 <span class="meta-value"><c:out value="${selectedRole.roleCode}"/></span>
                             </div>
                             <div class="meta-item">
-                                <span class="meta-label">Số quyền</span>
-                                <span class="meta-value">${permissions.size()}</span>
+                                <span class="meta-label">Số quyền được gán</span>
+                                <span class="meta-value">${assignedCount} / ${allPermissions.size()}</span>
                             </div>
                             <div class="meta-item">
                                 <span class="meta-label">Số người dùng</span>
@@ -213,37 +302,77 @@
 
                 <div class="col-lg-9 col-md-8">
                     <div class="detail-panel">
-                        <div class="d-flex gap-2 justify-content-end mb-3">
-                            <span class="btn-disabled" title="Chức năng sẽ được bổ sung sau">
-                                <i class="fa fa-pen"></i> Sửa vai trò
-                            </span>
-                            <span class="btn-disabled" title="Chức năng sẽ được bổ sung sau">
-                                <i class="fa fa-trash"></i> Xóa vai trò
-                            </span>
-                        </div>
 
                         <div class="section-block">
-                            <div class="section-title">
-                                <i class="fa fa-key"></i>Quyền được cấp
+                            <div class="d-flex justify-content-between align-items-center mb-0" style="padding-bottom:10px;border-bottom:2px solid #f1f3f5;margin-bottom:20px">
+                                <div class="section-title" style="border:none;padding:0;margin:0">
+                                    <i class="fa fa-key"></i>Quyền hệ thống
+                                </div>
+                                <div class="d-flex align-items-center gap-2">
+                                    <span style="font-size:12px;color:#6b7280">
+                                        <span style="color:#6366f1;font-weight:700">${assignedCount}</span>
+                                        / ${allPermissions.size()} quyền được gán
+                                    </span>
+                                    <a href="${pageContext.request.contextPath}/v1/admin/edit-role-permissions?id=${selectedRole.roleId}"
+                                       class="btn-edit-role" style="height:34px;padding:0 14px;font-size:13px">
+                                        <i class="fa fa-pen-to-square"></i> Phân quyền
+                                    </a>
+                                </div>
                             </div>
-                            <c:choose>
-                                <c:when test="${empty permissions}">
-                                    <div class="muted">Vai trò này chưa được gán quyền nào.</div>
-                                </c:when>
-                                <c:otherwise>
-                                    <c:forEach var="p" items="${permissions}">
-                                        <div class="permission-item">
-                                            <div class="d-flex justify-content-between align-items-center gap-3">
-                                                <strong><c:out value="${p.permissionName}"/></strong>
-                                                <span class="permission-code"><c:out value="${p.permissionCode}"/></span>
-                                            </div>
-                                            <div class="muted mt-1">
-                                                <c:out value="${empty p.description ? 'Không có mô tả' : p.description}"/>
+
+                            <c:if test="${empty allPermissions}">
+                                <div class="muted">Chưa có quyền nào trong hệ thống.</div>
+                            </c:if>
+
+                            <div class="perm-group-title"><i class="fa fa-user"></i> Người dùng</div>
+                            <div class="row g-2 mb-1">
+                                <c:forEach var="p" items="${allPermissions}">
+                                    <c:if test="${p.permissionCode == 'VIEW_USERS' || p.permissionCode == 'ADD_USER' || p.permissionCode == 'EDIT_USER' || p.permissionCode == 'DELETE_USER'}">
+                                        <div class="col-md-3">
+                                            <div class="perm-tile ${assignedPermissionIds.contains(p.permissionId) ? 'assigned' : ''}">
+                                                <div class="perm-tile-name">
+                                                    <c:choose>
+                                                        <c:when test="${assignedPermissionIds.contains(p.permissionId)}">
+                                                            <i class="fa fa-circle-check perm-check"></i>
+                                                        </c:when>
+                                                        <c:otherwise>
+                                                            <i class="fa fa-circle perm-uncheck"></i>
+                                                        </c:otherwise>
+                                                    </c:choose>
+                                                    <c:out value="${p.permissionName}"/>
+                                                </div>
+                                                <span class="perm-tile-code"><c:out value="${p.permissionCode}"/></span>
+                                                <div class="perm-tile-desc"><c:out value="${empty p.description ? '—' : p.description}"/></div>
                                             </div>
                                         </div>
-                                    </c:forEach>
-                                </c:otherwise>
-                            </c:choose>
+                                    </c:if>
+                                </c:forEach>
+                            </div>
+
+                            <div class="perm-group-title"><i class="fa fa-shield-halved"></i> Vai trò &amp; Phân quyền</div>
+                            <div class="row g-2 mb-1">
+                                <c:forEach var="p" items="${allPermissions}">
+                                    <c:if test="${p.permissionCode == 'VIEW_ROLES' || p.permissionCode == 'ADD_ROLE' || p.permissionCode == 'EDIT_ROLE' || p.permissionCode == 'DELETE_ROLE' || p.permissionCode == 'MANAGE_PERMISSIONS'}">
+                                        <div class="col-md-3">
+                                            <div class="perm-tile ${assignedPermissionIds.contains(p.permissionId) ? 'assigned' : ''}">
+                                                <div class="perm-tile-name">
+                                                    <c:choose>
+                                                        <c:when test="${assignedPermissionIds.contains(p.permissionId)}">
+                                                            <i class="fa fa-circle-check perm-check"></i>
+                                                        </c:when>
+                                                        <c:otherwise>
+                                                            <i class="fa fa-circle perm-uncheck"></i>
+                                                        </c:otherwise>
+                                                    </c:choose>
+                                                    <c:out value="${p.permissionName}"/>
+                                                </div>
+                                                <span class="perm-tile-code"><c:out value="${p.permissionCode}"/></span>
+                                                <div class="perm-tile-desc"><c:out value="${empty p.description ? '—' : p.description}"/></div>
+                                            </div>
+                                        </div>
+                                    </c:if>
+                                </c:forEach>
+                            </div>
                         </div>
 
                         <div class="section-block">
