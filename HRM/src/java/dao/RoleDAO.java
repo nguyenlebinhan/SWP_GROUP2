@@ -5,7 +5,6 @@
 package dao;
 
 import dal.DBContext;
-import static dao.UserDAO.hashPassword;
 import java.util.logging.*;
 import java.util.*;
 import java.sql.*;
@@ -26,7 +25,7 @@ public class RoleDAO {
     public List<Role> getAllRoles(){
         LOGGER.log(Level.INFO,"Get all roles");
         List<Role> roles = new ArrayList<>();
-        String SQL = "SELECT * FROM roles";
+        String SQL = "SELECT * FROM roles WHERE isDeleted = 0";
         try(Connection conn = dbContext.getConnection();
             PreparedStatement ps = conn.prepareCall(SQL);
             ResultSet rs = ps.executeQuery()){
@@ -39,6 +38,23 @@ public class RoleDAO {
         }
         return roles;
     }
+    
+    public List<Role> getAllActiveRoles(){
+        LOGGER.log(Level.INFO,"Get all roles");
+        List<Role> roles = new ArrayList<>();
+        String SQL = "SELECT * FROM roles WHERE isActive = 1 AND isDeleted = 0";
+        try(Connection conn = dbContext.getConnection();
+            PreparedStatement ps = conn.prepareCall(SQL);
+            ResultSet rs = ps.executeQuery()){
+            while(rs.next()){
+                roles.add(mapRole(rs));
+            }
+            LOGGER.log(Level.INFO,"Retrieve {0} roles from DB.",roles.size());
+        }catch(SQLException e){
+            LOGGER.log(Level.SEVERE,"Cannot retrieve roles from DB",e);
+        }
+        return roles;
+    }    
 
     public Role getRoleById(int roleId) {
         LOGGER.log(Level.INFO, "Get role by roleId: {0}", roleId);
@@ -132,7 +148,7 @@ public class RoleDAO {
 
     public boolean deleteRole(int roleId) {
         LOGGER.log(Level.INFO, "Deleting role with roleId: {0}", roleId);
-        String SQL = "DELETE FROM roles WHERE roleId = ?";
+        String SQL = "UPDATE roles SET isDeleted = 1 WHERE roleId = ?";
         try (Connection conn = dbContext.getConnection();
              PreparedStatement ps = conn.prepareStatement(SQL)) {
             ps.setInt(1, roleId);

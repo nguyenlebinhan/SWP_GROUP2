@@ -434,16 +434,8 @@ public class AuthController extends HttpServlet {
         }
         String role = user.getRoleName().trim().replaceAll("[^A-Za-z0-9]", "").toLowerCase();
         switch (role) {
-            case "sysadmin":
             case "admin":
-            case "administrator":
                 return "/v1/admin/dashboard";
-            case "hrmanager":
-            case "manager":
-                return "/v1/manager/dashboard";
-            case "hremployee":
-            case "employee":
-                return "/v1/employee/dashboard";
             default:
                 LOGGER.log(Level.WARNING, "Unknown role for userId {0}: {1}", new Object[]{user.getUserId(), user.getRoleName()});
                 return AUTH_BASE_PATH + "/login";
