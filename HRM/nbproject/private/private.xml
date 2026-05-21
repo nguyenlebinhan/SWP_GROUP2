@@ -14,6 +14,7 @@
             <file>file:/C:/Users/ADMIN/Desktop/SWP_2/HRM/web/public/auth/forget_password.jsp</file>
             <file>file:/C:/Users/ADMIN/Desktop/SWP_2/HRM/src/java/config/.env</file>
             <file>file:/C:/Users/ADMIN/Desktop/SWP_2/HRM/src/java/model/User.java</file>
+            <file>file:/C:/Users/ADMIN/Desktop/SWP_2/HRM/web/public/admin/edit_role_permissions.jsp</file>
             <file>file:/C:/Users/ADMIN/Desktop/SWP_2/HRM/src/java/model/Role.java</file>
             <file>file:/C:/Users/ADMIN/Desktop/SWP_2/HRM/nbproject/build-impl.xml~</file>
             <file>file:/C:/Users/ADMIN/Desktop/SWP_2/HRM/web/WEB-INF/web.xml</file>
@@ -30,7 +31,6 @@
             <file>file:/C:/Users/ADMIN/Desktop/SWP_2/HRM/web/public/admin/role_list.jsp</file>
             <file>file:/C:/Users/ADMIN/Desktop/SWP_2/HRM/web/index.html</file>
             <file>file:/C:/Users/ADMIN/Desktop/SWP_2/HRM/src/java/dal/DBInitializer.java</file>
-            <file>file:/C:/Users/ADMIN/Desktop/SWP_2/HRM/src/java/dao/UserDAO.java</file>
             <file>file:/C:/Users/ADMIN/Desktop/SWP_2/HRM/src/java/config/AppListener.java</file>
             <file>file:/C:/Users/ADMIN/Desktop/SWP_2/HRM/nbproject/build-impl.xml</file>
         </group>
