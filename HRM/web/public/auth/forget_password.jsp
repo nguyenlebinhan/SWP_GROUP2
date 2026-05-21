@@ -21,7 +21,6 @@
       background: #0d1240;
     }
 
-    /* LEFT PANEL */
     .left-panel {
       flex: 0 0 58%;
       position: relative;
@@ -35,7 +34,6 @@
       display: block;
     }
 
-    /* RIGHT PANEL */
     .right-panel {
       flex: 0 0 42%;
       background: #f5f6fa;
@@ -48,7 +46,6 @@
       border-left: 1px solid rgba(21,101,192,.12);
     }
 
-    /* auth card */
     .auth-card {
       width: 100%;
       max-width: 360px;
@@ -58,7 +55,6 @@
       box-shadow: 0 2px 8px rgba(13,18,64,.06), 0 12px 40px rgba(13,18,64,.10);
     }
 
-    /* logo */
     .logo-wrap { text-align: center; margin-bottom: 1.6rem; }
     .logo-icon {
       width: 52px; height: 52px;
@@ -74,7 +70,6 @@
     .logo-powered { font-size: .7rem; color: #aaa; margin-top: .2rem; }
     .logo-powered span { color: #ff6b00; font-weight: 600; }
 
-    /* icon badge */
     .icon-badge {
       width: 60px; height: 60px;
       background: #eef4ff;
@@ -84,7 +79,6 @@
     }
     .icon-badge i { font-size: 1.6rem; color: #1565c0; }
 
-    /* heading */
     .form-heading {
       font-size: 1.15rem; font-weight: 700;
       color: #1a1a2e; text-align: center;
@@ -96,7 +90,6 @@
       line-height: 1.55;
     }
 
-    /* labels & inputs */
     .form-label {
       font-size: .78rem; font-weight: 600;
       color: #444; margin-bottom: .3rem; display: block;
@@ -117,7 +110,6 @@
     }
     .form-control::placeholder { color: #c0c4d0; }
 
-    /* submit btn */
     .btn-submit {
       width: 100%; height: 46px;
       background: #1565c0; color: #fff;
@@ -135,7 +127,6 @@
     }
     .btn-submit:active { transform: translateY(0); }
 
-    /* back link */
     .back-link {
       display: flex; align-items: center; justify-content: center; gap: .35rem;
       font-size: .8rem; color: #9aa0b5; font-weight: 500;
@@ -144,7 +135,6 @@
     }
     .back-link:hover { color: #1565c0; }
 
-    /* alert */
     .alert {
       border-radius: 9px; font-size: .8rem;
       padding: .7rem .9rem; margin-bottom: 1rem;
@@ -154,7 +144,6 @@
     .alert-danger  { background: #fff0f0; color: #c62828; border-color: #ffcdd2; }
     .alert-success { background: #f0fff4; color: #2e7d32; border-color: #c8e6c9; }
 
-    /* brand strip */
     .brand-strip {
       margin-top: 1.4rem;
       display: flex; align-items: center; gap: .5rem;
@@ -170,12 +159,10 @@
 </head>
 <body>
 
-<!-- LEFT PANEL -->
 <div class="left-panel">
   <img src="${pageContext.request.contextPath}/public/asset/Left Panel.jpg" alt="HRM System" class="panel-img"/>
 </div>
 
-<!-- RIGHT PANEL -->
 <div class="right-panel">
   <div class="auth-card">
 

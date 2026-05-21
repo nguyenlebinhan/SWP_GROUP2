@@ -62,6 +62,61 @@ public class PermissionDAO {
         return permissions;
     }
 
+    public List<Permission> getAllPermissions() {
+        List<Permission> permissions = new ArrayList<>();
+        String SQL = "SELECT permissionId, permissionCode, permissionName, description FROM Permissions ORDER BY permissionName";
+        try (Connection conn = dbContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(SQL);
+             ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) {
+                permissions.add(mapPermission(rs));
+            }
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Cannot retrieve all permissions", e);
+        }
+        return permissions;
+    }
+
+    public boolean updateRolePermissions(int roleId, List<Integer> permissionIds) {
+        String deleteSQL = "DELETE FROM Role_Permissions WHERE roleId = ?";
+        String insertSQL = "INSERT INTO Role_Permissions (roleId, permissionId) VALUES (?, ?)";
+        Connection conn = null;
+        try {
+            conn = dbContext.getConnection();
+            conn.setAutoCommit(false);
+
+            try (PreparedStatement del = conn.prepareStatement(deleteSQL)) {
+                del.setInt(1, roleId);
+                del.executeUpdate();
+            }
+
+            if (permissionIds != null && !permissionIds.isEmpty()) {
+                try (PreparedStatement ins = conn.prepareStatement(insertSQL)) {
+                    for (int permId : permissionIds) {
+                        ins.setInt(1, roleId);
+                        ins.setInt(2, permId);
+                        ins.addBatch();
+                    }
+                    ins.executeBatch();
+                }
+            }
+
+            conn.commit();
+            LOGGER.log(Level.INFO, "Updated permissions for roleId={0}: {1} permission(s)", new Object[]{roleId, permissionIds == null ? 0 : permissionIds.size()});
+            return true;
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Cannot update role permissions for roleId: " + roleId, e);
+            if (conn != null) {
+                try { conn.rollback(); } catch (SQLException ignored) {}
+            }
+        } finally {
+            if (conn != null) {
+                try { conn.setAutoCommit(true); conn.close(); } catch (SQLException ignored) {}
+            }
+        }
+        return false;
+    }
+
     private Permission mapPermission(ResultSet rs) throws SQLException{
         Permission permission  = new Permission();
         permission.setPermissionId(rs.getInt("permissionId"));
