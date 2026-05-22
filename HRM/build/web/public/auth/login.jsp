@@ -145,10 +145,6 @@
       font-family: inherit;
     }
     .btn-google:hover { background: #fff; border-color: #bbb; color: #222; }
-    .g-logo {
-      width: 17px; height: 17px; flex-shrink: 0;
-      background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Cpath fill='%234285F4' d='M45.12 24.5c0-1.56-.14-3.06-.4-4.5H24v8.51h11.84c-.51 2.75-2.06 5.08-4.39 6.64v5.52h7.11c4.16-3.83 6.56-9.47 6.56-16.17z'/%3E%3Cpath fill='%2334A853' d='M24 46c5.94 0 10.92-1.97 14.56-5.33l-7.11-5.52c-1.97 1.32-4.49 2.1-7.45 2.1-5.73 0-10.58-3.87-12.31-9.07H4.34v5.7C7.96 41.07 15.4 46 24 46z'/%3E%3Cpath fill='%23FBBC05' d='M11.69 28.18C11.25 26.86 11 25.45 11 24s.25-2.86.69-4.18v-5.7H4.34C2.85 17.09 2 20.45 2 24c0 3.55.85 6.91 2.34 9.88l7.35-5.7z'/%3E%3Cpath fill='%23EA4335' d='M24 10.75c3.23 0 6.13 1.11 8.41 3.29l6.31-6.31C34.91 4.18 29.93 2 24 2 15.4 2 7.96 6.93 4.34 14.12l7.35 5.7z'/%3E%3C/svg%3E") center/contain no-repeat;
-    }
 
     .signup-text {
       text-align: center; font-size: .78rem;
@@ -165,15 +161,6 @@
     }
     .alert-danger { background: #fff0f0; color: #c62828; border-color: #ffcdd2; }
 
-    .brand-strip {
-      margin-top: 1.4rem;
-      display: flex; align-items: center; gap: .5rem;
-      font-size: .7rem; color: #c0c5d4;
-    }
-    .brand-strip .dot {
-      width: 3px; height: 3px;
-      background: #d0d4e0; border-radius: 50%;
-    }
 
     @media (max-width: 768px) {
       .left-panel { display: none; }
@@ -259,13 +246,6 @@
     </form>
   </div>
 
-  <div class="brand-strip">
-    <span>HRM System</span>
-    <span class="dot"></span>
-    <span>Phần mềm Quản trị Nhân sự</span>
-    <span class="dot"></span>
-    <span>v2.0</span>
-  </div>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/js/bootstrap.bundle.min.js"></script>
