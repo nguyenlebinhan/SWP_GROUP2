@@ -7,7 +7,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <title>Chi tiết người dùng – HRM</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet"/>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet"/>
     <style>
         body {
             background: #f5f6fa;
@@ -223,7 +222,7 @@
     <c:choose>
         <c:when test="${empty selectedUser}">
             <div class="empty-card">
-                <i class="fa fa-user-slash"></i>
+                
                 Không tìm thấy thông tin người dùng.
             </div>
         </c:when>
@@ -286,7 +285,7 @@
                         <!-- Thông tin cơ bản -->
                         <div class="info-section">
                             <div class="section-title">
-                                <i class="fa fa-id-card"></i>Thông tin cơ bản
+                                Thông tin cơ bản
                             </div>
                             <div class="info-grid">
                                 <div class="info-item">
@@ -325,7 +324,7 @@
                         <!-- Thông tin tài khoản -->
                         <div class="info-section">
                             <div class="section-title">
-                                <i class="fa fa-lock"></i>Thông tin tài khoản
+                                Thông tin tài khoản
                             </div>
                             <div class="info-grid">
                                 <div class="info-item">
@@ -344,12 +343,12 @@
                                         <c:choose>
                                             <c:when test="${selectedUser.isActive == 1}">
                                                 <span class="badge-active">
-                                                    <i class="fa fa-circle-check me-1"></i>Hoạt động
+                                                    >Hoạt động
                                                 </span>
                                             </c:when>
                                             <c:otherwise>
                                                 <span class="badge-inactive">
-                                                    <i class="fa fa-circle-xmark me-1"></i>Vô hiệu
+                                                    Vô hiệu
                                                 </span>
                                             </c:otherwise>
                                         </c:choose>
@@ -361,12 +360,12 @@
                                         <c:choose>
                                             <c:when test="${selectedUser.isTemporaryPassword}">
                                                 <span class="badge-temp">
-                                                    <i class="fa fa-clock me-1"></i>Mật khẩu tạm thời
+                                                    Mật khẩu tạm thời
                                                 </span>
                                             </c:when>
                                             <c:otherwise>
                                                 <span class="badge-set">
-                                                    <i class="fa fa-circle-check me-1"></i>Đã thiết lập
+                                                    Đã thiết lập
                                                 </span>
                                             </c:otherwise>
                                         </c:choose>
