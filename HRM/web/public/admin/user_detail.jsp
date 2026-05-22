@@ -19,34 +19,6 @@
             padding: 30px;
         }
 
-        .page-header {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            margin-bottom: 24px;
-        }
-
-        .page-header a.back-btn {
-            width: 36px;
-            height: 36px;
-            background: white;
-            border: 1px solid #e5e7eb;
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #6b7280;
-            text-decoration: none;
-            transition: background .2s;
-        }
-
-        .page-header a.back-btn:hover { background: #f3f4f6; }
-
-        .page-header h5 {
-            font-weight: 700;
-            color: #0B0E2A;
-            margin: 0;
-        }
 
         .alert-flash {
             border-radius: 8px;
@@ -58,7 +30,6 @@
         .profile-card {
             background: white;
             border-radius: 12px;
-            box-shadow: 0 2px 12px rgba(0,0,0,0.07);
             padding: 32px 24px;
             text-align: center;
             height: 100%;
@@ -75,13 +46,6 @@
             align-items: center;
             justify-content: center;
             margin: 0 auto 16px;
-        }
-
-        .profile-name {
-            font-size: 18px;
-            font-weight: 700;
-            color: #111827;
-            margin: 0 0 10px;
         }
 
         .role-pill {
@@ -146,7 +110,6 @@
             word-break: break-all;
         }
 
-        /* Info panel */
         .info-panel {
             background: white;
             border-radius: 12px;
@@ -267,8 +230,6 @@
         <c:otherwise>
             <c:set var="displayName" value="${empty selectedUser.fullName ? selectedUser.username : selectedUser.fullName}"/>
             <div class="row g-4">
-
-                <!-- Left: Profile card -->
                 <div class="col-lg-3 col-md-4">
                     <div class="profile-card">
                         <div class="avatar-circle">
@@ -296,10 +257,6 @@
                         </div>
 
                         <div class="profile-meta">
-                            <div class="meta-item">
-                                <span class="meta-label">Mã nhân viên</span>
-                                <span class="meta-value">NV<c:out value="${selectedUser.userId}"/></span>
-                            </div>
                             <div class="meta-item">
                                 <span class="meta-label">Vai trò</span>
                                 <span class="meta-value">
