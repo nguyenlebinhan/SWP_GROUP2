@@ -19,39 +19,9 @@
             padding: 30px;
         }
 
-        .page-header {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            margin-bottom: 24px;
-        }
-
-        .page-header a {
-            width: 36px;
-            height: 36px;
-            background: white;
-            border: 1px solid #e5e7eb;
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #6b7280;
-            text-decoration: none;
-            transition: background .2s;
-        }
-
-        .page-header a:hover { background: #f3f4f6; }
-
-        .page-header h5 {
-            font-weight: 700;
-            color: #0B0E2A;
-            margin: 0;
-        }
-
         .card {
             border: none;
             border-radius: 12px;
-            box-shadow: 0 2px 12px rgba(0,0,0,0.07);
         }
 
         .section-label {
@@ -90,7 +60,6 @@
         .form-control:focus,
         .form-select:focus {
             border-color: #1565c0;
-            box-shadow: 0 0 0 3px rgba(21,101,192,.1);
         }
 
         .form-control::placeholder { color: #9ca3af; }
@@ -159,7 +128,6 @@
         <jsp:param name="backUrl" value="/v1/admin/user-list" />
     </jsp:include>
 
-    <!-- Flash messages -->
     <c:if test="${not empty error}">
         <div class="alert alert-danger alert-flash alert-dismissible fade show" role="alert">
             <i class="fa fa-circle-exclamation me-2"></i><c:out value="${error}"/>
@@ -173,13 +141,11 @@
         </div>
     </c:if>
 
-    <!-- Form -->
     <form action="${pageContext.request.contextPath}/v1/admin/add-user" method="POST">
         <div class="card">
             <div class="card-body p-4">
 
-                <!-- Thông tin tài khoản -->
-                <div class="section-label"><i class="fa fa-lock"></i>Thông tin tài khoản</div>
+                <div class="section-label">Thông tin tài khoản</div>
                 <div class="row g-3 mb-4">
                     <div class="col-md-4">
                         <label class="form-label" for="username">Tên đăng nhập <span class="required">*</span></label>
@@ -206,8 +172,7 @@
                     </div>
                 </div>
 
-                <!-- Thông tin cá nhân -->
-                <div class="section-label"><i class="fa fa-id-card"></i>Thông tin cá nhân</div>
+                <div class="section-label">Thông tin cá nhân</div>
                 <div class="row g-3 mb-4">
                     <div class="col-md-6">
                         <label class="form-label" for="fullName">Họ và tên <span class="required">*</span></label>
@@ -249,10 +214,9 @@
                     </div>
                 </div>
 
-                <!-- Actions -->
                 <div class="d-flex gap-3 pt-2">
                     <button type="submit" class="btn-save">
-                        <i class="fa fa-user-plus me-2"></i>Thêm người dùng
+                       Thêm người dùng
                     </button>
                     <a href="${pageContext.request.contextPath}/v1/admin/user-list" class="btn-cancel-link">
                         Hủy

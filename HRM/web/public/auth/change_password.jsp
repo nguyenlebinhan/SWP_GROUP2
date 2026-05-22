@@ -21,7 +21,6 @@
       background: #0d1240;
     }
 
-    /* LEFT PANEL */
     .left-panel {
       flex: 0 0 58%;
       position: relative;
@@ -35,7 +34,6 @@
       display: block;
     }
 
-    /* RIGHT PANEL */
     .right-panel {
       flex: 0 0 42%;
       background: #f5f6fa;
@@ -49,7 +47,6 @@
     }
 
 
-    /* auth card */
     .auth-card {
       width: 100%;
       max-width: 360px;
@@ -59,7 +56,6 @@
       box-shadow: 0 2px 8px rgba(13,18,64,.06), 0 12px 40px rgba(13,18,64,.10);
     }
 
-    /* logo */
     .logo-wrap { text-align: center; margin-bottom: 1.6rem; }
     .logo-icon {
       width: 52px; height: 52px;
@@ -75,15 +71,6 @@
     .logo-powered { font-size: .7rem; color: #aaa; margin-top: .2rem; }
     .logo-powered span { color: #ff6b00; font-weight: 600; }
 
-    
-    .icon-badge {
-      width: 60px; height: 60px;
-      background: #eef4ff;
-      border-radius: 50%;
-      display: flex; align-items: center; justify-content: center;
-      margin: 0 auto 1rem;
-    }
-    .icon-badge i { font-size: 1.6rem; color: #1565c0; }
 
     
     .form-heading {
@@ -102,7 +89,6 @@
       font-size: .78rem; font-weight: 600;
       color: #444; margin-bottom: .3rem; display: block;
     }
-    .required { color: #e53935; margin-left: 2px; }
 
     .form-control {
       border: 1.5px solid #e4e6ef;
@@ -114,24 +100,21 @@
     }
     .form-control:focus {
       border-color: #1565c0;
-      box-shadow: 0 0 0 3px rgba(21,101,192,.1);
     }
     .form-control::placeholder { color: #c0c4d0; }
 
-    /* password wrap */
     .pw-wrap { position: relative; }
     .pw-wrap .form-control { padding-right: 2.8rem; }
+    
     .pw-toggle {
       position: absolute; right: .75rem; top: 50%;
       transform: translateY(-50%);
       background: none; border: none; padding: 0;
       color: #b0b6c8; cursor: pointer;
       font-size: 1rem; line-height: 1;
-      transition: color .2s;
     }
     .pw-toggle:hover { color: #555; }
 
-    /* ẩn icon mắt mặc định của trình duyệt */
     input[type="password"]::-ms-reveal,
     input[type="password"]::-ms-clear { display: none; }
     input[type="password"]::-webkit-credentials-auto-fill-button { display: none; }
@@ -143,13 +126,11 @@
       border: none; border-radius: 9px;
       font-size: .9rem; font-weight: 600;
       letter-spacing: .02em; margin-top: 1.2rem;
-      transition: background .2s, transform .1s, box-shadow .2s;
       cursor: pointer; font-family: inherit;
       display: flex; align-items: center; justify-content: center; gap: .4rem;
     }
     .btn-submit:hover {
       background: #0d47a1;
-      box-shadow: 0 4px 16px rgba(21,101,192,.35);
       transform: translateY(-1px);
     }
     .btn-submit:active { transform: translateY(0); }
@@ -158,7 +139,7 @@
       transform: none; box-shadow: none;
     }
 
-    /* back link */
+
     .back-link {
       display: flex; align-items: center; justify-content: center; gap: .35rem;
       font-size: .8rem; color: #9aa0b5; font-weight: 500;
@@ -167,7 +148,6 @@
     }
     .back-link:hover { color: #1565c0; }
 
-    /* alert */
     .alert {
       border-radius: 9px; font-size: .8rem;
       padding: .7rem .9rem; margin-bottom: 1rem;
@@ -178,14 +158,6 @@
     .alert-success { background: #f0fff4; color: #2e7d32; border-color: #c8e6c9; }
 
 
-    /* brand strip */
-    .brand-strip {
-      margin-top: 1.4rem;
-      display: flex; align-items: center; gap: .5rem;
-      font-size: .7rem; color: #c0c5d4;
-    }
-    .brand-strip .dot { width: 3px; height: 3px; background: #d0d4e0; border-radius: 50%; }
-
     @media (max-width: 768px) {
       .left-panel { display: none; }
       .right-panel { flex: 1; padding: 2rem 1.5rem; }
@@ -194,12 +166,10 @@
 </head>
 <body>
 
-<!-- LEFT PANEL -->
 <div class="left-panel">
   <img src="${pageContext.request.contextPath}/public/asset/Left Panel.jpg" alt="HRM System" class="panel-img"/>
 </div>
 
-<!-- RIGHT PANEL -->
 <div class="right-panel">
   <div class="auth-card">
 
@@ -209,7 +179,6 @@
       <div class="logo-powered">Powered by <span>Group 2</span></div>
     </div>
 
-    <div class="icon-badge"><i class="bi bi-shield-lock"></i></div>
 
     <p class="form-heading">Đặt lại mật khẩu</p>
     <p class="form-sub">Nhập mật khẩu hệ thống đã gửi<br>và mật khẩu mới của bạn.</p>
@@ -242,7 +211,6 @@
               name="sysPassword"
               class="form-control"
               placeholder="Nhập mật khẩu hệ thống"
-              autocomplete="current-password"
               value ="${sysPassword}"
               required
             />
@@ -263,7 +231,6 @@
               name="yourPassword"
               class="form-control"
               placeholder="Nhập mật khẩu mới"
-              autocomplete="new-password"
               required
             />
             <button type="button" class="pw-toggle" onclick="togglePw('yourPassword', this)" aria-label="Hiện/ẩn mật khẩu">
@@ -283,7 +250,6 @@
               name="confirmationPassword"
               class="form-control"
               placeholder="Xác nhận mật khẩu"
-              autocomplete="new-password"
               required
             />
             <button type="button" class="pw-toggle" onclick="togglePw('confirmationPassword', this)" aria-label="Hiện/ẩn mật khẩu">
@@ -305,13 +271,6 @@
 
   </div>
 
-  <div class="brand-strip">
-    <span>HRM System</span>
-    <span class="dot"></span>
-    <span>Phần mềm Quản trị Nhân sự</span>
-    <span class="dot"></span>
-    <span>v2.0</span>
-  </div>
 
 </div>
 

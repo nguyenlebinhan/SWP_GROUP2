@@ -17,31 +17,6 @@
             margin-left: 250px;
             padding: 30px;
         }
-
-        .page-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 24px;
-        }
-
-        .page-header h5 {
-            font-weight: 700;
-            color: #0B0E2A;
-            margin: 0;
-        }
-
-        .card {
-            border: none;
-            border-radius: 12px;
-            box-shadow: 0 2px 12px rgba(0,0,0,0.07);
-        }
-
-        .table thead {
-            background: #0B0E2A;
-            color: white;
-        }
-
         .table thead th {
             font-weight: 600;
             font-size: 13px;
@@ -57,16 +32,11 @@
         .table tbody td {
             padding: 12px 16px;
             font-size: 14px;
-            color: #374151;
-            border-bottom: 1px solid #f1f3f5;
-        }
-
-        .table tbody tr:last-child td {
-            border-bottom: none;
+            border-bottom: 1px solid white;
         }
 
         .table tbody tr:hover {
-            background: #f8f9ff;
+            background: white;
         }
 
         .badge-active {
@@ -107,12 +77,6 @@
             border: 1px solid #bae6fd;
         }
 
-        .btn-delete {
-            background: #fee2e2;
-            color: #b91c1c;
-            border: 1px solid #fecaca;
-        }
-
         .btn-activate {
             background: #d1fae5;
             color: #065f46;
@@ -134,15 +98,13 @@
             font-weight: 600;
             font-size: 14px;
             text-decoration: none;
-            display: inline-flex;
+            display: flex;
             align-items: center;
             gap: 8px;
-            transition: background .2s;
         }
 
         .btn-add:hover {
             background: #e07b00;
-            color: white;
         }
 
         .alert-flash {
@@ -173,7 +135,6 @@
             <jsp:param name="title" value="Quản lý người dùng" />
         </jsp:include>
 
-        <!-- Flash messages -->
         <c:if test="${not empty sessionScope.success}">
             <div class="alert alert-success alert-flash alert-dismissible fade show" role="alert">
                 <i class="fa fa-circle-check me-2"></i>${sessionScope.success}
@@ -245,7 +206,7 @@
                                             </c:choose>
                                         </td>
                                         <td>
-                                            <div style="display:flex;gap:6px;flex-wrap:wrap">
+                                            <div style="display:flex;gap:6px;">
                                                 <a href="${pageContext.request.contextPath}/v1/admin/view-user-detail?id=${u.userId}"
                                                    class="btn-action btn-edit">
                                                     <i class="fa fa-eye"></i> Chi tiết
