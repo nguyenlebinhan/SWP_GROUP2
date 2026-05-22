@@ -28,31 +28,6 @@
         gap: 18px;
     }
 
-    .admin-notification {
-        width: 40px;
-        height: 40px;
-        border: 1px solid #e5e7eb;
-        border-radius: 50%;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        color: #374151;
-        background: #fff;
-        position: relative;
-    }
-
-    .admin-notification::after {
-        content: '';
-        position: absolute;
-        top: 8px;
-        right: 9px;
-        width: 8px;
-        height: 8px;
-        background: #ef4444;
-        border: 2px solid #fff;
-        border-radius: 50%;
-    }
-
     .admin-user-menu {
         position: relative;
     }
@@ -163,9 +138,6 @@
     </div>
 
     <div class="admin-topbar-actions">
-        <span class="admin-notification" title="Thông báo">
-            <i class="fa-solid fa-bell"></i>
-        </span>
 
         <div class="admin-user-menu">
             <button type="button" class="admin-user-trigger" aria-label="Tài khoản">
