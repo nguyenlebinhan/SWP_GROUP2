@@ -520,7 +520,7 @@ public class AdminController extends HttpServlet {
         dob = isBlank(dob) ? null : dob.trim();
         address = isBlank(address) ? null : address.trim();
 
-        if (userDAO.isUsernameExistsForOtherUser(username, sessionUser.getUserId())) {
+        if (userDAO.isUsernameExists(username, sessionUser.getUserId())) {
             request.setAttribute("error", "Tên đăng nhập đã tồn tại");
             request.setAttribute("currentUser", userDAO.getUserById(sessionUser.getUserId()));
             request.getRequestDispatcher("/public/admin/my_profile.jsp").forward(request, response);
