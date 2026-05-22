@@ -6,7 +6,6 @@
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
     <title>Quản lý người dùng – HRM</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
     <style>
         body {
             background: #f5f6fa;
@@ -152,7 +151,7 @@
 
         <div class="d-flex justify-content-end mb-4">
             <a href="${pageContext.request.contextPath}/v1/admin/add-user" class="btn-add">
-                <i class="fa fa-user-plus"></i> Thêm người dùng
+                Thêm người dùng
             </a>
         </div>
 
@@ -198,10 +197,10 @@
                                         <td>
                                             <c:choose>
                                                 <c:when test="${u.isActive == 1}">
-                                                    <span class="badge-active"><i class="fa fa-circle-check me-1"></i>Hoạt động</span>
+                                                    <span class="badge-active"></i>Hoạt động</span>
                                                 </c:when>
                                                 <c:otherwise>
-                                                    <span class="badge-inactive"><i class="fa fa-circle-xmark me-1"></i>Vô hiệu</span>
+                                                    <span class="badge-inactive"></i>Vô hiệu</span>
                                                 </c:otherwise>
                                             </c:choose>
                                         </td>
@@ -209,25 +208,25 @@
                                             <div style="display:flex;gap:6px;">
                                                 <a href="${pageContext.request.contextPath}/v1/admin/view-user-detail?id=${u.userId}"
                                                    class="btn-action btn-edit">
-                                                    <i class="fa fa-eye"></i> Chi tiết
+                                                     Chi tiết
                                                 </a>
                                                 <a href="${pageContext.request.contextPath}/v1/admin/update-user?id=${u.userId}"
                                                    class="btn-action btn-edit">
-                                                    <i class="fa fa-eye"></i> Cập nhật
+                                                     Cập nhật
                                                 </a>                                                   
                                                 <c:choose>
                                                     <c:when test="${u.isActive == 1}">
                                                         <a href="${pageContext.request.contextPath}/v1/admin/change-status?id=${u.userId}&status=0"
                                                            class="btn-action btn-deactivate"
                                                            onclick="return confirm('Vô hiệu hóa tài khoản ${u.fullName}?')">
-                                                            <i class="fa fa-ban"></i> Vô hiệu hóa
+                                                             Vô hiệu hóa
                                                         </a>
                                                     </c:when>
                                                     <c:otherwise>
                                                         <a href="${pageContext.request.contextPath}/v1/admin/change-status?id=${u.userId}&status=1"
                                                            class="btn-action btn-activate"
                                                            onclick="return confirm('Kích hoạt tài khoản ${u.fullName}?')">
-                                                            <i class="fa fa-circle-check"></i> Kích hoạt
+                                                             Kích hoạt
                                                         </a>
                                                     </c:otherwise>
                                                 </c:choose>

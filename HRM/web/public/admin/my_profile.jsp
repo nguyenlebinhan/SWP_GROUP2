@@ -7,7 +7,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <title>Hồ sơ của tôi - HRM</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet"/>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet"/>
     <style>
         body {
             background: #f5f6fa;
@@ -269,7 +268,7 @@
                 <div class="info-panel">
                     <form action="${pageContext.request.contextPath}/v1/admin/my-profile" method="POST">
                         <div class="section-title">
-                            <i class="fa fa-id-card"></i>Thông tin cá nhân
+                           Thông tin cá nhân
                         </div>
 
                         <div class="row g-3 mb-4">
@@ -300,7 +299,7 @@
                         </div>
 
                         <div class="section-title">
-                            <i class="fa fa-lock"></i>Thông tin tài khoản
+                            Thông tin tài khoản
                         </div>
                         <div class="row g-3 mb-4">
                             <div class="col-md-6">
@@ -316,7 +315,7 @@
                         </div>
 
                         <button type="submit" class="btn-save">
-                            <i class="fa fa-floppy-disk me-2"></i>Lưu thay đổi
+                            Lưu thay đổi
                         </button>
                     </form>
                 </div>
