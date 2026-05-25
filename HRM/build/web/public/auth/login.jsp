@@ -102,25 +102,120 @@
                         Đăng nhập bằng Google
                     </a>
 
-                </form>
-            </div>
+    .btn-google {
+      width: 100%; height: 44px;
+      background: #f8f9fa; border: 1.5px solid #e4e6ef;
+      border-radius: 9px; font-size: .85rem; font-weight: 500;
+      color: #444; display: flex; align-items: center;
+      justify-content: center; gap: .55rem;
+      text-decoration: none; cursor: pointer;
+      transition: background .2s, border-color .2s;
+      font-family: inherit;
+    }
+    .btn-google:hover { background: #fff; border-color: #bbb; color: #222; }
 
 
+    .alert {
+      border-radius: 9px; font-size: .8rem;
+      padding: .7rem .9rem; margin-bottom: 1rem;
+      border: 1px solid transparent;
+      display: flex; align-items: flex-start; gap: .5rem;
+    }
+    .alert-danger { background: #fff0f0; color: #c62828; border-color: #ffcdd2; }
+
+
+    @media (max-width: 768px) {
+      .left-panel { display: none; }
+      .right-panel { flex: 1; padding: 2rem 1.5rem; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="left-panel">
+  <img src="${pageContext.request.contextPath}/public/asset/Left Panel.jpg" alt="HRM System" class="panel-img"/>
+</div>
+
+<div class="right-panel">
+  <div class="auth-card">
+
+    <div class="logo-wrap">
+      <div class="logo-hrm"><span>H</span><span>R</span><span>M</span></div>
+      <div class="logo-powered">Powered by <span>Group 2</span></div>
+    </div>
+
+    <p class="form-heading">Đăng nhập hệ thống</p>
+
+    <form method="POST" action="${pageContext.request.contextPath}/v1/auth/login">
+
+      <c:if test="${not empty error}">
+        <div class="alert alert-danger">
+          <i class="bi bi-exclamation-circle"></i>
+          <span><c:out value="${error}"/></span>
         </div>
 
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/js/bootstrap.bundle.min.js"></script>
-        <script>
-            document.getElementById('togglePwd').addEventListener('click', function () {
-                var inp = document.getElementById('pwdInput');
-                var icon = document.getElementById('eyeIcon');
-                if (inp.type === 'password') {
-                    inp.type = 'text';
-                    icon.className = 'bi bi-eye-slash';
-                } else {
-                    inp.type = 'password';
-                    icon.className = 'bi bi-eye';
-                }
-            });
-        </script>
-    </body>
+      <div class="mb-3">
+        <label for="username" class="form-label">Username <span class="required">*</span></label>
+        <input
+          type="text"
+          id="username"
+          name="username"
+          class="form-control"
+          placeholder="Nhập username"
+          value="<c:out value='${param.username}'/>"
+          autocomplete="username"
+          required
+        />
+      </div>
+
+      <div class="mb-1">
+        <label for="pwdInput" class="form-label">Mật khẩu <span class="required">*</span></label>
+        <div class="pw-wrap">
+          <input
+            type="password"
+            id="pwdInput"
+            name="password"
+            class="form-control"
+            placeholder="Nhập mật khẩu"
+            autocomplete="current-password"
+            required
+          />
+          <button type="button" class="pw-toggle" id="togglePwd" aria-label="Hiện/ẩn mật khẩu">
+            <i class="bi bi-eye" id="eyeIcon"></i>
+          </button>
+        </div>
+        <a href="${pageContext.request.contextPath}/v1/auth/forget-password" class="forgot-link">Quên mật khẩu?</a>
+      </div>
+
+      <button type="submit" class="btn-submit">
+        <i class="bi bi-box-arrow-in-right"></i> Đăng nhập
+      </button>
+
+      <div class="divider"><span>HOẶC</span></div>
+
+      <a href="${pageContext.request.contextPath}/v1/auth/google" class="btn-google">
+        <span class="g-logo" aria-hidden="true"></span>
+        Đăng nhập bằng Google
+      </a>
+
+    </form>
+  </div>
+
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/js/bootstrap.bundle.min.js"></script>
+<script>
+  document.getElementById('togglePwd').addEventListener('click', function () {
+    var inp = document.getElementById('pwdInput');
+    var icon = document.getElementById('eyeIcon');
+    if (inp.type === 'password') {
+      inp.type = 'text';
+      icon.className = 'bi bi-eye-slash';
+    } else {
+      inp.type = 'password';
+      icon.className = 'bi bi-eye';
+    }
+  });
+</script>
+</body>
 </html>

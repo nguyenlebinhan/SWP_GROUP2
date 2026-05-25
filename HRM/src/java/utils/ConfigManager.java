@@ -27,46 +27,40 @@ public class ConfigManager {
         return instance;
     }
     
-    
     private void loadProperties(){
         properties = new Properties();
-        
         try(InputStream input = openConfigStream()){
             if(input == null){
-                LOGGER.log(Level.WARNING, "Cannot find database config file in config directory");
+                LOGGER.log(Level.WARNING,"Cannot find database config file in config repository");
                 return;
             }
-            
-            properties.load(new java.io.InputStreamReader(input, java.nio.charset.StandardCharsets.UTF_8));
-            LOGGER.log(Level.INFO,"Successfully loade .env cofiguration file");
+            properties.load(new java.io.InputStreamReader(input,java.nio.charset.StandardCharsets.UTF_8));
+            LOGGER.log(Level.INFO,"Successfully load .env configuration file");
         }catch(IOException e){
-            LOGGER.log(Level.SEVERE,"Error reading .env file", e);
+            LOGGER.log(Level.SEVERE,"Error loading .env file",e);
         }
     }
-
-    private InputStream openConfigStream() {
+        
+    private InputStream openConfigStream(){
         ClassLoader classLoader = ConfigManager.class.getClassLoader();
-        InputStream input = classLoader.getResourceAsStream("config/.env.properties");
+        InputStream input = classLoader.getResourceAsStream("config/.properties");
         return (input != null) ? input : classLoader.getResourceAsStream("config/.env");
     }
     
     public String getProperty(String key){
-        String envKey = key.toUpperCase().replace('.','_');
+        String envKey = key.toUpperCase().replace('.', '-');
         String envValue = System.getenv(envKey);
-        
         if(envValue != null){
-            LOGGER.log(Level.INFO,"Loaded from ENV: {0} = {1}", new Object[]{envKey,maskIfSenstive(envKey,envValue)});
+            LOGGER.log(Level.INFO,"Loaded from ENV: {0}={1}",new Object[]{envKey,envValue});
             return envValue;
         }
-        
         String fileValue = properties.getProperty(key);
-        if(fileValue != null){
-            
-        }else{
-            LOGGER.log(Level.WARNING,"Configuration key not found: {0}", key);
+        if(fileValue == null){
+            LOGGER.log(Level.WARNING,"Configuration key not found: {0}",key);
         }
-            return fileValue;  
+        return fileValue;
     }
+    
     
     public String getProperty(String key, String defaultValue){
         String value = getProperty(key);
@@ -112,5 +106,9 @@ public class ConfigManager {
             return "*********";
         }
         return value;
-    }
+    }    
+    
+    
+    
+    
 }

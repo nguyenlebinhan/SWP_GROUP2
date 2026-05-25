@@ -7,7 +7,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <title>Thêm người dùng – HRM</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet"/>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet"/>
     <style>
         body {
             background: #f5f6fa;
@@ -176,7 +175,7 @@
     <form action="${pageContext.request.contextPath}/v1/admin/update-user" method="POST">
         <div class="card">
             <div class="card-body p-4">
-                <div class="section-label"><i class="fa fa-lock"></i>Thông tin tài khoản</div>
+                <div class="section-label">Thông tin tài khoản</div>
                 <div class="row g-3 mb-4">
                     <div class="col-md-4">
                         <input type="hidden" value="${userId}" name="userId">
@@ -205,7 +204,7 @@
                 </div>
 
                 <!-- Thông tin cá nhân -->
-                <div class="section-label"><i class="fa fa-id-card"></i>Thông tin cá nhân</div>
+                <div class="section-label">Thông tin cá nhân</div>
                 <div class="row g-3 mb-4">
                     <div class="col-md-6">
                         <label class="form-label" for="fullName">Họ và tên <span class="required">*</span></label>
@@ -248,7 +247,7 @@
                 <!-- Actions -->
                 <div class="d-flex gap-3 pt-2">
                     <button type="submit" class="btn-save">
-                        <i class="fa fa-user-plus me-2"></i>Cập nhật người dùng
+                        Cập nhật người dùng
                     </button>
                     <a href="${pageContext.request.contextPath}/v1/admin/user-list" class="btn-cancel-link">
                         Hủy
