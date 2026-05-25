@@ -18,7 +18,6 @@
       display: flex;
       height: 100vh;
       overflow: hidden;
-      background: #0d1240;
     }
 
     .left-panel {
@@ -43,7 +42,7 @@
       justify-content: center;
       padding: 2rem 3rem;
       position: relative;
-      border-left: 1px solid rgba(21,101,192,.12);
+      border-left: 1px solid white;
     }
 
     .auth-card {
@@ -52,17 +51,14 @@
       background: #fff;
       border-radius: 20px;
       padding: 2.4rem 2.2rem 2rem;
-      box-shadow: 0 2px 8px rgba(13,18,64,.06), 0 12px 40px rgba(13,18,64,.10);
     }
 
     .logo-wrap { text-align: center; margin-bottom: 1.6rem; }
     .logo-icon {
       width: 52px; height: 52px;
-      background: linear-gradient(135deg, #1565c0 0%, #0d47a1 100%);
       border-radius: 14px;
       display: flex; align-items: center; justify-content: center;
       margin: 0 auto .75rem;
-      box-shadow: 0 4px 14px rgba(21,101,192,.3);
     }
     .logo-icon i { font-size: 1.5rem; color: #fff; }
     .logo-hrm { font-size: 1.7rem; font-weight: 800; letter-spacing: -.5px; line-height: 1; }
@@ -70,14 +66,6 @@
     .logo-powered { font-size: .7rem; color: #aaa; margin-top: .2rem; }
     .logo-powered span { color: #ff6b00; font-weight: 600; }
 
-    .icon-badge {
-      width: 60px; height: 60px;
-      background: #eef4ff;
-      border-radius: 50%;
-      display: flex; align-items: center; justify-content: center;
-      margin: 0 auto 1rem;
-    }
-    .icon-badge i { font-size: 1.6rem; color: #1565c0; }
 
     .form-heading {
       font-size: 1.15rem; font-weight: 700;
@@ -116,7 +104,6 @@
       border: none; border-radius: 9px;
       font-size: .9rem; font-weight: 600;
       letter-spacing: .02em; margin-top: 1.2rem;
-      transition: background .2s, transform .1s, box-shadow .2s;
       cursor: pointer; font-family: inherit;
       display: flex; align-items: center; justify-content: center; gap: .4rem;
     }
@@ -144,13 +131,6 @@
     .alert-danger  { background: #fff0f0; color: #c62828; border-color: #ffcdd2; }
     .alert-success { background: #f0fff4; color: #2e7d32; border-color: #c8e6c9; }
 
-    .brand-strip {
-      margin-top: 1.4rem;
-      display: flex; align-items: center; gap: .5rem;
-      font-size: .7rem; color: #c0c5d4;
-    }
-    .brand-strip .dot { width: 3px; height: 3px; background: #d0d4e0; border-radius: 50%; }
-
     @media (max-width: 768px) {
       .left-panel { display: none; }
       .right-panel { flex: 1; padding: 2rem 1.5rem; }
@@ -172,8 +152,6 @@
       <div class="logo-powered">Powered by <span>Group 2</span></div>
     </div>
 
-    <div class="icon-badge"><i class="bi bi-envelope-open"></i></div>
-
     <p class="form-heading">Quên mật khẩu?</p>
     <p class="form-sub">Nhập email của bạn, chúng tôi sẽ<br>gửi mật khẩu mới về hòm thư.</p>
 
@@ -192,16 +170,16 @@
     </c:if>
 
     <c:if test="${redirect == true}">
-      <script>
-        let seconds = 5;
-        const interval = setInterval(() => {
-          seconds--;
-          if (seconds <= 0) {
-            clearInterval(interval);
-            window.location.href = '${pageContext.request.contextPath}/v1/auth/change-password';
-          }
-        }, 1000);
-      </script>
+        <script>
+            let second = 5;
+            const interval = setInterval(() =>{
+                second --;
+                if(second <=0){
+                    clearInterval(interval);
+                    window.location.href = '${pageContext.request.contextPath}/v1/auth/change-password';
+                }
+            },1000);
+        </script>
     </c:if>
 
     <form method="POST" action="${pageContext.request.contextPath}/v1/auth/forget-password">
@@ -228,13 +206,6 @@
 
   </div>
 
-  <div class="brand-strip">
-    <span>HRM System</span>
-    <span class="dot"></span>
-    <span>Phần mềm Quản trị Nhân sự</span>
-    <span class="dot"></span>
-    <span>v2.0</span>
-  </div>
 
 </div>
 
