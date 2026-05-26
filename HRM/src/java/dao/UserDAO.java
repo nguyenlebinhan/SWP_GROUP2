@@ -415,26 +415,19 @@ public class UserDAO {
     }
 
     // Thêm vào class UserDAO, bên dưới method getAllUsers() hiện có
-    public int countUsers(String keyword, String role, String status) {
+    public int countUsers(String keyword, String role) {
         StringBuilder sql = new StringBuilder(
                 "SELECT COUNT(*) FROM Users u JOIN Roles r ON r.roleId = u.roleId WHERE 1=1"
         );
         List<Object> params = new ArrayList<>();
 
         if (keyword != null && !keyword.trim().isEmpty()) {
-            sql.append(" AND (u.username LIKE ?)");
-            String like = "%" + keyword.trim() + "%";
-            params.add(like);
-            params.add(like);
-            params.add(like);
+            sql.append(" AND u.fullName LIKE ?");   // 1 dấu ? → 1 param
+            params.add("%" + keyword.trim() + "%");
         }
         if (role != null && !role.trim().isEmpty()) {
             sql.append(" AND r.roleName = ?");
             params.add(role.trim());
-        }
-        if (status != null && !status.trim().isEmpty()) {
-            sql.append(" AND u.isActive = ?");
-            params.add(Integer.parseInt(status));
         }
 
         try (Connection conn = dbContext.getConnection(); PreparedStatement ps = conn.prepareStatement(sql.toString())) {
@@ -452,7 +445,7 @@ public class UserDAO {
         return 0;
     }
 
-    public List<User> getUsersFiltered(String keyword, String role, String status, int offset, int pageSize) {
+    public List<User> getUsersFiltered(String keyword, String role, int offset, int pageSize) {
         List<User> users = new ArrayList<>();
         StringBuilder sql = new StringBuilder(
                 "SELECT u.userId, u.username, u.email, u.password, u.fullName, u.dob, u.gender, u.address, "
@@ -463,19 +456,12 @@ public class UserDAO {
         List<Object> params = new ArrayList<>();
 
         if (keyword != null && !keyword.trim().isEmpty()) {
-            sql.append(" AND (u.username LIKE ?)");
-            String like = "%" + keyword.trim() + "%";
-            params.add(like);
-            params.add(like);
-            params.add(like);
+            sql.append(" AND u.fullName LIKE ?");   // 1 dấu ? → 1 param
+            params.add("%" + keyword.trim() + "%");
         }
         if (role != null && !role.trim().isEmpty()) {
             sql.append(" AND r.roleName = ?");
             params.add(role.trim());
-        }
-        if (status != null && !status.trim().isEmpty()) {
-            sql.append(" AND u.isActive = ?");
-            params.add(Integer.parseInt(status));
         }
 
         sql.append(" ORDER BY u.userId LIMIT ? OFFSET ?");

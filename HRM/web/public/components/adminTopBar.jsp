@@ -66,15 +66,25 @@
         text-overflow: ellipsis;
     }
 
-    .admin-user-dropdown a{
-        padding: 10px;
+    .admin-user-dropdown {
+        display: none;
+        position: absolute;
+        right: 0;
+        top: calc(100% + 8px);
+        min-width: 190px;
+        background: #fff;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        box-shadow: 0 12px 28px rgba(15,23,42,0.14);
+        padding: 8px;
+        z-index: 1000;
     }
 
-/*    .admin-user-menu:hover .admin-user-dropdown,
+    .admin-user-menu:hover .admin-user-dropdown,
     .admin-user-menu:focus-within .admin-user-dropdown {
         display: block;
-    }*/
-/*
+    }
+
     .admin-dropdown-item {
         display: flex;
         align-items: center;
@@ -94,8 +104,20 @@
 
     .admin-dropdown-item.logout {
         color: #b91c1c;
-    }*/
+    }
 
+    @media (max-width: 768px) {
+        .admin-topbar {
+            align-items: flex-start;
+            flex-direction: column;
+            padding: 16px;
+        }
+
+        .admin-topbar-actions {
+            width: 100%;
+            justify-content: flex-end;
+        }
+    }
 </style>
 
 <c:set var="topbarUser" value="${sessionScope.user}" />
@@ -119,18 +141,20 @@
 
         <div class="admin-user-menu">
             <button type="button" class="admin-user-trigger" aria-label="Tài khoản">
-
+                <span class="admin-avatar-img">
+                    <i class="fa-solid fa-user-tie"></i>
+                </span>
                 <span class="admin-user-name">
                     <c:out value="${empty topbarDisplayName ? 'Admin' : topbarDisplayName}" />
                 </span>
+                <i class="fa-solid fa-chevron-down" style="font-size:12px;color:#6b7280"></i>
             </button>
             <div class="admin-user-dropdown">
                 <a href="${pageContext.request.contextPath}/v1/admin/my-profile" class="admin-dropdown-item">
-                     Hồ sơ của tôi
+                    <i class="fa-solid fa-user-gear"></i> Hồ sơ của tôi
                 </a>
-                     
                 <a href="${pageContext.request.contextPath}/v1/auth/logout" class="admin-dropdown-item logout">
-                     Đăng xuất
+                    <i class="fa-solid fa-right-from-bracket"></i> Đăng xuất
                 </a>
             </div>
         </div>
