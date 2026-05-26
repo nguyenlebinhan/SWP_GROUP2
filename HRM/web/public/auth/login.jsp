@@ -10,16 +10,276 @@
         <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.11.3/font/bootstrap-icons.min.css" rel="stylesheet"/>
         <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
         <style>
-            .right-panel{
-                display: flex;
-                align-content: center;
-                align-items: center;
-                margin-left: 500px;
+            *, *::before, *::after {
+                box-sizing: border-box;
+                margin: 0;
+                padding: 0;
+            }
+            html, body {
+                height: 100%;
             }
 
+            body {
+                font-family: 'Be Vietnam Pro', sans-serif;
+                display: flex;
+                height: 100vh;
+                overflow: hidden;
+                background: #0d1240;
+            }
+
+            .left-panel {
+                flex: 0 0 58%;
+                position: relative;
+                overflow: hidden;
+            }
+            .left-panel .panel-img {
+                width: 100%;
+                height: 100%;
+                object-fit: cover;
+                object-position: center;
+                display: block;
+            }
+
+            .right-panel {
+                flex: 0 0 42%;
+                background: #f5f6fa;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                padding: 2rem 3rem;
+                position: relative;
+                border-left: 1px solid rgba(21,101,192,.12);
+                overflow-y: auto;
+            }
+
+            .auth-card {
+                width: 100%;
+                max-width: 360px;
+                background: #fff;
+                border-radius: 20px;
+                padding: 2.4rem 2.2rem 2rem;
+                box-shadow: 0 2px 8px rgba(13,18,64,.06), 0 12px 40px rgba(13,18,64,.10);
+            }
+
+            .logo-wrap {
+                text-align: center;
+                margin-bottom: 1.6rem;
+            }
+            .logo-hrm {
+                font-size: 1.7rem;
+                font-weight: 800;
+                letter-spacing: -.5px;
+                line-height: 1;
+            }
+            .logo-hrm span {
+                color: #ff6b00;
+            }
+            .logo-powered {
+                font-size: .7rem;
+                color: #aaa;
+                margin-top: .2rem;
+            }
+            .logo-powered span {
+                color: #ff6b00;
+                font-weight: 600;
+            }
+
+            .form-heading {
+                font-size: 1.15rem;
+                font-weight: 700;
+                color: #1a1a2e;
+                text-align: center;
+                margin-bottom: 1.4rem;
+            }
+
+            .form-label {
+                font-size: .78rem;
+                font-weight: 600;
+                color: #444;
+                margin-bottom: .3rem;
+                display: block;
+            }
+            .required {
+                color: #e53935;
+                margin-left: 2px;
+            }
+
+            .form-control {
+                border: 1.5px solid #e4e6ef;
+                border-radius: 9px;
+                height: 44px;
+                font-size: .875rem;
+                color: #333;
+                transition: border-color .2s, box-shadow .2s;
+                padding: 0 .9rem;
+                width: 100%;
+                outline: none;
+                font-family: inherit;
+            }
+            .form-control:focus {
+                border-color: #1565c0;
+                box-shadow: 0 0 0 3px rgba(21,101,192,.1);
+            }
+            .form-control::placeholder {
+                color: #c0c4d0;
+            }
+
+            .pw-wrap {
+                position: relative;
+            }
+            .pw-wrap .form-control {
+                padding-right: 2.8rem;
+            }
+            .pw-toggle {
+                position: absolute;
+                right: .75rem;
+                top: 50%;
+                transform: translateY(-50%);
+                background: none;
+                border: none;
+                padding: 0;
+                color: #b0b6c8;
+                cursor: pointer;
+                font-size: 1rem;
+                line-height: 1;
+                transition: color .2s;
+            }
+            .pw-toggle:hover {
+                color: #555;
+            }
+
+            .forgot-link {
+                display: block;
+                text-align: right;
+                font-size: .75rem;
+                color: #9aa0b5;
+                text-decoration: none;
+                margin-top: .35rem;
+                transition: color .2s;
+            }
+            .forgot-link:hover {
+                color: #1565c0;
+            }
+
+            .btn-submit {
+                width: 100%;
+                height: 46px;
+                background: #1565c0;
+                color: #fff;
+                border: none;
+                border-radius: 9px;
+                font-size: .9rem;
+                font-weight: 600;
+                letter-spacing: .02em;
+                margin-top: 1.2rem;
+                transition: background .2s, transform .1s, box-shadow .2s;
+                cursor: pointer;
+                font-family: inherit;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: .4rem;
+            }
+            .btn-submit:hover {
+                background: #0d47a1;
+                box-shadow: 0 4px 16px rgba(21,101,192,.35);
+                transform: translateY(-1px);
+            }
+            .btn-submit:active {
+                transform: translateY(0);
+            }
+
+            .divider {
+                display: flex;
+                align-items: center;
+                gap: .7rem;
+                margin: 1.1rem 0;
+            }
+            .divider::before, .divider::after {
+                content: '';
+                flex: 1;
+                height: 1px;
+                background: #eef0f5;
+            }
+            .divider span {
+                font-size: .7rem;
+                color: #c5c9d8;
+                letter-spacing: .04em;
+            }
+
+            .btn-google {
+                width: 100%;
+                height: 44px;
+                background: #f8f9fa;
+                border: 1.5px solid #e4e6ef;
+                border-radius: 9px;
+                font-size: .85rem;
+                font-weight: 500;
+                color: #444;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: .55rem;
+                text-decoration: none;
+                cursor: pointer;
+                transition: background .2s, border-color .2s;
+                font-family: inherit;
+            }
+            .btn-google:hover {
+                background: #fff;
+                border-color: #bbb;
+                color: #222;
+            }
+
+            .signup-text {
+                text-align: center;
+                font-size: .78rem;
+                color: #9aa0b5;
+                margin-top: 1rem;
+            }
+            .signup-text a {
+                color: #1565c0;
+                font-weight: 600;
+                text-decoration: none;
+            }
+            .signup-text a:hover {
+                text-decoration: underline;
+            }
+
+            .alert {
+                border-radius: 9px;
+                font-size: .8rem;
+                padding: .7rem .9rem;
+                margin-bottom: 1rem;
+                border: 1px solid transparent;
+                display: flex;
+                align-items: flex-start;
+                gap: .5rem;
+            }
+            .alert-danger {
+                background: #fff0f0;
+                color: #c62828;
+                border-color: #ffcdd2;
+            }
+
+
+            @media (max-width: 768px) {
+                .left-panel {
+                    display: none;
+                }
+                .right-panel {
+                    flex: 1;
+                    padding: 2rem 1.5rem;
+                }
+            }
         </style>
     </head>
     <body>
+
+        <div class="left-panel">
+            <img src="${pageContext.request.contextPath}/public/asset/Left Panel.jpg" alt="HRM System" class="panel-img"/>
+        </div>
 
         <div class="right-panel">
             <div class="auth-card">
@@ -46,54 +306,42 @@
                         </div>
                     </c:if>
 
-                    <table>
-                        <tr>
-                            <td>
-                                <label for="username" class="form-label">Username <span class="required">*</span></label>
-                            </td>
-                            <td>
-                                <input
-                                    type="text"
-                                    id="username"
-                                    name="username"
-                                    class="form-control"
-                                    placeholder="Nhập username"
-                                    value="<c:out value='${param.username}'/>"
-                                    autocomplete="username"
-                                    required
-                                    />
-                            </td>
-                        </tr>
+                    <div class="mb-3">
+                        <label for="username" class="form-label">Username <span class="required">*</span></label>
+                        <input
+                            type="text"
+                            id="username"
+                            name="username"
+                            class="form-control"
+                            placeholder="Nhập username"
+                            value="<c:out value='${param.username}'/>"
+                            autocomplete="username"
+                            required
+                            />
+                    </div>
 
-                        <tr>
-                            <td>
-                                <label for="pwdInput" class="form-label">Mật khẩu <span class="required">*</span></label>
-                            </td>
-                            <td>
-                                <input
-                                    type="password"
-                                    id="pwdInput"
-                                    name="password"
-                                    class="form-control"
-                                    placeholder="Nhập mật khẩu"
-                                    autocomplete="current-password"
-                                    required
-                                    />
-                            </td>
-                            <td>
-                                <button type="button" class="pw-toggle" id="togglePwd" aria-label="Hiện/ẩn mật khẩu">
-                                    <i class="bi bi-eye" id="eyeIcon"></i>
-                                </button>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td><a href="${pageContext.request.contextPath}/v1/auth/forget-password" class="forgot-link">Quên mật khẩu?</a></td>
-                            <td><button type="submit" class="btn-submit"> Đăng nhập </button></td>
-                        </tr>
+                    <div class="mb-1">
+                        <label for="pwdInput" class="form-label">Mật khẩu <span class="required">*</span></label>
+                        <div class="pw-wrap">
+                            <input
+                                type="password"
+                                id="pwdInput"
+                                name="password"
+                                class="form-control"
+                                placeholder="Nhập mật khẩu"
+                                autocomplete="current-password"
+                                required
+                                />
+                            <button type="button" class="pw-toggle" id="togglePwd" aria-label="Hiện/ẩn mật khẩu">
+                                <i class="bi bi-eye" id="eyeIcon"></i>
+                            </button>
+                        </div>
+                        <a href="${pageContext.request.contextPath}/v1/auth/forget-password" class="forgot-link">Quên mật khẩu?</a>
+                    </div>
 
-                    </table>
-
-                    
+                    <button type="submit" class="btn-submit">
+                        <i class="bi bi-box-arrow-in-right"></i> Đăng nhập
+                    </button>
 
                     <div class="divider"><span>HOẶC</span></div>
 
@@ -102,120 +350,24 @@
                         Đăng nhập bằng Google
                     </a>
 
-    .btn-google {
-      width: 100%; height: 44px;
-      background: #f8f9fa; border: 1.5px solid #e4e6ef;
-      border-radius: 9px; font-size: .85rem; font-weight: 500;
-      color: #444; display: flex; align-items: center;
-      justify-content: center; gap: .55rem;
-      text-decoration: none; cursor: pointer;
-      transition: background .2s, border-color .2s;
-      font-family: inherit;
-    }
-    .btn-google:hover { background: #fff; border-color: #bbb; color: #222; }
+                </form>
+            </div>
 
-
-    .alert {
-      border-radius: 9px; font-size: .8rem;
-      padding: .7rem .9rem; margin-bottom: 1rem;
-      border: 1px solid transparent;
-      display: flex; align-items: flex-start; gap: .5rem;
-    }
-    .alert-danger { background: #fff0f0; color: #c62828; border-color: #ffcdd2; }
-
-
-    @media (max-width: 768px) {
-      .left-panel { display: none; }
-      .right-panel { flex: 1; padding: 2rem 1.5rem; }
-    }
-  </style>
-</head>
-<body>
-
-<div class="left-panel">
-  <img src="${pageContext.request.contextPath}/public/asset/Left Panel.jpg" alt="HRM System" class="panel-img"/>
-</div>
-
-<div class="right-panel">
-  <div class="auth-card">
-
-    <div class="logo-wrap">
-      <div class="logo-hrm"><span>H</span><span>R</span><span>M</span></div>
-      <div class="logo-powered">Powered by <span>Group 2</span></div>
-    </div>
-
-    <p class="form-heading">Đăng nhập hệ thống</p>
-
-    <form method="POST" action="${pageContext.request.contextPath}/v1/auth/login">
-
-      <c:if test="${not empty error}">
-        <div class="alert alert-danger">
-          <i class="bi bi-exclamation-circle"></i>
-          <span><c:out value="${error}"/></span>
         </div>
 
-      <div class="mb-3">
-        <label for="username" class="form-label">Username <span class="required">*</span></label>
-        <input
-          type="text"
-          id="username"
-          name="username"
-          class="form-control"
-          placeholder="Nhập username"
-          value="<c:out value='${param.username}'/>"
-          autocomplete="username"
-          required
-        />
-      </div>
-
-      <div class="mb-1">
-        <label for="pwdInput" class="form-label">Mật khẩu <span class="required">*</span></label>
-        <div class="pw-wrap">
-          <input
-            type="password"
-            id="pwdInput"
-            name="password"
-            class="form-control"
-            placeholder="Nhập mật khẩu"
-            autocomplete="current-password"
-            required
-          />
-          <button type="button" class="pw-toggle" id="togglePwd" aria-label="Hiện/ẩn mật khẩu">
-            <i class="bi bi-eye" id="eyeIcon"></i>
-          </button>
-        </div>
-        <a href="${pageContext.request.contextPath}/v1/auth/forget-password" class="forgot-link">Quên mật khẩu?</a>
-      </div>
-
-      <button type="submit" class="btn-submit">
-        <i class="bi bi-box-arrow-in-right"></i> Đăng nhập
-      </button>
-
-      <div class="divider"><span>HOẶC</span></div>
-
-      <a href="${pageContext.request.contextPath}/v1/auth/google" class="btn-google">
-        <span class="g-logo" aria-hidden="true"></span>
-        Đăng nhập bằng Google
-      </a>
-
-    </form>
-  </div>
-
-</div>
-
-<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/js/bootstrap.bundle.min.js"></script>
-<script>
-  document.getElementById('togglePwd').addEventListener('click', function () {
-    var inp = document.getElementById('pwdInput');
-    var icon = document.getElementById('eyeIcon');
-    if (inp.type === 'password') {
-      inp.type = 'text';
-      icon.className = 'bi bi-eye-slash';
-    } else {
-      inp.type = 'password';
-      icon.className = 'bi bi-eye';
-    }
-  });
-</script>
-</body>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/js/bootstrap.bundle.min.js"></script>
+        <script>
+            document.getElementById('togglePwd').addEventListener('click', function () {
+                var inp = document.getElementById('pwdInput');
+                var icon = document.getElementById('eyeIcon');
+                if (inp.type === 'password') {
+                    inp.type = 'text';
+                    icon.className = 'bi bi-eye-slash';
+                } else {
+                    inp.type = 'password';
+                    icon.className = 'bi bi-eye';
+                }
+            });
+        </script>
+    </body>
 </html>
