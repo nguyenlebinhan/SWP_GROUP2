@@ -242,9 +242,8 @@
                   class="search-bar">
 
                 <input type="text" name="keyword" value="${keyword}"
-                       placeholder="Tìm theo username..." />
+                       placeholder="Tìm theo họ và tên..." />
 
-                <%-- Dropdown role giữ nguyên --%>
                 <select name="role">
                     <option value="">-- Vai trò --</option>
                     <c:forEach var="r" items="${roles}">

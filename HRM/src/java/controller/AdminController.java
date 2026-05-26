@@ -175,15 +175,11 @@ public class AdminController extends HttpServlet {
             HttpServletResponse response)
             throws ServletException, IOException {
 
-        // --- đọc tham số tìm kiếm & lọc ---
         String keyword = request.getParameter("keyword") != null
                 ? request.getParameter("keyword").trim() : "";
         String role = request.getParameter("role") != null
                 ? request.getParameter("role").trim() : "";
-        String status = request.getParameter("status") != null
-                ? request.getParameter("status").trim() : "";
 
-        // --- phân trang ---
         final int PAGE_SIZE = 5;
         int currentPage = 1;
         try {
@@ -195,23 +191,23 @@ public class AdminController extends HttpServlet {
         }
 
         int offset = (currentPage - 1) * PAGE_SIZE;
-        int totalUsers = userDAO.countUsers(keyword, role, status);
+
+        // countUsers chỉ chạy COUNT(*) — rất nhẹ dù có nghìn người
+        int totalUsers = userDAO.countUsers(keyword, role);
         int totalPages = (int) Math.ceil((double) totalUsers / PAGE_SIZE);
         if (totalPages < 1) {
             totalPages = 1;
         }
 
-        List<User> list = userDAO.getUsersFiltered(keyword, role, status, offset, PAGE_SIZE);
+        // getUsersFiltered chỉ lấy đúng 5 người của trang hiện tại
+        List<User> list = userDAO.getUsersFiltered(keyword, role, offset, PAGE_SIZE);
 
-        // --- lấy danh sách role để hiển thị dropdown lọc ---
         List<Role> roles = roleDAO.getAllRoles();
 
-        // --- truyền sang JSP ---
         request.setAttribute("list", list);
         request.setAttribute("roles", roles);
         request.setAttribute("keyword", keyword);
         request.setAttribute("role", role);
-        request.setAttribute("status", status);
         request.setAttribute("currentPage", currentPage);
         request.setAttribute("totalPages", totalPages);
         request.setAttribute("totalUsers", totalUsers);
@@ -220,10 +216,15 @@ public class AdminController extends HttpServlet {
                 .forward(request, response);
     }
 
-    private void displayDashboard(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-        List<User> users = userDAO.getAllUsers();
-        request.setAttribute("userSize", users.size());
-        request.getRequestDispatcher("/public/admin/dashboard.jsp").forward(request, response);
+// Sửa dashboard: dùng COUNT thay vì lấy toàn bộ list
+    private void displayDashboard(HttpServletRequest request,
+            HttpServletResponse response)
+            throws ServletException, IOException {
+        // Thay vì getAllUsers() rồi .size(), chỉ đếm trực tiếp
+        int userSize = userDAO.countUsers("", "");
+        request.setAttribute("userSize", userSize);
+        request.getRequestDispatcher("/public/admin/dashboard.jsp")
+                .forward(request, response);
     }
 
     private void displayUserDetail(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
