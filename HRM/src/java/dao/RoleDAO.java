@@ -55,7 +55,7 @@ public class RoleDAO {
         }
         return roles;
     }    
-
+    
     public Role getRoleById(int roleId) {
         LOGGER.log(Level.INFO, "Get role by roleId: {0}", roleId);
         String SQL = "SELECT * FROM roles WHERE roleId = ?";
