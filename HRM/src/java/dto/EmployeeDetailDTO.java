@@ -2,15 +2,13 @@
  * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
  * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
  */
-package model;
-
-import java.time.LocalDate;
+package dto;
 
 /**
  *
- * @author admin
+ * @author ADMIN
  */
-public class Employee {
+public class EmployeeDetailDTO {
     private int employeeId;
     private String employeeCode;
     private int userId;
@@ -22,11 +20,17 @@ public class Employee {
     private String degree;
     private int status;
     private Integer managerId;
+    private String fullName;
+    private String email;
+    private String username;
+    private String departmentName;
+    private String positionName;
+    private String roleName;    
 
+    public EmployeeDetailDTO() {
+    }
 
-    public Employee() {}
-
-    public Employee(int employeeId, String employeeCode, int userId, int departmentId, int positionId, String phoneNumber, String skills, String experience, String degree, int status, Integer managerId) {
+    public EmployeeDetailDTO(int employeeId, String employeeCode, int userId, int departmentId, int positionId, String phoneNumber, String skills, String experience, String degree, int status, Integer managerId, String fullName, String email, String username, String departmentName, String positionName, String roleName) {
         this.employeeId = employeeId;
         this.employeeCode = employeeCode;
         this.userId = userId;
@@ -38,12 +42,14 @@ public class Employee {
         this.degree = degree;
         this.status = status;
         this.managerId = managerId;
+        this.fullName = fullName;
+        this.email = email;
+        this.username = username;
+        this.departmentName = departmentName;
+        this.positionName = positionName;
+        this.roleName = roleName;
     }
 
-
-
-    
-    
     public int getEmployeeId() {
         return employeeId;
     }
@@ -132,4 +138,60 @@ public class Employee {
         this.managerId = managerId;
     }
 
+    public String getFullName() {
+        return fullName;
+    }
+
+    public void setFullName(String fullName) {
+        this.fullName = fullName;
+    }
+
+    public String getEmail() {
+        return email;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
+    }
+
+    public String getUsername() {
+        return username;
+    }
+
+    public void setUsername(String username) {
+        this.username = username;
+    }
+
+    public String getDepartmentName() {
+        return departmentName;
+    }
+
+    public void setDepartmentName(String departmentName) {
+        this.departmentName = departmentName;
+    }
+
+    public String getPositionName() {
+        return positionName;
+    }
+
+    public void setPositionName(String positionName) {
+        this.positionName = positionName;
+    }
+
+    public String getRoleName() {
+        return roleName;
+    }
+
+    public void setRoleName(String roleName) {
+        this.roleName = roleName;
+    }
+    
+    public String getStatusLabel() {
+        switch (status) {
+            case 0: return "Không hoạt động";
+            case 1: return "Đang làm việc";
+            case 2: return "Đang nghỉ phép";
+            default: return "Không xác định";
+        }
+    }
 }
