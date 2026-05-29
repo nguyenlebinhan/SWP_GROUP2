@@ -18,7 +18,9 @@ import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import model.Employee;
+import model.User;
 import dto.EmployeeDTO;
+import dto.EmployeeDetailDTO;
 
 /**
  *
@@ -156,11 +158,11 @@ public class EmployeeDAO {
         String SQL = """
             INSERT INTO employees
             (employeeCode, userId, departmentId, positionId, phoneNumber, skills,
-             experience, degree, hireDate, probationEndDate, status, managerId, nationalId, contractType)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?)
+             experience, degree, status, managerId)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, ? )
             """;
         try (Connection conn = dbContext.getConnection(); PreparedStatement ps = conn.prepareStatement(SQL)) {
-            ps.setString(1, emp.getEmployeeCode());
+            ps.setString(1, generateNextEmployeeCode(conn));
             ps.setInt(2, emp.getUserId());
             ps.setInt(3, emp.getDepartmentId());
             ps.setInt(4, emp.getPositionId());
@@ -168,20 +170,7 @@ public class EmployeeDAO {
             ps.setString(6, emp.getSkills());
             ps.setString(7, emp.getExperience());
             ps.setString(8, emp.getDegree());
-            ps.setDate(9, Date.valueOf(emp.getHireDate()));
-            if (emp.getProbationEndDate() != null) {
-                ps.setDate(10, Date.valueOf(emp.getProbationEndDate()));
-            } else {
-                ps.setNull(10, Types.DATE);
-            }
-            if (emp.getManagerId() != null) {
-                ps.setInt(11, emp.getManagerId());
-            } else {
-                ps.setNull(11, Types.INTEGER);
-            }
-            ps.setString(12, emp.getNationalId());
-            ps.setString(13, emp.getContractType());
-
+            ps.setInt(9, emp.getManagerId());
             int rowsAffected = ps.executeUpdate();
             if (rowsAffected > 0) {
                 LOGGER.log(Level.INFO, "Employee added successfully with code: {0}", emp.getEmployeeCode());
@@ -198,13 +187,7 @@ public class EmployeeDAO {
 
     public boolean updateEmployee(Employee emp) {
         LOGGER.log(Level.INFO, "Updating employee with employeeId: {0}", emp.getEmployeeId());
-        String SQL = """
-            UPDATE employees SET
-                departmentId = ?, positionId = ?, phoneNumber = ?, skills = ?,
-                experience = ?, degree = ?, hireDate = ?, probationEndDate = ?,
-                managerId = ?, nationalId = ?, contractType = ?
-            WHERE employeeId = ?
-            """;
+        String SQL = "UPDATE employees SET departmentId = ?, positionId = ?, phoneNumber = ?, skills = ?, experience = ?, degree = ?, managerId = ? WHERE employeeId = ?";
         try (Connection conn = dbContext.getConnection(); PreparedStatement ps = conn.prepareStatement(SQL)) {
             ps.setInt(1, emp.getDepartmentId());
             ps.setInt(2, emp.getPositionId());
@@ -212,20 +195,7 @@ public class EmployeeDAO {
             ps.setString(4, emp.getSkills());
             ps.setString(5, emp.getExperience());
             ps.setString(6, emp.getDegree());
-            ps.setDate(7, Date.valueOf(emp.getHireDate()));
-            if (emp.getProbationEndDate() != null) {
-                ps.setDate(8, Date.valueOf(emp.getProbationEndDate()));
-            } else {
-                ps.setNull(8, Types.DATE);
-            }
-            if (emp.getManagerId() != null) {
-                ps.setInt(9, emp.getManagerId());
-            } else {
-                ps.setNull(9, Types.INTEGER);
-            }
-            ps.setString(10, emp.getNationalId());
-            ps.setString(11, emp.getContractType());
-            ps.setInt(12, emp.getEmployeeId());
+            ps.setInt(7, emp.getEmployeeId());
 
             int rowsAffected = ps.executeUpdate();
             if (rowsAffected > 0) {
@@ -256,8 +226,66 @@ public class EmployeeDAO {
             }
         } catch (SQLException e) {
             LOGGER.log(Level.SEVERE, "Error deactivating employee with employeeId: " + employeeId, e);
+            return false;
         }
     }
+    public List<User> getUsersNotYetEmployees() {
+        List<User> list = new ArrayList<>();
+        String SQL = "SELECT u.userId, u.username, u.email, u.password, u.fullName, u.dob, "
+                   + "u.gender, u.address, r.roleName, u.isTemporaryPassword, u.isActive "
+                   + "FROM Users u "
+                   + "JOIN Roles r ON r.roleId = u.roleId "
+                   + "WHERE u.userId NOT IN (SELECT e.userId FROM Employees e) "
+                   + "AND r.roleId != 1 "
+                   + "ORDER BY u.fullName ";
+        try (Connection conn = dbContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(SQL);
+             ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) {
+                list.add(new User(
+                        rs.getInt("userId"),
+                        rs.getString("username"),
+                        rs.getString("email"),
+                        rs.getString("password"),
+                        rs.getNString("fullName"),
+                        rs.getString("dob"),
+                        rs.getNString("gender"),
+                        rs.getString("address"),
+                        rs.getString("roleName"),
+                        rs.getBoolean("isTemporaryPassword"),
+                        rs.getInt("isActive")
+                ));
+            }
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Cannot retrieve users not yet employees", e);
+        }
+        return list;
+    }
+
+    public boolean assignEmployeeToDepartment(int userId, int departmentId, int positionId,
+                                              String phoneNumber, String skills,
+                                              String experience, String degree) {
+        LOGGER.log(Level.INFO, "Assigning userId={0} to departmentId={1}", new Object[]{userId, departmentId});
+        String SQL = "INSERT INTO Employees "
+                   + "(employeeCode, userId, departmentId, positionId, phoneNumber, skills, experience, degree, status) "
+                   + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1)";
+        try (Connection conn = dbContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(SQL)) {
+            ps.setString(1, generateNextEmployeeCode(conn));
+            ps.setInt(2, userId);
+            ps.setInt(3, departmentId);
+            ps.setInt(4, positionId);
+            ps.setString(5, phoneNumber);
+            ps.setString(6, skills);
+            ps.setString(7, experience);
+            ps.setString(8, degree);
+            return ps.executeUpdate() > 0;
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Cannot assign employee to department for userId: " + userId, e);
+        }
+        return false;
+    }
+
     public boolean isUserAlreadyEmployee(int userId) {
         String SQL = "SELECT 1 FROM Employees WHERE userId = ? LIMIT 1";
         try (Connection conn = dbContext.getConnection();
@@ -291,8 +319,6 @@ public class EmployeeDAO {
         return false;
     }
 
-    private Employee mapEmployee(ResultSet rs) throws SQLException {
-        Employee e = new Employee();
     public int countByDepartmentId(int departmentId) {
         String SQL = "SELECT COUNT(*) FROM Employees WHERE departmentId = ? AND status != 0";
         try (Connection conn = dbContext.getConnection();
@@ -307,6 +333,8 @@ public class EmployeeDAO {
         return 0;
     }
 
+    
+    
     private String generateNextEmployeeCode(Connection conn) throws SQLException {
         String SQL = "SELECT COALESCE(MAX(employeeId), 0) + 1 AS nextId FROM Employees";
         try (PreparedStatement ps = conn.prepareStatement(SQL);

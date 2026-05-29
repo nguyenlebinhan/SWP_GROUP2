@@ -16,6 +16,7 @@ import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import model.Department;
+import model.Position;
 
 /**
  *
@@ -60,7 +61,7 @@ public class DepartmentDAO {
 
     public List<Department> getAllActiveDepartments() {
         List<Department> list = new ArrayList<>();
-        String SQL = "SELECT d.departmentId, d.departmentCode, d.departmentName, d.description, d.managerId, d.maxHeadCount, d.status, d.region, d.foundedDate FROM Departments d WHERE d.status = 1 ORDER BY departmentName";
+        String SQL = "SELECT d.departmentId, d.departmentCode, d.departmentName, d.description, d.managerId,d.status FROM Departments d WHERE d.status = 1 ORDER BY departmentName";
         try (Connection conn = dbContext.getConnection();
              PreparedStatement ps = conn.prepareStatement(SQL);
              ResultSet rs = ps.executeQuery()) {
@@ -74,7 +75,7 @@ public class DepartmentDAO {
     }
 
     public Department getDepartmentById(int id) {
-        String SQL = "SELECT d.departmentId, d.departmentCode, d.departmentName, d.description, d.managerId, d.maxHeadCount, d.status, d.region, d.foundedDate FROM Departments d WHERE d.departmentId = ?";
+        String SQL = "SELECT d.departmentId, d.departmentCode, d.departmentName, d.description, d.managerId, d.status FROM Departments d WHERE d.departmentId = ?";
         try (Connection conn = dbContext.getConnection();
              PreparedStatement ps = conn.prepareStatement(SQL)) {
             ps.setInt(1, id);
@@ -87,36 +88,33 @@ public class DepartmentDAO {
         return null;
     }
 
+    public String getDepartmentCodeById(int departmentId) {
+        String SQL = "SELECT departmentCode FROM Departments WHERE departmentId = ?";
+        try (Connection conn = dbContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(SQL)) {
+            ps.setInt(1, departmentId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) return rs.getString("departmentCode");
+            }
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Cannot get departmentCode for id: " + departmentId, e);
+        }
+        return null;
+    }
+
     public boolean addDepartment(Department dept) {
         LOGGER.log(Level.INFO, "Adding new department with code: {0}", dept.getDepartmentCode());
         String SQL = """
             INSERT INTO departments
-            (departmentCode, departmentName, description, managerId, maxHeadCount,
-             status, region, budget, foundedDate)
-            VALUES (?, ?, ?, ?, ?, 1, ?, ?, ?)
+            (departmentCode, departmentName, description,
+             status)
+            VALUES (?, ?, ?, 1)
             """;
         try (Connection conn = dbContext.getConnection();
              PreparedStatement ps = conn.prepareStatement(SQL)) {
             ps.setString(1, dept.getDepartmentCode());
             ps.setString(2, dept.getDepartmentName());
             ps.setString(3, dept.getDescription());
-            if (dept.getManagerId() > 0) {
-                ps.setInt(4, dept.getManagerId());
-            } else {
-                ps.setNull(4, Types.INTEGER);
-            }
-            if (dept.getMaxHeadCount() > 0) {
-                ps.setInt(5, dept.getMaxHeadCount());
-            } else {
-                ps.setNull(5, Types.INTEGER);
-            }
-            ps.setString(6, dept.getRegion());
-            ps.setDouble(7, dept.getBudget());
-            if (dept.getFoundedDate() != null) {
-                ps.setDate(8, Date.valueOf(dept.getFoundedDate()));
-            } else {
-                ps.setNull(8, Types.DATE);
-            }
 
             int rowsAffected = ps.executeUpdate();
             if (rowsAffected > 0) {
@@ -134,34 +132,15 @@ public class DepartmentDAO {
 
     public boolean updateDepartment(Department dept) {
         LOGGER.log(Level.INFO, "Updating department with departmentId: {0}", dept.getDepartmentId());
-        String SQL = """
-            UPDATE departments SET
-                departmentName = ?, description = ?, managerId = ?,
-                maxHeadCount = ?, region = ?, budget = ?, foundedDate = ?
-            WHERE departmentId = ?
-            """;
+        String SQL = " UPDATE departments SET departmentName = ?, description = ?, managerId = ? WHERE departmentId = ?";
         try (Connection conn = dbContext.getConnection();
              PreparedStatement ps = conn.prepareStatement(SQL)) {
             ps.setString(1, dept.getDepartmentName());
             ps.setString(2, dept.getDescription());
-            if (dept.getManagerId() > 0) {
-                ps.setInt(3, dept.getManagerId());
-            } else {
-                ps.setNull(3, Types.INTEGER);
-            }
-            if (dept.getMaxHeadCount() > 0) {
-                ps.setInt(4, dept.getMaxHeadCount());
-            } else {
-                ps.setNull(4, Types.INTEGER);
-            }
-            ps.setString(5, dept.getRegion());
-            ps.setDouble(6, dept.getBudget());
-            if (dept.getFoundedDate() != null) {
-                ps.setDate(7, Date.valueOf(dept.getFoundedDate()));
-            } else {
-                ps.setNull(7, Types.DATE);
-            }
-            ps.setInt(8, dept.getDepartmentId());
+            ps.setInt(3, dept.getManagerId());
+            ps.setString(4, dept.getRegion());
+            ps.setString(5,dept.getFoundedDate());
+            ps.setInt(6, dept.getDepartmentId());
 
             int rowsAffected = ps.executeUpdate();
             if (rowsAffected > 0) {
@@ -194,7 +173,9 @@ public class DepartmentDAO {
         } catch (SQLException e) {
             LOGGER.log(Level.SEVERE, "Error deleting department with departmentId: " + departmentId, e);
         }
-        return false;
+        return false;   
+    }
+    
     public int countEmployeesByDepartmentId(int departmentId) {
         String SQL = "SELECT COUNT(*) FROM Employees WHERE departmentId = ? AND status != 0";
         try (Connection conn = dbContext.getConnection();
@@ -211,7 +192,7 @@ public class DepartmentDAO {
 
     public List<Position> getAllPositions() {
         List<Position> list = new ArrayList<>();
-        String SQL = "SELECT positionId, positionName, level, description FROM Positions ORDER BY level DESC, positionName";
+        String SQL = "SELECT positionId, positionName, level, description FROM Positions ";
         try (Connection conn = dbContext.getConnection();
              PreparedStatement ps = conn.prepareStatement(SQL);
              ResultSet rs = ps.executeQuery()) {
@@ -237,12 +218,7 @@ public class DepartmentDAO {
         d.setDescription(rs.getNString("description"));
         int managerId = rs.getInt("managerId");
         d.setManagerId(rs.wasNull() ? null : managerId);
-        int maxHead = rs.getInt("maxHeadCount");
-        d.setMaxHeadCount(rs.wasNull() ? null : maxHead);
         d.setStatus(rs.getInt("status"));
-        d.setRegion(rs.getNString("region"));
-        d.setFoundedDate(rs.getString("foundedDate"));
-       
         return d;
     }
 }

@@ -69,20 +69,31 @@
          Dashboard
     </a>
 
-    <c:if test="${sessionScope.userPermissions.contains('VIEW_EMPLOYEES') or sessionScope.userPermissions.contains('ASSIGN_DEPARTMENT')}">
-        <div class="nav-section">Nhân viên</div>
-    </c:if>
 
     <c:if test="${sessionScope.userPermissions.contains('VIEW_EMPLOYEES')}">
+        <div class="nav-section">Nhân viên</div>
         <a href="${pageContext.request.contextPath}/v1/employee/employee-list">
              Danh sách nhân viên
         </a>
     </c:if>
 
-    <c:if test="${sessionScope.userPermissions.contains('VIEW_DEPARTMENTS')}">
+    <c:if test="${sessionScope.userPermissions.contains('ASSIGN_DEPARTMENT')}">
+        <a href="${pageContext.request.contextPath}/v1/employee/assign-department">
+             Phân công phòng ban
+        </a>
+    </c:if>
+
+    <c:if test="${sessionScope.userPermissions.contains('VIEW_DEPARTMENTS') || sessionScope.userPermissions.contains('MANAGE_DEPARTMENTS')}">
         <div class="nav-section">Phòng ban</div>
+    </c:if>
+    <c:if test="${sessionScope.userPermissions.contains('VIEW_DEPARTMENTS')}">
         <a href="${pageContext.request.contextPath}/v1/employee/department-list">
-             Danh sách phòng ban
+            Danh sách phòng ban
+        </a>
+    </c:if>
+    <c:if test="${sessionScope.userPermissions.contains('EDIT_DEPARTMENTS')}">
+        <a href="${pageContext.request.contextPath}/v1/employee/add-department">
+            Thêm phòng ban
         </a>
     </c:if>
 </div>
