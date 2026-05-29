@@ -414,6 +414,20 @@ public class UserDAO {
         return false;
     }
 
+    public int getRoleIdByUserId(int userId) {
+        String SQL = "SELECT roleId FROM Users WHERE userId = ?";
+        try (Connection conn = dbContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(SQL)) {
+            ps.setInt(1, userId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) return rs.getInt("roleId");
+            }
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Cannot get roleId for userId: " + userId, e);
+        }
+        return -1;
+    }
+
     public int getRoleIdByCode(String roleCode) {
         String SQL = "SELECT roleId FROM Roles WHERE roleCode = ? AND isActive = 1 AND isDeleted = 0";
         try (Connection conn = dbContext.getConnection();

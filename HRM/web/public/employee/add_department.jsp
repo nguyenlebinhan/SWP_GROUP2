@@ -200,6 +200,36 @@
                 </div>
             </div>
 
+            <div class="section-title">Vai trò được phép <span style="font-weight:400;text-transform:none;letter-spacing:0">(tùy chọn)</span></div>
+
+            <div class="h-form-row cols-1">
+                <div class="h-label" style="padding-top:10px">Vai trò hợp lệ</div>
+                <div class="h-field">
+                    <c:choose>
+                        <c:when test="${empty roles}">
+                            <span class="hint">Chưa có vai trò nào trong hệ thống.</span>
+                        </c:when>
+                        <c:otherwise>
+                            <div style="display:flex; flex-direction:column; gap:10px;">
+                                <c:forEach var="role" items="${roles}">
+                                    <label style="display:flex; align-items:center; gap:8px; font-size:13.5px; font-weight:500; color:#374151; cursor:pointer;">
+                                        <input type="checkbox" name="roleIds" value="${role.roleId}"
+                                               <c:if test="${not empty selectedRoleIds and selectedRoleIds.contains(role.roleId)}">checked</c:if>>
+                                        <span>${role.roleName}</span>
+                                        <c:if test="${not empty role.description}">
+                                            <span class="hint" style="font-weight:400;">— ${role.description}</span>
+                                        </c:if>
+                                    </label>
+                                </c:forEach>
+                            </div>
+                            <span class="hint" style="margin-top:8px;">
+                                Để trống = phòng ban nhận mọi vai trò. Nếu tick, chỉ nhân viên có vai trò được chọn mới được phân công vào phòng này.
+                            </span>
+                        </c:otherwise>
+                    </c:choose>
+                </div>
+            </div>
+
             <div class="action-bar">
                 <button type="submit" class="btn btn-submit">
                     <i class="fa-solid fa-plus"></i> Thêm phòng ban
