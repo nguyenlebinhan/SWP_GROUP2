@@ -195,8 +195,8 @@
             <div>
                 <h5 class="fw-bold mb-1" style="color:#0f172a">Phân công nhân viên vào phòng ban</h5>
                 <p class="text-muted mb-0" style="font-size:13px">
-                    Chọn nhân viên (role <strong>HREmployee</strong> chưa được phân công), gán vào phòng ban và vị trí.
-                    Role sẽ tự động cập nhật theo phòng ban nếu phòng ban có quy định riêng.
+                    Chọn nhân viên chưa được phân công, gán vào phòng ban và vị trí.
+                    Vai trò của nhân viên phải phù hợp với phòng ban; nếu không khớp hệ thống sẽ báo lỗi và yêu cầu đổi vai trò trước.
                 </p>
             </div>
         </div>

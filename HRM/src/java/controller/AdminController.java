@@ -5,6 +5,7 @@
 package controller;
 
 import dao.*;
+import dto.EmployeeDetailDTO;
 import dto.UserUpdateRequestDTO;
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -29,6 +30,8 @@ public class AdminController extends HttpServlet {
     private static final EmailService emailService = new EmailService();
     private static final RoleDAO roleDAO = new RoleDAO();
     private static final PermissionDAO permissionDAO = new PermissionDAO();
+    private static final EmployeeDAO employeeDAO = new EmployeeDAO();
+    private static final DepartmentDAO departmentDAO = new DepartmentDAO();
 
     protected void processRequest(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
@@ -278,6 +281,21 @@ public class AdminController extends HttpServlet {
         String gender = request.getParameter("gender");
         String address = request.getParameter("address");
         int roleId = Integer.parseInt(request.getParameter("role_selection"));
+
+        // Chặn chiều ngược (đối xứng với assign-department): nếu user đã là nhân viên
+        // thuộc một phòng ban, vai trò mới phải hợp lệ với phòng ban đó.
+        EmployeeDetailDTO emp = employeeDAO.getEmployeeByUserId(userId);
+        if (emp != null && !departmentDAO.isRoleAllowedForDepartment(emp.getDepartmentId(), roleId)) {
+            List<String> allowed = departmentDAO.getAllowedRoleNames(emp.getDepartmentId());
+            request.setAttribute("error", "Vai trò mới không phù hợp với phòng \"" + emp.getDepartmentName()
+                    + "\" mà nhân viên đang thuộc. Phòng này chỉ nhận: " + String.join(", ", allowed)
+                    + ". Hãy chuyển nhân viên sang phòng phù hợp trước khi đổi vai trò.");
+            request.setAttribute("userId", userId);
+            request.setAttribute("user", userDAO.getUserDTOById(userId));
+            request.setAttribute("roles", roleDAO.getAllActiveRoles());
+            request.getRequestDispatcher("/public/admin/update_user.jsp").forward(request, response);
+            return;
+        }
 
         boolean isSuccess = userDAO.updateUser(userId, username, email, password, fullName, dob, gender, address, roleId);
         if (!isSuccess) {
