@@ -68,6 +68,19 @@ public class DBInitializer {
         execute(conn, SQL, "CREATE ROLE_PERMISSIONS TABLE SUCCESSFULLY");
     }
 
+    public void createTableDepartmentRoles(Connection conn) {
+        String SQL = "CREATE TABLE Department_Roles("
+                + "id INT PRIMARY KEY AUTO_INCREMENT,"
+                + "departmentId INT NOT NULL,"
+                + "roleId INT NOT NULL,"
+                + "createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,"
+                + "UNIQUE KEY uq_dept_role (departmentId, roleId),"
+                + "FOREIGN KEY (departmentId) REFERENCES Departments(departmentId),"
+                + "FOREIGN KEY (roleId) REFERENCES Roles(roleId)"
+                + ")";
+        execute(conn, SQL, "CREATE DEPARTMENT_ROLES TABLE SUCCESSFULLY");
+    }
+
     public void createTableEmailTemplates(Connection conn) {
         String SQL = "CREATE TABLE Email_Templates("
                 + "templateId INT PRIMARY KEY AUTO_INCREMENT,"
@@ -236,78 +249,6 @@ public class DBInitializer {
         execute(conn, SQL, "CREATE LEAVE_BALANCE TABLE SUCCESSFULLY");
     }
 
-//    // ==================== CÔNG VIỆC ====================
-//
-//    public void createTableJobs(Connection conn) {
-//        String SQL = "CREATE TABLE Jobs("
-//                + "jobId INT PRIMARY KEY AUTO_INCREMENT,"
-//                + "jobCode VARCHAR(50) NOT NULL UNIQUE,"
-//                + "jobName NVARCHAR(150) NOT NULL,"
-//                + "description NVARCHAR(500),"
-//                + "employeeId INT,"                  // người được giao
-//                + "assignedById INT,"                // người giao việc
-//                + "priority TINYINT DEFAULT 1,"      // 1: Thấp, 2: Trung bình, 3: Cao
-//                + "startDate DATE,"
-//                + "endDate DATE,"
-//                + "estimatedHours DECIMAL(6,2),"
-//                + "sprint VARCHAR(100),"
-//                + "tags VARCHAR(255),"
-//                + "standardCost DECIMAL(15,2),"
-//                + "reportCode VARCHAR(50),"
-//                + "reportContent NVARCHAR(500),"
-//                + "reportChart NVARCHAR(255),"
-//                + "status TINYINT DEFAULT 0,"        // 0: Chưa bắt đầu, 1: Đang làm, 2: Hoàn thành, 3: Trễ hạn
-//                + "createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,"
-//                + "updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,"
-//                + "FOREIGN KEY (employeeId) REFERENCES Employees(employeeId),"
-//                + "FOREIGN KEY (assignedById) REFERENCES Employees(employeeId)"
-//                + ")";
-//        execute(conn, SQL, "CREATE JOBS TABLE SUCCESSFULLY");
-//    }
-//
-//    public void createTableJobComments(Connection conn) {
-//        String SQL = "CREATE TABLE Job_Comments("
-//                + "commentId INT PRIMARY KEY AUTO_INCREMENT,"
-//                + "jobId INT NOT NULL,"
-//                + "userId INT NOT NULL,"
-//                + "content NVARCHAR(1000) NOT NULL,"
-//                + "createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,"
-//                + "updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,"
-//                + "FOREIGN KEY (jobId) REFERENCES Jobs(jobId),"
-//                + "FOREIGN KEY (userId) REFERENCES Users(userId)"
-//                + ")";
-//        execute(conn, SQL, "CREATE JOB_COMMENTS TABLE SUCCESSFULLY");
-//    }
-//
-//    public void createTableJobAttachments(Connection conn) {
-//        String SQL = "CREATE TABLE Job_Attachments("
-//                + "attachmentId INT PRIMARY KEY AUTO_INCREMENT,"
-//                + "jobId INT NOT NULL,"
-//                + "fileName VARCHAR(255) NOT NULL,"
-//                + "filePath VARCHAR(500) NOT NULL,"
-//                + "uploadedById INT,"
-//                + "createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,"
-//                + "FOREIGN KEY (jobId) REFERENCES Jobs(jobId),"
-//                + "FOREIGN KEY (uploadedById) REFERENCES Users(userId)"
-//                + ")";
-//        execute(conn, SQL, "CREATE JOB_ATTACHMENTS TABLE SUCCESSFULLY");
-//    }
-//
-//    public void createTableJobSubtasks(Connection conn) {
-//        String SQL = "CREATE TABLE Job_Subtasks("
-//                + "subtaskId INT PRIMARY KEY AUTO_INCREMENT,"
-//                + "jobId INT NOT NULL,"
-//                + "title NVARCHAR(255) NOT NULL,"
-//                + "isCompleted BIT DEFAULT 0,"
-//                + "assigneeId INT,"
-//                + "createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,"
-//                + "updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,"
-//                + "FOREIGN KEY (jobId) REFERENCES Jobs(jobId),"
-//                + "FOREIGN KEY (assigneeId) REFERENCES Employees(employeeId)"
-//                + ")";
-//        execute(conn, SQL, "CREATE JOB_SUBTASKS TABLE SUCCESSFULLY");
-//    }
-
     // ==================== CHẤM CÔNG ====================
 
     public void createTableUploadedFiles(Connection conn) {
@@ -451,17 +392,15 @@ public class DBInitializer {
 
             String[] dropOrder = {
                 "Audit_Logs", "Notifications", "Performance", "Payroll", "Attendance",
-                "Uploaded_Files", "Job_Subtasks", "Job_Attachments", "Job_Comments", "Jobs",
-                "Leave_Balance", "Leave_Requests", "Leave_Types", "Candidates", "Employees",
-                "Users", "Role_Permissions", "Permissions", "Email_Templates", "Departments",
+                "Uploaded_Files", "Leave_Balance", "Leave_Requests", "Leave_Types", "Candidates", "Employees",
+                "Users", "Department_Roles", "Role_Permissions", "Permissions", "Email_Templates", "Departments",
                 "Positions", "Roles"
             };
 
             String[] createOrder = {
                 "Roles", "Permissions", "Role_Permissions", "Email_Templates", "Positions",
-                "Departments", "Users", "Employees", "Candidates", "Leave_Types", 
-                "Leave_Requests", "Leave_Balance", "Jobs", "Job_Comments", "Job_Attachments", 
-                "Job_Subtasks", "Uploaded_Files", "Attendance", "Payroll", "Performance", 
+                "Departments", "Department_Roles", "Users", "Employees", "Candidates", "Leave_Types",
+                "Leave_Requests", "Leave_Balance", "Uploaded_Files", "Attendance", "Payroll", "Performance", 
                 "Notifications", "Audit_Logs"
             };
 
@@ -487,16 +426,13 @@ public class DBInitializer {
                         case "Email_Templates":   createTableEmailTemplates(conn);    break;
                         case "Positions":         createTablePosition(conn);          break;
                         case "Departments":       createTableDepartments(conn);       break;
+                        case "Department_Roles":  createTableDepartmentRoles(conn);   break;
                         case "Users":             createTableUsers(conn);             break;
                         case "Employees":         createTableEmployees(conn);         break; // Đã thêm break bị thiếu ở đây
                         case "Candidates":        createTableCandidates(conn);        break;
                         case "Leave_Types":       createTableLeaveTypes(conn);        break;
                         case "Leave_Requests":    createTableLeaveRequests(conn);     break;
                         case "Leave_Balance":     createTableLeaveBalance(conn);      break;
-//                        case "Jobs":              createTableJobs(conn);              break;
-//                        case "Job_Comments":      createTableJobComments(conn);       break;
-//                        case "Job_Attachments":   createTableJobAttachments(conn);    break;
-//                        case "Job_Subtasks":      createTableJobSubtasks(conn);       break;
                         case "Uploaded_Files":    createTableUploadedFiles(conn);     break;
                         case "Attendance":        createTableAttendance(conn);        break;
                         case "Payroll":           createTablePayroll(conn);           break;
@@ -530,7 +466,7 @@ public class DBInitializer {
                 insertRole(conn, "AD", "Admin","Người quản trị hệ thống và đưa ra các quyền hạn với user account");
                 insertRole(conn, "HM", "HRManager", "Người tuyển nhận sự ");
                 insertRole(conn, "HE", "HREmployee","Người làm nhân sự ");
-                insertRole(conn, "AE", "AccountingEmployee", "Nhân viên thuộc phòng kế toán");
+
             }
             if (countRows(conn, "Users") == 0) {
                 insertUser(conn, "admin", "nguyenlebinhank63@gmail.com",BCrypt.withDefaults().hashToString(12, "admin123".toCharArray()), "Nguyễn Lê Bình An", "2006-01-06", "Phủ Lý, Hà Nam", 1);
@@ -556,22 +492,19 @@ public class DBInitializer {
                 insertPermission(conn, "EDIT_DEPARTMENTS","Chỉnh sửa phòng ban",     "Quyền chỉnh sửa phòng ban ");   
                 insertPermission(conn, "ASSIGN_DEPARTMENT","Gán nhân viên vào phòng ban",     "Quyền gán nhân viên vào phòng ban");                  
                 insertPermission(conn,"ADD_DEPARTMENT","Thêm phòng ban","Quyền thêm phòng ban");
+                insertPermission(conn,"VIEW_ATTENDANCE","Xem chấm công","Quyền xem dữ liệu chấm công (Manager: theo phòng mình; Employee: của bản thân)");
             }
-            
-            if(countRows(conn,"Departments") == 0){
-                insertDepartment(conn,"IT_DEPT","Phòng IT","Phòng công nghệ dùng cho dân chuyên công nghệ");
-                insertDepartment(conn,"ACCOUNTING_DEPT","Phòng Kế Toán","Phòng kế toán dùng cho dân chuyên kế toán");
-            }
+
             if (countRows(conn, "Positions") == 0) {
-                // Cấp độ: 1=Thực tập, 2=Junior, 3=Mid, 4=Senior, 5=Lead/Trưởng, 6=Quản lý
 
                 // --- Chung ---
                 insertPosition(conn, "Thực tập sinh",          1, "Sinh viên thực tập tại công ty");
                 insertPosition(conn, "Nhân viên chính thức",   2, "Hỗ trợ công việc hành chính");
                 insertPosition(conn, "Trưởng phòng ",   3, "Quản lý toàn bộ hoạt động của phòng ban");
 
-                
+
             }
+            
             LOGGER.log(Level.INFO,"Seeding completed successfully.");
         } catch (SQLException e) {
             LOGGER.log(Level.SEVERE, "Cannot insert initial data", e);
@@ -598,16 +531,7 @@ public class DBInitializer {
         }
     }
 
-    private void insertDepartment(Connection conn, String dpCode, String dpName, String description) throws SQLException {
-        String sql = "INSERT INTO Departments (departmentCode, departmentName, description) VALUES (?, ?, ?)";
-        try (PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setString(1, dpCode);
-            ps.setNString(2, dpName);
-            ps.setNString(3, description);
-            ps.executeUpdate();
-        }
-    }
-    
+
     private void insertRole(Connection conn, String code, String name,String description) throws SQLException {
         String sql = "INSERT INTO Roles (roleCode, roleName, description) VALUES (?, ?, ?)";
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
