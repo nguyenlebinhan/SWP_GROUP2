@@ -261,7 +261,26 @@
                                 </c:if>
                             </c:forEach>
                         </div>
-
+                        
+                        <%-- Nhóm:  Nhân viên --%>
+                        <div class="group-title">Vai trò &amp; Nhân viên</div>
+                        <div class="row g-3 mb-2">
+                            <c:forEach var="p" items="${allPermissions}">
+                                <c:if test="${p.permissionCode == 'VIEW_EMPLOYEES' || p.permissionCode == 'ADD_EMPLOYEE' || p.permissionCode == 'EDIT_EMPLOYEE' || p.permissionCode == 'VIEW_DEPARTMENTS' || p.permissionCode == 'EDIT_DEPARTMENTS' || p.permissionCode == 'ASSIGN_DEPARTMENT' || p.permissionCode == 'EDIT_DEPARTMENTS'}">
+                                    <div class="col-md-3">
+                                        <label class="perm-card ${assignedPermissionIds.contains(p.permissionId) ? 'selected' : ''}" onclick="toggleCard(this)">
+                                            <input type="checkbox" name="permissionIds" value="${p.permissionId}" ${assignedPermissionIds.contains(p.permissionId) ? 'checked' : ''}/>
+                                            
+                                            <div class="perm-name"><c:out value="${p.permissionName}"/></div>
+                                            <div><span class="perm-code"><c:out value="${p.permissionCode}"/></span></div>
+                                            <div class="perm-desc"><c:out value="${empty p.description ? '—' : p.description}"/></div>
+                                        </label>
+                                    </div>
+                                </c:if>
+                            </c:forEach>
+                        </div>
+                        
+                        
                         <div class="d-flex gap-3 pt-2 border-top">
                             <button type="submit" class="btn-save mt-3">
                                 Lưu phân quyền

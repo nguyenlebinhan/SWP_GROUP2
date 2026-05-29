@@ -16,20 +16,18 @@ public class Department {
     private String departmentName;
     private String description;
     private Integer managerId;
-    private Integer maxHeadCount;
     private int status;
     private String region;
     private String foundedDate;
 
     public Department() {}
 
-    public Department(int departmentId, String departmentCode, String departmentName, String description, Integer managerId, Integer maxHeadCount, int status, String region, String foundedDate) {
+    public Department(int departmentId, String departmentCode, String departmentName, String description, Integer managerId, int status, String region, String foundedDate) {
         this.departmentId = departmentId;
         this.departmentCode = departmentCode;
         this.departmentName = departmentName;
         this.description = description;
         this.managerId = managerId;
-        this.maxHeadCount = maxHeadCount;
         this.status = status;
         this.region = region;
         this.foundedDate = foundedDate;
@@ -73,14 +71,6 @@ public class Department {
 
     public void setManagerId(Integer managerId) {
         this.managerId = managerId;
-    }
-
-    public Integer getMaxHeadCount() {
-        return maxHeadCount;
-    }
-
-    public void setMaxHeadCount(Integer maxHeadCount) {
-        this.maxHeadCount = maxHeadCount;
     }
 
     public int getStatus() {
