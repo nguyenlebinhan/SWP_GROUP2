@@ -398,6 +398,36 @@ public class UserDAO {
         return users;
     }
 
+    public boolean updateUserRole(int userId, int roleId) {
+        LOGGER.log(Level.INFO, "Updating roleId to {0} for userId: {1}", new Object[]{roleId, userId});
+        String SQL = "UPDATE Users SET roleId = ? WHERE userId = ?";
+        try (Connection conn = dbContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(SQL)) {
+            ps.setInt(1, roleId);
+            ps.setInt(2, userId);
+            boolean updated = ps.executeUpdate() > 0;
+            if (updated) LOGGER.log(Level.INFO, "Role updated successfully for userId: {0}", userId);
+            return updated;
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Error updating role for userId: " + userId, e);
+        }
+        return false;
+    }
+
+    public int getRoleIdByCode(String roleCode) {
+        String SQL = "SELECT roleId FROM Roles WHERE roleCode = ? AND isActive = 1 AND isDeleted = 0";
+        try (Connection conn = dbContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(SQL)) {
+            ps.setString(1, roleCode);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) return rs.getInt("roleId");
+            }
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Error getting roleId by code: " + roleCode, e);
+        }
+        return -1;
+    }
+
     private User mapUser(ResultSet rs) throws SQLException {
         int userId = rs.getInt("userId");
         String username = rs.getString("username");
