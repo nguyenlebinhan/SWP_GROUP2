@@ -21,12 +21,12 @@ public class PermissionDAO {
         this.dbContext = new DBContext();
     }    
     
-    public List<Permission>getAllPermissionByRoleId(int roleId){
+    public Set<Permission>getAllPermissionByRoleId(int roleId){
         LOGGER.log(Level.INFO,"Getting all permissions by roleId: {0}",roleId);
-        List<Permission> permissions  = new ArrayList<>();
-        String SQL = "SELECT * FROM permissions p WHERE p.roleId = ?";
+        Set<Permission> permissions  = new HashSet<>();
+        String SQL = "SELECT * FROM permissions p INNER JOIN role_permissions rp on rp.permissionId = p.permissionId WHERE rp.roleId = ?";
         try(Connection conn = dbContext.getConnection();
-            PreparedStatement ps = conn.prepareCall(SQL)){
+            PreparedStatement ps = conn.prepareStatement(SQL)){
             ps.setInt(1, roleId);
             try(ResultSet rs = ps.executeQuery()){
                 while(rs.next()){
@@ -40,24 +40,25 @@ public class PermissionDAO {
         return permissions;
     }
 
-    public List<Permission> getPermissionsByRoleId(int roleId) {
-        LOGGER.log(Level.INFO, "Getting permissions by roleId through role_permissions: {0}", roleId);
-        List<Permission> permissions = new ArrayList<>();
-        String SQL = "SELECT p.permissionId, p.permissionCode, p.permissionName, p.description "
+    public Set<String> getPermissionCodeByUserId(int userId) {
+        LOGGER.log(Level.INFO, "Getting permissions by userId through role_permissions: {0}", userId);
+        Set<String> permissions = new HashSet<>();
+        String SQL = "SELECT p.permissionCode "
                 + "FROM permissions p "
                 + "JOIN role_permissions rp ON rp.permissionId = p.permissionId "
-                + "WHERE rp.roleId = ? "
+                + "JOIN users u ON u.roleId = rp.roleId "
+                + "WHERE u.userId = ? "
                 + "ORDER BY p.permissionName";
         try (Connection conn = dbContext.getConnection();
              PreparedStatement ps = conn.prepareStatement(SQL)) {
-            ps.setInt(1, roleId);
+            ps.setInt(1, userId);
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
-                    permissions.add(mapPermission(rs));
+                    permissions.add(rs.getString("permissionCode"));
                 }
             }
         } catch (SQLException e) {
-            LOGGER.log(Level.SEVERE, "Cannot retrieve permissions by roleId: " + roleId, e);
+            LOGGER.log(Level.SEVERE, "Cannot retrieve permissions by userId: " + userId, e);
         }
         return permissions;
     }

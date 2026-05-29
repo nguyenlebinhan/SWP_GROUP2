@@ -107,6 +107,7 @@ public class AdminController extends HttpServlet {
             case "/change-status-role":
                 handleChangingStatusRole(request, response);
                 break;
+                    
             default:
                 response.sendRedirect(request.getContextPath() + "/");
                 break;
@@ -502,7 +503,7 @@ public class AdminController extends HttpServlet {
             return;
         }
 
-        List<Permission> assignedPerms = permissionDAO.getPermissionsByRoleId(roleId);
+        Set<Permission> assignedPerms = permissionDAO.getAllPermissionByRoleId(roleId);
         Set<Integer> assignedIds = new HashSet<>();
         for (model.Permission p : assignedPerms) {
             assignedIds.add(p.getPermissionId());
@@ -593,7 +594,7 @@ public class AdminController extends HttpServlet {
         }
 
         List<Permission> allPermissions = permissionDAO.getAllPermissions();
-        List<Permission> rolePermissions = permissionDAO.getPermissionsByRoleId(roleId);
+        Set<Permission> rolePermissions = permissionDAO.getAllPermissionByRoleId(roleId);
 
         Set<Integer> assignedIds = new HashSet<>();
         for (Permission p : rolePermissions) {
