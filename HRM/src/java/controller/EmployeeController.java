@@ -3,6 +3,7 @@ package controller;
 import dao.DepartmentDAO;
 import dao.EmployeeDAO;
 import dao.PermissionDAO;
+import dao.RoleDAO;
 import dao.UserDAO;
 import dto.EmployeeDetailDTO;
 import jakarta.servlet.ServletException;
@@ -23,6 +24,7 @@ public class EmployeeController extends HttpServlet {
     private static final DepartmentDAO departmentDAO = new DepartmentDAO();
     private static final UserDAO userDAO = new UserDAO();
     private static final PermissionDAO permissionDAO = new PermissionDAO();
+    private static final RoleDAO roleDAO = new RoleDAO();
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
@@ -133,7 +135,7 @@ public class EmployeeController extends HttpServlet {
 
         Set<String> perms = getPermissions(user);
         request.getSession().setAttribute("userPermissions", perms);
-        List<User> availableUsers = employeeDAO.getUsersNotYetEmployees();
+        List<User> availableUsers = employeeDAO.getUsersNotYetEmployees(user.getUserId());
         List<Department> departments = departmentDAO.getAllActiveDepartments();
         List<Position> positions = departmentDAO.getAllPositions();
 
@@ -210,6 +212,20 @@ public class EmployeeController extends HttpServlet {
             return;
         }
 
+        // Vai trò của nhân viên phải phù hợp với phòng ban (luật trong bảng Department_Roles).
+        // Phòng ban không khai báo luật nào => chấp nhận mọi vai trò.
+        int userRoleId = userDAO.getRoleIdByUserId(userId);
+        if (!departmentDAO.isRoleAllowedForDepartment(departmentId, userRoleId)) {
+            Department dept = departmentDAO.getDepartmentById(departmentId);
+            String deptName = (dept != null) ? dept.getDepartmentName() : "phòng ban này";
+            List<String> allowed = departmentDAO.getAllowedRoleNames(departmentId);
+            String msg = "Vai trò hiện tại của nhân viên không phù hợp với phòng \"" + deptName + "\". "
+                       + "Phòng này chỉ nhận vai trò: " + String.join(", ", allowed) + ". "
+                       + "Vui lòng đổi vai trò của người dùng trước khi phân công.";
+            repopulateAssignForm(request, response, user, msg);
+            return;
+        }
+
         boolean success = employeeDAO.assignEmployeeToDepartment(
                 userId, departmentId, positionId,
                 isBlank(phoneNumber) ? null : phoneNumber.trim(),
@@ -225,17 +241,6 @@ public class EmployeeController extends HttpServlet {
 
         LOGGER.log(Level.INFO, "Employee assigned: userId={0} → deptId={1}", new Object[]{userId, departmentId});
 
-        String deptCode = departmentDAO.getDepartmentCodeById(departmentId);
-        String targetRoleCode = resolveRoleCodeForDepartment(deptCode);
-        if (targetRoleCode != null) {
-            int targetRoleId = userDAO.getRoleIdByCode(targetRoleCode);
-            if (targetRoleId > 0) {
-                userDAO.updateUserRole(userId, targetRoleId);
-                LOGGER.log(Level.INFO, "Auto-updated role to {0} for userId={1} (dept={2})",
-                        new Object[]{targetRoleCode, userId, deptCode});
-            }
-        }
-
         request.getSession().setAttribute("success", "Phân công nhân viên vào phòng ban thành công.");
         response.sendRedirect(request.getContextPath() + "/v1/employee/dashboard");
     }
@@ -250,6 +255,7 @@ public class EmployeeController extends HttpServlet {
         }
         Set<String> perms = getPermissions(user);
         request.getSession().setAttribute("userPermissions", perms);
+        request.setAttribute("roles", roleDAO.getAllActiveRoles());
         setPermissionFlags(request, perms);
         request.getRequestDispatcher("/public/employee/add_department.jsp").forward(request, response);
     }
@@ -264,14 +270,11 @@ public class EmployeeController extends HttpServlet {
         String code = request.getParameter("departmentCode");
         String name = request.getParameter("departmentName");
         String description = request.getParameter("description");
+        List<Integer> roleIds = parseRoleIds(request.getParameterValues("roleIds"));
 
         if (isBlank(code) || isBlank(name)) {
-            request.setAttribute("error", "Mã phòng ban và tên phòng ban là bắt buộc.");
-            request.setAttribute("input_code", code);
-            request.setAttribute("input_name", name);
-            request.setAttribute("input_description", description);
-            setPermissionFlags(request, getPermissions(user));
-            request.getRequestDispatcher("/public/employee/add_department.jsp").forward(request, response);
+            repopulateAddDeptForm(request, response, code, name, description, roleIds,
+                    "Mã phòng ban và tên phòng ban là bắt buộc.");
             return;
         }
 
@@ -280,15 +283,16 @@ public class EmployeeController extends HttpServlet {
         dept.setDepartmentName(name.trim());
         dept.setDescription(isBlank(description) ? null : description.trim());
 
-        boolean success = departmentDAO.addDepartment(dept);
-        if (!success) {
-            request.setAttribute("error", "Thêm phòng ban thất bại. Vui lòng thử lại.");
-            request.setAttribute("input_code", code);
-            request.setAttribute("input_name", name);
-            request.setAttribute("input_description", description);
-            setPermissionFlags(request, getPermissions(user));
-            request.getRequestDispatcher("/public/employee/add_department.jsp").forward(request, response);
+        int newDeptId = departmentDAO.addDepartment(dept);
+        if (newDeptId <= 0) {
+            repopulateAddDeptForm(request, response, code, name, description, roleIds,
+                    "Thêm phòng ban thất bại. Vui lòng thử lại.");
             return;
+        }
+
+        // Gắn luật vai trò cho phòng ban. Để trống = phòng ban nhận mọi vai trò.
+        if (!roleIds.isEmpty()) {
+            departmentDAO.replaceDepartmentRoles(newDeptId, roleIds);
         }
 
         LOGGER.log(Level.INFO, "Department created: code={0} by userId={1}", new Object[]{code, user.getUserId()});
@@ -296,10 +300,37 @@ public class EmployeeController extends HttpServlet {
         response.sendRedirect(request.getContextPath() + "/v1/employee/dashboard");
     }
 
+    private void repopulateAddDeptForm(HttpServletRequest request, HttpServletResponse response,
+                                        String code, String name, String description,
+                                        List<Integer> selectedRoleIds, String errorMsg)
+            throws ServletException, IOException {
+        request.setAttribute("error", errorMsg);
+        request.setAttribute("input_code", code);
+        request.setAttribute("input_name", name);
+        request.setAttribute("input_description", description);
+        request.setAttribute("roles", roleDAO.getAllActiveRoles());
+        request.setAttribute("selectedRoleIds", selectedRoleIds);
+        setPermissionFlags(request, getPermissions((User) request.getSession().getAttribute("user")));
+        request.getRequestDispatcher("/public/employee/add_department.jsp").forward(request, response);
+    }
+
+    private List<Integer> parseRoleIds(String[] raw) {
+        List<Integer> ids = new ArrayList<>();
+        if (raw != null) {
+            for (String r : raw) {
+                try {
+                    ids.add(Integer.parseInt(r));
+                } catch (NumberFormatException ignored) {
+                }
+            }
+        }
+        return ids;
+    }
+
     private void repopulateAssignForm(HttpServletRequest request, HttpServletResponse response,
                                        User user, String errorMsg) throws ServletException, IOException {
         request.setAttribute("error", errorMsg);
-        request.setAttribute("availableUsers", employeeDAO.getUsersNotYetEmployees());
+        request.setAttribute("availableUsers", employeeDAO.getUsersNotYetEmployees(user.getUserId()));
         request.setAttribute("departments", departmentDAO.getAllActiveDepartments());
         request.setAttribute("positions", departmentDAO.getAllPositions());
         setPermissionFlags(request, getPermissions(user));
@@ -322,16 +353,8 @@ public class EmployeeController extends HttpServlet {
         request.setAttribute("canEditEmployee",    perms.contains("EDIT_EMPLOYEE"));
         request.setAttribute("canDeleteEmployee",  perms.contains("DELETE_EMPLOYEE"));
         request.setAttribute("canViewDepartments", perms.contains("VIEW_DEPARTMENTS"));
-        request.setAttribute("canManageDepts",     perms.contains("MANAGE_DEPARTMENTS"));
+        request.setAttribute("canEditDepts",     perms.contains("EDIT_DEPARTMENTS"));
         request.setAttribute("canAssignDept",      perms.contains("ASSIGN_DEPARTMENT"));
-    }
-
-    private String resolveRoleCodeForDepartment(String departmentCode) {
-        if (departmentCode == null) return null;
-        switch (departmentCode) {
-            case "ACCOUNTING_DEPT": return "AE";
-            default: return null;
-        }
     }
 
     private boolean isBlank(String v) {

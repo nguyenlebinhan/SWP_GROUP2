@@ -76,12 +76,6 @@
             <h5 class="fw-bold mb-1">Phòng ban</h5>
             <span class="text-muted small">${departments.size()} phòng ban</span>
         </div>
-        <c:if test="${canManageDepts}">
-            <a href="${pageContext.request.contextPath}/v1/employee/add-department"
-               class="btn btn-sm" style="background:#059669;color:white;border-radius:8px;padding:8px 16px;font-weight:600;font-size:13px">
-                <i class="fa-solid fa-plus me-1"></i> Thêm phòng ban
-            </a>
-        </c:if>
     </div>
 
     <c:choose>

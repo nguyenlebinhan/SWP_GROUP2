@@ -10,6 +10,7 @@ import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.sql.Types;
 import java.util.ArrayList;
 import java.util.List;
@@ -46,7 +47,7 @@ public class DepartmentDAO {
 
     public List<Department> getAllDepartments() {
         List<Department> list = new ArrayList<>();
-        String SQL = "SELECT d.departmentId, d.departmentCode, d.departmentName, d.description, d.managerId, d.maxHeadCount, d.status, d.region, d.foundedDate FROM Departments d ORDER BY d.departmentName";
+        String SQL = "SELECT d.departmentId, d.departmentCode, d.departmentName, d.description, d.managerId, d.status FROM Departments d ORDER BY d.departmentName";
         try (Connection conn = dbContext.getConnection();
              PreparedStatement ps = conn.prepareStatement(SQL);
              ResultSet rs = ps.executeQuery()) {
@@ -102,30 +103,114 @@ public class DepartmentDAO {
         return null;
     }
 
-    public boolean addDepartment(Department dept) {
+    
+    public int addDepartment(Department dept) {
         LOGGER.log(Level.INFO, "Adding new department with code: {0}", dept.getDepartmentCode());
-        String SQL = """
-            INSERT INTO departments
-            (departmentCode, departmentName, description,
-             status)
-            VALUES (?, ?, ?, 1)
-            """;
+        String SQL = "INSERT INTO departments(departmentCode, departmentName, description,status) VALUES (?, ?, ?, 1)";
         try (Connection conn = dbContext.getConnection();
-             PreparedStatement ps = conn.prepareStatement(SQL)) {
+             PreparedStatement ps = conn.prepareStatement(SQL, Statement.RETURN_GENERATED_KEYS)) {
             ps.setString(1, dept.getDepartmentCode());
-            ps.setString(2, dept.getDepartmentName());
-            ps.setString(3, dept.getDescription());
+            ps.setNString(2, dept.getDepartmentName());
+            ps.setNString(3, dept.getDescription());
 
             int rowsAffected = ps.executeUpdate();
             if (rowsAffected > 0) {
-                LOGGER.log(Level.INFO, "Department added successfully with code: {0}", dept.getDepartmentCode());
-                return true;
-            } else {
-                LOGGER.log(Level.WARNING, "Add department failed: no rows affected for code: {0}", dept.getDepartmentCode());
-                return false;
+                try (ResultSet rs = ps.getGeneratedKeys()) {
+                    if (rs.next()) {
+                        int newId = rs.getInt(1);
+                        LOGGER.log(Level.INFO, "Department added successfully with code: {0}", dept.getDepartmentCode());
+                        return newId;
+                    }
+                }
             }
+            LOGGER.log(Level.WARNING, "Add department failed: no rows affected for code: {0}", dept.getDepartmentCode());
         } catch (SQLException e) {
             LOGGER.log(Level.SEVERE, "Error adding department with code: " + dept.getDepartmentCode(), e);
+        }
+        return -1;
+    }
+
+    public boolean isRoleAllowedForDepartment(int departmentId, int roleId) {
+        String countSQL = "SELECT COUNT(*) FROM Department_Roles WHERE departmentId = ?";
+        String matchSQL = "SELECT 1 FROM Department_Roles WHERE departmentId = ? AND roleId = ? LIMIT 1";
+        try (Connection conn = dbContext.getConnection()) {
+            try (PreparedStatement ps = conn.prepareStatement(countSQL)) {
+                ps.setInt(1, departmentId);
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next() && rs.getInt(1) == 0) {
+                        return true; // không có luật => không giới hạn
+                    }
+                }
+            }
+            try (PreparedStatement ps = conn.prepareStatement(matchSQL)) {
+                ps.setInt(1, departmentId);
+                ps.setInt(2, roleId);
+                try (ResultSet rs = ps.executeQuery()) {
+                    return rs.next();
+                }
+            }
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Cannot check role-department compatibility for dept: " + departmentId, e);
+        }
+        return false;
+    }
+
+    /** Danh sách tên vai trò được phép trong phòng ban — dùng cho thông báo lỗi. */
+    public List<String> getAllowedRoleNames(int departmentId) {
+        List<String> names = new ArrayList<>();
+        String SQL = "SELECT r.roleName FROM Department_Roles dr "
+                   + "JOIN Roles r ON r.roleId = dr.roleId "
+                   + "WHERE dr.departmentId = ? ORDER BY r.roleName";
+        try (Connection conn = dbContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(SQL)) {
+            ps.setInt(1, departmentId);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) names.add(rs.getString("roleName"));
+            }
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Cannot get allowed roles for dept: " + departmentId, e);
+        }
+        return names;
+    }
+
+    /** Ghi đè toàn bộ luật vai trò của một phòng ban (xóa cũ rồi chèn mới) trong 1 transaction. */
+    public boolean replaceDepartmentRoles(int departmentId, List<Integer> roleIds) {
+        String deleteSQL = "DELETE FROM Department_Roles WHERE departmentId = ?";
+        String insertSQL = "INSERT INTO Department_Roles (departmentId, roleId) VALUES (?, ?)";
+        Connection conn = null;
+        try {
+            conn = dbContext.getConnection();
+            conn.setAutoCommit(false);
+
+            try (PreparedStatement del = conn.prepareStatement(deleteSQL)) {
+                del.setInt(1, departmentId);
+                del.executeUpdate();
+            }
+
+            if (roleIds != null && !roleIds.isEmpty()) {
+                try (PreparedStatement ins = conn.prepareStatement(insertSQL)) {
+                    for (int roleId : roleIds) {
+                        ins.setInt(1, departmentId);
+                        ins.setInt(2, roleId);
+                        ins.addBatch();
+                    }
+                    ins.executeBatch();
+                }
+            }
+
+            conn.commit();
+            LOGGER.log(Level.INFO, "Updated role rules for departmentId={0}: {1} role(s)",
+                    new Object[]{departmentId, roleIds == null ? 0 : roleIds.size()});
+            return true;
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Cannot replace department roles for dept: " + departmentId, e);
+            if (conn != null) {
+                try { conn.rollback(); } catch (SQLException ignored) {}
+            }
+        } finally {
+            if (conn != null) {
+                try { conn.setAutoCommit(true); conn.close(); } catch (SQLException ignored) {}
+            }
         }
         return false;
     }
