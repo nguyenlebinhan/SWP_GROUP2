@@ -15,26 +15,21 @@ public class Department {
     private String departmentCode;
     private String departmentName;
     private String description;
-    private int managerId;
-    private int maxHeadCount;
+    private Integer managerId;
     private int status;
     private String region;
-    private double budget;
-    private LocalDate foundedDate;
+    private String foundedDate;
 
-    public Department() {
-    }
+    public Department() {}
 
-    public Department(int departmentId, String departmentCode, String departmentName, String description, int managerId, int maxHeadCount, int status, String region, double budget, LocalDate foundedDate) {
+    public Department(int departmentId, String departmentCode, String departmentName, String description, Integer managerId, int status, String region, String foundedDate) {
         this.departmentId = departmentId;
         this.departmentCode = departmentCode;
         this.departmentName = departmentName;
         this.description = description;
         this.managerId = managerId;
-        this.maxHeadCount = maxHeadCount;
         this.status = status;
         this.region = region;
-        this.budget = budget;
         this.foundedDate = foundedDate;
     }
 
@@ -70,20 +65,12 @@ public class Department {
         this.description = description;
     }
 
-    public int getManagerId() {
+    public Integer getManagerId() {
         return managerId;
     }
 
-    public void setManagerId(int managerId) {
+    public void setManagerId(Integer managerId) {
         this.managerId = managerId;
-    }
-
-    public int getMaxHeadCount() {
-        return maxHeadCount;
-    }
-
-    public void setMaxHeadCount(int maxHeadCount) {
-        this.maxHeadCount = maxHeadCount;
     }
 
     public int getStatus() {
@@ -102,22 +89,13 @@ public class Department {
         this.region = region;
     }
 
-    public double getBudget() {
-        return budget;
-    }
-
-    public void setBudget(double budget) {
-        this.budget = budget;
-    }
-
-    public LocalDate getFoundedDate() {
+    public String getFoundedDate() {
         return foundedDate;
     }
 
-    public void setFoundedDate(LocalDate foundedDate) {
+    public void setFoundedDate(String foundedDate) {
         this.foundedDate = foundedDate;
     }
 
-    
 
 }

@@ -24,4 +24,12 @@
         <servlet-name>ManagerController</servlet-name>
         <url-pattern>/v1/manager/*</url-pattern>
     </servlet-mapping>
+    <servlet>
+        <servlet-name>EmployeeController</servlet-name>
+        <servlet-class>controller.EmployeeController</servlet-class>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>EmployeeController</servlet-name>
+        <url-pattern>/v1/employee/*</url-pattern>
+    </servlet-mapping>    
 </web-app>
