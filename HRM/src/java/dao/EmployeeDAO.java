@@ -70,11 +70,12 @@ public class EmployeeDAO {
         String SQL = "SELECT e.employeeId, e.employeeCode, e.userId, e.departmentId, e.positionId, "
                    + "e.phoneNumber, e.skills, e.experience, e.degree, e.status, e.managerId, "
                    + "u.fullName, u.email, u.username, "
-                   + "d.departmentName, p.positionName "
+                   + "d.departmentName, p.positionName, r.roleName "
                    + "FROM Employees e "
                    + "JOIN Users u ON u.userId = e.userId "
                    + "JOIN Departments d ON d.departmentId = e.departmentId "
                    + "JOIN Positions p ON p.positionId = e.positionId "
+                   + "JOIN Roles r on r.roleId = u.roleId "
                    + "ORDER BY e.employeeId DESC";
         try (Connection conn = dbContext.getConnection();
              PreparedStatement ps = conn.prepareStatement(SQL);
@@ -229,33 +230,35 @@ public class EmployeeDAO {
             return false;
         }
     }
-    public List<User> getUsersNotYetEmployees() {
+    public List<User> getUsersNotYetEmployees(int userId) {
         List<User> list = new ArrayList<>();
         String SQL = "SELECT u.userId, u.username, u.email, u.password, u.fullName, u.dob, "
                    + "u.gender, u.address, r.roleName, u.isTemporaryPassword, u.isActive "
                    + "FROM Users u "
                    + "JOIN Roles r ON r.roleId = u.roleId "
                    + "WHERE u.userId NOT IN (SELECT e.userId FROM Employees e) "
-                   + "AND r.roleId != 1 "
+                   + "AND r.roleId != 1 AND u.userId != ? "
                    + "ORDER BY u.fullName ";
         try (Connection conn = dbContext.getConnection();
-             PreparedStatement ps = conn.prepareStatement(SQL);
-             ResultSet rs = ps.executeQuery()) {
-            while (rs.next()) {
-                list.add(new User(
-                        rs.getInt("userId"),
-                        rs.getString("username"),
-                        rs.getString("email"),
-                        rs.getString("password"),
-                        rs.getNString("fullName"),
-                        rs.getString("dob"),
-                        rs.getNString("gender"),
-                        rs.getString("address"),
-                        rs.getString("roleName"),
-                        rs.getBoolean("isTemporaryPassword"),
-                        rs.getInt("isActive")
-                ));
-            }
+             PreparedStatement ps = conn.prepareStatement(SQL)){
+                ps.setInt(1, userId);
+                try(ResultSet rs = ps.executeQuery()){   
+                    while (rs.next()) {
+                        list.add(new User(
+                                rs.getInt("userId"),
+                                rs.getString("username"),
+                                rs.getString("email"),
+                                rs.getString("password"),
+                                rs.getNString("fullName"),
+                                rs.getString("dob"),
+                                rs.getNString("gender"),
+                                rs.getString("address"),
+                                rs.getString("roleName"),
+                                rs.getBoolean("isTemporaryPassword"),
+                                rs.getInt("isActive")
+                        ));
+                    }
+                }
         } catch (SQLException e) {
             LOGGER.log(Level.SEVERE, "Cannot retrieve users not yet employees", e);
         }
