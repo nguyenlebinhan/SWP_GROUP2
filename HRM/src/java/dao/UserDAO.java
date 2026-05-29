@@ -135,7 +135,7 @@ public class UserDAO {
         return false;
     }
 
-    public boolean addUser(String username,String email, String password, String fullName, String dob, String gender, String address, int roleId) {
+    public boolean addUser(String username, String email, String password, String fullName, String dob, String gender, String address, int roleId) {
         LOGGER.log(Level.INFO, "Adding new user with email: {0}", email);
 
         if (isEmailExists(email)) {
@@ -189,7 +189,7 @@ public class UserDAO {
         return false;
     }
 
-    public boolean isUsernameExistsForOtherUser(String username, int userId) {
+    public boolean isUsernameExists(String username, int userId) {
         String sql = "SELECT 1 FROM users WHERE username = ? AND userId <> ?";
         try (Connection conn = dbContext.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, username);
@@ -224,9 +224,6 @@ public class UserDAO {
         }
         return false;
     }
-    
-    
-    
 
     public User getUserByEmail(String email) {
         LOGGER.log(Level.INFO, "Get user by email: ", email);
@@ -291,38 +288,33 @@ public class UserDAO {
         return BCrypt.verifyer().verify(plainPassword.toCharArray(), hashedPassword).verified;
     }
 
-
-        public List<User> getAllUsers() {
-            LOGGER.log(Level.INFO, "Getting all users");
-            List<User> users = new ArrayList<>();
-            String SQL = 
-                "SELECT u.userId, u.username, u.email, u.password, u.fullName, u.dob, u.gender, u.address, " +
-                "CASE WHEN r.isDeleted = 1 THEN '' ELSE r.roleName END AS roleName, " +
-                "u.isTemporaryPassword, u.isActive " +
-                "FROM Users u JOIN Roles r ON r.roleId = u.roleId "
-            ;
-            try (Connection conn = dbContext.getConnection();
-                 PreparedStatement ps = conn.prepareStatement(SQL);
-                 ResultSet rs = ps.executeQuery()) {
-                while (rs.next()) {
-                    users.add(mapUser(rs));
-                }
-                LOGGER.log(Level.INFO, "Retrieved {0} users", users.size());
-            } catch (SQLException e) {
-                LOGGER.log(Level.SEVERE, "Error getting all users", e);
+    public List<User> getAllUsers() {
+        LOGGER.log(Level.INFO, "Getting all users");
+        List<User> users = new ArrayList<>();
+        String SQL
+                = "SELECT u.userId, u.username, u.email, u.password, u.fullName, u.dob, u.gender, u.address, "
+                + "CASE WHEN r.isDeleted = 1 THEN '' ELSE r.roleName END AS roleName, "
+                + "u.isTemporaryPassword, u.isActive "
+                + "FROM Users u JOIN Roles r ON r.roleId = u.roleId ";
+        try (Connection conn = dbContext.getConnection(); PreparedStatement ps = conn.prepareStatement(SQL); ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) {
+                users.add(mapUser(rs));
             }
-            return users;
+            LOGGER.log(Level.INFO, "Retrieved {0} users", users.size());
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Error getting all users", e);
         }
-    
-    public boolean updateUser(int userId, String username, String email,String password, String fullName,String dob,String gender, String address, int roleId){
-        LOGGER.log(Level.INFO,"Update user with userId: {0}",userId);
+        return users;
+    }
+
+    public boolean updateUser(int userId, String username, String email, String password, String fullName, String dob, String gender, String address, int roleId) {
+        LOGGER.log(Level.INFO, "Update user with userId: {0}", userId);
         String SQL = "UPDATE Users u SET u.username = ?,u.email =? ,u.password = ?,u.fullName =? ,u.dob =?,u.gender = ?,u.address =?,u.roleId = ? WHERE u.userId = ?";
-    
-        try (Connection conn = dbContext.getConnection();
-            PreparedStatement ps = conn.prepareStatement(SQL)) {
-            ps.setString(1,username);
+
+        try (Connection conn = dbContext.getConnection(); PreparedStatement ps = conn.prepareStatement(SQL)) {
+            ps.setString(1, username);
             ps.setString(2, email);
-            ps.setString(3,hashPassword(password));
+            ps.setString(3, hashPassword(password));
             ps.setString(4, fullName);
             ps.setString(5, dob);
             ps.setString(6, gender);
@@ -338,21 +330,20 @@ public class UserDAO {
                 return false;
             }
         } catch (SQLException e) {
-            LOGGER.log(Level.SEVERE, "Error updating userId : " , e);
+            LOGGER.log(Level.SEVERE, "Error updating userId : ", e);
             return false;
         }
     }
-    
+
     public User getUserById(int userId) {
-        LOGGER.log(Level.INFO,"Getting user by userId: {0}",userId);
+        LOGGER.log(Level.INFO, "Getting user by userId: {0}", userId);
         String sql = "SELECT u.userId, u.username, u.email,u.password, u.fullName, u.dob,u.gender, u.address, "
                 + "r.roleName,  u.isTemporaryPassword,u.isActive "
                 + "FROM Users u "
                 + "JOIN Roles r ON r.roleId = u.roleId "
                 + "WHERE u.userId = ?";
 
-        try (Connection conn = dbContext.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+        try (Connection conn = dbContext.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, userId);
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
@@ -363,28 +354,27 @@ public class UserDAO {
             LOGGER.log(Level.SEVERE, "Error getting user detail for admin view: " + userId, e);
         }
         return null;
-    }  
-    
+    }
+
     public UserUpdateRequestDTO getUserDTOById(int userId) {
-        LOGGER.log(Level.INFO,"Getting user by userId: {0}",userId);
+        LOGGER.log(Level.INFO, "Getting user by userId: {0}", userId);
         String sql = "SELECT u.userId, u.username, u.email, u.fullName, u.dob,u.gender ,u.address, "
                 + "u.roleId "
                 + "FROM Users u "
                 + "WHERE u.userId = ?";
 
-        try (Connection conn = dbContext.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+        try (Connection conn = dbContext.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, userId);
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
-                    return new UserUpdateRequestDTO(rs.getInt("roleId"),rs.getString("username"),rs.getString("email"),rs.getNString("fullName"),rs.getString("dob"),rs.getString("gender"),rs.getNString("address"),rs.getInt("roleId"));
+                    return new UserUpdateRequestDTO(rs.getInt("roleId"), rs.getString("username"), rs.getString("email"), rs.getNString("fullName"), rs.getString("dob"), rs.getString("gender"), rs.getNString("address"), rs.getInt("roleId"));
                 }
             }
         } catch (SQLException e) {
             LOGGER.log(Level.SEVERE, "Error getting user detail for admin view: " + userId, e);
         }
         return null;
-    }      
+    }
 
     public List<User> getUsersByRoleId(int roleId) {
         LOGGER.log(Level.INFO, "Getting users by roleId: {0}", roleId);
@@ -395,8 +385,7 @@ public class UserDAO {
                 + "JOIN Roles r ON r.roleId = u.roleId "
                 + "WHERE u.roleId = ? "
                 + "ORDER BY u.fullName";
-        try (Connection conn = dbContext.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+        try (Connection conn = dbContext.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, roleId);
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
@@ -422,6 +411,75 @@ public class UserDAO {
         //String avatar = rs.getString("avatar");
         boolean isTemporaryPassword = rs.getBoolean("isTemporaryPassword");
         int isActive = rs.getInt("isActive");
-        return new User(userId, username, email, password, fullName, dateOfBirth, gender, address, roleName, isTemporaryPassword,isActive);
-    }    
+        return new User(userId, username, email, password, fullName, dateOfBirth, gender, address, roleName, isTemporaryPassword, isActive);
+    }
+
+    // Thêm vào class UserDAO, bên dưới method getAllUsers() hiện có
+    public int countUsers(String keyword, String role) {
+        StringBuilder sql = new StringBuilder(
+                "SELECT COUNT(*) FROM Users u JOIN Roles r ON r.roleId = u.roleId WHERE 1=1"
+        );
+        List<Object> params = new ArrayList<>();
+
+        if (keyword != null && !keyword.trim().isEmpty()) {
+            sql.append(" AND u.fullName LIKE ?");   // 1 dấu ? → 1 param
+            params.add("%" + keyword.trim() + "%");
+        }
+        if (role != null && !role.trim().isEmpty()) {
+            sql.append(" AND r.roleName = ?");
+            params.add(role.trim());
+        }
+
+        try (Connection conn = dbContext.getConnection(); PreparedStatement ps = conn.prepareStatement(sql.toString())) {
+            for (int i = 0; i < params.size(); i++) {
+                ps.setObject(i + 1, params.get(i));
+            }
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt(1);
+                }
+            }
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Error counting users", e);
+        }
+        return 0;
+    }
+
+    public List<User> getUsersFiltered(String keyword, String role, int offset, int pageSize) {
+        List<User> users = new ArrayList<>();
+        StringBuilder sql = new StringBuilder(
+                "SELECT u.userId, u.username, u.email, u.password, u.fullName, u.dob, u.gender, u.address, "
+                + "CASE WHEN r.isDeleted = 1 THEN '' ELSE r.roleName END AS roleName, "
+                + "u.isTemporaryPassword, u.isActive "
+                + "FROM Users u JOIN Roles r ON r.roleId = u.roleId WHERE 1=1"
+        );
+        List<Object> params = new ArrayList<>();
+
+        if (keyword != null && !keyword.trim().isEmpty()) {
+            sql.append(" AND u.fullName LIKE ?");   // 1 dấu ? → 1 param
+            params.add("%" + keyword.trim() + "%");
+        }
+        if (role != null && !role.trim().isEmpty()) {
+            sql.append(" AND r.roleName = ?");
+            params.add(role.trim());
+        }
+
+        sql.append(" ORDER BY u.userId LIMIT ? OFFSET ?");
+        params.add(pageSize);
+        params.add(offset);
+
+        try (Connection conn = dbContext.getConnection(); PreparedStatement ps = conn.prepareStatement(sql.toString())) {
+            for (int i = 0; i < params.size(); i++) {
+                ps.setObject(i + 1, params.get(i));
+            }
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    users.add(mapUser(rs));
+                }
+            }
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Error getting filtered users", e);
+        }
+        return users;
+    }
 }

@@ -76,9 +76,9 @@ public class AdminController extends HttpServlet {
                 break;
             case "/update-user":
                 displayUpdateUserForm(request, response);
-                break;                
+                break;
             case "/view-user-detail":
-                displayUserDetail(request,response);
+                displayUserDetail(request, response);
                 break;
             case "/my-profile":
                 displayMyProfile(request, response);
@@ -133,10 +133,10 @@ public class AdminController extends HttpServlet {
         switch (action) {
             case "/add-user":
                 handleAddUser(request, response);
-                break; 
+                break;
             case "/update-user":
-                handleUpdateUserInfo(request,response);
-                break;  
+                handleUpdateUserInfo(request, response);
+                break;
             case "/my-profile":
                 handleUpdateMyProfile(request, response, user);
                 break;
@@ -161,38 +161,72 @@ public class AdminController extends HttpServlet {
         request.getRequestDispatcher("/public/admin/add_user.jsp").forward(request, response);
     }
 
-     
-
     private void displayUpdateUserForm(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
         List<Role> roles = roleDAO.getAllActiveRoles();
         int userId = Integer.parseInt(request.getParameter("id"));
         UserUpdateRequestDTO user = userDAO.getUserDTOById(userId);
-        request.setAttribute("userId", userId);        
+        request.setAttribute("userId", userId);
         request.setAttribute("roles", roles);
         request.setAttribute("user", user);
         request.getRequestDispatcher("/public/admin/update_user.jsp").forward(request, response);
     }
-    
+
     private void displayUserList(HttpServletRequest request,
             HttpServletResponse response)
             throws ServletException, IOException {
-        
-        UserDAO dao = new UserDAO();
-        List<User> list = dao.getAllUsers();
-        
+
+        String keyword = request.getParameter("keyword") != null
+                ? request.getParameter("keyword").trim() : "";
+        String role = request.getParameter("role") != null
+                ? request.getParameter("role").trim() : "";
+
+        final int PAGE_SIZE = 5;
+        int currentPage = 1;
+        try {
+            int p = Integer.parseInt(request.getParameter("page"));
+            if (p > 1) {
+                currentPage = p;
+            }
+        } catch (NumberFormatException ignored) {
+        }
+
+        int offset = (currentPage - 1) * PAGE_SIZE;
+
+        // countUsers chỉ chạy COUNT(*) — rất nhẹ dù có nghìn người
+        int totalUsers = userDAO.countUsers(keyword, role);
+        int totalPages = (int) Math.ceil((double) totalUsers / PAGE_SIZE);
+        if (totalPages < 1) {
+            totalPages = 1;
+        }
+
+        // getUsersFiltered chỉ lấy đúng 5 người của trang hiện tại
+        List<User> list = userDAO.getUsersFiltered(keyword, role, offset, PAGE_SIZE);
+
+        List<Role> roles = roleDAO.getAllRoles();
+
         request.setAttribute("list", list);
-        
+        request.setAttribute("roles", roles);
+        request.setAttribute("keyword", keyword);
+        request.setAttribute("role", role);
+        request.setAttribute("currentPage", currentPage);
+        request.setAttribute("totalPages", totalPages);
+        request.setAttribute("totalUsers", totalUsers);
+
         request.getRequestDispatcher("/public/admin/user_list.jsp")
                 .forward(request, response);
-    }    
-     
-    
-    private void displayDashboard(HttpServletRequest request,HttpServletResponse response)throws ServletException, IOException {
-        List<User> users = userDAO.getAllUsers();
-        request.setAttribute("userSize", users.size());
-        request.getRequestDispatcher("/public/admin/dashboard.jsp").forward(request, response);
     }
-    
+
+// Sửa dashboard: dùng COUNT thay vì lấy toàn bộ list
+    private void displayDashboard(HttpServletRequest request,
+            HttpServletResponse response)
+            throws ServletException, IOException {
+        // Thay vì getAllUsers() rồi .size(), chỉ đếm trực tiếp
+        int userSize = userDAO.countUsers("", "");
+        request.setAttribute("userSize", userSize);
+        request.getRequestDispatcher("/public/admin/dashboard.jsp")
+                .forward(request, response);
+    }
+
     private void displayUserDetail(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
         String rawUserId = request.getParameter("id");
         if (rawUserId == null || rawUserId.trim().isEmpty()) {
@@ -206,22 +240,21 @@ public class AdminController extends HttpServlet {
         if (selectedUser == null) {
             request.setAttribute("error", "User not found.");
         }
-        request.setAttribute("selectedUser", selectedUser);        
+        request.setAttribute("selectedUser", selectedUser);
         request.getRequestDispatcher("/public/admin/user_detail.jsp").forward(request, response);
-    }    
-    
-    private void handleAddUser(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-        String username  = request.getParameter("username");
-        String email     = request.getParameter("email");
-        String password  = request.getParameter("password");
-        String fullName  = request.getParameter("fullName");
-        String dob       = request.getParameter("dob");
-        String gender    = request.getParameter("gender");
-        String address   = request.getParameter("address");
-        int roleId = Integer.parseInt(request.getParameter("role_selection"));
-        
+    }
 
-        boolean isSuccess = userDAO.addUser(username,email, password, fullName, dob, gender ,address, roleId);
+    private void handleAddUser(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        String username = request.getParameter("username");
+        String email = request.getParameter("email");
+        String password = request.getParameter("password");
+        String fullName = request.getParameter("fullName");
+        String dob = request.getParameter("dob");
+        String gender = request.getParameter("gender");
+        String address = request.getParameter("address");
+        int roleId = Integer.parseInt(request.getParameter("role_selection"));
+
+        boolean isSuccess = userDAO.addUser(username, email, password, fullName, dob, gender, address, roleId);
         if (!isSuccess) {
             request.setAttribute("roles", roleDAO.getAllRoles());
             request.setAttribute("error", "Thêm người dùng thất bại. Email hoặc username có thể đã tồn tại.");
@@ -233,20 +266,19 @@ public class AdminController extends HttpServlet {
         request.getSession().setAttribute("success", "Thêm người dùng thành công. Mật khẩu tạm thời đã được gửi đến email.");
         response.sendRedirect(request.getContextPath() + "/v1/admin/user-list");
     }
-    
-    private void handleUpdateUserInfo(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-        int userId = Integer.parseInt(request.getParameter("userId"));        
-        String username  = request.getParameter("username");
-        String email     = request.getParameter("email");
-        String password  = request.getParameter("password");
-        String fullName  = request.getParameter("fullName");
-        String dob       = request.getParameter("dob");
-        String gender    = request.getParameter("gender");
-        String address   = request.getParameter("address");
-        int roleId = Integer.parseInt(request.getParameter("role_selection"));
-        
 
-        boolean isSuccess = userDAO.updateUser(userId,username,email, password, fullName, dob, gender ,address, roleId);
+    private void handleUpdateUserInfo(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        int userId = Integer.parseInt(request.getParameter("userId"));
+        String username = request.getParameter("username");
+        String email = request.getParameter("email");
+        String password = request.getParameter("password");
+        String fullName = request.getParameter("fullName");
+        String dob = request.getParameter("dob");
+        String gender = request.getParameter("gender");
+        String address = request.getParameter("address");
+        int roleId = Integer.parseInt(request.getParameter("role_selection"));
+
+        boolean isSuccess = userDAO.updateUser(userId, username, email, password, fullName, dob, gender, address, roleId);
         if (!isSuccess) {
             request.setAttribute("roles", roleDAO.getAllRoles());
             request.setAttribute("error", "Cập nhật người dùng thất bại. Email có thể đã tồn tại.");
@@ -256,15 +288,13 @@ public class AdminController extends HttpServlet {
         emailService.sendResetPasswordEmailAsync(email, password);
         LOGGER.log(Level.INFO, "User updated  and password sent to: {0}", email);
         request.getSession().setAttribute("success", "Cập nhật người dùng thành công. Mật khẩu tạm thời đã được gửi đến email.");
-        response.sendRedirect(request.getContextPath() + "/v1/admin/user-list");        
-    }    
-    
-    
+        response.sendRedirect(request.getContextPath() + "/v1/admin/user-list");
+    }
 
     private void handleChangingStatus(HttpServletRequest request, HttpServletResponse response, User user) throws ServletException, IOException {
         int status = Integer.parseInt(request.getParameter("status"));
         int userId = Integer.parseInt(request.getParameter("id"));
-        if(userId == user.getUserId()){
+        if (userId == user.getUserId()) {
             request.getSession().setAttribute("error", "Không thể tự activate/deactive bản thân");
             response.sendRedirect(request.getContextPath() + "/v1/admin/user-list");
             return;
@@ -279,7 +309,6 @@ public class AdminController extends HttpServlet {
         response.sendRedirect(request.getContextPath() + "/v1/admin/user-list");
     }
 
-
     private void handleChangingStatusRole(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
         int status = Integer.parseInt(request.getParameter("status"));
         int roleId = Integer.parseInt(request.getParameter("id"));
@@ -291,8 +320,6 @@ public class AdminController extends HttpServlet {
         }
         response.sendRedirect(request.getContextPath() + "/v1/admin/role-list");
     }
-
-
 
     private void displayUpdateRoleForm(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
         String rawRoleId = request.getParameter("id");
@@ -332,7 +359,8 @@ public class AdminController extends HttpServlet {
             Role fallback = null;
             try {
                 fallback = roleDAO.getRoleById(Integer.parseInt(rawRoleId));
-            } catch (Exception ignored) {}
+            } catch (Exception ignored) {
+            }
             request.setAttribute("error", "Mã vai trò và tên vai trò không được để trống");
             request.setAttribute("selectedRole", fallback);
             request.getRequestDispatcher("/public/admin/update_role.jsp").forward(request, response);
@@ -367,9 +395,8 @@ public class AdminController extends HttpServlet {
 
         LOGGER.log(Level.INFO, "Role updated successfully: roleId={0}", roleId);
         request.getSession().setAttribute("success", "Cập nhật vai trò thành công");
-        response.sendRedirect(request.getContextPath() + "/v1/admin/role-list" );
+        response.sendRedirect(request.getContextPath() + "/v1/admin/role-list");
     }
-
 
     private void handleDeleteRole(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
         String rawRoleId = request.getParameter("id");
@@ -520,7 +547,7 @@ public class AdminController extends HttpServlet {
         dob = isBlank(dob) ? null : dob.trim();
         address = isBlank(address) ? null : address.trim();
 
-        if (userDAO.isUsernameExistsForOtherUser(username, sessionUser.getUserId())) {
+        if (userDAO.isUsernameExists(username, sessionUser.getUserId())) {
             request.setAttribute("error", "Tên đăng nhập đã tồn tại");
             request.setAttribute("currentUser", userDAO.getUserById(sessionUser.getUserId()));
             request.getRequestDispatcher("/public/admin/my_profile.jsp").forward(request, response);

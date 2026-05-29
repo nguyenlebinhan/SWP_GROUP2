@@ -2,7 +2,7 @@
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
 
 <style>
-    .admin-topbar {
+    .manager-topbar {
         min-height: 70px;
         background: white;
         display: flex;
@@ -10,29 +10,29 @@
         align-items: center;
         gap: 18px;
         padding: 0 24px;
-        border-radius: 10px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        border-radius: 12px;
+        box-shadow: 0 2px 12px rgba(0,0,0,0.07);
         margin-bottom: 24px;
     }
 
-    .admin-topbar-title {
+    .manager-topbar-title {
         font-size: 20px;
         font-weight: 700;
         color: #0B0E2A;
         margin: 0;
     }
 
-    .admin-topbar-actions {
+    .manager-topbar-actions {
         display: flex;
         align-items: center;
         gap: 18px;
     }
 
-    .admin-user-menu {
+    .manager-user-menu {
         position: relative;
     }
 
-    .admin-user-trigger {
+    .manager-user-trigger {
         border: 0;
         background: transparent;
         display: flex;
@@ -43,49 +43,55 @@
         cursor: pointer;
     }
 
-    .admin-avatar-img {
+    .manager-avatar {
         width: 40px;
         height: 40px;
         border-radius: 50%;
-        background: #2b6cb0;
+        background: #ff8c00;
         color: #fff;
         display: inline-flex;
         align-items: center;
         justify-content: center;
         font-size: 18px;
-        flex: 0 0 auto;
+        font-weight: 700;
     }
 
-    .admin-user-name {
+    .manager-user-name {
         max-width: 180px;
         font-size: 14px;
-        font-weight: 700;
+        font-weight: 600;
         color: #111827;
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
     }
 
-    .admin-user-dropdown {
+    .manager-user-role {
+        font-size: 11px;
+        color: #9ca3af;
+        font-weight: 500;
+    }
+
+    .manager-user-dropdown {
         display: none;
         position: absolute;
         right: 0;
         top: calc(100% + 8px);
-        min-width: 190px;
+        min-width: 200px;
         background: #fff;
         border: 1px solid #e5e7eb;
-        border-radius: 8px;
+        border-radius: 10px;
         box-shadow: 0 12px 28px rgba(15,23,42,0.14);
         padding: 8px;
         z-index: 1000;
     }
 
-    .admin-user-menu:hover .admin-user-dropdown,
-    .admin-user-menu:focus-within .admin-user-dropdown {
+    .manager-user-menu:hover .manager-user-dropdown,
+    .manager-user-menu:focus-within .manager-user-dropdown {
         display: block;
     }
 
-    .admin-dropdown-item {
+    .manager-dropdown-item {
         display: flex;
         align-items: center;
         gap: 8px;
@@ -95,65 +101,69 @@
         text-decoration: none;
         font-size: 14px;
         font-weight: 600;
+        transition: background .15s;
     }
 
-    .admin-dropdown-item:hover {
+    .manager-dropdown-item:hover {
         background: #f3f4f6;
         color: #111827;
     }
 
-    .admin-dropdown-item.logout {
+    .manager-dropdown-item.logout {
         color: #b91c1c;
     }
 
-    @media (max-width: 768px) {
-        .admin-topbar {
-            align-items: flex-start;
-            flex-direction: column;
-            padding: 16px;
-        }
+    .manager-dropdown-item.logout:hover {
+        background: #fef2f2;
+        color: #b91c1c;
+    }
 
-        .admin-topbar-actions {
-            width: 100%;
-            justify-content: flex-end;
-        }
+    .manager-dropdown-divider {
+        height: 1px;
+        background: #f1f3f5;
+        margin: 6px 0;
     }
 </style>
 
 <c:set var="topbarUser" value="${sessionScope.user}" />
 <c:set var="topbarDisplayName" value="${empty topbarUser.fullName ? topbarUser.username : topbarUser.fullName}" />
 
-<div class="admin-topbar">
+<div class="manager-topbar">
     <div style="display:flex;align-items:center;gap:12px">
         <c:if test="${not empty param.backUrl}">
             <a href="${pageContext.request.contextPath}${param.backUrl}"
-               style="width:34px;height:34px;background:#f3f4f6;border:1px solid #e5e7eb;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;color:#6b7280;text-decoration:none;flex-shrink:0"
+               style="width:34px;height:34px;background:#f3f4f6;border:1px solid #e5e7eb;border-radius:8px;
+                      display:inline-flex;align-items:center;justify-content:center;color:#6b7280;text-decoration:none;
+                      flex-shrink:0;transition:background .2s"
                title="Quay lại">
                 <i class="fa fa-arrow-left" style="font-size:13px"></i>
             </a>
         </c:if>
-        <h4 class="admin-topbar-title">
-            <c:out value="${empty param.title ? 'HRM Admin' : param.title}" />
+        <h4 class="manager-topbar-title">
+            <c:out value="${empty param.title ? 'HRM Manager' : param.title}" />
         </h4>
     </div>
 
-    <div class="admin-topbar-actions">
-
-        <div class="admin-user-menu">
-            <button type="button" class="admin-user-trigger" aria-label="Tài khoản">
-                <span class="admin-avatar-img">
+    <div class="manager-topbar-actions">
+        <div class="manager-user-menu">
+            <button type="button" class="manager-user-trigger" aria-label="Tài khoản">
+                <span class="manager-avatar">
                     <i class="fa-solid fa-user-tie"></i>
                 </span>
-                <span class="admin-user-name">
-                    <c:out value="${empty topbarDisplayName ? 'Admin' : topbarDisplayName}" />
+                <span>
+                    <span class="manager-user-name">
+                        <c:out value="${empty topbarDisplayName ? 'Manager' : topbarDisplayName}" />
+                    </span>
+                    <span class="manager-user-role d-block">HR Manager</span>
                 </span>
-                <i class="fa-solid fa-chevron-down" style="font-size:12px;color:#6b7280"></i>
+                <i class="fa-solid fa-chevron-down" style="font-size:11px;color:#6b7280;margin-left:4px"></i>
             </button>
-            <div class="admin-user-dropdown">
-                <a href="${pageContext.request.contextPath}/v1/admin/my-profile" class="admin-dropdown-item">
+            <div class="manager-user-dropdown">
+                <a href="${pageContext.request.contextPath}/v1/manager/my-profile" class="manager-dropdown-item">
                     <i class="fa-solid fa-user-gear"></i> Hồ sơ của tôi
                 </a>
-                <a href="${pageContext.request.contextPath}/v1/auth/logout" class="admin-dropdown-item logout">
+                <div class="manager-dropdown-divider"></div>
+                <a href="${pageContext.request.contextPath}/v1/auth/logout" class="manager-dropdown-item logout">
                     <i class="fa-solid fa-right-from-bracket"></i> Đăng xuất
                 </a>
             </div>

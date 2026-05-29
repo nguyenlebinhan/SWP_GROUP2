@@ -7,7 +7,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <title>Phân quyền vai trò - HRM</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet"/>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet"/>
     <style>
         body { background: #f5f6fa; font-family: 'Segoe UI', sans-serif; }
         .main-content { margin-left: 250px; padding: 30px; }
@@ -201,9 +200,9 @@
 
                 <div class="card mb-4">
                     <div class="card-body p-4">
-                        <div class="section-label"><i class="fa fa-shield-halved"></i>Vai trò đang chỉnh sửa</div>
+                        <div class="section-label">Vai trò đang chỉnh sửa</div>
                         <div class="role-badge">
-                            <i class="fa fa-shield-halved"></i>
+                           
                             <span><c:out value="${selectedRole.roleName}"/></span>
                             <span style="color:#818cf8;font-weight:400">·</span>
                             <span style="font-size:12px;color:#6366f1"><c:out value="${selectedRole.roleCode}"/></span>
@@ -216,27 +215,26 @@
 
                 <div class="card">
                     <div class="card-body p-4">
-                        <div class="section-label"><i class="fa fa-key"></i>Chọn quyền cho vai trò</div>
+                        <div class="section-label">Chọn quyền cho vai trò</div>
 
                         <div class="toolbar">
                             <span>Đã chọn: <span class="count-badge" id="countBadge">0</span></span>
                             <button type="button" class="btn-select-all" onclick="selectAll()">
-                                <i class="fa fa-check-double me-1"></i>Chọn tất cả
+                                Chọn tất cả
                             </button>
                             <button type="button" class="btn-clear-all" onclick="clearAll()">
-                                <i class="fa fa-xmark me-1"></i>Bỏ chọn tất cả
+                               Bỏ chọn tất cả
                             </button>
                         </div>
 
-                        <%-- Nhóm: Người dùng --%>
-                        <div class="group-title"><i class="fa fa-user me-1"></i>Người dùng</div>
+                        <div class="group-title">Người dùng</div>
                         <div class="row g-3 mb-2">
                             <c:forEach var="p" items="${allPermissions}">
                                 <c:if test="${p.permissionCode == 'VIEW_USERS' || p.permissionCode == 'ADD_USER' || p.permissionCode == 'EDIT_USER' || p.permissionCode == 'DELETE_USER'}">
                                     <div class="col-md-3">
                                         <label class="perm-card ${assignedPermissionIds.contains(p.permissionId) ? 'selected' : ''}" onclick="toggleCard(this)">
                                             <input type="checkbox" name="permissionIds" value="${p.permissionId}" ${assignedPermissionIds.contains(p.permissionId) ? 'checked' : ''}/>
-                                            <i class="fa fa-circle-check check-icon"></i>
+                                         
                                             <div class="perm-name"><c:out value="${p.permissionName}"/></div>
                                             <div><span class="perm-code"><c:out value="${p.permissionCode}"/></span></div>
                                             <div class="perm-desc"><c:out value="${empty p.description ? '—' : p.description}"/></div>
@@ -247,14 +245,14 @@
                         </div>
 
                         <%-- Nhóm: Vai trò & Phân quyền --%>
-                        <div class="group-title"><i class="fa fa-shield-halved me-1"></i>Vai trò &amp; Phân quyền</div>
+                        <div class="group-title">Vai trò &amp; Phân quyền</div>
                         <div class="row g-3 mb-2">
                             <c:forEach var="p" items="${allPermissions}">
                                 <c:if test="${p.permissionCode == 'VIEW_ROLES' || p.permissionCode == 'ADD_ROLE' || p.permissionCode == 'EDIT_ROLE' || p.permissionCode == 'DELETE_ROLE' || p.permissionCode == 'MANAGE_PERMISSIONS'}">
                                     <div class="col-md-3">
                                         <label class="perm-card ${assignedPermissionIds.contains(p.permissionId) ? 'selected' : ''}" onclick="toggleCard(this)">
                                             <input type="checkbox" name="permissionIds" value="${p.permissionId}" ${assignedPermissionIds.contains(p.permissionId) ? 'checked' : ''}/>
-                                            <i class="fa fa-circle-check check-icon"></i>
+                                            
                                             <div class="perm-name"><c:out value="${p.permissionName}"/></div>
                                             <div><span class="perm-code"><c:out value="${p.permissionCode}"/></span></div>
                                             <div class="perm-desc"><c:out value="${empty p.description ? '—' : p.description}"/></div>
@@ -266,7 +264,7 @@
 
                         <div class="d-flex gap-3 pt-2 border-top">
                             <button type="submit" class="btn-save mt-3">
-                                <i class="fa fa-floppy-disk me-2"></i>Lưu phân quyền
+                                Lưu phân quyền
                             </button>
                             <a href="${pageContext.request.contextPath}/v1/admin/role-detail?id=${selectedRole.roleId}" class="btn-cancel-link mt-3">
                                 Hủy

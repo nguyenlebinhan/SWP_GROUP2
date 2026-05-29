@@ -7,7 +7,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <title>Chi tiết người dùng – HRM</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet"/>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet"/>
     <style>
         body {
             background: #f5f6fa;
@@ -19,34 +18,6 @@
             padding: 30px;
         }
 
-        .page-header {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            margin-bottom: 24px;
-        }
-
-        .page-header a.back-btn {
-            width: 36px;
-            height: 36px;
-            background: white;
-            border: 1px solid #e5e7eb;
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #6b7280;
-            text-decoration: none;
-            transition: background .2s;
-        }
-
-        .page-header a.back-btn:hover { background: #f3f4f6; }
-
-        .page-header h5 {
-            font-weight: 700;
-            color: #0B0E2A;
-            margin: 0;
-        }
 
         .alert-flash {
             border-radius: 8px;
@@ -58,7 +29,6 @@
         .profile-card {
             background: white;
             border-radius: 12px;
-            box-shadow: 0 2px 12px rgba(0,0,0,0.07);
             padding: 32px 24px;
             text-align: center;
             height: 100%;
@@ -75,13 +45,6 @@
             align-items: center;
             justify-content: center;
             margin: 0 auto 16px;
-        }
-
-        .profile-name {
-            font-size: 18px;
-            font-weight: 700;
-            color: #111827;
-            margin: 0 0 10px;
         }
 
         .role-pill {
@@ -146,7 +109,6 @@
             word-break: break-all;
         }
 
-        /* Info panel */
         .info-panel {
             background: white;
             border-radius: 12px;
@@ -260,15 +222,13 @@
     <c:choose>
         <c:when test="${empty selectedUser}">
             <div class="empty-card">
-                <i class="fa fa-user-slash"></i>
+                
                 Không tìm thấy thông tin người dùng.
             </div>
         </c:when>
         <c:otherwise>
             <c:set var="displayName" value="${empty selectedUser.fullName ? selectedUser.username : selectedUser.fullName}"/>
             <div class="row g-4">
-
-                <!-- Left: Profile card -->
                 <div class="col-lg-3 col-md-4">
                     <div class="profile-card">
                         <div class="avatar-circle">
@@ -296,10 +256,6 @@
                         </div>
 
                         <div class="profile-meta">
-                            <div class="meta-item">
-                                <span class="meta-label">Mã nhân viên</span>
-                                <span class="meta-value">NV<c:out value="${selectedUser.userId}"/></span>
-                            </div>
                             <div class="meta-item">
                                 <span class="meta-label">Vai trò</span>
                                 <span class="meta-value">
@@ -329,7 +285,7 @@
                         <!-- Thông tin cơ bản -->
                         <div class="info-section">
                             <div class="section-title">
-                                <i class="fa fa-id-card"></i>Thông tin cơ bản
+                                Thông tin cơ bản
                             </div>
                             <div class="info-grid">
                                 <div class="info-item">
@@ -368,7 +324,7 @@
                         <!-- Thông tin tài khoản -->
                         <div class="info-section">
                             <div class="section-title">
-                                <i class="fa fa-lock"></i>Thông tin tài khoản
+                                Thông tin tài khoản
                             </div>
                             <div class="info-grid">
                                 <div class="info-item">
@@ -387,12 +343,12 @@
                                         <c:choose>
                                             <c:when test="${selectedUser.isActive == 1}">
                                                 <span class="badge-active">
-                                                    <i class="fa fa-circle-check me-1"></i>Hoạt động
+                                                    >Hoạt động
                                                 </span>
                                             </c:when>
                                             <c:otherwise>
                                                 <span class="badge-inactive">
-                                                    <i class="fa fa-circle-xmark me-1"></i>Vô hiệu
+                                                    Vô hiệu
                                                 </span>
                                             </c:otherwise>
                                         </c:choose>
@@ -404,12 +360,12 @@
                                         <c:choose>
                                             <c:when test="${selectedUser.isTemporaryPassword}">
                                                 <span class="badge-temp">
-                                                    <i class="fa fa-clock me-1"></i>Mật khẩu tạm thời
+                                                    Mật khẩu tạm thời
                                                 </span>
                                             </c:when>
                                             <c:otherwise>
                                                 <span class="badge-set">
-                                                    <i class="fa fa-circle-check me-1"></i>Đã thiết lập
+                                                    Đã thiết lập
                                                 </span>
                                             </c:otherwise>
                                         </c:choose>

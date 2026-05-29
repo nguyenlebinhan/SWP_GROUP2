@@ -16,4 +16,12 @@
         <servlet-name>AdminController</servlet-name>
         <url-pattern>/v1/admin/*</url-pattern>
     </servlet-mapping>
+    <servlet>
+        <servlet-name>ManagerController</servlet-name>
+        <servlet-class>controller.ManagerController</servlet-class>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>ManagerController</servlet-name>
+        <url-pattern>/v1/manager/*</url-pattern>
+    </servlet-mapping>
 </web-app>

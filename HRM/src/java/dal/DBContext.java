@@ -25,7 +25,6 @@ public class DBContext {
                 throw new RuntimeException("Missing database configuration information in .env file");
             }
             
-            // ✅ Đổi từ SQL Server sang MySQL
             Class.forName("com.mysql.cj.jdbc.Driver");
             conn = DriverManager.getConnection(url, username, password);
             return conn;

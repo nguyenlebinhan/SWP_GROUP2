@@ -7,7 +7,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <title>Chi tiết vai trò - HRM</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet"/>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet"/>
     <style>
         body { background: #f5f6fa; font-family: 'Segoe UI', sans-serif; }
         .main-content { margin-left: 250px; padding: 30px; }
@@ -275,10 +274,10 @@
                         <div>
                             <c:choose>
                                 <c:when test="${selectedRole.isActive == 1}">
-                                    <span class="badge-active"><i class="fa fa-circle-check"></i>Hoạt động</span>
+                                    <span class="badge-active"></i>Hoạt động</span>
                                 </c:when>
                                 <c:otherwise>
-                                    <span class="badge-inactive"><i class="fa fa-circle-xmark"></i>Vô hiệu</span>
+                                    <span class="badge-inactive"></i>Vô hiệu</span>
                                 </c:otherwise>
                             </c:choose>
                         </div>
@@ -306,7 +305,7 @@
                         <div class="section-block">
                             <div class="d-flex justify-content-between align-items-center mb-0" style="padding-bottom:10px;border-bottom:2px solid #f1f3f5;margin-bottom:20px">
                                 <div class="section-title" style="border:none;padding:0;margin:0">
-                                    <i class="fa fa-key"></i>Quyền hệ thống
+                                    Quyền hệ thống
                                 </div>
                                 <div class="d-flex align-items-center gap-2">
                                     <span style="font-size:12px;color:#6b7280">
@@ -315,7 +314,7 @@
                                     </span>
                                     <a href="${pageContext.request.contextPath}/v1/admin/edit-role-permissions?id=${selectedRole.roleId}"
                                        class="btn-edit-role" style="height:34px;padding:0 14px;font-size:13px">
-                                        <i class="fa fa-pen-to-square"></i> Phân quyền
+                                         Phân quyền
                                     </a>
                                 </div>
                             </div>
@@ -377,7 +376,7 @@
 
                         <div class="section-block">
                             <div class="section-title">
-                                <i class="fa fa-users"></i>Người dùng thuộc vai trò
+                                Người dùng thuộc vai trò
                             </div>
                             <c:choose>
                                 <c:when test="${empty roleUsers}">

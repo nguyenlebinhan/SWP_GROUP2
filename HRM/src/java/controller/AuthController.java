@@ -436,6 +436,8 @@ public class AuthController extends HttpServlet {
         switch (role) {
             case "admin":
                 return "/v1/admin/dashboard";
+            case "hrmanager":
+                return "/v1/manager/dashboard";
             default:
                 LOGGER.log(Level.WARNING, "Unknown role for userId {0}: {1}", new Object[]{user.getUserId(), user.getRoleName()});
                 return AUTH_BASE_PATH + "/login";

@@ -16,10 +16,8 @@
       display: flex;
       height: 100vh;
       overflow: hidden;
-      background: #0d1240;
     }
 
-    /* ── LEFT PANEL ── */
     .left-panel {
       flex: 0 0 58%;
       position: relative;
@@ -31,10 +29,9 @@
       height: 100%;
       object-fit: cover;
       object-position: center;
-      display: block;
+      display: flex;
     }
 
-    /* ── RIGHT PANEL ── */
     .right-panel {
       flex: 0 0 42%;
       background: #f5f6fa;
@@ -44,24 +41,17 @@
       justify-content: center;
       padding: 2.5rem 3.5rem;
       position: relative;
-      /* subtle left border echoing the panel's blue glow */
-      border-left: 1px solid rgba(21, 101, 192, 0.12);
+      border-left: 1px solid white;
     }
-    
 
-    /* card container */
     .auth-card {
       width: 100%;
       max-width: 340px;
       background: #fff;
       border-radius: 20px;
       padding: 2.8rem 2.4rem 2.2rem;
-      box-shadow:
-        0 2px 8px rgba(13,18,64,.06),
-        0 12px 40px rgba(13,18,64,.10);
     }
 
-    /* logo */
     .logo-wrap {
       text-align: center;
       margin-bottom: 2rem;
@@ -69,13 +59,11 @@
     .logo-icon {
       width: 56px;
       height: 56px;
-      background: linear-gradient(135deg, #1565c0 0%, #0d47a1 100%);
       border-radius: 16px;
       display: flex;
       align-items: center;
       justify-content: center;
       margin: 0 auto .9rem;
-      box-shadow: 0 4px 16px rgba(21,101,192,.3);
     }
     .logo-icon i {
       font-size: 1.6rem;
@@ -95,41 +83,21 @@
     }
     .logo-powered span { color: #ff6b00; font-weight: 600; }
 
-    /* welcome heading */
+
     .welcome-heading {
       font-size: 1.1rem;
       font-weight: 600;
-      color: #1a1a2e;
       text-align: center;
       margin-bottom: .5rem;
     }
     .welcome-sub {
       font-size: .78rem;
-      color: #9aa0b5;
       text-align: center;
       margin-bottom: 2rem;
       line-height: 1.5;
     }
 
-    /* divider */
-    .divider {
-      display: flex;
-      align-items: center;
-      gap: .7rem;
-      margin: 1.4rem 0;
-    }
-    .divider::before, .divider::after {
-      content: '';
-      flex: 1;
-      height: 1px;
-      background: #eef0f5;
-    }
-    .divider span {
-      font-size: .72rem;
-      color: #c5c9d8;
-    }
 
-    /* action buttons */
     .btn-action {
       display: flex;
       align-items: center;
@@ -137,8 +105,6 @@
       padding: .9rem 1.2rem;
       border-radius: 12px;
       margin-bottom: .85rem;
-      transition: all .25s cubic-bezier(.4, 0, .2, 1);
-      border: 1.5px solid transparent;
       gap: .9rem;
     }
 
@@ -147,30 +113,25 @@
       height: 38px;
       border-radius: 10px;
       display: flex;
-      align-items: center;
       justify-content: center;
+      align-items: center;
       font-size: 1.1rem;
-      flex-shrink: 0;
-      transition: transform .25s;
     }
 
     .btn-action .label {
       font-weight: 600;
       font-size: .9rem;
-      flex: 1;
     }
 
     .btn-action .arrow {
       font-size: .8rem;
       opacity: .45;
-      transition: opacity .2s, transform .2s;
     }
 
-    /* login style */
     .login-style {
       background: #eef4ff;
       color: #1565c0;
-      border-color: #d5e4ff;
+      border: 1.5px solid greenyellow;
     }
     .login-style .icon-box {
       background: #1565c0;
@@ -181,7 +142,6 @@
       color: #fff;
       border-color: #1565c0;
       transform: translateY(-2px);
-      box-shadow: 0 6px 20px rgba(21,101,192,.25);
     }
     .login-style:hover .icon-box {
       background: rgba(255,255,255,.2);
@@ -189,7 +149,6 @@
     }
     .login-style:hover .arrow { opacity: .9; transform: translateX(3px); }
 
-    /* footer note */
     .footer-note {
       text-align: center;
       font-size: .72rem;
@@ -200,23 +159,7 @@
       border-top: 1px solid #f0f2f8;
     }
 
-    /* bottom brand strip outside card */
-    .brand-strip {
-      margin-top: 1.6rem;
-      display: flex;
-      align-items: center;
-      gap: .5rem;
-      font-size: .72rem;
-      color: #c0c5d4;
-    }
-    .brand-strip .dot {
-      width: 4px;
-      height: 4px;
-      background: #d0d4e0;
-      border-radius: 50%;
-    }
 
-    /* responsive */
     @media (max-width: 768px) {
       .left-panel { display: none; }
       .right-panel { flex: 1; padding: 2rem 1.5rem; }
@@ -225,12 +168,10 @@
 </head>
 <body>
 
-<!-- ══════════════════ LEFT PANEL ══════════════════ -->
 <div class="left-panel">
   <img src="public/asset/Left Panel.jpg" alt="HRM System" class="panel-img"/>
 </div>
 
-<!-- ══════════════════ RIGHT PANEL ══════════════════ -->
 <div class="right-panel">
   <div class="auth-card">
     <div class="logo-wrap">
@@ -243,18 +184,14 @@
       <div class="logo-powered">Powered by <span>Group 2</span></div>
     </div>
 
-    <!-- welcome -->
     <p class="welcome-heading">Chào mừng trở lại!</p>
     <p class="welcome-sub">Đăng nhập để quản lý nhân sự<br>và tổ chức của bạn</p>
 
-    <!-- login button -->
     <a href="v1/auth/login" class="btn-action login-style">
-      <div class="icon-box"><i class="bi bi-person-check-fill"></i></div>
       <span class="label">Đăng nhập hệ thống</span>
       <i class="bi bi-arrow-right arrow"></i>
     </a>
 
-    <!-- footer note -->
     <div class="footer-note">
       Gặp sự cố truy cập? Vui lòng liên hệ<br>
       <strong style="color:#9aa0b5;">Quản trị viên hệ thống</strong>
@@ -262,14 +199,6 @@
 
   </div>
 
-  <!-- brand strip -->
-  <div class="brand-strip">
-    <span>HRM System</span>
-    <span class="dot"></span>
-    <span>Phần mềm Quản trị Nhân sự</span>
-    <span class="dot"></span>
-    <span>v2.0</span>
-  </div>
 
 </div>
 
