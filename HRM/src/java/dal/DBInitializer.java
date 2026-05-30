@@ -150,8 +150,8 @@ public class DBInitializer {
                 + "employeeId INT PRIMARY KEY AUTO_INCREMENT,"
                 + "employeeCode VARCHAR(50) NOT NULL UNIQUE,"
                 + "userId INT NOT NULL,"
-                + "departmentId INT NOT NULL,"
-                + "positionId INT NOT NULL,"
+                + "departmentId INT NULL,"          // NULL = chưa phân công phòng ban (gán sau qua assign-department)
+                + "positionId INT NULL,"            // NULL = chưa phân công vị trí
                 + "phoneNumber VARCHAR(20),"
                 + "skills NVARCHAR(255),"
                 + "experience NVARCHAR(255),"
@@ -472,8 +472,7 @@ public class DBInitializer {
                 insertUser(conn, "admin", "nguyenlebinhank63@gmail.com",BCrypt.withDefaults().hashToString(12, "admin123".toCharArray()), "Nguyễn Lê Bình An", "2006-01-06", "Phủ Lý, Hà Nam", 1);
                 insertUser(conn,"minhquan","minhquan153452@gmail.com",BCrypt.withDefaults().hashToString(12, "google123".toCharArray()),"Minh Quân","2006-01-01","Hà Nội",1);
                 insertUser(conn, "vu", "didoan482@gmail.com", BCrypt.withDefaults().hashToString(12, "soss123".toCharArray()), "Phạm Vũ", "2006-10-17", "Thanh Hóa", 1);
-                insertUser(conn, "manager", "vu2006124@gmail.com", BCrypt.withDefaults().hashToString(12, "manager123".toCharArray()), "MnM", "2006-10-10", "Ohio", 2);
-                insertUser(conn,"annguyen123","nguyenlebinhank69@gmail.com",BCrypt.withDefaults().hashToString(12, "nguyenlebinhank63CBH".toCharArray()),"Nguyễn Mèo","2006-06-01","America",3);
+                
             }
             if (countRows(conn, "Permissions") == 0) {
                 insertPermission(conn, "VIEW_USERS",       "Xem người dùng",         "Quyền xem danh sách và chi tiết người dùng");

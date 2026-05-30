@@ -202,7 +202,7 @@
         </div>
 
         <c:choose>
-            <c:when test="${empty availableUsers}">
+            <c:when test="${empty availableEmployees}">
                 <div class="empty-state">
                     <div class="empty-state-icon">
                         <i class="fa-solid fa-user-check"></i>
@@ -219,10 +219,8 @@
                 <form action="${pageContext.request.contextPath}/v1/employee/assign-department"
                       method="post" id="assignForm" novalidate>
 
-                    <%-- Section: Bắt buộc --%>
                     <div class="section-title">Thông tin bắt buộc</div>
 
-                    <%-- Người dùng - full width --%>
                     <div class="h-form-row cols-1">
                         <div class="h-label">
                             Người dùng <span class="required-dot"></span>
@@ -231,7 +229,7 @@
                             <select class="form-select" id="userId" name="userId"
                                     required onchange="onUserChange(this)">
                                 <option value="">— Chọn người dùng —</option>
-                                <c:forEach var="u" items="${availableUsers}">
+                                <c:forEach var="u" items="${availableEmployees}">
                                     <option value="${u.userId}"
                                             data-email="${u.email}"
                                             data-role="${u.roleName}">

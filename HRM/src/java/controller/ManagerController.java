@@ -2,6 +2,7 @@ package controller;
 
 import dao.*;
 import dto.EmployeeDTO;
+import dto.EmployeeDetailDTO;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
@@ -38,10 +39,12 @@ public class ManagerController extends HttpServlet {
         if (action == null || action.equals("/")) {
             action = "/dashboard";
         }
-
         switch (action) {
             case "/dashboard":
                 displayDashboard(request, response);
+                break;
+            case "/employee-list":
+                displayDepartmentEmployees(request, response, user);
                 break;
             default:
                 response.sendRedirect(request.getContextPath() + "/v1/manager/dashboard");
@@ -76,6 +79,25 @@ public class ManagerController extends HttpServlet {
         request.setAttribute("pendingLeaves", 0);
         request.setAttribute("deptChart", deptChart);
         request.getRequestDispatcher("/public/manager/dashboard.jsp").forward(request, response);
+    }
+
+    private void displayDepartmentEmployees(HttpServletRequest request, HttpServletResponse response,
+                                             User user) throws ServletException, IOException {
+        EmployeeDetailDTO manager = employeeDAO.getEmployeeByUserId(user.getUserId());
+
+        // Manager chưa được gắn vào phòng ban nào => không có dữ liệu để xem.
+        if (manager == null) {
+            request.setAttribute("departmentName", null);
+            request.setAttribute("employees", java.util.Collections.emptyList());
+            request.setAttribute("error", "Bạn chưa được phân công vào phòng ban nào.");
+            request.getRequestDispatcher("/public/manager/employee_list.jsp").forward(request, response);
+            return;
+        }
+
+        List<EmployeeDetailDTO> employees = employeeDAO.getEmployeesByDepartmentId(manager.getDepartmentId());
+        request.setAttribute("departmentName", manager.getDepartmentName());
+        request.setAttribute("employees", employees);
+        request.getRequestDispatcher("/public/manager/employee_list.jsp").forward(request, response);
     }
 
     private void preventBackCache(HttpServletResponse response) {
