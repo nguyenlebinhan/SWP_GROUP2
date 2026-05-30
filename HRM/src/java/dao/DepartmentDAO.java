@@ -138,7 +138,7 @@ public class DepartmentDAO {
                 ps.setInt(1, departmentId);
                 try (ResultSet rs = ps.executeQuery()) {
                     if (rs.next() && rs.getInt(1) == 0) {
-                        return true; // không có luật => không giới hạn
+                        return true;
                     }
                 }
             }

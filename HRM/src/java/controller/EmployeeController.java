@@ -50,6 +50,9 @@ public class EmployeeController extends HttpServlet {
             case "/employee-list":
                 displayEmployeeList(request, response, user);
                 break;
+            case "/department-detail":
+                displayEmployeeDepartmentDetail(request, response, user);
+                break;
             case "/assign-department":
                 displayAssignDepartmentForm(request, response, user);
                 break;
@@ -123,6 +126,46 @@ public class EmployeeController extends HttpServlet {
         request.setAttribute("employees", employees);
         setPermissionFlags(request, perms);
         request.getRequestDispatcher("/public/employee/employee_list.jsp").forward(request, response);
+    }
+
+    private void displayEmployeeDepartmentDetail(HttpServletRequest request, HttpServletResponse response,
+                                                  User user) throws ServletException, IOException {
+        if (!hasPermission(user, "VIEW_DEPARTMENT_EMPLOYEES_DETAIL")) {
+            request.getSession().setAttribute("error", "Bạn không có quyền xem nhân viên của phòng ban.");
+            response.sendRedirect(request.getContextPath() + "/v1/employee/dashboard");
+            return;
+        }
+
+        String rawDepartmentId = request.getParameter("id");
+        if (isBlank(rawDepartmentId)) {
+            request.getSession().setAttribute("error", "Thiếu mã phòng ban.");
+            response.sendRedirect(request.getContextPath() + "/v1/employee/department-list");
+            return;
+        }
+
+        int departmentId;
+        try {
+            departmentId = Integer.parseInt(rawDepartmentId);
+        } catch (NumberFormatException e) {
+            request.getSession().setAttribute("error", "Mã phòng ban không hợp lệ.");
+            response.sendRedirect(request.getContextPath() + "/v1/employee/department-list");
+            return;
+        }
+
+        Department department = departmentDAO.getDepartmentById(departmentId);
+        if (department == null) {
+            request.getSession().setAttribute("error", "Không tìm thấy phòng ban.");
+            response.sendRedirect(request.getContextPath() + "/v1/employee/department-list");
+            return;
+        }
+
+        Set<String> perms = getPermissions(user);
+        request.getSession().setAttribute("userPermissions", perms);
+        List<EmployeeDetailDTO> employees = employeeDAO.getEmployeesByDepartmentId(departmentId);
+        request.setAttribute("department", department);
+        request.setAttribute("employees", employees);
+        setPermissionFlags(request, perms);
+        request.getRequestDispatcher("/public/employee/department_employee_detail.jsp").forward(request, response);
     }
 
     private void displayAssignDepartmentForm(HttpServletRequest request, HttpServletResponse response,
