@@ -91,6 +91,33 @@ public class EmployeeDAO {
         }
         return list;
     }
+    
+    public List<EmployeeDetailDTO> getAllEmployeesByDepartmentId(int departmentId) {
+        List<EmployeeDetailDTO> list = new ArrayList<>();
+        String SQL = "SELECT e.employeeId, e.employeeCode, e.userId, e.departmentId, e.positionId, "
+                   + "e.phoneNumber, e.skills, e.experience, e.degree, e.status, e.managerId, "
+                   + "u.fullName, u.email, u.username, "
+                   + "d.departmentName, p.positionName, r.roleName "
+                   + "FROM Employees e "
+                   + "JOIN Users u ON u.userId = e.userId "
+                   + "LEFT JOIN Departments d ON d.departmentId = e.departmentId "
+                   + "LEFT JOIN Positions p ON p.positionId = e.positionId "
+                   + "JOIN Roles r on r.roleId = u.roleId "
+                   + "WHERE d.departmentId != ? "
+                   + "ORDER BY e.employeeId DESC";
+        try (Connection conn = dbContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(SQL)){
+                ps.setInt(1, departmentId);
+                try(ResultSet rs = ps.executeQuery()){               
+                    while (rs.next()) {
+                        list.add(mapEmployeeDTO(rs));
+                    }
+                }
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Cannot retrieve all employees in department by departmentId: "+ departmentId, e);
+        }
+        return list;
+    }    
 
     public EmployeeDetailDTO getEmployeeById(int employeeId) {
         String SQL = "SELECT e.employeeId, e.employeeCode, e.userId, e.departmentId, e.positionId, "
