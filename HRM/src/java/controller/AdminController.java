@@ -258,7 +258,7 @@ public class AdminController extends HttpServlet {
         String address = request.getParameter("address");
         int roleId = Integer.parseInt(request.getParameter("role_selection"));
 
-        boolean isSuccess = userDAO.addUser(username, email, password, fullName, dob, gender, address, roleId);
+        boolean isSuccess = userDAO.addUserAndEmpployee(username, email, password, fullName, dob, gender, address, roleId);
         if (!isSuccess) {
             request.setAttribute("roles", roleDAO.getAllRoles());
             request.setAttribute("error", "Thêm người dùng thất bại. Email hoặc username có thể đã tồn tại.");
