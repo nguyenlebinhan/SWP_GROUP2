@@ -276,37 +276,6 @@
                         </div>
                     </div>
 
-                    <%-- Section: Bổ sung --%>
-                    <div class="section-title">Thông tin bổ sung <span style="font-weight:400;text-transform:none;letter-spacing:0">(tùy chọn)</span></div>
-
-                    <%-- Điện thoại + Học vấn --%>
-                    <div class="h-form-row cols-2">
-                        <div class="h-label">Số điện thoại</div>
-                        <div class="h-field">
-                            <input type="text" class="form-control" id="phoneNumber"
-                                   name="phoneNumber" placeholder="0912 345 678">
-                        </div>
-                        <div class="h-label">Học vấn</div>
-                        <div class="h-field">
-                            <input type="text" class="form-control" id="degree"
-                                   name="degree" placeholder="Đại học, Thạc sĩ...">
-                        </div>
-                    </div>
-
-                    <%-- Kỹ năng + Kinh nghiệm --%>
-                    <div class="h-form-row cols-2">
-                        <div class="h-label" style="padding-top:10px">Kỹ năng</div>
-                        <div class="h-field">
-                            <textarea class="form-control" id="skills" name="skills"
-                                      rows="3" placeholder="Java, SQL, Excel..."></textarea>
-                        </div>
-                        <div class="h-label" style="padding-top:10px">Kinh nghiệm</div>
-                        <div class="h-field">
-                            <textarea class="form-control" id="experience" name="experience"
-                                      rows="3" placeholder="2 năm kinh nghiệm lập trình..."></textarea>
-                        </div>
-                    </div>
-
                     <div class="action-bar">
                         <button type="submit" class="btn btn-submit">
                             <i class="fa-solid fa-check"></i> Xác nhận phân công

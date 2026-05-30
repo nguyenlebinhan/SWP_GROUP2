@@ -89,6 +89,8 @@
             <div class="row g-4">
                 <c:forEach var="dept" items="${departments}" varStatus="loop">
                     <div class="col-md-4 col-lg-3 dept-colors">
+                        <a href="${pageContext.request.contextPath}/v1/employee/department-detail?id=${dept.departmentId}"
+                           class="text-decoration-none text-reset d-block h-100">
                         <div class="dept-card h-100">
                             <div class="dept-icon" style="background:#dbeafe;color:#2563eb">
                                 <i class="fa-solid fa-sitemap"></i>
@@ -123,6 +125,7 @@
                                 </div>
                             </c:if>
                         </div>
+                        </a>
                     </div>
                 </c:forEach>
             </div>
