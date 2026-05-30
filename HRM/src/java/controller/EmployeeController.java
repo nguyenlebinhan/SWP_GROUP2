@@ -119,7 +119,7 @@ public class EmployeeController extends HttpServlet {
 
         Set<String> perms = getPermissions(user);
         request.getSession().setAttribute("userPermissions", perms);
-        List<EmployeeDetailDTO> employees = employeeDAO.getAllEmployees();
+        List<EmployeeDetailDTO> employees = employeeDAO.getAllEmployees(user.getUserId());
         request.setAttribute("employees", employees);
         setPermissionFlags(request, perms);
         request.getRequestDispatcher("/public/employee/employee_list.jsp").forward(request, response);
@@ -135,11 +135,11 @@ public class EmployeeController extends HttpServlet {
 
         Set<String> perms = getPermissions(user);
         request.getSession().setAttribute("userPermissions", perms);
-        List<User> availableUsers = employeeDAO.getUsersNotYetEmployees(user.getUserId());
+        List<User> availableEmployees = employeeDAO.getEmployees(user.getUserId());
         List<Department> departments = departmentDAO.getAllActiveDepartments();
         List<Position> positions = departmentDAO.getAllPositions();
 
-        request.setAttribute("availableUsers", availableUsers);
+        request.setAttribute("availableEmployees", availableEmployees);
         request.setAttribute("departments", departments);
         request.setAttribute("positions", positions);
         setPermissionFlags(request, perms);
@@ -207,13 +207,11 @@ public class EmployeeController extends HttpServlet {
             return;
         }
 
-        if (employeeDAO.isUserAlreadyEmployee(userId)) {
-            repopulateAssignForm(request, response, user, "Người dùng này đã được ghi nhận là nhân viên rồi.");
+        if (employeeDAO.isUserAssignedToDepartment(userId)) {
+            repopulateAssignForm(request, response, user, "Người dùng này đã được phân công phòng ban rồi.");
             return;
         }
 
-        // Vai trò của nhân viên phải phù hợp với phòng ban (luật trong bảng Department_Roles).
-        // Phòng ban không khai báo luật nào => chấp nhận mọi vai trò.
         int userRoleId = userDAO.getRoleIdByUserId(userId);
         if (!departmentDAO.isRoleAllowedForDepartment(departmentId, userRoleId)) {
             Department dept = departmentDAO.getDepartmentById(departmentId);
@@ -330,7 +328,7 @@ public class EmployeeController extends HttpServlet {
     private void repopulateAssignForm(HttpServletRequest request, HttpServletResponse response,
                                        User user, String errorMsg) throws ServletException, IOException {
         request.setAttribute("error", errorMsg);
-        request.setAttribute("availableUsers", employeeDAO.getUsersNotYetEmployees(user.getUserId()));
+        request.setAttribute("availableEmployees", employeeDAO.getEmployees(user.getUserId()));
         request.setAttribute("departments", departmentDAO.getAllActiveDepartments());
         request.setAttribute("positions", departmentDAO.getAllPositions());
         setPermissionFlags(request, getPermissions(user));
