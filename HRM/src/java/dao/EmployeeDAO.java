@@ -65,7 +65,7 @@ public class EmployeeDAO {
         return 0;
     }
 
-    public List<EmployeeDetailDTO> getAllEmployees() {
+    public List<EmployeeDetailDTO> getAllEmployees(int userId) {
         List<EmployeeDetailDTO> list = new ArrayList<>();
         String SQL = "SELECT e.employeeId, e.employeeCode, e.userId, e.departmentId, e.positionId, "
                    + "e.phoneNumber, e.skills, e.experience, e.degree, e.status, e.managerId, "
@@ -73,16 +73,19 @@ public class EmployeeDAO {
                    + "d.departmentName, p.positionName, r.roleName "
                    + "FROM Employees e "
                    + "JOIN Users u ON u.userId = e.userId "
-                   + "JOIN Departments d ON d.departmentId = e.departmentId "
-                   + "JOIN Positions p ON p.positionId = e.positionId "
+                   + "LEFT JOIN Departments d ON d.departmentId = e.departmentId "
+                   + "LEFT JOIN Positions p ON p.positionId = e.positionId "
                    + "JOIN Roles r on r.roleId = u.roleId "
+                   + "WHERE e.userId != ? "
                    + "ORDER BY e.employeeId DESC";
         try (Connection conn = dbContext.getConnection();
-             PreparedStatement ps = conn.prepareStatement(SQL);
-             ResultSet rs = ps.executeQuery()) {
-            while (rs.next()) {
-                list.add(mapEmployeeDTO(rs));
-            }
+             PreparedStatement ps = conn.prepareStatement(SQL)){
+                ps.setInt(1, userId);
+                try(ResultSet rs = ps.executeQuery()){               
+                    while (rs.next()) {
+                        list.add(mapEmployeeDTO(rs));
+                    }
+                }
         } catch (SQLException e) {
             LOGGER.log(Level.SEVERE, "Cannot retrieve all employees", e);
         }
@@ -133,6 +136,33 @@ public class EmployeeDAO {
             LOGGER.log(Level.SEVERE, "Cannot retrieve employee by userId: " + userId, e);
         }
         return null;
+    }
+
+    public List<EmployeeDetailDTO> getEmployeesByDepartmentId(int departmentId) {
+        List<EmployeeDetailDTO> list = new ArrayList<>();
+        String SQL = "SELECT e.employeeId, e.employeeCode, e.userId, e.departmentId, e.positionId, "
+                   + "e.phoneNumber, e.skills, e.experience, e.degree, e.status, e.managerId, "
+                   + "u.fullName, u.email, u.username, "
+                   + "d.departmentName, p.positionName, r.roleName "
+                   + "FROM Employees e "
+                   + "JOIN Users u ON u.userId = e.userId "
+                   + "JOIN Departments d ON d.departmentId = e.departmentId "
+                   + "JOIN Positions p ON p.positionId = e.positionId "
+                   + "JOIN Roles r ON r.roleId = u.roleId "
+                   + "WHERE e.departmentId = ? "
+                   + "ORDER BY e.employeeId DESC";
+        try (Connection conn = dbContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(SQL)) {
+            ps.setInt(1, departmentId);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    list.add(mapEmployeeDTO(rs));
+                }
+            }
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Cannot retrieve employees for departmentId: " + departmentId, e);
+        }
+        return list;
     }
 
     public Map<String, Integer> countByDepartment() {
@@ -230,13 +260,14 @@ public class EmployeeDAO {
             return false;
         }
     }
-    public List<User> getUsersNotYetEmployees(int userId) {
+    public List<User> getEmployees(int userId) {
         List<User> list = new ArrayList<>();
         String SQL = "SELECT u.userId, u.username, u.email, u.password, u.fullName, u.dob, "
                    + "u.gender, u.address, r.roleName, u.isTemporaryPassword, u.isActive "
                    + "FROM Users u "
                    + "JOIN Roles r ON r.roleId = u.roleId "
-                   + "WHERE u.userId NOT IN (SELECT e.userId FROM Employees e) "
+                   + "JOIN Employees e on e.userId = u.userId "
+                   + "WHERE e.departmentId IS NULL "
                    + "AND r.roleId != 1 AND u.userId != ? "
                    + "ORDER BY u.fullName ";
         try (Connection conn = dbContext.getConnection();
@@ -269,19 +300,20 @@ public class EmployeeDAO {
                                               String phoneNumber, String skills,
                                               String experience, String degree) {
         LOGGER.log(Level.INFO, "Assigning userId={0} to departmentId={1}", new Object[]{userId, departmentId});
-        String SQL = "INSERT INTO Employees "
-                   + "(employeeCode, userId, departmentId, positionId, phoneNumber, skills, experience, degree, status) "
-                   + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1)";
+        // Hồ sơ nhân viên đã được tạo sẵn (dept = NULL) khi tạo user → assign là UPDATE.
+        // Điều kiện departmentId IS NULL đảm bảo không ghi đè người đã được phân công.
+        String SQL = "UPDATE Employees SET departmentId = ?, positionId = ?, phoneNumber = ?, "
+                   + "skills = ?, experience = ?, degree = ?, status = 1 "
+                   + "WHERE userId = ? AND departmentId IS NULL";
         try (Connection conn = dbContext.getConnection();
              PreparedStatement ps = conn.prepareStatement(SQL)) {
-            ps.setString(1, generateNextEmployeeCode(conn));
-            ps.setInt(2, userId);
-            ps.setInt(3, departmentId);
-            ps.setInt(4, positionId);
-            ps.setString(5, phoneNumber);
-            ps.setString(6, skills);
-            ps.setString(7, experience);
-            ps.setString(8, degree);
+            ps.setInt(1, departmentId);
+            ps.setInt(2, positionId);
+            ps.setString(3, phoneNumber);
+            ps.setString(4, skills);
+            ps.setString(5, experience);
+            ps.setString(6, degree);
+            ps.setInt(7, userId);
             return ps.executeUpdate() > 0;
         } catch (SQLException e) {
             LOGGER.log(Level.SEVERE, "Cannot assign employee to department for userId: " + userId, e);
@@ -299,6 +331,20 @@ public class EmployeeDAO {
             }
         } catch (SQLException e) {
             LOGGER.log(Level.SEVERE, "Cannot check if user is employee", e);
+        }
+        return false;
+    }
+
+    public boolean isUserAssignedToDepartment(int userId) {
+        String SQL = "SELECT 1 FROM Employees WHERE userId = ? AND departmentId IS NOT NULL LIMIT 1";
+        try (Connection conn = dbContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(SQL)) {
+            ps.setInt(1, userId);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next();
+            }
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Cannot check if user is assigned to a department", e);
         }
         return false;
     }
