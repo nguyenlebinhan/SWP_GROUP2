@@ -475,6 +475,7 @@ public class DBInitializer {
                 insertUser(conn, "vu", "didoan482@gmail.com", BCrypt.withDefaults().hashToString(12, "soss123".toCharArray()), "Phạm Vũ", "2006-10-17", "Thanh Hóa", 1);
                 insertUser(conn, "mixi", "dosisha@gmail.com", BCrypt.withDefaults().hashToString(12, "misi".toCharArray()), "Phung Thanh Do", "2006-10-10", "Cao Bang", 2);
                 insertUser(conn, "misi", "dasisho@gmail.com", BCrypt.withDefaults().hashToString(12, "mixi".toCharArray()), "Phung Thanh Du", "2006-10-10", "Cao Bang", 3);
+                insertUser(conn, "mini", "dusisha@gmail.com", BCrypt.withDefaults().hashToString(12, "mixi".toCharArray()), "Phung Thanh Di", "2006-10-10", "Cao Bang", 4);
             }
             if (countRows(conn, "Permissions") == 0) {
                 insertPermission(conn, "VIEW_USERS",       "Xem người dùng",         "Quyền xem danh sách và chi tiết người dùng");
@@ -505,6 +506,36 @@ public class DBInitializer {
                 insertPosition(conn, "Trưởng phòng ",   3, "Quản lý toàn bộ hoạt động của phòng ban");
 
 
+            }
+            
+            if (countRows(conn, "Departments") == 0) {
+                // Insert departments without managerId first (circular dep with Employees)
+                insertDepartment(conn, "IT",  "Phòng Công nghệ thông tin", "Phát triển và vận hành hệ thống phần mềm");
+                insertDepartment(conn, "HR",  "Phòng Nhân sự",             "Tuyển dụng, đào tạo và quản lý nhân viên");
+                insertDepartment(conn, "FIN", "Phòng Tài chính",           "Quản lý ngân sách và kế toán");
+            }
+
+            if (countRows(conn, "Employees") == 0) {
+                // userId 1 = admin, 2 = minhquan, 3 = vu, 4 = mixi, 5 = misi, 6 = mini
+                // departmentId: 1 = IT, 2 = HR, 3 = FIN
+                // positionId:   1 = Thực tập sinh, 2 = Nhân viên chính thức, 3 = Trưởng phòng
+
+                int emp1 = insertEmployee(conn, "EMP001", 1, 1, 3, "0901000001", "Java, SQL, Spring Boot", "3 năm phát triển web",     "Cử nhân CNTT");
+                int emp2 = insertEmployee(conn, "EMP002", 2, 1, 3, "0901000002", "React, Node.js",         "2 năm frontend",            "Kỹ sư phần mềm");
+                int emp3 = insertEmployee(conn, "EMP003", 3, 1, 2, "0901000003", "DevOps, Docker, K8s",    "1 năm vận hành hệ thống",   "Cử nhân CNTT");
+                int emp4 = insertEmployee(conn, "EMP004", 4, 2, 3, "0901000004", "Tuyển dụng, HRIS",       "4 năm nhân sự",             "Cử nhân Quản trị nhân lực");
+                int emp5 = insertEmployee(conn, "EMP005", 5, 2, 2, "0901000005", "Đào tạo, C&B",           "2 năm C&B",                 "Cử nhân Kinh tế");
+                int emp6 = insertEmployee(conn, "EMP006", 6, 3, 3, "0901000006", "Kế toán, MISA",          "5 năm kế toán tài chính",   "Cử nhân Kế toán");
+
+                // Assign managers: emp1 manages IT, emp4 manages HR, emp6 manages FIN
+                updateDepartmentManager(conn, 1, emp1);
+                updateDepartmentManager(conn, 2, emp4);
+                updateDepartmentManager(conn, 3, emp6);
+
+                // Set managerId for team members
+                updateEmployeeManager(conn, emp2, emp1);
+                updateEmployeeManager(conn, emp3, emp1);
+                updateEmployeeManager(conn, emp5, emp4);
             }
             
             LOGGER.log(Level.INFO,"Seeding completed successfully.");
@@ -553,6 +584,53 @@ public class DBInitializer {
         }
     }
 
+    private void insertDepartment(Connection conn, String code, String name, String description) throws SQLException {
+    String sql = "INSERT INTO Departments (departmentCode, departmentName, description, managerId) VALUES (?, ?, ?, NULL)";
+    try (PreparedStatement ps = conn.prepareStatement(sql)) {
+        ps.setString(1, code);
+        ps.setNString(2, name);
+        ps.setNString(3, description);
+        ps.executeUpdate();
+        }
+    }
+
+    private int insertEmployee(Connection conn, String code, int userId, int deptId, int posId,
+                                String phone, String skills, String experience, String degree) throws SQLException {
+        String sql = "INSERT INTO Employees (employeeCode, userId, departmentId, positionId, phoneNumber, skills, experience, degree) "
+                   + "VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+        try (PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+            ps.setString(1, code);
+            ps.setInt(2, userId);
+            ps.setInt(3, deptId);
+            ps.setInt(4, posId);
+            ps.setString(5, phone);
+            ps.setNString(6, skills);
+            ps.setNString(7, experience);
+            ps.setNString(8, degree);
+            ps.executeUpdate();
+            try (ResultSet rs = ps.getGeneratedKeys()) {
+                return rs.next() ? rs.getInt(1) : 0;
+            }
+        }
+    }
+
+    private void updateDepartmentManager(Connection conn, int departmentId, int employeeId) throws SQLException {
+        String sql = "UPDATE Departments SET managerId = ? WHERE departmentId = ?";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, employeeId);
+            ps.setInt(2, departmentId);
+            ps.executeUpdate();
+        }
+    }
+
+    private void updateEmployeeManager(Connection conn, int employeeId, int managerId) throws SQLException {
+        String sql = "UPDATE Employees SET managerId = ? WHERE employeeId = ?";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, managerId);
+            ps.setInt(2, employeeId);
+            ps.executeUpdate();
+        }
+    }
 
 
     private void ensureUsersUsernameColumn(Connection conn) {
