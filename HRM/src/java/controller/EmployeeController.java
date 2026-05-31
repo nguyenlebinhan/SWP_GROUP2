@@ -123,6 +123,11 @@ public class EmployeeController extends HttpServlet {
 
     private void displayEmployeeList(HttpServletRequest request, HttpServletResponse response,
                                       User user) throws ServletException, IOException {
+        if (!isHrStaff(user)) {
+            request.getSession().setAttribute("error", "Bạn không có quyền xem danh sách nhân viên.");
+            response.sendRedirect(request.getContextPath() + "/v1/employee/dashboard");
+            return;            
+        }
         if (!hasPermission(user, "VIEW_EMPLOYEES")) {
             request.getSession().setAttribute("error", "Bạn không có quyền xem danh sách nhân viên.");
             response.sendRedirect(request.getContextPath() + "/v1/employee/dashboard");
@@ -139,6 +144,12 @@ public class EmployeeController extends HttpServlet {
 
     private void displayEmployeeDepartmentDetail(HttpServletRequest request, HttpServletResponse response,
                                                   User user) throws ServletException, IOException {
+        
+        if (!isHrStaff(user)) {
+            request.getSession().setAttribute("error", "Bạn không có quyền xem danh sách nhân viên.");
+            response.sendRedirect(request.getContextPath() + "/v1/employee/dashboard");
+            return;            
+        }        
         if (!hasPermission(user, "VIEW_DEPARTMENT_EMPLOYEES_DETAIL")) {
             request.getSession().setAttribute("error", "Bạn không có quyền xem nhân viên của phòng ban.");
             response.sendRedirect(request.getContextPath() + "/v1/employee/dashboard");
@@ -179,6 +190,13 @@ public class EmployeeController extends HttpServlet {
 
     private void displayAssignDepartmentForm(HttpServletRequest request, HttpServletResponse response,
                                               User user) throws ServletException, IOException {
+        
+        if (!isHrStaff(user)) {
+            request.getSession().setAttribute("error", "Bạn không có quyền xem danh sách nhân viên.");
+            response.sendRedirect(request.getContextPath() + "/v1/employee/dashboard");
+            return;            
+        }
+        
         if (!hasPermission(user, "ASSIGN_DEPARTMENT")) {
             request.getSession().setAttribute("error", "Bạn không có quyền phân công phòng ban.");
             response.sendRedirect(request.getContextPath() + "/v1/employee/dashboard");
@@ -200,6 +218,13 @@ public class EmployeeController extends HttpServlet {
 
     private void displayDepartmentList(HttpServletRequest request, HttpServletResponse response,
                                         User user) throws ServletException, IOException {
+        
+        if (!isHrStaff(user)) {
+            request.getSession().setAttribute("error", "Bạn không có quyền xem danh sách phòng ban.");
+            response.sendRedirect(request.getContextPath() + "/v1/employee/dashboard");
+            return;            
+        }
+        
         if (!hasPermission(user, "VIEW_DEPARTMENTS")) {
             request.getSession().setAttribute("error", "Bạn không có quyền xem danh sách phòng ban.");
             response.sendRedirect(request.getContextPath() + "/v1/employee/dashboard");
@@ -233,7 +258,14 @@ public class EmployeeController extends HttpServlet {
 
     private void handleAssignDepartment(HttpServletRequest request, HttpServletResponse response,
                                          User user) throws ServletException, IOException {
+        if (!isHrStaff(user)) {
+            request.getSession().setAttribute("error", "Bạn không có quyền thêm phòng ban.");
+            response.sendRedirect(request.getContextPath() + "/v1/employee/dashboard");
+            return;            
+        }
+        
         if (!hasPermission(user, "ASSIGN_DEPARTMENT")) {
+            request.getSession().setAttribute("error", "Bạn không có quyền thêm phòng ban.");            
             response.sendRedirect(request.getContextPath() + "/v1/employee/dashboard");
             return;
         }
@@ -300,6 +332,13 @@ public class EmployeeController extends HttpServlet {
 
     private void displayAddDepartmentForm(HttpServletRequest request, HttpServletResponse response,
                                            User user) throws ServletException, IOException {
+        
+        if (!isHrStaff(user)) {
+            request.getSession().setAttribute("error", "Bạn không có quyền thêm phòng ban.");
+            response.sendRedirect(request.getContextPath() + "/v1/employee/dashboard");
+            return;            
+        }
+                
         if (!hasPermission(user, "EDIT_DEPARTMENTS")) {
             request.getSession().setAttribute("error", "Bạn không có quyền thêm phòng ban.");
             response.sendRedirect(request.getContextPath() + "/v1/employee/dashboard");
@@ -325,8 +364,14 @@ public class EmployeeController extends HttpServlet {
         List<Integer> roleIds = parseRoleIds(request.getParameterValues("roleIds"));
 
         if (isBlank(code) || isBlank(name)) {
-            repopulateAddDeptForm(request, response, code, name, description, roleIds,
-                    "Mã phòng ban và tên phòng ban là bắt buộc.");
+            request.setAttribute("error", "Mã phòng ban và tên phòng ban là bắt buộc.");
+            request.setAttribute("input_code", code);
+            request.setAttribute("input_name", name);
+            request.setAttribute("input_description", description);
+            request.setAttribute("roles", roleDAO.getAllActiveRoles());
+            request.setAttribute("selectedRoleIds", roleIds);
+            setPermissionFlags(request, getPermissions((User) request.getSession().getAttribute("user")));
+            request.getRequestDispatcher("/public/employee/add_department.jsp").forward(request, response);            
             return;
         }
 
@@ -337,8 +382,14 @@ public class EmployeeController extends HttpServlet {
 
         int newDeptId = departmentDAO.addDepartment(dept);
         if (newDeptId <= 0) {
-            repopulateAddDeptForm(request, response, code, name, description, roleIds,
-                    "Thêm phòng ban thất bại. Vui lòng thử lại.");
+            request.setAttribute("error", "Thêm phòng ban thất bại. Vui lòng thử lại.");
+            request.setAttribute("input_code", code);
+            request.setAttribute("input_name", name);
+            request.setAttribute("input_description", description);
+            request.setAttribute("roles", roleDAO.getAllActiveRoles());
+            request.setAttribute("selectedRoleIds", roleIds);
+            setPermissionFlags(request, getPermissions((User) request.getSession().getAttribute("user")));
+            request.getRequestDispatcher("/public/employee/add_department.jsp").forward(request, response);              
             return;
         }
 
@@ -354,6 +405,13 @@ public class EmployeeController extends HttpServlet {
 
     private void displayUpdateDepartmentForm(HttpServletRequest request, HttpServletResponse response,
                                            User user) throws ServletException, IOException {
+
+        if (!isHrStaff(user)) {
+            request.getSession().setAttribute("error", "Bạn không có quyền sửa phòng ban.");
+            response.sendRedirect(request.getContextPath() + "/v1/employee/dashboard");
+            return;            
+        }
+                
         if (!hasPermission(user, "EDIT_DEPARTMENTS")) {
             request.getSession().setAttribute("error", "Bạn không có quyền sửa phòng ban.");
             response.sendRedirect(request.getContextPath() + "/v1/employee/dashboard");
@@ -398,6 +456,13 @@ public class EmployeeController extends HttpServlet {
 
     private void handleUpdateDepartment(HttpServletRequest request, HttpServletResponse response,
                                       User user) throws ServletException, IOException {
+        
+        if (!isHrStaff(user)) {
+            request.getSession().setAttribute("error", "Bạn không có quyền sửa phòng ban.");
+            response.sendRedirect(request.getContextPath() + "/v1/employee/dashboard");
+            return;            
+        }
+                
         if (!hasPermission(user, "EDIT_DEPARTMENTS")) {
             response.sendRedirect(request.getContextPath() + "/v1/employee/dashboard");
             return;
@@ -441,19 +506,7 @@ public class EmployeeController extends HttpServlet {
         }
     }
 
-    private void repopulateAddDeptForm(HttpServletRequest request, HttpServletResponse response,
-                                        String code, String name, String description,
-                                        List<Integer> selectedRoleIds, String errorMsg)
-            throws ServletException, IOException {
-        request.setAttribute("error", errorMsg);
-        request.setAttribute("input_code", code);
-        request.setAttribute("input_name", name);
-        request.setAttribute("input_description", description);
-        request.setAttribute("roles", roleDAO.getAllActiveRoles());
-        request.setAttribute("selectedRoleIds", selectedRoleIds);
-        setPermissionFlags(request, getPermissions((User) request.getSession().getAttribute("user")));
-        request.getRequestDispatcher("/public/employee/add_department.jsp").forward(request, response);
-    }
+
 
     private List<Integer> parseRoleIds(String[] raw) {
         List<Integer> ids = new ArrayList<>();
@@ -486,6 +539,11 @@ public class EmployeeController extends HttpServlet {
 
     private boolean hasPermission(User user, String code) {
         return getPermissions(user).contains(code);
+    }
+
+    private boolean isHrStaff(User user) {
+        String role = roleDAO.getRoleByUserId(user.getUserId());
+        return "HREmployee".equalsIgnoreCase(role) || "HRManager".equalsIgnoreCase(role);
     }
 
     private void setPermissionFlags(HttpServletRequest request, Set<String> perms) {
