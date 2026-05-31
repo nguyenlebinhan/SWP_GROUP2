@@ -463,7 +463,8 @@ public class DBInitializer {
         try {
             if (countRows(conn, "Roles") == 0) {
                 LOGGER.info("Starting to seed initial data...");
-                insertRole(conn, "AD", "Admin","Người quản trị hệ thống và đưa ra các quyền hạn với user account");
+                insertRole(conn, "SA", "SystemAdmin","Người quản trị hệ thống và đưa ra các quyền hạn với user account");
+                insertRole(conn, "BA", "BusinessAdmin","Người quản trị nghiệp vụ và công việc");
                 insertRole(conn, "HM", "HRManager", "Người tuyển nhận sự ");
                 insertRole(conn, "HE", "HREmployee","Người làm nhân sự ");
 
@@ -472,7 +473,8 @@ public class DBInitializer {
                 insertUser(conn, "admin", "nguyenlebinhank63@gmail.com",BCrypt.withDefaults().hashToString(12, "admin123".toCharArray()), "Nguyễn Lê Bình An", "2006-01-06", "Phủ Lý, Hà Nam", 1);
                 insertUser(conn,"minhquan","minhquan153452@gmail.com",BCrypt.withDefaults().hashToString(12, "google123".toCharArray()),"Minh Quân","2006-01-01","Hà Nội",1);
                 insertUser(conn, "vu", "didoan482@gmail.com", BCrypt.withDefaults().hashToString(12, "soss123".toCharArray()), "Phạm Vũ", "2006-10-17", "Thanh Hóa", 1);
-                
+                insertUser(conn, "mixi", "dosisha@gmail.com", BCrypt.withDefaults().hashToString(12, "misi".toCharArray()), "Phung Thanh Do", "2006-10-10", "Cao Bang", 2);
+                insertUser(conn, "misi", "dasisho@gmail.com", BCrypt.withDefaults().hashToString(12, "mixi".toCharArray()), "Phung Thanh Du", "2006-10-10", "Cao Bang", 3);
             }
             if (countRows(conn, "Permissions") == 0) {
                 insertPermission(conn, "VIEW_USERS",       "Xem người dùng",         "Quyền xem danh sách và chi tiết người dùng");
