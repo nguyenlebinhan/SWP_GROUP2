@@ -85,7 +85,7 @@
 
                 <div class="col-md-3">
                     <div class="card card-stat p-4">
-                        <h2>NA</h2>
+                        <h2></h2>
                         <p>Phòng ban</p>
                     </div>
                 </div>

@@ -34,11 +34,10 @@
 <div class="sidebar">
 
             <h4>HRM System</h4>
-<!--
-            <a href="${pageContext.request.contextPath}/v1/systemadmin/dashboard"><i></i> Tổng quan</a>
-            <a><i class="fa fa-briefcase"></i> Công việc</a>
-            <a href="${pageContext.request.contextPath}/v1/systemadmin/user-list" ><i></i> Người dùng</a>
-            <a><i class="fa fa-clock"></i> Chấm công</a>
+          <a href="${pageContext.request.contextPath}/v1/businessadmin/dashboard"><i></i> Tổng quan</a>
+            <!--<a><i class="fa fa-briefcase"></i> Công việc</a>-->
+            <a href="${pageContext.request.contextPath}/v1/businessadmin/department" ><i></i> Phòng ban</a>
+<!--            <a><i class="fa fa-clock"></i> Chấm công</a>
             <a><i class="fa fa-user-plus"></i> Tuyển dụng</a>
             <a><i class="fa fa-money-bill"></i> Bảng lương</a>
             <a><i class="fa fa-building"></i> Phòng ban</a>
