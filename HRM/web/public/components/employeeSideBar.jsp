@@ -68,6 +68,9 @@
     <a href="${pageContext.request.contextPath}/v1/employee/dashboard">
          Dashboard
     </a>
+    <a href="${pageContext.request.contextPath}/v1/employee/my-profile">
+         Hồ sơ của tôi
+    </a>
 
 
     <c:if test="${sessionScope.userPermissions.contains('VIEW_EMPLOYEES')}">

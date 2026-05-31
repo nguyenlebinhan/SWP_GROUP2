@@ -442,4 +442,21 @@ public class EmployeeDAO {
         e.setRoleName(rs.getString("roleName"));
         return e;
     }
+
+    public boolean updateOwnProfile(int employeeId, String phoneNumber, String skills, String experience, String degree) {
+        LOGGER.log(Level.INFO, "Updating own profile for employeeId: {0}", employeeId);
+        String SQL = "UPDATE employees SET phoneNumber = ?, skills = ?, experience = ?, degree = ? WHERE employeeId = ?";
+        try (Connection conn = dbContext.getConnection(); PreparedStatement ps = conn.prepareStatement(SQL)) {
+            ps.setString(1, phoneNumber);
+            ps.setString(2, skills);
+            ps.setString(3, experience);
+            ps.setString(4, degree);
+            ps.setInt(5, employeeId);
+            int rowsAffected = ps.executeUpdate();
+            return rowsAffected > 0;
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Error updating own profile with employeeId: " + employeeId, e);
+        }
+        return false;
+    }
 }
