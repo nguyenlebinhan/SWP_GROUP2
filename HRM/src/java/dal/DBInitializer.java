@@ -475,6 +475,7 @@ public class DBInitializer {
                 insertUser(conn, "vu", "didoan482@gmail.com", BCrypt.withDefaults().hashToString(12, "soss123".toCharArray()), "Phạm Vũ", "2006-10-17", "Thanh Hóa", 1);
                 insertUser(conn, "mixi", "dosisha@gmail.com", BCrypt.withDefaults().hashToString(12, "misi".toCharArray()), "Phung Thanh Do", "2006-10-10", "Cao Bang", 2);
                 insertUser(conn, "misi", "dasisho@gmail.com", BCrypt.withDefaults().hashToString(12, "mixi".toCharArray()), "Phung Thanh Du", "2006-10-10", "Cao Bang", 3);
+                insertUser(conn, "misi1", "dasish1o@gmail.com", BCrypt.withDefaults().hashToString(12, "mixi".toCharArray()), "Phung Thanh Du", "2006-10-10", "Cao Bang", 4);                
             }
             if (countRows(conn, "Permissions") == 0) {
                 insertPermission(conn, "VIEW_USERS",       "Xem người dùng",         "Quyền xem danh sách và chi tiết người dùng");
