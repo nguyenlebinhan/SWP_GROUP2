@@ -145,12 +145,12 @@
                     <i class="fa-solid fa-user-tie"></i>
                 </span>
                 <span class="admin-user-name">
-                    <c:out value="${empty topbarDisplayName ? 'Admin' : topbarDisplayName}" />
+                    <c:out value="${empty topbarDisplayName ? 'SystemAdmin' : topbarDisplayName}" />
                 </span>
                 <i class="fa-solid fa-chevron-down" style="font-size:12px;color:#6b7280"></i>
             </button>
             <div class="admin-user-dropdown">
-                <a href="${pageContext.request.contextPath}/v1/admin/my-profile" class="admin-dropdown-item">
+                <a href="${pageContext.request.contextPath}/v1/systemadmin/my-profile" class="admin-dropdown-item">
                     <i class="fa-solid fa-user-gear"></i> Hồ sơ của tôi
                 </a>
                 <a href="${pageContext.request.contextPath}/v1/auth/logout" class="admin-dropdown-item logout">

@@ -120,10 +120,10 @@
 </head>
 <body>
 
-<jsp:include page="/public/components/adminSideBar.jsp" />
+<jsp:include page="/public/components/systemAdminSideBar.jsp" />
 
 <div class="main-content">
-    <jsp:include page="/public/components/adminTopBar.jsp">
+    <jsp:include page="/public/components/systemAdminTopBar.jsp">
         <jsp:param name="title" value="Quản lý phân quyền" />
     </jsp:include>
 
@@ -143,7 +143,7 @@
     </c:if>
 
     <div class="d-flex justify-content-end mb-4">
-        <a href="${pageContext.request.contextPath}/v1/admin/add-role" class="btn-add">
+        <a href="${pageContext.request.contextPath}/v1/systemadmin/add-role" class="btn-add">
              Thêm vai trò
         </a>
     </div>
@@ -227,13 +227,13 @@
                                     </td>
                                     <td>
                                         <div style="display:flex;gap:6px;flex-wrap:wrap">
-                                            <a href="${pageContext.request.contextPath}/v1/admin/role-detail?id=${r.roleId}" class="btn-action btn-view">
+                                            <a href="${pageContext.request.contextPath}/v1/systemadmin/role-detail?id=${r.roleId}" class="btn-action btn-view">
                                                 Chi tiết
                                             </a>
-                                            <a href="${pageContext.request.contextPath}/v1/admin/update-role?id=${r.roleId}" class="btn-action btn-view">
+                                            <a href="${pageContext.request.contextPath}/v1/systemadmin/update-role?id=${r.roleId}" class="btn-action btn-view">
                                                 Sửa
                                             </a>
-                                            <a href="${pageContext.request.contextPath}/v1/admin/edit-role-permissions?id=${r.roleId}" class="btn-action" style="background:#fef3c7;color:#92400e;border:1px solid #fde68a">
+                                            <a href="${pageContext.request.contextPath}/v1/systemadmin/edit-role-permissions?id=${r.roleId}" class="btn-action" style="background:#fef3c7;color:#92400e;border:1px solid #fde68a">
                                                  Phân quyền
                                             </a>
                                             <c:choose>
@@ -243,14 +243,14 @@
                                                     </span>
                                                 </c:when>
                                                 <c:when test="${r.isActive == 1}">
-                                                    <a href="${pageContext.request.contextPath}/v1/admin/change-status-role?id=${r.roleId}&status=0"
+                                                    <a href="${pageContext.request.contextPath}/v1/systemadmin/change-status-role?id=${r.roleId}&status=0"
                                                        class="btn-action btn-deactivate"
                                                        onclick="return confirm('Vô hiệu hóa vai trò ${r.roleName}?')">
                                                          Vô hiệu hóa
                                                     </a>
                                                 </c:when>
                                                 <c:otherwise>
-                                                    <a href="${pageContext.request.contextPath}/v1/admin/change-status-role?id=${r.roleId}&status=1"
+                                                    <a href="${pageContext.request.contextPath}/v1/systemadmin/change-status-role?id=${r.roleId}&status=1"
                                                        class="btn-action btn-activate"
                                                        onclick="return confirm('Kích hoạt vai trò ${r.roleName}?')">
                                                        Kích hoạt
@@ -264,7 +264,7 @@
                                                     </span>
                                                 </c:when>  
                                                 <c:otherwise>
-                                                    <a href="${pageContext.request.contextPath}/v1/admin/delete-role?id=${r.roleId}" class="btn-action btn-delete">
+                                                    <a href="${pageContext.request.contextPath}/v1/systemadmin/delete-role?id=${r.roleId}" class="btn-action btn-delete">
                                                         Xóa
                                                     </a>                                        
                                                 </c:otherwise>

@@ -109,12 +109,12 @@
 </head>
 <body>
 
-<jsp:include page="/public/components/adminSideBar.jsp" />
+<jsp:include page="/public/components/systemAdminSideBar.jsp" />
 
 <div class="main-content">
-    <jsp:include page="/public/components/adminTopBar.jsp">
+    <jsp:include page="/public/components/systemAdminTopBar.jsp">
         <jsp:param name="title" value="Cập nhật vai trò" />
-        <jsp:param name="backUrl" value="/v1/admin/role-list" />
+        <jsp:param name="backUrl" value="/v1/systemadmin/role-list" />
     </jsp:include>
 
     <c:if test="${not empty error}">
@@ -129,12 +129,12 @@
             <div class="alert alert-warning">
                 <i class="fa fa-exclamation-triangle me-2"></i>Không tìm thấy thông tin vai trò.
             </div>
-            <a href="${pageContext.request.contextPath}/v1/admin/role-list" class="btn-cancel-link">
+            <a href="${pageContext.request.contextPath}/v1/systemadmin/role-list" class="btn-cancel-link">
                 <i class="fa fa-arrow-left me-2"></i>Quay lại danh sách
             </a>
         </c:when>
         <c:otherwise>
-            <form action="${pageContext.request.contextPath}/v1/admin/update-role" method="POST">
+            <form action="${pageContext.request.contextPath}/v1/systemadmin/update-role" method="POST">
                 <div class="card">
                     <div class="card-body p-4">
                         <div class="section-label"><i class="fa fa-shield-halved"></i>Thông tin vai trò</div>
@@ -167,7 +167,7 @@
                             <button type="submit" class="btn-save">
                                 <i class="fa fa-floppy-disk me-2"></i>Lưu thay đổi
                             </button>
-                            <a href="${pageContext.request.contextPath}/v1/admin/role-list" class="btn-cancel-link">
+                            <a href="${pageContext.request.contextPath}/v1/systemadmin/role-list" class="btn-cancel-link">
                                 Hủy
                             </a>
                         </div>
