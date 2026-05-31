@@ -62,11 +62,11 @@
     <body>
 
         <!-- ================= SIDEBAR ================= -->
-            <jsp:include page="/public/components/adminSideBar.jsp" />
+            <jsp:include page="/public/components/systemAdminSideBar.jsp" />
 
         <!-- ================= MAIN ================= -->
         <div class="main">
-            <jsp:include page="/public/components/adminTopBar.jsp">
+            <jsp:include page="/public/components/systemAdminTopBar.jsp">
                 <jsp:param name="title" value="Dashboard" />
             </jsp:include>
 
