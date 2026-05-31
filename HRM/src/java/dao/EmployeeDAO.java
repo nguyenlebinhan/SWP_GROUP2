@@ -103,7 +103,7 @@ public class EmployeeDAO {
                    + "LEFT JOIN Departments d ON d.departmentId = e.departmentId "
                    + "LEFT JOIN Positions p ON p.positionId = e.positionId "
                    + "JOIN Roles r on r.roleId = u.roleId "
-                   + "WHERE d.departmentId != ? "
+                   + "WHERE e.departmentId != ? OR e.departmentId IS NULL "
                    + "ORDER BY e.employeeId DESC";
         try (Connection conn = dbContext.getConnection();
              PreparedStatement ps = conn.prepareStatement(SQL)){
@@ -126,8 +126,8 @@ public class EmployeeDAO {
                    + "d.departmentName, p.positionName, r.roleName "
                    + "FROM Employees e "
                    + "JOIN Users u ON u.userId = e.userId "
-                   + "JOIN Departments d ON d.departmentId = e.departmentId "
-                   + "JOIN Positions p ON p.positionId = e.positionId "
+                   + "LEFT JOIN Departments d ON d.departmentId = e.departmentId "
+                   + "LEFT JOIN Positions p ON p.positionId = e.positionId "
                    + "JOIN Roles r ON r.roleId = u.roleId "
                    + "WHERE e.employeeId = ?";
         try (Connection conn = dbContext.getConnection();
@@ -149,8 +149,8 @@ public class EmployeeDAO {
                    + "d.departmentName, p.positionName, r.roleName "
                    + "FROM Employees e "
                    + "JOIN Users u ON u.userId = e.userId "
-                   + "JOIN Departments d ON d.departmentId = e.departmentId "
-                   + "JOIN Positions p ON p.positionId = e.positionId "
+                   + "LEFT JOIN Departments d ON d.departmentId = e.departmentId "
+                   + "LEFT JOIN Positions p ON p.positionId = e.positionId "
                    + "JOIN Roles r ON r.roleId = u.roleId "
                    + "WHERE e.userId = ?";
         try (Connection conn = dbContext.getConnection();
@@ -173,8 +173,8 @@ public class EmployeeDAO {
                    + "d.departmentName, p.positionName, r.roleName "
                    + "FROM Employees e "
                    + "JOIN Users u ON u.userId = e.userId "
-                   + "JOIN Departments d ON d.departmentId = e.departmentId "
-                   + "JOIN Positions p ON p.positionId = e.positionId "
+                   + "LEFT JOIN Departments d ON d.departmentId = e.departmentId "
+                   + "LEFT JOIN Positions p ON p.positionId = e.positionId "
                    + "JOIN Roles r ON r.roleId = u.roleId "
                    + "WHERE e.departmentId = ? "
                    + "ORDER BY e.employeeId DESC";
@@ -253,7 +253,14 @@ public class EmployeeDAO {
             ps.setString(4, emp.getSkills());
             ps.setString(5, emp.getExperience());
             ps.setString(6, emp.getDegree());
-            ps.setInt(7, emp.getEmployeeId());
+            
+            if (emp.getManagerId() != null && emp.getManagerId() > 0) {
+                ps.setInt(7, emp.getManagerId());
+            } else {
+                ps.setNull(7, java.sql.Types.INTEGER);
+            }
+            
+            ps.setInt(8, emp.getEmployeeId());
 
             int rowsAffected = ps.executeUpdate();
             if (rowsAffected > 0) {
@@ -344,6 +351,19 @@ public class EmployeeDAO {
             return ps.executeUpdate() > 0;
         } catch (SQLException e) {
             LOGGER.log(Level.SEVERE, "Cannot assign employee to department for userId: " + userId, e);
+        }
+        return false;
+    }
+
+    public boolean updateEmployeeDepartment(int employeeId, int departmentId) {
+        String SQL = "UPDATE Employees SET departmentId = ? WHERE employeeId = ?";
+        try (Connection conn = dbContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(SQL)) {
+            ps.setInt(1, departmentId);
+            ps.setInt(2, employeeId);
+            return ps.executeUpdate() > 0;
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Cannot update department for employeeId: " + employeeId, e);
         }
         return false;
     }
