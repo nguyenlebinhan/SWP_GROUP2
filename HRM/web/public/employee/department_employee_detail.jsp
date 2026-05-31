@@ -58,7 +58,7 @@
 <jsp:include page="/public/components/employeeSideBar.jsp" />
 
 <div class="main">
-    <jsp:include page="/public/components/adminTopBar.jsp">
+    <jsp:include page="/public/components/systemAdminTopBar.jsp">
         <jsp:param name="title" value="Nhân viên phòng ban" />
         <jsp:param name="backUrl" value="/v1/employee/department-list" />
     </jsp:include>
@@ -86,6 +86,12 @@
                 <div class="dept-code">${department.departmentCode}</div>
             </div>
             <div>
+                <c:if test="${canEditDepts}">
+                    <a href="${pageContext.request.contextPath}/v1/employee/update-department?id=${department.departmentId}" 
+                       class="btn btn-sm btn-outline-primary me-2">
+                       <i class="fa-solid fa-pen"></i> Chỉnh sửa
+                    </a>
+                </c:if>
                 <c:choose>
                     <c:when test="${department.status == 1}">
                         <span class="badge-active">Hoạt động</span>
