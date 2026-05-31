@@ -295,7 +295,7 @@ public class EmployeeDAO {
                    + "JOIN Roles r ON r.roleId = u.roleId "
                    + "JOIN Employees e on e.userId = u.userId "
                    + "WHERE e.departmentId IS NULL "
-                   + "AND r.roleId != 1 AND u.userId != ? "
+                   + "AND r.roleId NOT IN (1,2)  AND u.userId != ? "
                    + "ORDER BY u.fullName ";
         try (Connection conn = dbContext.getConnection();
              PreparedStatement ps = conn.prepareStatement(SQL)){
