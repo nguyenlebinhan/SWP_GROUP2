@@ -34,9 +34,7 @@ public class DepartmentDAO {
 
     public int countTotal() {
         String SQL = "SELECT COUNT(*) FROM departments WHERE status = 1";
-        try (Connection conn = dbContext.getConnection();
-             PreparedStatement ps = conn.prepareStatement(SQL);
-             ResultSet rs = ps.executeQuery()) {
+        try (Connection conn = dbContext.getConnection(); PreparedStatement ps = conn.prepareStatement(SQL); ResultSet rs = ps.executeQuery()) {
             return rs.next() ? rs.getInt(1) : 0;
         } catch (SQLException e) {
             LOGGER.log(Level.SEVERE, "Cannot count total departments", e);
@@ -44,13 +42,10 @@ public class DepartmentDAO {
         return 0;
     }
 
-
     public List<Department> getAllDepartments() {
         List<Department> list = new ArrayList<>();
         String SQL = "SELECT d.departmentId, d.departmentCode, d.departmentName, d.description, d.managerId, d.status FROM Departments d ORDER BY d.departmentName";
-        try (Connection conn = dbContext.getConnection();
-             PreparedStatement ps = conn.prepareStatement(SQL);
-             ResultSet rs = ps.executeQuery()) {
+        try (Connection conn = dbContext.getConnection(); PreparedStatement ps = conn.prepareStatement(SQL); ResultSet rs = ps.executeQuery()) {
             while (rs.next()) {
                 list.add(mapDepartment(rs));
             }
@@ -63,9 +58,7 @@ public class DepartmentDAO {
     public List<Department> getAllActiveDepartments() {
         List<Department> list = new ArrayList<>();
         String SQL = "SELECT d.departmentId, d.departmentCode, d.departmentName, d.description, d.managerId,d.status FROM Departments d WHERE d.status = 1 ORDER BY departmentName";
-        try (Connection conn = dbContext.getConnection();
-             PreparedStatement ps = conn.prepareStatement(SQL);
-             ResultSet rs = ps.executeQuery()) {
+        try (Connection conn = dbContext.getConnection(); PreparedStatement ps = conn.prepareStatement(SQL); ResultSet rs = ps.executeQuery()) {
             while (rs.next()) {
                 list.add(mapDepartment(rs));
             }
@@ -77,11 +70,12 @@ public class DepartmentDAO {
 
     public Department getDepartmentById(int id) {
         String SQL = "SELECT d.departmentId, d.departmentCode, d.departmentName, d.description, d.managerId, d.status FROM Departments d WHERE d.departmentId = ?";
-        try (Connection conn = dbContext.getConnection();
-             PreparedStatement ps = conn.prepareStatement(SQL)) {
+        try (Connection conn = dbContext.getConnection(); PreparedStatement ps = conn.prepareStatement(SQL)) {
             ps.setInt(1, id);
             try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) return mapDepartment(rs);
+                if (rs.next()) {
+                    return mapDepartment(rs);
+                }
             }
         } catch (SQLException e) {
             LOGGER.log(Level.SEVERE, "Cannot retrieve department by id: " + id, e);
@@ -91,11 +85,12 @@ public class DepartmentDAO {
 
     public String getDepartmentCodeById(int departmentId) {
         String SQL = "SELECT departmentCode FROM Departments WHERE departmentId = ?";
-        try (Connection conn = dbContext.getConnection();
-             PreparedStatement ps = conn.prepareStatement(SQL)) {
+        try (Connection conn = dbContext.getConnection(); PreparedStatement ps = conn.prepareStatement(SQL)) {
             ps.setInt(1, departmentId);
             try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) return rs.getString("departmentCode");
+                if (rs.next()) {
+                    return rs.getString("departmentCode");
+                }
             }
         } catch (SQLException e) {
             LOGGER.log(Level.SEVERE, "Cannot get departmentCode for id: " + departmentId, e);
@@ -103,12 +98,10 @@ public class DepartmentDAO {
         return null;
     }
 
-    
     public int addDepartment(Department dept) {
         LOGGER.log(Level.INFO, "Adding new department with code: {0}", dept.getDepartmentCode());
         String SQL = "INSERT INTO departments(departmentCode, departmentName, description,status) VALUES (?, ?, ?, 1)";
-        try (Connection conn = dbContext.getConnection();
-             PreparedStatement ps = conn.prepareStatement(SQL, Statement.RETURN_GENERATED_KEYS)) {
+        try (Connection conn = dbContext.getConnection(); PreparedStatement ps = conn.prepareStatement(SQL, Statement.RETURN_GENERATED_KEYS)) {
             ps.setString(1, dept.getDepartmentCode());
             ps.setNString(2, dept.getDepartmentName());
             ps.setNString(3, dept.getDescription());
@@ -155,17 +148,20 @@ public class DepartmentDAO {
         return false;
     }
 
-    /** Danh sách tên vai trò được phép trong phòng ban — dùng cho thông báo lỗi. */
+    /**
+     * Danh sách tên vai trò được phép trong phòng ban — dùng cho thông báo lỗi.
+     */
     public List<String> getAllowedRoleNames(int departmentId) {
         List<String> names = new ArrayList<>();
         String SQL = "SELECT r.roleName FROM Department_Roles dr "
-                   + "JOIN Roles r ON r.roleId = dr.roleId "
-                   + "WHERE dr.departmentId = ? ORDER BY r.roleName";
-        try (Connection conn = dbContext.getConnection();
-             PreparedStatement ps = conn.prepareStatement(SQL)) {
+                + "JOIN Roles r ON r.roleId = dr.roleId "
+                + "WHERE dr.departmentId = ? ORDER BY r.roleName";
+        try (Connection conn = dbContext.getConnection(); PreparedStatement ps = conn.prepareStatement(SQL)) {
             ps.setInt(1, departmentId);
             try (ResultSet rs = ps.executeQuery()) {
-                while (rs.next()) names.add(rs.getString("roleName"));
+                while (rs.next()) {
+                    names.add(rs.getString("roleName"));
+                }
             }
         } catch (SQLException e) {
             LOGGER.log(Level.SEVERE, "Cannot get allowed roles for dept: " + departmentId, e);
@@ -173,7 +169,10 @@ public class DepartmentDAO {
         return names;
     }
 
-    /** Ghi đè toàn bộ luật vai trò của một phòng ban (xóa cũ rồi chèn mới) trong 1 transaction. */
+    /**
+     * Ghi đè toàn bộ luật vai trò của một phòng ban (xóa cũ rồi chèn mới) trong
+     * 1 transaction.
+     */
     public boolean replaceDepartmentRoles(int departmentId, List<Integer> roleIds) {
         String deleteSQL = "DELETE FROM Department_Roles WHERE departmentId = ?";
         String insertSQL = "INSERT INTO Department_Roles (departmentId, roleId) VALUES (?, ?)";
@@ -205,11 +204,18 @@ public class DepartmentDAO {
         } catch (SQLException e) {
             LOGGER.log(Level.SEVERE, "Cannot replace department roles for dept: " + departmentId, e);
             if (conn != null) {
-                try { conn.rollback(); } catch (SQLException ignored) {}
+                try {
+                    conn.rollback();
+                } catch (SQLException ignored) {
+                }
             }
         } finally {
             if (conn != null) {
-                try { conn.setAutoCommit(true); conn.close(); } catch (SQLException ignored) {}
+                try {
+                    conn.setAutoCommit(true);
+                    conn.close();
+                } catch (SQLException ignored) {
+                }
             }
         }
         return false;
@@ -218,13 +224,12 @@ public class DepartmentDAO {
     public boolean updateDepartment(Department dept) {
         LOGGER.log(Level.INFO, "Updating department with departmentId: {0}", dept.getDepartmentId());
         String SQL = " UPDATE departments SET departmentName = ?, description = ?, managerId = ? WHERE departmentId = ?";
-        try (Connection conn = dbContext.getConnection();
-             PreparedStatement ps = conn.prepareStatement(SQL)) {
+        try (Connection conn = dbContext.getConnection(); PreparedStatement ps = conn.prepareStatement(SQL)) {
             ps.setString(1, dept.getDepartmentName());
             ps.setString(2, dept.getDescription());
             ps.setInt(3, dept.getManagerId());
             ps.setString(4, dept.getRegion());
-            ps.setString(5,dept.getFoundedDate());
+            ps.setString(5, dept.getFoundedDate());
             ps.setInt(6, dept.getDepartmentId());
 
             int rowsAffected = ps.executeUpdate();
@@ -244,8 +249,7 @@ public class DepartmentDAO {
     public boolean deleteDepartment(int departmentId) {
         LOGGER.log(Level.INFO, "Deleting department with departmentId: {0}", departmentId);
         String SQL = "UPDATE departments SET status = 0 WHERE departmentId = ?";
-        try (Connection conn = dbContext.getConnection();
-             PreparedStatement ps = conn.prepareStatement(SQL)) {
+        try (Connection conn = dbContext.getConnection(); PreparedStatement ps = conn.prepareStatement(SQL)) {
             ps.setInt(1, departmentId);
             int rowsAffected = ps.executeUpdate();
             if (rowsAffected > 0) {
@@ -258,16 +262,17 @@ public class DepartmentDAO {
         } catch (SQLException e) {
             LOGGER.log(Level.SEVERE, "Error deleting department with departmentId: " + departmentId, e);
         }
-        return false;   
+        return false;
     }
-    
+
     public int countEmployeesByDepartmentId(int departmentId) {
         String SQL = "SELECT COUNT(*) FROM Employees WHERE departmentId = ? AND status != 0";
-        try (Connection conn = dbContext.getConnection();
-             PreparedStatement ps = conn.prepareStatement(SQL)) {
+        try (Connection conn = dbContext.getConnection(); PreparedStatement ps = conn.prepareStatement(SQL)) {
             ps.setInt(1, departmentId);
             try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) return rs.getInt(1);
+                if (rs.next()) {
+                    return rs.getInt(1);
+                }
             }
         } catch (SQLException e) {
             LOGGER.log(Level.SEVERE, "Cannot count employees for departmentId: " + departmentId, e);
@@ -278,9 +283,7 @@ public class DepartmentDAO {
     public List<Position> getAllPositions() {
         List<Position> list = new ArrayList<>();
         String SQL = "SELECT positionId, positionName, level, description FROM Positions ";
-        try (Connection conn = dbContext.getConnection();
-             PreparedStatement ps = conn.prepareStatement(SQL);
-             ResultSet rs = ps.executeQuery()) {
+        try (Connection conn = dbContext.getConnection(); PreparedStatement ps = conn.prepareStatement(SQL); ResultSet rs = ps.executeQuery()) {
             while (rs.next()) {
                 Position p = new Position();
                 p.setPositionId(rs.getInt("positionId"));
@@ -305,5 +308,191 @@ public class DepartmentDAO {
         d.setManagerId(rs.wasNull() ? null : managerId);
         d.setStatus(rs.getInt("status"));
         return d;
+    }
+
+    public List<model.Employee> getAssignableManagers(int baUserId) {
+        List<model.Employee> list = new java.util.ArrayList<>();
+        // roleId của BA (người đang đăng nhập) → chỉ lấy nhân viên có roleId > đó
+        String SQL
+                = "SELECT e.employeeId, e.employeeCode, e.userId, e.departmentId, e.positionId, "
+                + "       e.phoneNumber, e.skills, e.experience, e.degree, e.status, e.managerId, "
+                + "       u.fullName, u.email, r.roleName, r.roleId "
+                + "FROM Employees e "
+                + "JOIN Users u ON u.userId = e.userId "
+                + "JOIN Roles r ON r.roleId = u.roleId "
+                + "WHERE u.isActive = 1 "
+                + "  AND e.status = 1 "
+                + // role phải thấp hơn BA: roleId > roleId của BA hiện tại
+                "  AND r.roleId > (SELECT u2.roleId FROM Users u2 WHERE u2.userId = ?) "
+                + // chưa là manager của phòng ban active nào
+                "  AND e.employeeId NOT IN ( "
+                + "      SELECT d.managerId FROM Departments d "
+                + "      WHERE d.managerId IS NOT NULL AND d.status = 1 "
+                + "  ) "
+                + "ORDER BY u.fullName";
+        try (java.sql.Connection conn = dbContext.getConnection(); java.sql.PreparedStatement ps = conn.prepareStatement(SQL)) {
+            ps.setInt(1, baUserId);
+            try (java.sql.ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    model.Employee emp = new model.Employee();
+                    emp.setEmployeeId(rs.getInt("employeeId"));
+                    emp.setEmployeeCode(rs.getString("employeeCode"));
+                    emp.setUserId(rs.getInt("userId"));
+                    emp.setDepartmentId(rs.getInt("departmentId"));
+                    emp.setPositionId(rs.getInt("positionId"));
+                    emp.setPhoneNumber(rs.getString("phoneNumber"));
+                    emp.setSkills(rs.getNString("skills"));
+                    emp.setExperience(rs.getNString("experience"));
+                    emp.setDegree(rs.getNString("degree"));
+                    emp.setStatus(rs.getInt("status"));
+                    int mgr = rs.getInt("managerId");
+                    emp.setManagerId(rs.wasNull() ? null : mgr);
+                    // fullName và roleName lưu tạm vào transient — xem ghi chú bên dưới (*)
+                    // Vì Employee model không có fullName, ta dùng EmployeeDetailDTO thay thế
+                    list.add(emp);
+                }
+            }
+        } catch (java.sql.SQLException e) {
+            LOGGER.log(java.util.logging.Level.SEVERE, "Cannot get assignable managers", e);
+        }
+        return list;
+    }
+
+    public List<dto.EmployeeDetailDTO> getAssignableManagerDTOs(int baUserId) {
+        List<dto.EmployeeDetailDTO> list = new java.util.ArrayList<>();
+        String SQL
+                = "SELECT e.employeeId, e.employeeCode, e.userId, e.departmentId, e.positionId, "
+                + "       e.phoneNumber, e.skills, e.experience, e.degree, e.status, e.managerId, "
+                + "       u.fullName, u.email, u.username, "
+                + "       COALESCE(d.departmentName, N'Chưa phân công') AS departmentName, "
+                + "       COALESCE(p.positionName, N'') AS positionName, "
+                + "       r.roleName "
+                + "FROM Employees e "
+                + "JOIN Users u ON u.userId = e.userId "
+                + "JOIN Roles r ON r.roleId = u.roleId "
+                + "LEFT JOIN Departments d ON d.departmentId = e.departmentId "
+                + "LEFT JOIN Positions p ON p.positionId = e.positionId "
+                + "WHERE u.isActive = 1 "
+                + "  AND e.status = 1 "
+                + "  AND r.roleId > (SELECT u2.roleId FROM Users u2 WHERE u2.userId = ?) "
+                + "  AND e.employeeId NOT IN ( "
+                + "      SELECT d2.managerId FROM Departments d2 "
+                + "      WHERE d2.managerId IS NOT NULL AND d2.status = 1 "
+                + "  ) "
+                + "ORDER BY u.fullName";
+        try (java.sql.Connection conn = dbContext.getConnection(); java.sql.PreparedStatement ps = conn.prepareStatement(SQL)) {
+            ps.setInt(1, baUserId);
+            try (java.sql.ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    dto.EmployeeDetailDTO e = new dto.EmployeeDetailDTO();
+                    e.setEmployeeId(rs.getInt("employeeId"));
+                    e.setEmployeeCode(rs.getString("employeeCode"));
+                    e.setUserId(rs.getInt("userId"));
+                    e.setDepartmentId(rs.getInt("departmentId"));
+                    e.setPositionId(rs.getInt("positionId"));
+                    e.setPhoneNumber(rs.getString("phoneNumber"));
+                    e.setSkills(rs.getNString("skills"));
+                    e.setExperience(rs.getNString("experience"));
+                    e.setDegree(rs.getNString("degree"));
+                    e.setStatus(rs.getInt("status"));
+                    int mgr = rs.getInt("managerId");
+                    e.setManagerId(rs.wasNull() ? null : mgr);
+                    e.setFullName(rs.getNString("fullName"));
+                    e.setEmail(rs.getString("email"));
+                    e.setUsername(rs.getString("username"));
+                    e.setDepartmentName(rs.getNString("departmentName"));
+                    e.setPositionName(rs.getNString("positionName"));
+                    e.setRoleName(rs.getString("roleName"));
+                    list.add(e);
+                }
+            }
+        } catch (java.sql.SQLException e) {
+            LOGGER.log(java.util.logging.Level.SEVERE, "Cannot get assignable manager DTOs", e);
+        }
+        return list;
+    }
+
+    public boolean assignManager(int departmentId, int employeeId) {
+        String SQL = "UPDATE Departments SET managerId = ? WHERE departmentId = ? AND status = 1";
+        try (java.sql.Connection conn = dbContext.getConnection(); java.sql.PreparedStatement ps = conn.prepareStatement(SQL)) {
+            ps.setInt(1, employeeId);
+            ps.setInt(2, departmentId);
+            boolean ok = ps.executeUpdate() > 0;
+            if (ok) {
+                LOGGER.log(java.util.logging.Level.INFO,
+                        "Assigned employeeId={0} as manager of departmentId={1}",
+                        new Object[]{employeeId, departmentId});
+            }
+            return ok;
+        } catch (java.sql.SQLException e) {
+            LOGGER.log(java.util.logging.Level.SEVERE,
+                    "Cannot assign manager for deptId=" + departmentId, e);
+        }
+        return false;
+    }
+
+    public boolean unassignManager(int departmentId) {
+        String SQL = "UPDATE Departments SET managerId = NULL WHERE departmentId = ?";
+        try (java.sql.Connection conn = dbContext.getConnection(); java.sql.PreparedStatement ps = conn.prepareStatement(SQL)) {
+            ps.setInt(1, departmentId);
+            boolean ok = ps.executeUpdate() > 0;
+            if (ok) {
+                LOGGER.log(java.util.logging.Level.INFO,
+                        "Unassigned manager from departmentId={0}", departmentId);
+            }
+            return ok;
+        } catch (java.sql.SQLException e) {
+            LOGGER.log(java.util.logging.Level.SEVERE,
+                    "Cannot unassign manager for deptId=" + departmentId, e);
+        }
+        return false;
+    }
+
+    public dto.EmployeeDetailDTO getCurrentManager(int departmentId) {
+        String SQL
+                = "SELECT e.employeeId, e.employeeCode, e.userId, e.departmentId, e.positionId, "
+                + "       e.phoneNumber, e.skills, e.experience, e.degree, e.status, e.managerId, "
+                + "       u.fullName, u.email, u.username, "
+                + "       COALESCE(d.departmentName, N'') AS departmentName, "
+                + "       COALESCE(p.positionName, N'') AS positionName, "
+                + "       r.roleName "
+                + "FROM Departments dept "
+                + "JOIN Employees e ON e.employeeId = dept.managerId "
+                + "JOIN Users u ON u.userId = e.userId "
+                + "JOIN Roles r ON r.roleId = u.roleId "
+                + "LEFT JOIN Departments d ON d.departmentId = e.departmentId "
+                + "LEFT JOIN Positions p ON p.positionId = e.positionId "
+                + "WHERE dept.departmentId = ?";
+        try (java.sql.Connection conn = dbContext.getConnection(); java.sql.PreparedStatement ps = conn.prepareStatement(SQL)) {
+            ps.setInt(1, departmentId);
+            try (java.sql.ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    dto.EmployeeDetailDTO e = new dto.EmployeeDetailDTO();
+                    e.setEmployeeId(rs.getInt("employeeId"));
+                    e.setEmployeeCode(rs.getString("employeeCode"));
+                    e.setUserId(rs.getInt("userId"));
+                    e.setDepartmentId(rs.getInt("departmentId"));
+                    e.setPositionId(rs.getInt("positionId"));
+                    e.setPhoneNumber(rs.getString("phoneNumber"));
+                    e.setSkills(rs.getNString("skills"));
+                    e.setExperience(rs.getNString("experience"));
+                    e.setDegree(rs.getNString("degree"));
+                    e.setStatus(rs.getInt("status"));
+                    int mgr = rs.getInt("managerId");
+                    e.setManagerId(rs.wasNull() ? null : mgr);
+                    e.setFullName(rs.getNString("fullName"));
+                    e.setEmail(rs.getString("email"));
+                    e.setUsername(rs.getString("username"));
+                    e.setDepartmentName(rs.getNString("departmentName"));
+                    e.setPositionName(rs.getNString("positionName"));
+                    e.setRoleName(rs.getString("roleName"));
+                    return e;
+                }
+            }
+        } catch (java.sql.SQLException e) {
+            LOGGER.log(java.util.logging.Level.SEVERE,
+                    "Cannot get current manager for deptId=" + departmentId, e);
+        }
+        return null;
     }
 }
