@@ -205,10 +205,10 @@
 </head>
 <body>
 
-<jsp:include page="/public/components/adminSideBar.jsp" />
+<jsp:include page="/public/components/businessAdminSideBar.jsp" />
 
 <div class="main-content">
-    <jsp:include page="/public/components/adminTopBar.jsp">
+    <jsp:include page="/public/components/businessAdminTopBar.jsp">
         <jsp:param name="title" value="Hồ sơ của tôi" />
     </jsp:include>
 
@@ -266,7 +266,7 @@
 
             <div class="col-lg-9 col-md-8">
                 <div class="info-panel">
-                    <form action="${pageContext.request.contextPath}/v1/admin/my-profile" method="POST">
+                    <form action="${pageContext.request.contextPath}/v1/businessadmin/my-profile" method="POST">
                         <div class="section-title">
                            Thông tin cá nhân
                         </div>
