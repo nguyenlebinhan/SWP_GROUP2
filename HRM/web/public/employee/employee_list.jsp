@@ -43,7 +43,7 @@
 <jsp:include page="/public/components/employeeSideBar.jsp" />
 
 <div class="main">
-    <jsp:include page="/public/components/adminTopBar.jsp">
+    <jsp:include page="/public/components/systemAdminTopBar.jsp">
         <jsp:param name="title" value="Danh sách nhân viên" />
         <jsp:param name="backUrl" value="/v1/employee/dashboard" />
     </jsp:include>
