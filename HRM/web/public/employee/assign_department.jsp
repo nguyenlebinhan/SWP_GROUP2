@@ -90,7 +90,6 @@
             background: white;
             outline: none;
         }
-        textarea.form-control { resize: vertical; min-height: 72px; }
 
         .required-dot {
             display: inline-block;
@@ -270,7 +269,7 @@
                             <select class="form-select" id="positionId" name="positionId" required>
                                 <option value="">— Chọn vị trí —</option>
                                 <c:forEach var="pos" items="${positions}">
-                                    <option value="${pos.positionId}">${pos.positionName}</option>
+                                    <option value="${pos.positionId}" data-level="${pos.level}">${pos.positionName}</option>
                                 </c:forEach>
                             </select>
                         </div>
@@ -301,12 +300,29 @@
     function onUserChange(select) {
         const box  = document.getElementById('userInfoBox');
         const opt  = select.options[select.selectedIndex];
+        const role = (select.value && opt.dataset.role) ? opt.dataset.role : '';
         if (select.value) {
             document.getElementById('uEmail').textContent = opt.dataset.email || '—';
-            document.getElementById('uRole').textContent  = opt.dataset.role  || '—';
+            document.getElementById('uRole').textContent  = role || '—';
             box.classList.add('visible');
         } else {
             box.classList.remove('visible');
+        }
+        filterPositionsByRole(role);
+    }
+
+    function filterPositionsByRole(role) {
+        const employeeOnly = role.toLowerCase().includes('employee');
+        const posSelect = document.getElementById('positionId');
+        for (const o of posSelect.options) {
+            if (!o.value) continue; 
+            const level = parseInt(o.dataset.level, 10);
+            const hide = employeeOnly && level >= 3;
+            o.hidden = hide;
+            o.disabled = hide;
+            if (hide && o.selected) {
+                posSelect.value = '';
+            }
         }
     }
 
