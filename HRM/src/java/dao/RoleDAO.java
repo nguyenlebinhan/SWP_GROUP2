@@ -72,6 +72,23 @@ public class RoleDAO {
         }
         return null;
     }
+    
+        public String getRoleByUserId(int userId) {
+        LOGGER.log(Level.INFO, "Get role by userId: {0}", userId);
+        String SQL = "SELECT r.roleName FROM users u INNER JOIN roles r ON r.roleId = u.roleId WHERE u.userId = ?";
+        try (Connection conn = dbContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(SQL)) {
+            ps.setInt(1, userId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getString("roleName");
+                }
+            }
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Cannot retrieve role by userId: " + userId, e);
+        }
+        return null;
+    }
 
     public int countUsersByRoleId(int roleId) {
         String SQL = "SELECT COUNT(*) FROM users WHERE roleId = ?";
