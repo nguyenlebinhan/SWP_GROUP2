@@ -463,20 +463,16 @@ public class DBInitializer {
         try {
             if (countRows(conn, "Roles") == 0) {
                 LOGGER.info("Starting to seed initial data...");
-                insertRole(conn, "SA", "SystemAdmin","Người quản trị hệ thống và đưa ra các quyền hạn với user account");
-                insertRole(conn, "BA", "BusinessAdmin","Người quản trị nghiệp vụ và công việc");
-                insertRole(conn, "HM", "HRManager", "Người tuyển nhận sự ");
-                insertRole(conn, "HE", "HREmployee","Người làm nhân sự ");
-
+                insertRole(conn, "SA",  "SystemAdmin",   "Người quản trị hệ thống và đưa ra các quyền hạn với user account");
+                insertRole(conn, "BA",  "BusinessAdmin", "Người quản trị nghiệp vụ và công việc");
+                insertRole(conn, "HM",  "HRManager",     "Quản lý phòng Nhân sự");
+                insertRole(conn, "HE",  "HREmployee",    "Nhân viên phòng Nhân sự");
+                insertRole(conn, "ITM", "ITManager",     "Quản lý phòng Công nghệ thông tin");
+                insertRole(conn, "ITE", "ITEmployee",    "Nhân viên phòng Công nghệ thông tin");
+                insertRole(conn, "FIM", "FIManager",     "Quản lý phòng Tài chính");
+                insertRole(conn, "FIE", "FIEmployee",    "Nhân viên phòng Tài chính");
             }
-            if (countRows(conn, "Users") == 0) {
-                insertUser(conn, "admin", "nguyenlebinhank63@gmail.com",BCrypt.withDefaults().hashToString(12, "admin123".toCharArray()), "Nguyễn Lê Bình An", "2006-01-06", "Phủ Lý, Hà Nam", 1);
-                insertUser(conn,"minhquan","minhquan153452@gmail.com",BCrypt.withDefaults().hashToString(12, "google123".toCharArray()),"Minh Quân","2006-01-01","Hà Nội",1);
-                insertUser(conn, "vu", "didoan482@gmail.com", BCrypt.withDefaults().hashToString(12, "soss123".toCharArray()), "Phạm Vũ", "2006-10-17", "Thanh Hóa", 1);
-                insertUser(conn, "mixi", "dosisha@gmail.com", BCrypt.withDefaults().hashToString(12, "misi".toCharArray()), "Phung Thanh Do", "2006-10-10", "Cao Bang", 2);
-                insertUser(conn, "misi", "dasisho@gmail.com", BCrypt.withDefaults().hashToString(12, "mixi".toCharArray()), "Phung Thanh Du", "2006-10-10", "Cao Bang", 3);
-                insertUser(conn, "mini", "dusisha@gmail.com", BCrypt.withDefaults().hashToString(12, "mixi".toCharArray()), "Phung Thanh Di", "2006-10-10", "Cao Bang", 4);
-            }
+            
             if (countRows(conn, "Permissions") == 0) {
                 insertPermission(conn, "VIEW_USERS",       "Xem người dùng",         "Quyền xem danh sách và chi tiết người dùng");
                 insertPermission(conn, "ADD_USER",         "Thêm người dùng",         "Quyền thêm mới người dùng");
@@ -512,32 +508,66 @@ public class DBInitializer {
                 // Insert departments without managerId first (circular dep with Employees)
                 insertDepartment(conn, "IT",  "Phòng Công nghệ thông tin", "Phát triển và vận hành hệ thống phần mềm");
                 insertDepartment(conn, "HR",  "Phòng Nhân sự",             "Tuyển dụng, đào tạo và quản lý nhân viên");
-                insertDepartment(conn, "FIN", "Phòng Tài chính",           "Quản lý ngân sách và kế toán");
+                insertDepartment(conn, "FI", "Phòng Tài chính",           "Quản lý ngân sách và kế toán");
+            }
+
+            if (countRows(conn, "Users") == 0) {
+                // userId 1 = admin    (SA)
+                insertUser(conn, "admin",    "admin@company.com",    BCrypt.withDefaults().hashToString(12, "admin123".toCharArray()),  "Nguyễn Lê Bình An", "2006-01-06", "Phủ Lý, Hà Nam", 1);
+                // userId 2 = minhquan (BA)
+                insertUser(conn, "minhquan", "minhquan@company.com", BCrypt.withDefaults().hashToString(12, "google123".toCharArray()), "Minh Quân",          "2000-01-01", "Hà Nội",          2);
+                // userId 3 = vu       (SA)
+                insertUser(conn, "vu",       "didoan482@gmail.com",  BCrypt.withDefaults().hashToString(12, "soss123".toCharArray()),   "Phạm Vũ",            "2006-10-17", "Thanh Hóa",       1);
+                // userId 4 = mixi     (BA)
+                insertUser(conn, "mixi",     "mixi@gmail.com",       BCrypt.withDefaults().hashToString(12, "misi".toCharArray()),      "Phung Thanh Do",     "2006-10-10", "Cao Bang",        2);
+                // userId 5 = misi     (HRManager)
+                insertUser(conn, "misi",     "ngng@gmail.com",       BCrypt.withDefaults().hashToString(12, "mixi".toCharArray()),      "Nguyen Nguyen",      "2006-10-10", "Cao Bang",        3);
+                // userId 6 = it_mgr   (ITManager)
+                insertUser(conn, "it_mgr",   "it.manager@company.com", BCrypt.withDefaults().hashToString(12, "123456".toCharArray()), "Trần Văn IT",        "1990-05-10", "Hà Nội",          5);
+                // userId 7 = it_emp1  (ITEmployee)
+                insertUser(conn, "it_emp1",  "it.emp1@company.com",    BCrypt.withDefaults().hashToString(12, "123456".toCharArray()), "Lê Thị IT",          "1995-03-15", "Hà Nội",          6);
+                // userId 8 = it_emp2  (ITEmployee)
+                insertUser(conn, "it_emp2",  "it.emp2@company.com",    BCrypt.withDefaults().hashToString(12, "123456".toCharArray()), "Phạm Văn Dev",       "1997-07-20", "Hà Nội",          6);
+                // userId 9 = hr_mgr   (HRManager)
+                insertUser(conn, "hr_mgr",   "hr.manager@company.com", BCrypt.withDefaults().hashToString(12, "123456".toCharArray()), "Nguyễn Thị HR",      "1988-11-01", "TP HCM",          3);
+                // userId 10 = hr_emp1 (HREmployee)
+                insertUser(conn, "hr_emp1",  "hr.emp1@company.com",    BCrypt.withDefaults().hashToString(12, "123456".toCharArray()), "Vũ Thị Nhân Sự",     "1993-06-25", "TP HCM",          4);
+                // userId 11 = fi_mgr  (FIManager)
+                insertUser(conn, "fi_mgr",   "fi.manager@company.com", BCrypt.withDefaults().hashToString(12, "123456".toCharArray()), "Hoàng Văn FI",       "1985-09-12", "Đà Nẵng",         7);
+                // userId 12 = fi_emp1 (FIEmployee)
+                insertUser(conn, "fi_emp1",  "fi.emp1@company.com",    BCrypt.withDefaults().hashToString(12, "123456".toCharArray()), "Đinh Thị Kế Toán",   "1996-02-18", "Đà Nẵng",         8);
             }
 
             if (countRows(conn, "Employees") == 0) {
-                // userId 1 = admin, 2 = minhquan, 3 = vu, 4 = mixi, 5 = misi, 6 = mini
-                // departmentId: 1 = IT, 2 = HR, 3 = FIN
-                // positionId:   1 = Thực tập sinh, 2 = Nhân viên chính thức, 3 = Trưởng phòng
-
-                int emp1 = insertEmployee(conn, "EMP001", 1, 1, 3, "0901000001", "Java, SQL, Spring Boot", "3 năm phát triển web",     "Cử nhân CNTT");
-                int emp2 = insertEmployee(conn, "EMP002", 2, 1, 3, "0901000002", "React, Node.js",         "2 năm frontend",            "Kỹ sư phần mềm");
-                int emp3 = insertEmployee(conn, "EMP003", 3, 1, 2, "0901000003", "DevOps, Docker, K8s",    "1 năm vận hành hệ thống",   "Cử nhân CNTT");
-                int emp4 = insertEmployee(conn, "EMP004", 4, 2, 3, "0901000004", "Tuyển dụng, HRIS",       "4 năm nhân sự",             "Cử nhân Quản trị nhân lực");
-                int emp5 = insertEmployee(conn, "EMP005", 5, 2, 2, "0901000005", "Đào tạo, C&B",           "2 năm C&B",                 "Cử nhân Kinh tế");
-                int emp6 = insertEmployee(conn, "EMP006", 6, 3, 3, "0901000006", "Kế toán, MISA",          "5 năm kế toán tài chính",   "Cử nhân Kế toán");
-
-                // Assign managers: emp1 manages IT, emp4 manages HR, emp6 manages FIN
-                updateDepartmentManager(conn, 1, emp1);
-                updateDepartmentManager(conn, 2, emp4);
-                updateDepartmentManager(conn, 3, emp6);
-
-                // Set managerId for team members
-                updateEmployeeManager(conn, emp2, emp1);
-                updateEmployeeManager(conn, emp3, emp1);
-                updateEmployeeManager(conn, emp5, emp4);
+                // departmentId: 1=IT, 2=HR, 3=FI | positionId: 1=Thực tập sinh, 2=Nhân viên, 3=Trưởng phòng
+                // IT — userId 6,7,8
+                insertEmployee(conn, "EMP001", 6,  1, 3, "0901000001", "Java, SQL, Spring Boot", "5 năm phát triển web",    "Kỹ sư CNTT");
+                insertEmployee(conn, "EMP002", 7,  1, 2, "0901000002", "React, TypeScript",      "2 năm frontend",          "Cử nhân CNTT");
+                insertEmployee(conn, "EMP003", 8,  1, 1, "0901000003", "DevOps, Docker",         "1 năm vận hành",          "Cử nhân CNTT");
+                // HR — userId 9,10
+                insertEmployee(conn, "EMP004", 9,  2, 3, "0901000004", "Tuyển dụng, HRIS",       "6 năm nhân sự",           "Cử nhân Quản trị nhân lực");
+                insertEmployee(conn, "EMP005", 10, 2, 2, "0901000005", "Đào tạo, C&B",           "3 năm C&B",               "Cử nhân Kinh tế");
+                // FI — userId 11,12
+                insertEmployee(conn, "EMP006", 11, 3, 3, "0901000006", "Kế toán, MISA, Excel",   "8 năm kế toán tài chính", "Cử nhân Kế toán");
+                insertEmployee(conn, "EMP007", 12, 3, 2, "0901000007", "Thuế, kiểm toán",        "2 năm tài chính",         "Cử nhân Tài chính");
             }
             
+            if (countRows(conn, "Department_Roles") == 0) {
+                // roleId: 3=HRManager, 4=HREmployee, 5=ITManager, 6=ITEmployee, 7=FIManager, 8=FIEmployee
+
+                // Phòng IT (departmentId=1)
+                insertDepartmentRole(conn, 1, 5); // ITManager
+                insertDepartmentRole(conn, 1, 6); // ITEmployee
+
+                // Phòng HR (departmentId=2)
+                insertDepartmentRole(conn, 2, 3); // HRManager
+                insertDepartmentRole(conn, 2, 4); // HREmployee
+
+                // Phòng FI (departmentId=3)
+                insertDepartmentRole(conn, 3, 7); // FIManager
+                insertDepartmentRole(conn, 3, 8); // FIEmployee
+            }
+                 
             LOGGER.log(Level.INFO,"Seeding completed successfully.");
         } catch (SQLException e) {
             LOGGER.log(Level.SEVERE, "Cannot insert initial data", e);
@@ -564,7 +594,7 @@ public class DBInitializer {
         }
     }
 
-
+    
     private void insertRole(Connection conn, String code, String name,String description) throws SQLException {
         String sql = "INSERT INTO Roles (roleCode, roleName, description) VALUES (?, ?, ?)";
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -591,6 +621,15 @@ public class DBInitializer {
         ps.setNString(2, name);
         ps.setNString(3, description);
         ps.executeUpdate();
+        }
+    }
+    
+    private void insertDepartmentRole(Connection conn, int departmentId, int roleId) throws SQLException {
+        String sql = "INSERT IGNORE INTO Department_Roles (departmentId, roleId) VALUES (?, ?)";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, departmentId);
+            ps.setInt(2, roleId);
+            ps.executeUpdate();
         }
     }
 
