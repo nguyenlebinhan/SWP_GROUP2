@@ -101,6 +101,9 @@ public class EmployeeController extends HttpServlet {
             case "/update-department":
                 handleUpdateDepartment(request, response, user);
                 break;
+            case "/update-my-profile":
+                handleUpdateMyProfile(request, response, user);
+                break;
             default:
                 response.sendRedirect(request.getContextPath() + "/v1/employee/dashboard");
                 break;
@@ -222,6 +225,8 @@ public class EmployeeController extends HttpServlet {
                                    User sessionUser) throws ServletException, IOException {
         User currentUser = userDAO.getUserById(sessionUser.getUserId());
         request.setAttribute("currentUser", currentUser);
+        EmployeeDetailDTO myEmployee = employeeDAO.getEmployeeByUserId(sessionUser.getUserId());
+        request.setAttribute("myEmployee", myEmployee);
         request.getRequestDispatcher("/public/employee/my_profile.jsp").forward(request, response);
     }
 
@@ -491,6 +496,36 @@ public class EmployeeController extends HttpServlet {
         request.setAttribute("canViewDepartments", perms.contains("VIEW_DEPARTMENTS"));
         request.setAttribute("canEditDepts",     perms.contains("EDIT_DEPARTMENTS"));
         request.setAttribute("canAssignDept",      perms.contains("ASSIGN_DEPARTMENT"));
+    }
+
+    private void handleUpdateMyProfile(HttpServletRequest request, HttpServletResponse response,
+                                        User user) throws ServletException, IOException {
+        String phoneNumber = request.getParameter("phoneNumber");
+        String skills = request.getParameter("skills");
+        String experience = request.getParameter("experience");
+        String degree = request.getParameter("degree");
+
+        EmployeeDetailDTO myEmployee = employeeDAO.getEmployeeByUserId(user.getUserId());
+        if (myEmployee == null) {
+            request.getSession().setAttribute("error", "Không tìm thấy hồ sơ nhân viên.");
+            response.sendRedirect(request.getContextPath() + "/v1/employee/my-profile");
+            return;
+        }
+
+        boolean success = employeeDAO.updateOwnProfile(
+                myEmployee.getEmployeeId(),
+                isBlank(phoneNumber) ? null : phoneNumber.trim(),
+                isBlank(skills) ? null : skills.trim(),
+                isBlank(experience) ? null : experience.trim(),
+                isBlank(degree) ? null : degree.trim()
+        );
+
+        if (success) {
+            request.getSession().setAttribute("success", "Cập nhật hồ sơ thành công.");
+        } else {
+            request.getSession().setAttribute("error", "Cập nhật thất bại. Vui lòng thử lại.");
+        }
+        response.sendRedirect(request.getContextPath() + "/v1/employee/my-profile");
     }
 
     private boolean isBlank(String v) {
