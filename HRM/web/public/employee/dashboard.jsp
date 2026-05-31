@@ -116,7 +116,7 @@
 <jsp:include page="/public/components/employeeSideBar.jsp" />
 
 <div class="main">
-    <jsp:include page="/public/components/employeeTopBar.jsp">
+    <jsp:include page="/public/components/systemAdminTopBar.jsp">
         <jsp:param name="title" value="Dashboard" />
     </jsp:include>
 
