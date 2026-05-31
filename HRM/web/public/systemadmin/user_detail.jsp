@@ -203,12 +203,12 @@
 </head>
 <body>
 
-<jsp:include page="/public/components/adminSideBar.jsp" />
+<jsp:include page="/public/components/systemAdminSideBar.jsp" />
 
 <div class="main-content">
-    <jsp:include page="/public/components/adminTopBar.jsp">
+    <jsp:include page="/public/components/systemAdminTopBar.jsp">
         <jsp:param name="title" value="Chi tiết người dùng" />
-        <jsp:param name="backUrl" value="/v1/admin/user-list" />
+        <jsp:param name="backUrl" value="/v1/systemadmin/user-list" />
     </jsp:include>
 
     <!-- Flash messages -->
