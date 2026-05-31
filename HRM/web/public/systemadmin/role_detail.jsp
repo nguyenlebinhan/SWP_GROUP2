@@ -241,12 +241,12 @@
 </head>
 <body>
 
-<jsp:include page="/public/components/adminSideBar.jsp" />
+<jsp:include page="/public/components/systemAdminSideBar.jsp" />
 
 <div class="main-content">
-    <jsp:include page="/public/components/adminTopBar.jsp">
+    <jsp:include page="/public/components/systemAdminTopBar.jsp">
         <jsp:param name="title" value="Chi tiết vai trò" />
-        <jsp:param name="backUrl" value="/v1/admin/role-list" />
+        <jsp:param name="backUrl" value="/v1/systemadmin/role-list" />
     </jsp:include>
 
     <c:if test="${not empty error}">
@@ -312,7 +312,7 @@
                                         <span style="color:#6366f1;font-weight:700">${assignedCount}</span>
                                         / ${allPermissions.size()} quyền được gán
                                     </span>
-                                    <a href="${pageContext.request.contextPath}/v1/admin/edit-role-permissions?id=${selectedRole.roleId}"
+                                    <a href="${pageContext.request.contextPath}/v1/systemadmin/edit-role-permissions?id=${selectedRole.roleId}"
                                        class="btn-edit-role" style="height:34px;padding:0 14px;font-size:13px">
                                          Phân quyền
                                     </a>
@@ -414,7 +414,7 @@
                                                     <strong><c:out value="${empty u.fullName ? u.username : u.fullName}"/></strong>
                                                     <div class="muted"><c:out value="${u.email}"/></div>
                                                 </div>
-                                                <a href="${pageContext.request.contextPath}/v1/admin/view-user-detail?id=${u.userId}" class="btn btn-sm btn-outline-primary">
+                                                <a href="${pageContext.request.contextPath}/v1/systemadmin/view-user-detail?id=${u.userId}" class="btn btn-sm btn-outline-primary">
                                                     Chi tiết
                                                 </a>
                                             </div>
