@@ -215,6 +215,29 @@ public class DepartmentDAO {
         return false;
     }
 
+    public boolean updateDepartmentInfo(Department dept) {
+        LOGGER.log(Level.INFO, "Updating department info with departmentId: {0}", dept.getDepartmentId());
+        String SQL = "UPDATE departments SET departmentName = ?, description = ? WHERE departmentId = ?";
+        try (Connection conn = dbContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(SQL)) {
+            ps.setString(1, dept.getDepartmentName());
+            ps.setString(2, dept.getDescription());
+            ps.setInt(3, dept.getDepartmentId());
+
+            int rowsAffected = ps.executeUpdate();
+            if (rowsAffected > 0) {
+                LOGGER.log(Level.INFO, "Department info updated successfully with departmentId: {0}", dept.getDepartmentId());
+                return true;
+            } else {
+                LOGGER.log(Level.WARNING, "Update department info failed: no rows affected for departmentId: {0}", dept.getDepartmentId());
+                return false;
+            }
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Error updating department info with departmentId: " + dept.getDepartmentId(), e);
+        }
+        return false;
+    }
+
     public boolean updateDepartment(Department dept) {
         LOGGER.log(Level.INFO, "Updating department with departmentId: {0}", dept.getDepartmentId());
         String SQL = " UPDATE departments SET departmentName = ?, description = ?, managerId = ? WHERE departmentId = ?";
