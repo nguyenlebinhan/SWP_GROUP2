@@ -206,10 +206,10 @@
     </head>
     <body>
 
-        <jsp:include page="/public/components/adminSideBar.jsp" />
+        <jsp:include page="/public/components/systemAdminSideBar.jsp" />
 
         <div class="main-content">
-            <jsp:include page="/public/components/adminTopBar.jsp">
+            <jsp:include page="/public/components/systemAdminTopBar.jsp">
                 <jsp:param name="title" value="Quản lý người dùng" />
             </jsp:include>
 
@@ -231,14 +231,14 @@
 
             <%-- Top action row --%>
             <div class="d-flex justify-content-end mb-3">
-                <a href="${pageContext.request.contextPath}/v1/admin/add-user" class="btn-add">
+                <a href="${pageContext.request.contextPath}/v1/systemadmin/add-user" class="btn-add">
                     + Thêm người dùng
                 </a>
             </div>
 
             <%-- Search & filter bar --%>
             <form method="get"
-                  action="${pageContext.request.contextPath}/v1/admin/user-list"
+                  action="${pageContext.request.contextPath}/v1/systemadmin/user-list"
                   class="search-bar">
 
                 <input type="text" name="keyword" value="${keyword}"
@@ -255,7 +255,7 @@
                 </select>
 
                 <button type="submit" class="btn-search">🔍 Tìm kiếm</button>
-                <a href="${pageContext.request.contextPath}/v1/admin/user-list" class="btn-clear">
+                <a href="${pageContext.request.contextPath}/v1/systemadmin/user-list" class="btn-clear">
                     Xóa lọc
                 </a>
             </form>
@@ -312,20 +312,20 @@
                                             </td>
                                             <td>
                                                 <div style="display:flex;gap:6px;">
-                                                    <a href="${pageContext.request.contextPath}/v1/admin/view-user-detail?id=${u.userId}"
+                                                    <a href="${pageContext.request.contextPath}/v1/systemadmin/view-user-detail?id=${u.userId}"
                                                        class="btn-action btn-edit">Chi tiết</a>
-                                                    <a href="${pageContext.request.contextPath}/v1/admin/update-user?id=${u.userId}"
+                                                    <a href="${pageContext.request.contextPath}/v1/systemadmin/update-user?id=${u.userId}"
                                                        class="btn-action btn-edit">Cập nhật</a>
                                                     <c:choose>
                                                         <c:when test="${u.isActive == 1}">
-                                                            <a href="${pageContext.request.contextPath}/v1/admin/change-status?id=${u.userId}&status=0"
+                                                            <a href="${pageContext.request.contextPath}/v1/systemadmin/change-status?id=${u.userId}&status=0"
                                                                class="btn-action btn-deactivate"
                                                                onclick="return confirm('Vô hiệu hóa tài khoản ${u.fullName}?')">
                                                                 Vô hiệu hóa
                                                             </a>
                                                         </c:when>
                                                         <c:otherwise>
-                                                            <a href="${pageContext.request.contextPath}/v1/admin/change-status?id=${u.userId}&status=1"
+                                                            <a href="${pageContext.request.contextPath}/v1/systemadmin/change-status?id=${u.userId}&status=1"
                                                                class="btn-action btn-activate"
                                                                onclick="return confirm('Kích hoạt tài khoản ${u.fullName}?')">
                                                                 Kích hoạt
