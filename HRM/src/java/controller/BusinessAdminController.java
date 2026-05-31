@@ -226,7 +226,7 @@ public class BusinessAdminController extends HttpServlet {
         }
 
         EmployeeDetailDTO currentManager = departmentDAO.getCurrentManager(departmentId);
-        List<EmployeeDetailDTO> candidates = departmentDAO.getAssignableManagerDTOs(ba.getUserId());
+        List<EmployeeDetailDTO> candidates = departmentDAO.getAssignableManagerDTOs(ba.getUserId(), departmentId);
 
         request.setAttribute("dept", dept);
         request.setAttribute("currentManager", currentManager);
@@ -264,7 +264,7 @@ public class BusinessAdminController extends HttpServlet {
         }
 
         // Server-side guard: kiểm tra candidate hợp lệ, không chỉ dựa vào UI
-        List<EmployeeDetailDTO> candidates = departmentDAO.getAssignableManagerDTOs(ba.getUserId());
+        List<EmployeeDetailDTO> candidates = departmentDAO.getAssignableManagerDTOs(ba.getUserId(), departmentId);
         boolean isValid = candidates.stream().anyMatch(c -> c.getEmployeeId() == employeeId);
         if (!isValid) {
             request.getSession().setAttribute("deptError", "Nhân viên này không đủ điều kiện làm quản lý.");

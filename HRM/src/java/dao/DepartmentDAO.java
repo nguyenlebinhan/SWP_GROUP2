@@ -358,30 +358,37 @@ public class DepartmentDAO {
         return list;
     }
 
-    public List<dto.EmployeeDetailDTO> getAssignableManagerDTOs(int baUserId) {
+    public List<dto.EmployeeDetailDTO> getAssignableManagerDTOs(int baUserId, int departmentId) {
         List<dto.EmployeeDetailDTO> list = new java.util.ArrayList<>();
         String SQL
-                = "SELECT e.employeeId, e.employeeCode, e.userId, e.departmentId, e.positionId, "
-                + "       e.phoneNumber, e.skills, e.experience, e.degree, e.status, e.managerId, "
-                + "       u.fullName, u.email, u.username, "
-                + "       COALESCE(d.departmentName, N'Chưa phân công') AS departmentName, "
-                + "       COALESCE(p.positionName, N'') AS positionName, "
-                + "       r.roleName "
-                + "FROM Employees e "
-                + "JOIN Users u ON u.userId = e.userId "
-                + "JOIN Roles r ON r.roleId = u.roleId "
-                + "LEFT JOIN Departments d ON d.departmentId = e.departmentId "
-                + "LEFT JOIN Positions p ON p.positionId = e.positionId "
-                + "WHERE u.isActive = 1 "
-                + "  AND e.status = 1 "
-                + "  AND r.roleId > (SELECT u2.roleId FROM Users u2 WHERE u2.userId = ?) "
-                + "  AND e.employeeId NOT IN ( "
-                + "      SELECT d2.managerId FROM Departments d2 "
-                + "      WHERE d2.managerId IS NOT NULL AND d2.status = 1 "
-                + "  ) "
-                + "ORDER BY u.fullName";
+            = "SELECT e.employeeId, e.employeeCode, e.userId, e.departmentId, e.positionId, "
+            + "       e.phoneNumber, e.skills, e.experience, e.degree, e.status, e.managerId, "
+            + "       u.fullName, u.email, u.username, "
+            + "       COALESCE(d.departmentName, N'Chưa phân công') AS departmentName, "
+            + "       COALESCE(p.positionName, N'') AS positionName, "
+            + "       r.roleName "
+            + "FROM Employees e "
+            + "JOIN Users u ON u.userId = e.userId "
+            + "JOIN Roles r ON r.roleId = u.roleId "
+            + "LEFT JOIN Departments d ON d.departmentId = e.departmentId "
+            + "LEFT JOIN Positions p ON p.positionId = e.positionId "
+            + "WHERE u.isActive = 1 "
+            + "  AND e.status = 1 "
+            + "  AND r.roleName LIKE '%Manager' "
+            + "  AND r.roleId > (SELECT u2.roleId FROM Users u2 WHERE u2.userId = ?) "
+            + "  AND e.employeeId NOT IN ( "
+            + "      SELECT d2.managerId FROM Departments d2 "
+            + "      WHERE d2.managerId IS NOT NULL AND d2.status = 1 "
+            + "  ) "
+            + "  AND EXISTS ( "
+            + "      SELECT 1 FROM Departments dept2 "
+            + "      WHERE dept2.departmentId = ? "
+            + "        AND r.roleName LIKE CONCAT(dept2.departmentCode, '%') "
+            + "  ) "
+            + "ORDER BY u.fullName";
         try (java.sql.Connection conn = dbContext.getConnection(); java.sql.PreparedStatement ps = conn.prepareStatement(SQL)) {
             ps.setInt(1, baUserId);
+            ps.setInt(2, departmentId);
             try (java.sql.ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
                     dto.EmployeeDetailDTO e = new dto.EmployeeDetailDTO();
