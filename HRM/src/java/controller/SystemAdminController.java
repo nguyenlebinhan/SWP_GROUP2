@@ -220,7 +220,6 @@ public class SystemAdminController extends HttpServlet {
                 .forward(request, response);
     }
 
-// Sửa dashboard: dùng COUNT thay vì lấy toàn bộ list
     private void displayDashboard(HttpServletRequest request,
             HttpServletResponse response)
             throws ServletException, IOException {
