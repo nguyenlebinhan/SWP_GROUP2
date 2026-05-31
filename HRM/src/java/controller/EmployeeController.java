@@ -62,6 +62,9 @@ public class EmployeeController extends HttpServlet {
             case "/add-department":
                 displayAddDepartmentForm(request, response, user);
                 break;
+            case "/update-department":
+                displayUpdateDepartmentForm(request, response, user);
+                break;
             case "/my-profile":
                 displayMyProfile(request, response, user);
                 break;
@@ -94,6 +97,9 @@ public class EmployeeController extends HttpServlet {
                 break;
             case "/add-department":
                 handleAddDepartment(request, response, user);
+                break;
+            case "/update-department":
+                handleUpdateDepartment(request, response, user);
                 break;
             default:
                 response.sendRedirect(request.getContextPath() + "/v1/employee/dashboard");
@@ -339,6 +345,95 @@ public class EmployeeController extends HttpServlet {
         LOGGER.log(Level.INFO, "Department created: code={0} by userId={1}", new Object[]{code, user.getUserId()});
         request.getSession().setAttribute("success", "Thêm phòng ban \"" + name.trim() + "\" thành công.");
         response.sendRedirect(request.getContextPath() + "/v1/employee/dashboard");
+    }
+
+    private void displayUpdateDepartmentForm(HttpServletRequest request, HttpServletResponse response,
+                                           User user) throws ServletException, IOException {
+        if (!hasPermission(user, "EDIT_DEPARTMENTS")) {
+            request.getSession().setAttribute("error", "Bạn không có quyền sửa phòng ban.");
+            response.sendRedirect(request.getContextPath() + "/v1/employee/dashboard");
+            return;
+        }
+        String idParam = request.getParameter("id");
+        if (isBlank(idParam)) {
+            response.sendRedirect(request.getContextPath() + "/v1/employee/department-list");
+            return;
+        }
+        int deptId;
+        try {
+            deptId = Integer.parseInt(idParam);
+        } catch (NumberFormatException e) {
+            response.sendRedirect(request.getContextPath() + "/v1/employee/department-list");
+            return;
+        }
+        Department dept = departmentDAO.getDepartmentById(deptId);
+        if (dept == null) {
+            response.sendRedirect(request.getContextPath() + "/v1/employee/department-list");
+            return;
+        }
+
+        Set<String> perms = getPermissions(user);
+        request.getSession().setAttribute("userPermissions", perms);
+        request.setAttribute("department", dept);
+        request.setAttribute("roles", roleDAO.getAllActiveRoles());
+        
+        List<Role> activeRoles = roleDAO.getAllActiveRoles();
+        List<String> allowedRoles = departmentDAO.getAllowedRoleNames(deptId);
+        List<Integer> selectedRoleIds = new ArrayList<>();
+        for (Role r : activeRoles) {
+            if (allowedRoles.contains(r.getRoleName())) {
+                selectedRoleIds.add(r.getRoleId());
+            }
+        }
+        request.setAttribute("selectedRoleIds", selectedRoleIds);
+        
+        setPermissionFlags(request, perms);
+        request.getRequestDispatcher("/public/employee/update_department.jsp").forward(request, response);
+    }
+
+    private void handleUpdateDepartment(HttpServletRequest request, HttpServletResponse response,
+                                      User user) throws ServletException, IOException {
+        if (!hasPermission(user, "EDIT_DEPARTMENTS")) {
+            response.sendRedirect(request.getContextPath() + "/v1/employee/dashboard");
+            return;
+        }
+        String idParam = request.getParameter("departmentId");
+        String name = request.getParameter("departmentName");
+        String description = request.getParameter("description");
+        List<Integer> roleIds = parseRoleIds(request.getParameterValues("roleIds"));
+
+        if (isBlank(idParam) || isBlank(name)) {
+            request.getSession().setAttribute("error", "Tên phòng ban là bắt buộc.");
+            response.sendRedirect(request.getContextPath() + "/v1/employee/update-department?id=" + (idParam != null ? idParam : ""));
+            return;
+        }
+        
+        int deptId;
+        try {
+            deptId = Integer.parseInt(idParam);
+        } catch (NumberFormatException e) {
+            response.sendRedirect(request.getContextPath() + "/v1/employee/department-list");
+            return;
+        }
+        
+        Department dept = departmentDAO.getDepartmentById(deptId);
+        if (dept == null) {
+            response.sendRedirect(request.getContextPath() + "/v1/employee/department-list");
+            return;
+        }
+        
+        dept.setDepartmentName(name.trim());
+        dept.setDescription(isBlank(description) ? null : description.trim());
+        
+        boolean success = departmentDAO.updateDepartmentInfo(dept);
+        if (success) {
+            departmentDAO.replaceDepartmentRoles(deptId, roleIds);
+            request.getSession().setAttribute("success", "Cập nhật phòng ban thành công.");
+            response.sendRedirect(request.getContextPath() + "/v1/employee/department-list");
+        } else {
+            request.getSession().setAttribute("error", "Cập nhật thất bại. Vui lòng thử lại.");
+            response.sendRedirect(request.getContextPath() + "/v1/employee/update-department?id=" + deptId);
+        }
     }
 
     private void repopulateAddDeptForm(HttpServletRequest request, HttpServletResponse response,
