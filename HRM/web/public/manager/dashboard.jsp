@@ -1,10 +1,5 @@
-<%--
-    Document   : manager/dashboard.jsp
---%>
-
 <%@ page contentType="text/html;charset=UTF-8" %>
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
-<%@ taglib prefix="fn" uri="http://java.sun.com/jsp/jstl/functions" %>
 <!DOCTYPE html>
 <html>
 <head>
@@ -30,38 +25,16 @@
             border-radius: 12px;
             box-shadow: 0 2px 10px rgba(0,0,0,0.05);
         }
-        .badge-online {
-            background: #d1fae5;
-            color: #059669;
-        }
-        .badge-leave {
-            background: #fee2e2;
-            color: #dc2626;
-        }
-        .badge-inactive {
-            background: #f3f4f6;
-            color: #6b7280;
-        }
     </style>
 </head>
 <body>
-
-    <%-- Chọn sidebar theo role (bỏ qua khoảng trắng và không phân biệt chữ hoa/thường) --%>
-    <c:choose>
-        <c:when test="${fn:toUpperCase(fn:replace(sessionScope.user.roleName, ' ', '')) == 'HRMANAGER'}">
-            <jsp:include page="/public/components/managerSideBar.jsp" />
-        </c:when>
-        <c:otherwise>
-            <jsp:include page="/public/components/departmentManagerSideBar.jsp" />
-        </c:otherwise>
-    </c:choose>
+    <jsp:include page="/public/components/managerSideBar.jsp" />
 
     <div class="main">
         <jsp:include page="/public/components/managerTopBar.jsp">
             <jsp:param name="title" value="Dashboard" />
         </jsp:include>
 
-        <!-- ===== STATS ===== -->
         <div class="row g-4">
             <div class="col-md-3">
                 <div class="card card-stat p-4">
@@ -89,7 +62,6 @@
             </div>
         </div>
 
-        <!-- ===== CHART + EMPLOYEES ===== -->
         <div class="row mt-4">
             <div class="col-md-8">
                 <div class="chart-box">
@@ -97,7 +69,6 @@
                     <canvas id="employeeChart"></canvas>
                 </div>
             </div>
-
         </div>
     </div>
 
