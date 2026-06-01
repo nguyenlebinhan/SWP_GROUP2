@@ -172,6 +172,26 @@ public class DBInitializer {
         execute(conn, SQL, "CREATE EMPLOYEES TABLE SUCCESSFULLY");
     }
 
+    public void createTableEmploymentContracts(Connection conn) {
+        String SQL = "CREATE TABLE Employment_Contracts("
+                + "contractId INT PRIMARY KEY AUTO_INCREMENT,"
+                + "contractCode VARCHAR(50) NOT NULL UNIQUE,"
+                + "employeeId INT NOT NULL,"
+                + "contractType VARCHAR(50) NOT NULL,"
+                + "startDate DATE NOT NULL,"
+                + "endDate DATE NULL,"
+                + "salary DECIMAL(15,2) NOT NULL DEFAULT 0,"
+                + "status TINYINT DEFAULT 1,"
+                + "note NVARCHAR(500),"
+                + "createdBy INT,"
+                + "createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,"
+                + "updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,"
+                + "FOREIGN KEY (employeeId) REFERENCES Employees(employeeId),"
+                + "FOREIGN KEY (createdBy) REFERENCES Users(userId)"
+                + ")";
+        execute(conn, SQL, "CREATE EMPLOYMENT_CONTRACTS TABLE SUCCESSFULLY");
+    }
+
     public void createTableCandidates(Connection conn) {
         String SQL = "CREATE TABLE Candidates("
                 + "candidateId INT PRIMARY KEY AUTO_INCREMENT,"
@@ -392,14 +412,14 @@ public class DBInitializer {
 
             String[] dropOrder = {
                 "Audit_Logs", "Notifications", "Performance", "Payroll", "Attendance",
-                "Uploaded_Files", "Leave_Balance", "Leave_Requests", "Leave_Types", "Candidates", "Employees",
+                "Uploaded_Files", "Leave_Balance", "Leave_Requests", "Leave_Types", "Candidates", "Employment_Contracts", "Employees",
                 "Users", "Department_Roles", "Role_Permissions", "Permissions", "Email_Templates", "Departments",
                 "Positions", "Roles"
             };
 
             String[] createOrder = {
                 "Roles", "Permissions", "Role_Permissions", "Email_Templates", "Positions",
-                "Departments", "Department_Roles", "Users", "Employees", "Candidates", "Leave_Types",
+                "Departments", "Department_Roles", "Users", "Employees", "Employment_Contracts", "Candidates", "Leave_Types",
                 "Leave_Requests", "Leave_Balance", "Uploaded_Files", "Attendance", "Payroll", "Performance", 
                 "Notifications", "Audit_Logs"
             };
@@ -429,6 +449,7 @@ public class DBInitializer {
                         case "Department_Roles":  createTableDepartmentRoles(conn);   break;
                         case "Users":             createTableUsers(conn);             break;
                         case "Employees":         createTableEmployees(conn);         break; // Đã thêm break bị thiếu ở đây
+                        case "Employment_Contracts": createTableEmploymentContracts(conn); break;
                         case "Candidates":        createTableCandidates(conn);        break;
                         case "Leave_Types":       createTableLeaveTypes(conn);        break;
                         case "Leave_Requests":    createTableLeaveRequests(conn);     break;
@@ -486,12 +507,14 @@ public class DBInitializer {
                 insertPermission(conn, "VIEW_EMPLOYEES",   "Xem nhân viên",              "Quyền xem danh sách nhân viên");   
                 insertPermission(conn, "ADD_EMPLOYEE","Thêm nhân viên",     "Quyền thêm nhân viên");   
                 insertPermission(conn, "EDIT_EMPLOYEE","Chỉnh sửa nhân viên",     "Quyền chỉnh sửa nhân viên");   
+                insertPermission(conn, "ADD_EMPLOYMENT_CONTRACT", "Thêm hợp đồng lao động", "Quyền thêm hợp đồng lao động cho nhân viên");
                 insertPermission(conn, "EDIT_DEPARTMENTS","Chỉnh sửa phòng ban",     "Quyền chỉnh sửa phòng ban ");   
                 insertPermission(conn, "ASSIGN_DEPARTMENT","Gán nhân viên vào phòng ban",     "Quyền gán nhân viên vào phòng ban");                  
                 insertPermission(conn,"ADD_DEPARTMENT","Thêm phòng ban","Quyền thêm phòng ban");
                 insertPermission(conn,"VIEW_ATTENDANCE","Xem chấm công","Quyền xem dữ liệu chấm công (Manager: theo phòng mình; Employee: của bản thân)");
                 insertPermission(conn,"VIEW_DEPARTMENT_EMPLOYEES_DETAIL","Xem danh sách nhân viên của phòng ban khác","Quyền xem dữ liệu nhân viên của phòng ban khác");
             }
+            ensurePermission(conn, "ADD_EMPLOYMENT_CONTRACT", "Thêm hợp đồng lao động", "Quyền thêm hợp đồng lao động cho nhân viên");
 
             if (countRows(conn, "Positions") == 0) {
 
@@ -581,6 +604,19 @@ public class DBInitializer {
             ps.setNString(3, description);
             ps.executeUpdate();
         }
+    }
+
+    private void ensurePermission(Connection conn, String code, String name, String description) throws SQLException {
+        String checkSql = "SELECT 1 FROM Permissions WHERE permissionCode = ?";
+        try (PreparedStatement ps = conn.prepareStatement(checkSql)) {
+            ps.setString(1, code);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return;
+                }
+            }
+        }
+        insertPermission(conn, code, name, description);
     }
 
     private void insertPosition(Connection conn, String name, int level, String description) throws SQLException {
