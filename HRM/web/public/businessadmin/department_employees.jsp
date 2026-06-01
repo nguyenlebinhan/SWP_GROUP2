@@ -3,7 +3,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Danh sách nhân viên - HRM</title>
+    <title>Nhân viên phòng ${department.departmentName} - HRM</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
     <style>
@@ -16,6 +16,18 @@
             box-shadow: 0 2px 12px rgba(0,0,0,0.07);
             padding: 24px;
         }
+
+        .dept-header { display: flex; align-items: center; gap: 16px; margin-bottom: 20px; }
+        .dept-icon-lg {
+            width: 56px; height: 56px;
+            border-radius: 12px;
+            background: #dbeafe; color: #2563eb;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 24px;
+            flex-shrink: 0;
+        }
+        .dept-title { font-size: 18px; font-weight: 700; color: #0f172a; margin-bottom: 2px; }
+        .dept-code  { font-size: 13px; color: #94a3b8; }
 
         .table th { font-size: 13px; color: #6b7280; font-weight: 600; background: #f9fafb; }
         .table td { font-size: 14px; vertical-align: middle; }
@@ -40,12 +52,12 @@
 </head>
 <body>
 
-<jsp:include page="/public/components/employeeSideBar.jsp" />
+<jsp:include page="/public/components/businessAdminSideBar.jsp" />
 
 <div class="main">
-    <jsp:include page="/public/components/employeeTopBar.jsp">
-        <jsp:param name="title" value="Danh sách nhân viên" />
-        <jsp:param name="backUrl" value="/v1/employee/dashboard" />
+    <jsp:include page="/public/components/businessAdminTopBar.jsp">
+        <jsp:param name="title" value="Nhân viên phòng ban" />
+        <jsp:param name="backUrl" value="/v1/businessadmin/department" />
     </jsp:include>
 
     <c:if test="${not empty sessionScope.success}">
@@ -64,24 +76,42 @@
     </c:if>
 
     <div class="page-card">
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <div>
-                <h5 class="fw-bold mb-1">Nhân viên</h5>
-                <span class="text-muted small">${employees.size()} nhân viên</span>
+        <div class="dept-header">
+            <div class="dept-icon-lg"><i class="fa-solid fa-sitemap"></i></div>
+            <div class="flex-grow-1">
+                <div class="dept-title">${department.departmentName}</div>
+                <div class="dept-code">${department.departmentCode}</div>
             </div>
-            <c:if test="${canAssignDept}">
-                <a href="${pageContext.request.contextPath}/v1/employee/assign-department"
-                   class="btn btn-primary btn-sm" style="background:#2563eb;border:none">
-                    <i class="fa-solid fa-plus me-1"></i> Phân công nhân viên
+            <div>
+                <a href="${pageContext.request.contextPath}/v1/businessadmin/update-department?id=${department.departmentId}"
+                   class="btn btn-sm btn-outline-primary me-2">
+                   <i class="fa-solid fa-pen"></i> Chỉnh sửa
                 </a>
-            </c:if>
+                <c:choose>
+                    <c:when test="${department.status == 1}">
+                        <span class="badge-active">Hoạt động</span>
+                    </c:when>
+                    <c:otherwise>
+                        <span class="badge-inactive">Tạm dừng</span>
+                    </c:otherwise>
+                </c:choose>
+            </div>
+        </div>
+
+        <c:if test="${not empty department.description}">
+            <p class="text-muted small mb-4">${department.description}</p>
+        </c:if>
+
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h6 class="fw-bold mb-0">Danh sách nhân viên</h6>
+            <span class="text-muted small">${employees.size()} nhân viên</span>
         </div>
 
         <c:choose>
             <c:when test="${empty employees}">
                 <div class="text-center py-5">
                     <i class="fa-solid fa-users-slash" style="font-size:48px;color:#cbd5e1;margin-bottom:16px"></i>
-                    <h6 class="text-muted">Chưa có nhân viên nào</h6>
+                    <h6 class="text-muted">Phòng ban này chưa có nhân viên nào</h6>
                 </div>
             </c:when>
             <c:otherwise>
@@ -91,10 +121,11 @@
                             <tr>
                                 <th>Nhân viên</th>
                                 <th>Mã NV</th>
-                                <th>Phòng ban</th>
                                 <th>Vị trí</th>
+                                <th>Vai trò</th>
                                 <th>Số điện thoại</th>
                                 <th>Trạng thái</th>
+                                <th class="text-center">Thao tác</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -112,8 +143,8 @@
                                         </div>
                                     </td>
                                     <td><code>${emp.employeeCode}</code></td>
-                                    <td>${emp.departmentName}</td>
                                     <td>${emp.positionName}</td>
+                                    <td>${emp.roleName}</td>
                                     <td>
                                         <c:choose>
                                             <c:when test="${not empty emp.phoneNumber}">${emp.phoneNumber}</c:when>
@@ -132,6 +163,12 @@
                                                 <span class="badge-inactive">Không hoạt động</span>
                                             </c:otherwise>
                                         </c:choose>
+                                    </td>
+                                    <td class="text-center">
+                                        <a href="${pageContext.request.contextPath}/v1/businessadmin/employee-detail?id=${emp.employeeId}"
+                                           class="btn btn-sm btn-outline-primary">
+                                            <i class="fa-solid fa-eye"></i> Chi tiết
+                                        </a>
                                     </td>
                                 </tr>
                             </c:forEach>

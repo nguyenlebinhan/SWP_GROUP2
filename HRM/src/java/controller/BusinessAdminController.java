@@ -12,11 +12,13 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.HashMap;
 import java.util.logging.Logger;
 import model.Department;
+import model.Role;
 import model.User;
 import static org.apache.tomcat.jakartaee.commons.lang3.StringUtils.isBlank;
 import service.EmailService;
@@ -61,6 +63,24 @@ public class BusinessAdminController extends HttpServlet {
             case "/department/assign":
                 displayAssignPage(request, response, user);
                 break;
+            case "/department/employees":
+                displayDepartmentEmployees(request, response);
+                break;
+            case "/employee-list":
+                displayEmployeeList(request, response, user);
+                break;
+            case "/employee-detail":
+                displayEmployeeDetail(request, response);
+                break;
+            case "/assign-department":
+                displayAssignDepartmentForm(request, response, user);
+                break;
+            case "/add-department":
+                displayAddDepartmentForm(request, response);
+                break;
+            case "/update-department":
+                displayUpdateDepartmentForm(request, response);
+                break;
             default:
                 response.sendRedirect(request.getContextPath() + "/");
                 break;
@@ -93,6 +113,15 @@ public class BusinessAdminController extends HttpServlet {
                 break;
             case "/department/unassign":
                 handleUnassignManager(request, response);
+                break;
+            case "/assign-department":
+                handleAssignDepartment(request, response, user);
+                break;
+            case "/add-department":
+                handleAddDepartment(request, response, user);
+                break;
+            case "/update-department":
+                handleUpdateDepartment(request, response);
                 break;
             default:
                 response.sendRedirect(request.getContextPath() + "/");
@@ -316,5 +345,302 @@ public class BusinessAdminController extends HttpServlet {
             request.getSession().setAttribute("deptError", "Gỡ manager thất bại. Vui lòng thử lại.");
         }
         response.sendRedirect(request.getContextPath() + "/v1/businessadmin/department");
+    }
+
+    // =========================================================
+    // Employee management methods (kế thừa từ Employee & Manager)
+    // =========================================================
+
+    private void displayEmployeeList(HttpServletRequest request, HttpServletResponse response, User user)
+            throws ServletException, IOException {
+        List<EmployeeDetailDTO> employees = employeeDAO.getAllEmployees(user.getUserId());
+        request.setAttribute("employees", employees);
+        request.getRequestDispatcher("/public/businessadmin/employee_list.jsp").forward(request, response);
+    }
+
+    private void displayEmployeeDetail(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+        String idParam = request.getParameter("id");
+        if (isBlank(idParam)) {
+            response.sendRedirect(request.getContextPath() + "/v1/businessadmin/employee-list");
+            return;
+        }
+        int employeeId;
+        try {
+            employeeId = Integer.parseInt(idParam.trim());
+        } catch (NumberFormatException e) {
+            response.sendRedirect(request.getContextPath() + "/v1/businessadmin/employee-list");
+            return;
+        }
+        EmployeeDetailDTO employee = employeeDAO.getEmployeeById(employeeId);
+        if (employee == null) {
+            request.getSession().setAttribute("error", "Không tìm thấy nhân viên.");
+            response.sendRedirect(request.getContextPath() + "/v1/businessadmin/employee-list");
+            return;
+        }
+        request.setAttribute("employee", employee);
+        request.getRequestDispatcher("/public/businessadmin/employee_detail.jsp").forward(request, response);
+    }
+
+    private void displayDepartmentEmployees(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+        String idParam = request.getParameter("id");
+        if (isBlank(idParam)) {
+            response.sendRedirect(request.getContextPath() + "/v1/businessadmin/department");
+            return;
+        }
+        int departmentId;
+        try {
+            departmentId = Integer.parseInt(idParam.trim());
+        } catch (NumberFormatException e) {
+            response.sendRedirect(request.getContextPath() + "/v1/businessadmin/department");
+            return;
+        }
+        Department department = departmentDAO.getDepartmentById(departmentId);
+        if (department == null) {
+            request.getSession().setAttribute("deptError", "Không tìm thấy phòng ban.");
+            response.sendRedirect(request.getContextPath() + "/v1/businessadmin/department");
+            return;
+        }
+        List<EmployeeDetailDTO> employees = employeeDAO.getEmployeesByDepartmentId(departmentId);
+        request.setAttribute("department", department);
+        request.setAttribute("employees", employees);
+        request.getRequestDispatcher("/public/businessadmin/department_employees.jsp").forward(request, response);
+    }
+
+    private void displayAssignDepartmentForm(HttpServletRequest request, HttpServletResponse response, User user)
+            throws ServletException, IOException {
+        request.setAttribute("availableEmployees", employeeDAO.getEmployees(user.getUserId()));
+        request.setAttribute("departments", departmentDAO.getAllActiveDepartments());
+        request.setAttribute("positions", departmentDAO.getAllPositions());
+        request.getRequestDispatcher("/public/businessadmin/assign_department.jsp").forward(request, response);
+    }
+
+    private void handleAssignDepartment(HttpServletRequest request, HttpServletResponse response, User user)
+            throws ServletException, IOException {
+        String rawUserId = request.getParameter("userId");
+        String rawDepartmentId = request.getParameter("departmentId");
+        String rawPositionId = request.getParameter("positionId");
+        String phoneNumber = request.getParameter("phoneNumber");
+        String skills = request.getParameter("skills");
+        String experience = request.getParameter("experience");
+        String degree = request.getParameter("degree");
+
+        if (isBlank(rawUserId) || isBlank(rawDepartmentId) || isBlank(rawPositionId)) {
+            repopulateAssignForm(request, response, user, "Vui lòng chọn đầy đủ nhân viên, phòng ban và vị trí.");
+            return;
+        }
+
+        int userId, departmentId, positionId;
+        try {
+            userId = Integer.parseInt(rawUserId);
+            departmentId = Integer.parseInt(rawDepartmentId);
+            positionId = Integer.parseInt(rawPositionId);
+        } catch (NumberFormatException e) {
+            repopulateAssignForm(request, response, user, "Dữ liệu không hợp lệ.");
+            return;
+        }
+
+        if (employeeDAO.isUserAssignedToDepartment(userId)) {
+            repopulateAssignForm(request, response, user, "Người dùng này đã được phân công phòng ban rồi.");
+            return;
+        }
+
+        int userRoleId = userDAO.getRoleIdByUserId(userId);
+        if (!departmentDAO.isRoleAllowedForDepartment(departmentId, userRoleId)) {
+            Department dept = departmentDAO.getDepartmentById(departmentId);
+            String deptName = (dept != null) ? dept.getDepartmentName() : "phòng ban này";
+            List<String> allowed = departmentDAO.getAllowedRoleNames(departmentId);
+            String msg = "Vai trò hiện tại của nhân viên không phù hợp với phòng \"" + deptName + "\". "
+                       + "Phòng này chỉ nhận vai trò: " + String.join(", ", allowed) + ". "
+                       + "Vui lòng đổi vai trò của người dùng trước khi phân công.";
+            repopulateAssignForm(request, response, user, msg);
+            return;
+        }
+
+        boolean success = employeeDAO.assignEmployeeToDepartment(
+                userId, departmentId, positionId,
+                isBlank(phoneNumber) ? null : phoneNumber.trim(),
+                isBlank(skills) ? null : skills.trim(),
+                isBlank(experience) ? null : experience.trim(),
+                isBlank(degree) ? null : degree.trim()
+        );
+
+        if (!success) {
+            repopulateAssignForm(request, response, user, "Phân công thất bại. Vui lòng thử lại.");
+            return;
+        }
+
+        // Thiết lập quan hệ quản lý sau khi phân công:
+        String roleName = roleDAO.getRoleByUserId(userId);
+        EmployeeDetailDTO assigned = employeeDAO.getEmployeeByUserId(userId);
+        if (assigned != null) {
+            Department assignedDept = departmentDAO.getDepartmentById(departmentId);
+            boolean deptHasManager = assignedDept != null && assignedDept.getManagerId() != null;
+            boolean isManagerRole = roleName != null && roleName.toLowerCase().contains("manager");
+
+            if (isManagerRole && !deptHasManager) {
+                // Phòng chưa có manager → người này làm manager, đồng thời gán
+                // managerId cho các nhân viên hiện có trong phòng.
+                employeeDAO.assignAsManager(departmentId, assigned.getEmployeeId());
+            } else if (deptHasManager) {
+                // Phòng đã có manager → người mới (kể cả role manager) làm cấp dưới
+                // của manager hiện tại, không ghi đè manager.
+                employeeDAO.setEmployeeManager(assigned.getEmployeeId(), assignedDept.getManagerId());
+            }
+        }
+
+        request.getSession().setAttribute("success", "Phân công nhân viên vào phòng ban thành công.");
+        response.sendRedirect(request.getContextPath() + "/v1/businessadmin/employee-list");
+    }
+
+    private void repopulateAssignForm(HttpServletRequest request, HttpServletResponse response,
+                                       User user, String errorMsg) throws ServletException, IOException {
+        request.setAttribute("error", errorMsg);
+        request.setAttribute("availableEmployees", employeeDAO.getEmployees(user.getUserId()));
+        request.setAttribute("departments", departmentDAO.getAllActiveDepartments());
+        request.setAttribute("positions", departmentDAO.getAllPositions());
+        request.getRequestDispatcher("/public/businessadmin/assign_department.jsp").forward(request, response);
+    }
+
+    // =========================================================
+    // Add / Update department (kế thừa từ Employee)
+    // =========================================================
+
+    private void displayAddDepartmentForm(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+        request.setAttribute("roles", roleDAO.getAllActiveRoles());
+        request.getRequestDispatcher("/public/businessadmin/add_department.jsp").forward(request, response);
+    }
+
+    private void handleAddDepartment(HttpServletRequest request, HttpServletResponse response, User user)
+            throws ServletException, IOException {
+        String code = request.getParameter("departmentCode");
+        String name = request.getParameter("departmentName");
+        String description = request.getParameter("description");
+        List<Integer> roleIds = parseRoleIds(request.getParameterValues("roleIds"));
+
+        if (isBlank(code) || isBlank(name)) {
+            request.setAttribute("error", "Mã phòng ban và tên phòng ban là bắt buộc.");
+            request.setAttribute("input_code", code);
+            request.setAttribute("input_name", name);
+            request.setAttribute("input_description", description);
+            request.setAttribute("roles", roleDAO.getAllActiveRoles());
+            request.setAttribute("selectedRoleIds", roleIds);
+            request.getRequestDispatcher("/public/businessadmin/add_department.jsp").forward(request, response);
+            return;
+        }
+
+        Department dept = new Department();
+        dept.setDepartmentCode(code.trim());
+        dept.setDepartmentName(name.trim());
+        dept.setDescription(isBlank(description) ? null : description.trim());
+
+        int newDeptId = departmentDAO.addDepartment(dept);
+        if (newDeptId <= 0) {
+            request.setAttribute("error", "Thêm phòng ban thất bại. Vui lòng thử lại.");
+            request.setAttribute("input_code", code);
+            request.setAttribute("input_name", name);
+            request.setAttribute("input_description", description);
+            request.setAttribute("roles", roleDAO.getAllActiveRoles());
+            request.setAttribute("selectedRoleIds", roleIds);
+            request.getRequestDispatcher("/public/businessadmin/add_department.jsp").forward(request, response);
+            return;
+        }
+
+        if (!roleIds.isEmpty()) {
+            departmentDAO.replaceDepartmentRoles(newDeptId, roleIds);
+        }
+
+        request.getSession().setAttribute("deptSuccess", "Thêm phòng ban \"" + name.trim() + "\" thành công.");
+        response.sendRedirect(request.getContextPath() + "/v1/businessadmin/department");
+    }
+
+    private void displayUpdateDepartmentForm(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+        String idParam = request.getParameter("id");
+        if (isBlank(idParam)) {
+            response.sendRedirect(request.getContextPath() + "/v1/businessadmin/department");
+            return;
+        }
+        int deptId;
+        try {
+            deptId = Integer.parseInt(idParam);
+        } catch (NumberFormatException e) {
+            response.sendRedirect(request.getContextPath() + "/v1/businessadmin/department");
+            return;
+        }
+        Department dept = departmentDAO.getDepartmentById(deptId);
+        if (dept == null) {
+            response.sendRedirect(request.getContextPath() + "/v1/businessadmin/department");
+            return;
+        }
+
+        request.setAttribute("department", dept);
+        List<Role> activeRoles = roleDAO.getAllActiveRoles();
+        request.setAttribute("roles", activeRoles);
+        List<String> allowedRoles = departmentDAO.getAllowedRoleNames(deptId);
+        List<Integer> selectedRoleIds = new ArrayList<>();
+        for (Role r : activeRoles) {
+            if (allowedRoles.contains(r.getRoleName())) {
+                selectedRoleIds.add(r.getRoleId());
+            }
+        }
+        request.setAttribute("selectedRoleIds", selectedRoleIds);
+        request.getRequestDispatcher("/public/businessadmin/update_department.jsp").forward(request, response);
+    }
+
+    private void handleUpdateDepartment(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+        String idParam = request.getParameter("departmentId");
+        String name = request.getParameter("departmentName");
+        String description = request.getParameter("description");
+        List<Integer> roleIds = parseRoleIds(request.getParameterValues("roleIds"));
+
+        if (isBlank(idParam) || isBlank(name)) {
+            request.getSession().setAttribute("error", "Tên phòng ban là bắt buộc.");
+            response.sendRedirect(request.getContextPath() + "/v1/businessadmin/update-department?id=" + (idParam != null ? idParam : ""));
+            return;
+        }
+
+        int deptId;
+        try {
+            deptId = Integer.parseInt(idParam);
+        } catch (NumberFormatException e) {
+            response.sendRedirect(request.getContextPath() + "/v1/businessadmin/department");
+            return;
+        }
+
+        Department dept = departmentDAO.getDepartmentById(deptId);
+        if (dept == null) {
+            response.sendRedirect(request.getContextPath() + "/v1/businessadmin/department");
+            return;
+        }
+
+        dept.setDepartmentName(name.trim());
+        dept.setDescription(isBlank(description) ? null : description.trim());
+
+        boolean success = departmentDAO.updateDepartmentInfo(dept);
+        if (success) {
+            departmentDAO.replaceDepartmentRoles(deptId, roleIds);
+            request.getSession().setAttribute("deptSuccess", "Cập nhật phòng ban thành công.");
+            response.sendRedirect(request.getContextPath() + "/v1/businessadmin/department");
+        } else {
+            request.getSession().setAttribute("error", "Cập nhật thất bại. Vui lòng thử lại.");
+            response.sendRedirect(request.getContextPath() + "/v1/businessadmin/update-department?id=" + deptId);
+        }
+    }
+
+    private List<Integer> parseRoleIds(String[] raw) {
+        List<Integer> ids = new ArrayList<>();
+        if (raw != null) {
+            for (String r : raw) {
+                try {
+                    ids.add(Integer.parseInt(r));
+                } catch (NumberFormatException ignored) {
+                }
+            }
+        }
+        return ids;
     }
 }

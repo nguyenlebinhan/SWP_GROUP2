@@ -223,12 +223,13 @@ public class DepartmentDAO {
 
     public boolean updateDepartmentInfo(Department dept) {
         LOGGER.log(Level.INFO, "Updating department info with departmentId: {0}", dept.getDepartmentId());
-        String SQL = "UPDATE departments SET departmentName = ?, description = ? WHERE departmentId = ?";
+        String SQL = "UPDATE departments SET departmentName = ?, description = ?, status = ? WHERE departmentId = ?";
         try (Connection conn = dbContext.getConnection();
              PreparedStatement ps = conn.prepareStatement(SQL)) {
             ps.setString(1, dept.getDepartmentName());
             ps.setString(2, dept.getDescription());
-            ps.setInt(3, dept.getDepartmentId());
+            ps.setInt(3, dept.getStatus());
+            ps.setInt(4, dept.getDepartmentId());
 
             int rowsAffected = ps.executeUpdate();
             if (rowsAffected > 0) {
@@ -443,20 +444,45 @@ public class DepartmentDAO {
     }
 
     public boolean assignManager(int departmentId, int employeeId) {
-        String SQL = "UPDATE Departments SET managerId = ? WHERE departmentId = ? AND status = 1";
-        try (java.sql.Connection conn = dbContext.getConnection(); java.sql.PreparedStatement ps = conn.prepareStatement(SQL)) {
-            ps.setInt(1, employeeId);
-            ps.setInt(2, departmentId);
-            boolean ok = ps.executeUpdate() > 0;
-            if (ok) {
-                LOGGER.log(java.util.logging.Level.INFO,
-                        "Assigned employeeId={0} as manager of departmentId={1}",
-                        new Object[]{employeeId, departmentId});
+        String sqlDept = "UPDATE Departments SET managerId = ? WHERE departmentId = ? AND status = 1";
+        String sqlEmp  = "UPDATE Employees SET departmentId = ? WHERE employeeId = ?";
+        java.sql.Connection conn = null;
+        try {
+            conn = dbContext.getConnection();
+            conn.setAutoCommit(false);
+
+            // 1. Set managerId trên Departments
+            try (java.sql.PreparedStatement ps = conn.prepareStatement(sqlDept)) {
+                ps.setInt(1, employeeId);
+                ps.setInt(2, departmentId);
+                if (ps.executeUpdate() == 0) {
+                    conn.rollback();
+                    return false;
+                }
             }
-            return ok;
+
+            // 2. Set departmentId trên Employees cho manager
+            try (java.sql.PreparedStatement ps = conn.prepareStatement(sqlEmp)) {
+                ps.setInt(1, departmentId);
+                ps.setInt(2, employeeId);
+                ps.executeUpdate();
+            }
+
+            conn.commit();
+            LOGGER.log(java.util.logging.Level.INFO,
+                    "Assigned employeeId={0} as manager of departmentId={1}",
+                    new Object[]{employeeId, departmentId});
+            return true;
         } catch (java.sql.SQLException e) {
             LOGGER.log(java.util.logging.Level.SEVERE,
                     "Cannot assign manager for deptId=" + departmentId, e);
+            if (conn != null) {
+                try { conn.rollback(); } catch (java.sql.SQLException ignored) {}
+            }
+        } finally {
+            if (conn != null) {
+                try { conn.setAutoCommit(true); conn.close(); } catch (java.sql.SQLException ignored) {}
+            }
         }
         return false;
     }

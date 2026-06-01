@@ -47,31 +47,13 @@
             align-items: center;
             gap: 10px;
         }
-        .section-title::after {
-            content: '';
-            flex: 1;
-            height: 1px;
-            background: #f1f5f9;
-        }
+        .section-title::after { content: ''; flex: 1; height: 1px; background: #f1f5f9; }
 
-        .h-form-row {
-            display: grid;
-            align-items: start;
-            gap: 0 20px;
-            margin-bottom: 18px;
-        }
+        .h-form-row { display: grid; align-items: start; gap: 0 20px; margin-bottom: 18px; }
         .h-form-row.cols-1 { grid-template-columns: 160px 1fr; }
         .h-form-row.cols-2 { grid-template-columns: 160px 1fr 160px 1fr; }
 
-        .h-label {
-            font-size: 13px;
-            font-weight: 600;
-            color: #374151;
-            padding-top: 10px;
-            text-align: right;
-            padding-right: 4px;
-        }
-
+        .h-label { font-size: 13px; font-weight: 600; color: #374151; padding-top: 10px; text-align: right; padding-right: 4px; }
         .h-field { display: flex; flex-direction: column; gap: 4px; }
 
         .form-control, .form-select {
@@ -90,25 +72,10 @@
         }
         textarea.form-control { resize: vertical; min-height: 80px; }
 
-        .required-dot {
-            display: inline-block;
-            width: 5px; height: 5px;
-            background: #ef4444;
-            border-radius: 50%;
-            vertical-align: super;
-            margin-left: 3px;
-        }
-
+        .required-dot { display: inline-block; width: 5px; height: 5px; background: #ef4444; border-radius: 50%; vertical-align: super; margin-left: 3px; }
         .hint { font-size: 11.5px; color: #94a3b8; }
 
-        .action-bar {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            padding-top: 24px;
-            margin-top: 8px;
-            border-top: 1px solid #f1f5f9;
-        }
+        .action-bar { display: flex; align-items: center; gap: 12px; padding-top: 24px; margin-top: 8px; border-top: 1px solid #f1f5f9; }
 
         .btn-submit {
             background: #059669;
@@ -138,12 +105,12 @@
 </head>
 <body>
 
-<jsp:include page="/public/components/employeeSideBar.jsp" />
+<jsp:include page="/public/components/businessAdminSideBar.jsp" />
 
 <div class="main">
-    <jsp:include page="/public/components/employeeTopBar.jsp">
+    <jsp:include page="/public/components/businessAdminTopBar.jsp">
         <jsp:param name="title" value="Thêm phòng ban" />
-        <jsp:param name="backUrl" value="/v1/employee/department-list" />
+        <jsp:param name="backUrl" value="/v1/businessadmin/department" />
     </jsp:include>
 
     <c:if test="${not empty error}">
@@ -167,7 +134,7 @@
             </div>
         </div>
 
-        <form action="${pageContext.request.contextPath}/v1/employee/add-department"
+        <form action="${pageContext.request.contextPath}/v1/businessadmin/add-department"
               method="post" id="addDeptForm" novalidate>
 
             <div class="section-title">Thông tin bắt buộc</div>
@@ -190,7 +157,6 @@
             </div>
 
             <div class="section-title">Thông tin bổ sung <span style="font-weight:400;text-transform:none;letter-spacing:0">(tùy chọn)</span></div>
-
 
             <div class="h-form-row cols-1">
                 <div class="h-label" style="padding-top:10px">Mô tả</div>
@@ -234,7 +200,7 @@
                 <button type="submit" class="btn btn-submit">
                     <i class="fa-solid fa-plus"></i> Thêm phòng ban
                 </button>
-                <a href="${pageContext.request.contextPath}/v1/employee/department-list" class="btn-cancel">
+                <a href="${pageContext.request.contextPath}/v1/businessadmin/department" class="btn-cancel">
                     <i class="fa-solid fa-xmark"></i> Hủy
                 </a>
                 <span class="text-muted ms-auto" style="font-size:12px">

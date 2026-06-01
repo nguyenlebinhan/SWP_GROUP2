@@ -5,7 +5,7 @@
 <html>
     <head>
         <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-        <title>Nhân viên phòng ban – HRM Manager</title>
+        <title>Danh sách nhân viên – HRM Manager</title>
         <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
         <style>
             body {
@@ -42,6 +42,14 @@
             }
             .search-bar input[type="text"]:focus {
                 border-color: #6366f1;
+            }
+            .search-bar select {
+                padding: 8px 12px;
+                border: 1px solid #e5e7eb;
+                border-radius: 7px;
+                font-size: 14px;
+                background: white;
+                outline: none;
             }
             .btn-search {
                 background: #6366f1;
@@ -155,6 +163,7 @@
         </style>
     </head>
     <body>
+
         <c:choose>
             <c:when test="${fn:toUpperCase(fn:replace(sessionScope.user.roleName, ' ', '')) == 'HRMANAGER'}">
                 <jsp:include page="/public/components/managerSideBar.jsp" />
@@ -166,32 +175,48 @@
 
         <div class="main-content">
             <jsp:include page="/public/components/managerTopBar.jsp">
-                <jsp:param name="title" value="Nhân viên phòng ban" />
+                <jsp:param name="title" value="Danh sách nhân viên" />
             </jsp:include>
 
             <%-- Flash messages --%>
-            <c:if test="${not empty error}">
-                <div class="alert alert-warning alert-flash alert-dismissible fade show">
-                    ${error}
+            <c:if test="${not empty sessionScope.success}">
+                <div class="alert alert-success alert-flash alert-dismissible fade show">
+                    ${sessionScope.success}
                     <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                 </div>
+                <c:remove var="success" scope="session"/>
+            </c:if>
+            <c:if test="${not empty sessionScope.error}">
+                <div class="alert alert-danger alert-flash alert-dismissible fade show">
+                    ${sessionScope.error}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+                <c:remove var="error" scope="session"/>
             </c:if>
 
-            <%-- Header --%>
-            <div class="d-flex justify-content-between align-items-center mb-3">
-                <div>
-                    <h5 class="fw-bold mb-0">
-                        <c:choose>
-                            <c:when test="${not empty departmentName}">Phòng ${departmentName}</c:when>
-                            <c:otherwise>Nhân viên</c:otherwise>
-                        </c:choose>
-                    </h5>
-                </div>
-            </div>
-
-            <%-- Search bar --%>
+            <%-- Search & filter bar --%>
             <div class="search-bar" id="filterBar">
                 <input type="text" id="filterKeyword" placeholder="Tìm theo họ và tên, email..." oninput="filterTable()" />
+
+                <select id="filterDept" onchange="filterTable()">
+                    <option value="">-- Phòng ban --</option>
+                    <%-- Build unique department list from data --%>
+                    <c:set var="deptSet" value="" />
+                    <c:forEach var="emp" items="${employees}">
+                        <c:if test="${not empty emp.departmentName && !fn:contains(deptSet, emp.departmentName)}">
+                            <option value="${emp.departmentName}">${emp.departmentName}</option>
+                            <c:set var="deptSet" value="${deptSet},${emp.departmentName}" />
+                        </c:if>
+                    </c:forEach>
+                </select>
+
+                <select id="filterStatus" onchange="filterTable()">
+                    <option value="">-- Trạng thái --</option>
+                    <option value="1">Đang làm việc</option>
+                    <option value="0">Không hoạt động</option>
+                    <option value="2">Đang nghỉ phép</option>
+                </select>
+
                 <button type="button" class="btn-search" onclick="filterTable()">Tìm kiếm</button>
                 <a href="javascript:void(0)" class="btn-clear" onclick="clearFilters()">Xóa lọc</a>
             </div>
@@ -206,8 +231,8 @@
                                 <th>Họ và tên</th>
                                 <th>Mã NV</th>
                                 <th>Email</th>
+                                <th>Phòng ban</th>
                                 <th>Vị trí</th>
-                                <th>Số điện thoại</th>
                                 <th>Trạng thái</th>
                                 <th>Thao tác</th>
                             </tr>
@@ -217,27 +242,36 @@
                                 <c:when test="${empty employees}">
                                     <tr>
                                         <td colspan="8">
-                                            <div class="empty-state">Chưa có nhân viên nào trong phòng ban</div>
+                                            <div class="empty-state">Không tìm thấy nhân viên nào</div>
                                         </td>
                                     </tr>
                                 </c:when>
                                 <c:otherwise>
                                     <c:forEach var="emp" items="${employees}" varStatus="loop">
                                         <tr data-name="${fn:toLowerCase(emp.fullName)}"
-                                            data-email="${fn:toLowerCase(emp.email)}">
+                                            data-email="${fn:toLowerCase(emp.email)}"
+                                            data-dept="${emp.departmentName}"
+                                            data-status="${emp.status}">
                                             <td style="color:#9ca3af;font-size:13px">
                                                 ${loop.index + 1}
                                             </td>
                                             <td><strong>${emp.fullName}</strong></td>
                                             <td><code>${emp.employeeCode}</code></td>
                                             <td style="color:#6b7280">${emp.email}</td>
-                                            <td>${emp.positionName}</td>
                                             <td>
                                                 <c:choose>
-                                                    <c:when test="${not empty emp.phoneNumber}">${emp.phoneNumber}</c:when>
-                                                    <c:otherwise><span class="text-muted">—</span></c:otherwise>
+                                                    <c:when test="${not empty emp.departmentName}">
+                                                        <span style="background:#e0e7ff;color:#3730a3;padding:3px 10px;
+                                                              border-radius:20px;font-size:12px;font-weight:600">
+                                                            ${emp.departmentName}
+                                                        </span>
+                                                    </c:when>
+                                                    <c:otherwise>
+                                                        <span class="text-muted">—</span>
+                                                    </c:otherwise>
                                                 </c:choose>
                                             </td>
+                                            <td>${emp.positionName}</td>
                                             <td>
                                                 <c:choose>
                                                     <c:when test="${emp.status == 1}">
@@ -275,17 +309,25 @@
         <script>
             function filterTable() {
                 var kw = document.getElementById('filterKeyword').value.toLowerCase().trim();
+                var dept = document.getElementById('filterDept').value;
+                var status = document.getElementById('filterStatus').value;
                 var rows = document.querySelectorAll('#employeeTable tbody tr[data-name]');
                 rows.forEach(function(row) {
                     var name = row.dataset.name || '';
                     var email = row.dataset.email || '';
-                    var match = !kw || name.includes(kw) || email.includes(kw);
-                    row.style.display = match ? '' : 'none';
+                    var rowDept = row.dataset.dept || '';
+                    var rowStatus = row.dataset.status || '';
+                    var matchKw = !kw || name.includes(kw) || email.includes(kw);
+                    var matchDept = !dept || rowDept === dept;
+                    var matchStatus = !status || rowStatus === status;
+                    row.style.display = (matchKw && matchDept && matchStatus) ? '' : 'none';
                 });
             }
 
             function clearFilters() {
                 document.getElementById('filterKeyword').value = '';
+                document.getElementById('filterDept').value = '';
+                document.getElementById('filterStatus').value = '';
                 filterTable();
             }
         </script>

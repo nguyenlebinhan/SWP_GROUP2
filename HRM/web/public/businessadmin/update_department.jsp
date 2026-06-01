@@ -3,7 +3,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Thêm phòng ban - HRM</title>
+    <title>Cập nhật phòng ban - HRM</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
     <style>
@@ -29,8 +29,8 @@
         .page-header-icon {
             width: 48px; height: 48px;
             border-radius: 12px;
-            background: #d1fae5;
-            color: #059669;
+            background: #dbeafe;
+            color: #2563eb;
             display: flex; align-items: center; justify-content: center;
             font-size: 20px;
             flex-shrink: 0;
@@ -47,31 +47,13 @@
             align-items: center;
             gap: 10px;
         }
-        .section-title::after {
-            content: '';
-            flex: 1;
-            height: 1px;
-            background: #f1f5f9;
-        }
+        .section-title::after { content: ''; flex: 1; height: 1px; background: #f1f5f9; }
 
-        .h-form-row {
-            display: grid;
-            align-items: start;
-            gap: 0 20px;
-            margin-bottom: 18px;
-        }
+        .h-form-row { display: grid; align-items: start; gap: 0 20px; margin-bottom: 18px; }
         .h-form-row.cols-1 { grid-template-columns: 160px 1fr; }
         .h-form-row.cols-2 { grid-template-columns: 160px 1fr 160px 1fr; }
 
-        .h-label {
-            font-size: 13px;
-            font-weight: 600;
-            color: #374151;
-            padding-top: 10px;
-            text-align: right;
-            padding-right: 4px;
-        }
-
+        .h-label { font-size: 13px; font-weight: 600; color: #374151; padding-top: 10px; text-align: right; padding-right: 4px; }
         .h-field { display: flex; flex-direction: column; gap: 4px; }
 
         .form-control, .form-select {
@@ -83,35 +65,20 @@
             transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
         }
         .form-control:focus, .form-select:focus {
-            border-color: #059669;
-            box-shadow: 0 0 0 3px rgba(5,150,105,0.1);
+            border-color: #2563eb;
+            box-shadow: 0 0 0 3px rgba(37,99,235,0.1);
             background: white;
             outline: none;
         }
         textarea.form-control { resize: vertical; min-height: 80px; }
 
-        .required-dot {
-            display: inline-block;
-            width: 5px; height: 5px;
-            background: #ef4444;
-            border-radius: 50%;
-            vertical-align: super;
-            margin-left: 3px;
-        }
-
+        .required-dot { display: inline-block; width: 5px; height: 5px; background: #ef4444; border-radius: 50%; vertical-align: super; margin-left: 3px; }
         .hint { font-size: 11.5px; color: #94a3b8; }
 
-        .action-bar {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            padding-top: 24px;
-            margin-top: 8px;
-            border-top: 1px solid #f1f5f9;
-        }
+        .action-bar { display: flex; align-items: center; gap: 12px; padding-top: 24px; margin-top: 8px; border-top: 1px solid #f1f5f9; }
 
         .btn-submit {
-            background: #059669;
+            background: #2563eb;
             border: none;
             border-radius: 8px;
             padding: 10px 24px;
@@ -120,7 +87,7 @@
             color: white;
             display: flex; align-items: center; gap: 8px;
         }
-        .btn-submit:hover { background: #047857; color: white; }
+        .btn-submit:hover { background: #1d4ed8; color: white; }
 
         .btn-cancel {
             background: white;
@@ -138,12 +105,12 @@
 </head>
 <body>
 
-<jsp:include page="/public/components/employeeSideBar.jsp" />
+<jsp:include page="/public/components/businessAdminSideBar.jsp" />
 
 <div class="main">
-    <jsp:include page="/public/components/employeeTopBar.jsp">
-        <jsp:param name="title" value="Thêm phòng ban" />
-        <jsp:param name="backUrl" value="/v1/employee/department-list" />
+    <jsp:include page="/public/components/businessAdminTopBar.jsp">
+        <jsp:param name="title" value="Cập nhật phòng ban" />
+        <jsp:param name="backUrl" value="/v1/businessadmin/department" />
     </jsp:include>
 
     <c:if test="${not empty error}">
@@ -151,52 +118,53 @@
             <i class="fa-solid fa-circle-xmark me-2"></i>${error}
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
+        <c:remove var="error" scope="session"/>
     </c:if>
 
     <div class="page-card">
 
         <div class="page-header">
             <div class="page-header-icon">
-                <i class="fa-solid fa-sitemap"></i>
+                <i class="fa-solid fa-pen-to-square"></i>
             </div>
             <div>
-                <h5 class="fw-bold mb-1" style="color:#0f172a">Tạo phòng ban mới</h5>
+                <h5 class="fw-bold mb-1" style="color:#0f172a">Cập nhật thông tin phòng ban</h5>
                 <p class="text-muted mb-0" style="font-size:13px">
-                    Điền thông tin phòng ban. Các trường có <span class="required-dot"></span> là bắt buộc.
+                    Chỉnh sửa thông tin phòng ban. Các trường có <span class="required-dot"></span> là bắt buộc.
                 </p>
             </div>
         </div>
 
-        <form action="${pageContext.request.contextPath}/v1/employee/add-department"
-              method="post" id="addDeptForm" novalidate>
+        <form action="${pageContext.request.contextPath}/v1/businessadmin/update-department"
+              method="post" id="updateDeptForm" novalidate>
+
+            <input type="hidden" name="departmentId" value="${department.departmentId}">
 
             <div class="section-title">Thông tin bắt buộc</div>
 
             <div class="h-form-row cols-2">
-                <div class="h-label">Mã phòng ban <span class="required-dot"></span></div>
+                <div class="h-label">Mã phòng ban</div>
                 <div class="h-field">
                     <input type="text" class="form-control" id="departmentCode" name="departmentCode"
-                           placeholder="VD: IT-001, HR-002"
-                           value="${not empty input_code ? input_code : ''}" maxlength="20">
-                    <span class="hint">Mã định danh duy nhất, tối đa 20 ký tự</span>
+                           value="${department.departmentCode}" disabled>
+                    <span class="hint">Mã định danh không thể thay đổi</span>
                 </div>
 
                 <div class="h-label">Tên phòng ban <span class="required-dot"></span></div>
                 <div class="h-field">
                     <input type="text" class="form-control" id="departmentName" name="departmentName"
                            placeholder="VD: Phòng Công nghệ thông tin"
-                           value="${not empty input_name ? input_name : ''}" maxlength="100">
+                           value="${department.departmentName}" maxlength="100">
                 </div>
             </div>
 
             <div class="section-title">Thông tin bổ sung <span style="font-weight:400;text-transform:none;letter-spacing:0">(tùy chọn)</span></div>
 
-
             <div class="h-form-row cols-1">
                 <div class="h-label" style="padding-top:10px">Mô tả</div>
                 <div class="h-field">
                     <textarea class="form-control" id="description" name="description"
-                              rows="3" placeholder="Mô tả chức năng, nhiệm vụ của phòng ban...">${not empty input_description ? input_description : ''}</textarea>
+                              rows="3" placeholder="Mô tả chức năng, nhiệm vụ của phòng ban...">${department.description}</textarea>
                 </div>
             </div>
 
@@ -232,9 +200,9 @@
 
             <div class="action-bar">
                 <button type="submit" class="btn btn-submit">
-                    <i class="fa-solid fa-plus"></i> Thêm phòng ban
+                    <i class="fa-solid fa-save"></i> Lưu thay đổi
                 </button>
-                <a href="${pageContext.request.contextPath}/v1/employee/department-list" class="btn-cancel">
+                <a href="${pageContext.request.contextPath}/v1/businessadmin/department" class="btn-cancel">
                     <i class="fa-solid fa-xmark"></i> Hủy
                 </a>
                 <span class="text-muted ms-auto" style="font-size:12px">
@@ -248,9 +216,8 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-    document.getElementById('addDeptForm').addEventListener('submit', function (e) {
+    document.getElementById('updateDeptForm').addEventListener('submit', function (e) {
         const missing = [];
-        if (!document.getElementById('departmentCode').value.trim()) missing.push('Mã phòng ban');
         if (!document.getElementById('departmentName').value.trim()) missing.push('Tên phòng ban');
         if (missing.length) {
             e.preventDefault();

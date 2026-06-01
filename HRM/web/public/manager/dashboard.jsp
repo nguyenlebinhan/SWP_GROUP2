@@ -4,6 +4,7 @@
 
 <%@ page contentType="text/html;charset=UTF-8" %>
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
+<%@ taglib prefix="fn" uri="http://java.sun.com/jsp/jstl/functions" %>
 <!DOCTYPE html>
 <html>
 <head>
@@ -45,7 +46,15 @@
 </head>
 <body>
 
-    <jsp:include page="/public/components/managerSideBar.jsp" />
+    <%-- Chọn sidebar theo role (bỏ qua khoảng trắng và không phân biệt chữ hoa/thường) --%>
+    <c:choose>
+        <c:when test="${fn:toUpperCase(fn:replace(sessionScope.user.roleName, ' ', '')) == 'HRMANAGER'}">
+            <jsp:include page="/public/components/managerSideBar.jsp" />
+        </c:when>
+        <c:otherwise>
+            <jsp:include page="/public/components/departmentManagerSideBar.jsp" />
+        </c:otherwise>
+    </c:choose>
 
     <div class="main">
         <jsp:include page="/public/components/managerTopBar.jsp">

@@ -103,7 +103,7 @@ public class EmployeeDAO {
                    + "LEFT JOIN Departments d ON d.departmentId = e.departmentId "
                    + "LEFT JOIN Positions p ON p.positionId = e.positionId "
                    + "JOIN Roles r on r.roleId = u.roleId "
-                   + "WHERE d.departmentId != ? "
+                   + "WHERE e.departmentId != ? OR e.departmentId IS NULL "
                    + "ORDER BY e.employeeId DESC";
         try (Connection conn = dbContext.getConnection();
              PreparedStatement ps = conn.prepareStatement(SQL)){
@@ -126,8 +126,8 @@ public class EmployeeDAO {
                    + "d.departmentName, p.positionName, r.roleName "
                    + "FROM Employees e "
                    + "JOIN Users u ON u.userId = e.userId "
-                   + "JOIN Departments d ON d.departmentId = e.departmentId "
-                   + "JOIN Positions p ON p.positionId = e.positionId "
+                   + "LEFT JOIN Departments d ON d.departmentId = e.departmentId "
+                   + "LEFT JOIN Positions p ON p.positionId = e.positionId "
                    + "JOIN Roles r ON r.roleId = u.roleId "
                    + "WHERE e.employeeId = ?";
         try (Connection conn = dbContext.getConnection();
@@ -149,8 +149,8 @@ public class EmployeeDAO {
                    + "d.departmentName, p.positionName, r.roleName "
                    + "FROM Employees e "
                    + "JOIN Users u ON u.userId = e.userId "
-                   + "JOIN Departments d ON d.departmentId = e.departmentId "
-                   + "JOIN Positions p ON p.positionId = e.positionId "
+                   + "LEFT JOIN Departments d ON d.departmentId = e.departmentId "
+                   + "LEFT JOIN Positions p ON p.positionId = e.positionId "
                    + "JOIN Roles r ON r.roleId = u.roleId "
                    + "WHERE e.userId = ?";
         try (Connection conn = dbContext.getConnection();
@@ -173,8 +173,8 @@ public class EmployeeDAO {
                    + "d.departmentName, p.positionName, r.roleName "
                    + "FROM Employees e "
                    + "JOIN Users u ON u.userId = e.userId "
-                   + "JOIN Departments d ON d.departmentId = e.departmentId "
-                   + "JOIN Positions p ON p.positionId = e.positionId "
+                   + "LEFT JOIN Departments d ON d.departmentId = e.departmentId "
+                   + "LEFT JOIN Positions p ON p.positionId = e.positionId "
                    + "JOIN Roles r ON r.roleId = u.roleId "
                    + "WHERE e.departmentId = ? "
                    + "ORDER BY e.employeeId DESC";
@@ -253,7 +253,14 @@ public class EmployeeDAO {
             ps.setString(4, emp.getSkills());
             ps.setString(5, emp.getExperience());
             ps.setString(6, emp.getDegree());
-            ps.setInt(7, emp.getEmployeeId());
+            
+            if (emp.getManagerId() != null && emp.getManagerId() > 0) {
+                ps.setInt(7, emp.getManagerId());
+            } else {
+                ps.setNull(7, java.sql.Types.INTEGER);
+            }
+            
+            ps.setInt(8, emp.getEmployeeId());
 
             int rowsAffected = ps.executeUpdate();
             if (rowsAffected > 0) {
@@ -344,6 +351,71 @@ public class EmployeeDAO {
             return ps.executeUpdate() > 0;
         } catch (SQLException e) {
             LOGGER.log(Level.SEVERE, "Cannot assign employee to department for userId: " + userId, e);
+        }
+        return false;
+    }
+
+    public boolean assignAsManager(int departmentId, int managerEmployeeId) {
+        LOGGER.log(Level.INFO, "Setting employeeId={0} as manager of departmentId={1}",
+                new Object[]{managerEmployeeId, departmentId});
+        String sqlDept = "UPDATE Departments SET managerId = ? WHERE departmentId = ?";
+        String sqlEmp  = "UPDATE Employees SET managerId = ? WHERE departmentId = ? AND employeeId != ?";
+        Connection conn = null;
+        try {
+            conn = dbContext.getConnection();
+            conn.setAutoCommit(false);
+
+            try (PreparedStatement ps = conn.prepareStatement(sqlDept)) {
+                ps.setInt(1, managerEmployeeId);
+                ps.setInt(2, departmentId);
+                ps.executeUpdate();
+            }
+
+            try (PreparedStatement ps = conn.prepareStatement(sqlEmp)) {
+                ps.setInt(1, managerEmployeeId);
+                ps.setInt(2, departmentId);
+                ps.setInt(3, managerEmployeeId);
+                ps.executeUpdate();
+            }
+
+            conn.commit();
+            return true;
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Cannot assign manager for departmentId: " + departmentId, e);
+            if (conn != null) {
+                try { conn.rollback(); } catch (SQLException ignored) {}
+            }
+        } finally {
+            if (conn != null) {
+                try { conn.setAutoCommit(true); conn.close(); } catch (SQLException ignored) {}
+            }
+        }
+        return false;
+    }
+    
+    
+    public boolean setEmployeeManager(int employeeId, int managerEmployeeId) {
+        String SQL = "UPDATE Employees SET managerId = ? WHERE employeeId = ?";
+        try (Connection conn = dbContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(SQL)) {
+            ps.setInt(1, managerEmployeeId);
+            ps.setInt(2, employeeId);
+            return ps.executeUpdate() > 0;
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Cannot set managerId for employeeId: " + employeeId, e);
+        }
+        return false;
+    }
+
+    public boolean updateEmployeeDepartment(int employeeId, int departmentId) {
+        String SQL = "UPDATE Employees SET departmentId = ? WHERE employeeId = ?";
+        try (Connection conn = dbContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(SQL)) {
+            ps.setInt(1, departmentId);
+            ps.setInt(2, employeeId);
+            return ps.executeUpdate() > 0;
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Cannot update department for employeeId: " + employeeId, e);
         }
         return false;
     }
@@ -456,6 +528,20 @@ public class EmployeeDAO {
             return rowsAffected > 0;
         } catch (SQLException e) {
             LOGGER.log(Level.SEVERE, "Error updating own profile with employeeId: " + employeeId, e);
+        }
+        return false;
+    }
+
+    public boolean updateEmployeeStatus(int employeeId, int status) {
+        LOGGER.log(Level.INFO, "Updating status for employeeId: {0} to {1}", new Object[]{employeeId, status});
+        String SQL = "UPDATE employees SET status = ? WHERE employeeId = ?";
+        try (Connection conn = dbContext.getConnection(); PreparedStatement ps = conn.prepareStatement(SQL)) {
+            ps.setInt(1, status);
+            ps.setInt(2, employeeId);
+            int rowsAffected = ps.executeUpdate();
+            return rowsAffected > 0;
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Error updating status for employeeId: " + employeeId, e);
         }
         return false;
     }
