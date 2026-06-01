@@ -58,7 +58,7 @@
 <jsp:include page="/public/components/employeeSideBar.jsp" />
 
 <div class="main">
-    <jsp:include page="/public/components/systemAdminTopBar.jsp">
+    <jsp:include page="/public/components/employeeTopBar.jsp">
         <jsp:param name="title" value="Nhân viên phòng ban" />
         <jsp:param name="backUrl" value="/v1/employee/department-list" />
     </jsp:include>
@@ -130,6 +130,7 @@
                                 <th>Vai trò</th>
                                 <th>Số điện thoại</th>
                                 <th>Trạng thái</th>
+                                <th>Thao tác</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -167,6 +168,12 @@
                                                 <span class="badge-inactive">Không hoạt động</span>
                                             </c:otherwise>
                                         </c:choose>
+                                    </td>
+                                    <td>
+                                        <a href="${pageContext.request.contextPath}/v1/employee/employee-detail?id=${emp.employeeId}" 
+                                           class="btn btn-sm btn-outline-primary" title="Xem chi tiết">
+                                           <i class="fa-solid fa-eye"></i> Chi tiết
+                                        </a>
                                     </td>
                                 </tr>
                             </c:forEach>

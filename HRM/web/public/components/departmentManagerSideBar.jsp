@@ -1,3 +1,7 @@
+<%--
+    Document   : departmentManagerSideBar.jsp
+    Sidebar dành cho Department Manager (không có menu Phòng ban)
+--%>
 <%@ page contentType="text/html;charset=UTF-8" %>
 
     <style>
@@ -99,12 +103,9 @@
 
             <div class="sidebar-divider"></div>
             <div class="sidebar-section-label">Quản lý</div>
-            <a href="${pageContext.request.contextPath}/v1/manager/employee-list">
+            <a href="${pageContext.request.contextPath}/v1/manager/employee-list"
+                class="${pageContext.request.servletPath == '/public/manager/employee_list.jsp' ? 'active' : ''}">
                 <i class="fa fa-users"></i> Nhân viên
-            </a>
-            <a href="${pageContext.request.contextPath}/v1/manager/department"
-                class="${pageContext.request.servletPath == '/public/manager/department_list.jsp' || pageContext.request.servletPath == '/public/manager/department_assign.jsp' ? 'active' : ''}">
-                <i class="fa fa-building"></i> Phòng ban
             </a>
             <a href="${pageContext.request.contextPath}/v1/manager/leave-requests">
                 <i class="fa fa-calendar-check"></i> Đơn nghỉ phép
