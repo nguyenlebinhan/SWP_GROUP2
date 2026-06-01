@@ -68,6 +68,9 @@ public class EmployeeController extends HttpServlet {
             case "/my-profile":
                 displayMyProfile(request, response, user);
                 break;
+            case "/employee-detail":
+                displayEmployeeDetail(request, response, user);
+                break;
             default:
                 response.sendRedirect(request.getContextPath() + "/v1/employee/dashboard");
                 break;
@@ -103,6 +106,9 @@ public class EmployeeController extends HttpServlet {
                 break;
             case "/update-my-profile":
                 handleUpdateMyProfile(request, response, user);
+                break;
+            case "/update-employee-detail":
+                handleUpdateEmployeeDetail(request, response, user);
                 break;
             default:
                 response.sendRedirect(request.getContextPath() + "/v1/employee/dashboard");
@@ -527,6 +533,13 @@ public class EmployeeController extends HttpServlet {
         dept.setDepartmentName(name.trim());
         dept.setDescription(isBlank(description) ? null : description.trim());
         
+        String statusStr = request.getParameter("status");
+        if (statusStr != null) {
+            try {
+                dept.setStatus(Integer.parseInt(statusStr));
+            } catch (NumberFormatException ignored) {}
+        }
+        
         boolean success = departmentDAO.updateDepartmentInfo(dept);
         if (success) {
             departmentDAO.replaceDepartmentRoles(deptId, roleIds);
@@ -618,5 +631,102 @@ public class EmployeeController extends HttpServlet {
         response.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
         response.setHeader("Pragma", "no-cache");
         response.setDateHeader("Expires", 0);
+    }
+
+    private void displayEmployeeDetail(HttpServletRequest request, HttpServletResponse response,
+                                       User user) throws ServletException, IOException {
+        if (!isHrStaff(user)) {
+            request.getSession().setAttribute("error", "Bạn không có quyền xem chi tiết nhân viên.");
+            response.sendRedirect(request.getContextPath() + "/v1/employee/dashboard");
+            return;
+        }
+
+        String rawEmployeeId = request.getParameter("id");
+        if (isBlank(rawEmployeeId)) {
+            response.sendRedirect(request.getContextPath() + "/v1/employee/department-list");
+            return;
+        }
+
+        int employeeId;
+        try {
+            employeeId = Integer.parseInt(rawEmployeeId);
+        } catch (NumberFormatException e) {
+            response.sendRedirect(request.getContextPath() + "/v1/employee/department-list");
+            return;
+        }
+
+        EmployeeDetailDTO employeeDetail = employeeDAO.getEmployeeById(employeeId);
+        if (employeeDetail == null) {
+            request.getSession().setAttribute("error", "Không tìm thấy nhân viên.");
+            response.sendRedirect(request.getContextPath() + "/v1/employee/department-list");
+            return;
+        }
+
+        Set<String> perms = getPermissions(user);
+        request.getSession().setAttribute("userPermissions", perms);
+        request.setAttribute("employeeDetail", employeeDetail);
+        setPermissionFlags(request, perms);
+        request.getRequestDispatcher("/public/employee/employee_detail.jsp").forward(request, response);
+    }
+
+    private void handleUpdateEmployeeDetail(HttpServletRequest request, HttpServletResponse response,
+                                            User user) throws ServletException, IOException {
+        if (!isHrStaff(user)) {
+            request.getSession().setAttribute("error", "Bạn không có quyền cập nhật nhân viên.");
+            response.sendRedirect(request.getContextPath() + "/v1/employee/dashboard");
+            return;
+        }
+
+        String rawEmployeeId = request.getParameter("employeeId");
+        String rawStatus = request.getParameter("status");
+        String phoneNumber = request.getParameter("phoneNumber");
+        String degree = request.getParameter("degree");
+        String experience = request.getParameter("experience");
+        String skills = request.getParameter("skills");
+
+        if (isBlank(rawEmployeeId) || isBlank(rawStatus)) {
+            request.getSession().setAttribute("error", "Dữ liệu không hợp lệ.");
+            response.sendRedirect(request.getContextPath() + "/v1/employee/department-list");
+            return;
+        }
+
+        int employeeId;
+        int status;
+        try {
+            employeeId = Integer.parseInt(rawEmployeeId);
+            status = Integer.parseInt(rawStatus);
+        } catch (NumberFormatException e) {
+            request.getSession().setAttribute("error", "Dữ liệu không hợp lệ.");
+            response.sendRedirect(request.getContextPath() + "/v1/employee/department-list");
+            return;
+        }
+
+        EmployeeDetailDTO employeeDetail = employeeDAO.getEmployeeById(employeeId);
+        if (employeeDetail == null) {
+            request.getSession().setAttribute("error", "Không tìm thấy nhân viên.");
+            response.sendRedirect(request.getContextPath() + "/v1/employee/department-list");
+            return;
+        }
+
+        boolean statusSuccess = employeeDAO.updateEmployeeStatus(employeeId, status);
+        boolean profileSuccess = employeeDAO.updateOwnProfile(
+            employeeId, 
+            isBlank(phoneNumber) ? null : phoneNumber.trim(), 
+            isBlank(skills) ? null : skills.trim(), 
+            isBlank(experience) ? null : experience.trim(), 
+            isBlank(degree) ? null : degree.trim()
+        );
+
+        if (statusSuccess || profileSuccess) {
+            request.getSession().setAttribute("success", "Cập nhật nhân viên thành công.");
+        } else {
+            request.getSession().setAttribute("error", "Cập nhật thất bại hoặc không có thay đổi.");
+        }
+        
+        if (employeeDetail.getDepartmentId() > 0) {
+            response.sendRedirect(request.getContextPath() + "/v1/employee/department-detail?id=" + employeeDetail.getDepartmentId());
+        } else {
+            response.sendRedirect(request.getContextPath() + "/v1/employee/employee-detail?id=" + employeeId);
+        }
     }
 }

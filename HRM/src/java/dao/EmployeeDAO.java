@@ -531,4 +531,18 @@ public class EmployeeDAO {
         }
         return false;
     }
+
+    public boolean updateEmployeeStatus(int employeeId, int status) {
+        LOGGER.log(Level.INFO, "Updating status for employeeId: {0} to {1}", new Object[]{employeeId, status});
+        String SQL = "UPDATE employees SET status = ? WHERE employeeId = ?";
+        try (Connection conn = dbContext.getConnection(); PreparedStatement ps = conn.prepareStatement(SQL)) {
+            ps.setInt(1, status);
+            ps.setInt(2, employeeId);
+            int rowsAffected = ps.executeUpdate();
+            return rowsAffected > 0;
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Error updating status for employeeId: " + employeeId, e);
+        }
+        return false;
+    }
 }
