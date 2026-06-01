@@ -136,14 +136,40 @@ public class ManagerController extends HttpServlet {
         Set<String> perms = getPermissions(user);
         request.getSession().setAttribute("userPermissions", perms);
 
+        String keyword = request.getParameter("keyword") != null ? request.getParameter("keyword").trim() : "";
+        String dept = request.getParameter("dept") != null ? request.getParameter("dept").trim() : "";
+        String status = request.getParameter("status") != null ? request.getParameter("status").trim() : "";
+
+        final int PAGE_SIZE = 5;
+        int currentPage = 1;
+        try {
+            int p = Integer.parseInt(request.getParameter("page"));
+            if (p > 1) {
+                currentPage = p;
+            }
+        } catch (NumberFormatException ignored) {
+        }
+        int offset = (currentPage - 1) * PAGE_SIZE;
+
         if (isHrManager(user.getRoleName())) {
-            // HRMANAGER: xem tất cả nhân viên
-            List<EmployeeDetailDTO> employees = employeeDAO.getAllEmployees(user.getUserId());
+            int totalEmployees = employeeDAO.countEmployeesFiltered(user.getUserId(), null, keyword, dept, status);
+            int totalPages = (int) Math.ceil((double) totalEmployees / PAGE_SIZE);
+            if (totalPages < 1) totalPages = 1;
+
+            List<EmployeeDetailDTO> employees = employeeDAO.getEmployeesFiltered(user.getUserId(), null, keyword, dept, status, offset, PAGE_SIZE);
+
             request.setAttribute("employees", employees);
+            request.setAttribute("keyword", keyword);
+            request.setAttribute("dept", dept);
+            request.setAttribute("status", status);
+            request.setAttribute("currentPage", currentPage);
+            request.setAttribute("totalPages", totalPages);
+            request.setAttribute("totalEmployees", totalEmployees);
+            request.setAttribute("departments", departmentDAO.getAllDepartments());
+
             setPermissionFlags(request, perms);
             request.getRequestDispatcher("/public/manager/employee_all_list.jsp").forward(request, response);
         } else {
-            // Department Manager: chỉ xem nhân viên phòng ban mình
             EmployeeDetailDTO manager = employeeDAO.getEmployeeByUserId(user.getUserId());
             if (manager == null) {
                 request.setAttribute("departmentName", null);
@@ -153,9 +179,21 @@ public class ManagerController extends HttpServlet {
                 request.getRequestDispatcher("/public/manager/employee_list.jsp").forward(request, response);
                 return;
             }
-            List<EmployeeDetailDTO> employees = employeeDAO.getEmployeesByDepartmentId(manager.getDepartmentId());
+
+            int totalEmployees = employeeDAO.countEmployeesFiltered(null, manager.getDepartmentId(), keyword, null, status);
+            int totalPages = (int) Math.ceil((double) totalEmployees / PAGE_SIZE);
+            if (totalPages < 1) totalPages = 1;
+
+            List<EmployeeDetailDTO> employees = employeeDAO.getEmployeesFiltered(null, manager.getDepartmentId(), keyword, null, status, offset, PAGE_SIZE);
+
             request.setAttribute("departmentName", manager.getDepartmentName());
             request.setAttribute("employees", employees);
+            request.setAttribute("keyword", keyword);
+            request.setAttribute("status", status);
+            request.setAttribute("currentPage", currentPage);
+            request.setAttribute("totalPages", totalPages);
+            request.setAttribute("totalEmployees", totalEmployees);
+
             setPermissionFlags(request, perms);
             request.getRequestDispatcher("/public/manager/employee_list.jsp").forward(request, response);
         }
