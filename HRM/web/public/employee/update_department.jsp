@@ -191,6 +191,16 @@
                 </div>
             </div>
 
+            <div class="h-form-row cols-2">
+                <div class="h-label">Trạng thái</div>
+                <div class="h-field">
+                    <select class="form-select" name="status">
+                        <option value="1" ${department.status == 1 ? 'selected' : ''}>Hoạt động (Active)</option>
+                        <option value="0" ${department.status == 0 ? 'selected' : ''}>Tạm dừng (Inactive)</option>
+                    </select>
+                </div>
+            </div>
+
             <div class="section-title">Thông tin bổ sung <span style="font-weight:400;text-transform:none;letter-spacing:0">(tùy chọn)</span></div>
 
             <div class="h-form-row cols-1">
@@ -232,8 +242,8 @@
             </div>
 
             <div class="action-bar">
-                <button type="submit" class="btn btn-submit">
-                    <i class="fa-solid fa-save"></i> Lưu thay đổi
+                <button type="submit" class="btn btn-primary">
+                    <i class="fa-solid fa-save"></i> Lưu
                 </button>
                 <a href="${pageContext.request.contextPath}/v1/employee/department-detail?id=${department.departmentId}" class="btn-cancel">
                     <i class="fa-solid fa-xmark"></i> Hủy
