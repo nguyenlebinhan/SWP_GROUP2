@@ -232,7 +232,7 @@
                             <c:forEach var="p" items="${allPermissions}">
                                 <c:if test="${p.permissionCode == 'VIEW_USERS' || p.permissionCode == 'ADD_USER' || p.permissionCode == 'EDIT_USER' || p.permissionCode == 'DELETE_USER'}">
                                     <div class="col-md-3">
-                                        <label class="perm-card ${assignedPermissionIds.contains(p.permissionId) ? 'selected' : ''}" onclick="toggleCard(this)">
+                                        <label class="perm-card ${assignedPermissionIds.contains(p.permissionId) ? 'selected' : ''}">
                                             <input type="checkbox" name="permissionIds" value="${p.permissionId}" ${assignedPermissionIds.contains(p.permissionId) ? 'checked' : ''}/>
                                          
                                             <div class="perm-name"><c:out value="${p.permissionName}"/></div>
@@ -250,7 +250,7 @@
                             <c:forEach var="p" items="${allPermissions}">
                                 <c:if test="${p.permissionCode == 'VIEW_ROLES' || p.permissionCode == 'ADD_ROLE' || p.permissionCode == 'EDIT_ROLE' || p.permissionCode == 'DELETE_ROLE' || p.permissionCode == 'MANAGE_PERMISSIONS'}">
                                     <div class="col-md-3">
-                                        <label class="perm-card ${assignedPermissionIds.contains(p.permissionId) ? 'selected' : ''}" onclick="toggleCard(this)">
+                                        <label class="perm-card ${assignedPermissionIds.contains(p.permissionId) ? 'selected' : ''}">
                                             <input type="checkbox" name="permissionIds" value="${p.permissionId}" ${assignedPermissionIds.contains(p.permissionId) ? 'checked' : ''}/>
                                             
                                             <div class="perm-name"><c:out value="${p.permissionName}"/></div>
@@ -266,9 +266,9 @@
                         <div class="group-title">Vai trò &amp; Nhân viên</div>
                         <div class="row g-3 mb-2">
                             <c:forEach var="p" items="${allPermissions}">
-                                <c:if test="${p.permissionCode == 'VIEW_EMPLOYEES' || p.permissionCode == 'ADD_EMPLOYEE' || p.permissionCode == 'EDIT_EMPLOYEE' || p.permissionCode == 'VIEW_DEPARTMENTS' || p.permissionCode == 'EDIT_DEPARTMENTS' || p.permissionCode == 'ASSIGN_DEPARTMENT' || p.permissionCode == 'EDIT_DEPARTMENTS' || p.permissionCode == 'VIEW_DEPARTMENT_EMPLOYEES_DETAIL'}">
+                                <c:if test="${p.permissionCode == 'VIEW_EMPLOYEES' || p.permissionCode == 'ADD_EMPLOYEE' || p.permissionCode == 'EDIT_EMPLOYEE' || p.permissionCode == 'VIEW_DEPARTMENTS' || p.permissionCode == 'EDIT_DEPARTMENTS' || p.permissionCode == 'ASSIGN_DEPARTMENT' || p.permissionCode == 'EDIT_DEPARTMENTS' || p.permissionCode == 'VIEW_DEPARTMENT_EMPLOYEES_DETAIL' || p.permissionCode == 'REASSIGN_DEPARTMENT'}">
                                     <div class="col-md-3">
-                                        <label class="perm-card ${assignedPermissionIds.contains(p.permissionId) ? 'selected' : ''}" onclick="toggleCard(this)">
+                                        <label class="perm-card ${assignedPermissionIds.contains(p.permissionId) ? 'selected' : ''}">
                                             <input type="checkbox" name="permissionIds" value="${p.permissionId}" ${assignedPermissionIds.contains(p.permissionId) ? 'checked' : ''}/>
                                             
                                             <div class="perm-name"><c:out value="${p.permissionName}"/></div>
@@ -298,12 +298,14 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-    function toggleCard(label) {
-        const cb = label.querySelector('input[type=checkbox]');
-        cb.checked = !cb.checked;
-        label.classList.toggle('selected', cb.checked);
-        updateCount();
-    }
+    // Checkbox nằm trong <label> nên click vào card đã tự toggle checkbox.
+    // Chỉ lắng nghe sự kiện change để đồng bộ giao diện (tránh double-toggle làm mất giá trị).
+    document.querySelectorAll('#permForm input[type=checkbox]').forEach(function (cb) {
+        cb.addEventListener('change', function () {
+            this.closest('label').classList.toggle('selected', this.checked);
+            updateCount();
+        });
+    });
 
     function updateCount() {
         const total = document.querySelectorAll('#permForm input[type=checkbox]:checked').length;
