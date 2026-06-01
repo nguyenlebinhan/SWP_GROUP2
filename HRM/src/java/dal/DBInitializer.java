@@ -514,7 +514,12 @@ public class DBInitializer {
                 insertPermission(conn,"VIEW_ATTENDANCE","Xem chấm công","Quyền xem dữ liệu chấm công (Manager: theo phòng mình; Employee: của bản thân)");
                 insertPermission(conn,"VIEW_DEPARTMENT_EMPLOYEES_DETAIL","Xem danh sách nhân viên của phòng ban khác","Quyền xem dữ liệu nhân viên của phòng ban khác");
             }
+            ensurePermission(conn, "VIEW_EMPLOYEES", "Xem nhân viên", "Quyền xem danh sách nhân viên");
+            ensurePermission(conn, "EDIT_EMPLOYEE", "Chỉnh sửa nhân viên", "Quyền chỉnh sửa nhân viên");
             ensurePermission(conn, "ADD_EMPLOYMENT_CONTRACT", "Thêm hợp đồng lao động", "Quyền thêm hợp đồng lao động cho nhân viên");
+            ensureRolePermission(conn, "HREmployee", "VIEW_EMPLOYEES");
+            ensureRolePermission(conn, "HREmployee", "EDIT_EMPLOYEE");
+            ensureRolePermission(conn, "HREmployee", "ADD_EMPLOYMENT_CONTRACT");
 
             if (countRows(conn, "Positions") == 0) {
 
@@ -617,6 +622,31 @@ public class DBInitializer {
             }
         }
         insertPermission(conn, code, name, description);
+    }
+
+    private void ensureRolePermission(Connection conn, String roleName, String permissionCode) throws SQLException {
+        String checkSql = "SELECT 1 FROM Role_Permissions rp "
+                + "JOIN Roles r ON r.roleId = rp.roleId "
+                + "JOIN Permissions p ON p.permissionId = rp.permissionId "
+                + "WHERE r.roleName = ? AND p.permissionCode = ?";
+        try (PreparedStatement ps = conn.prepareStatement(checkSql)) {
+            ps.setString(1, roleName);
+            ps.setString(2, permissionCode);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return;
+                }
+            }
+        }
+
+        String insertSql = "INSERT INTO Role_Permissions (roleId, permissionId) "
+                + "SELECT r.roleId, p.permissionId FROM Roles r, Permissions p "
+                + "WHERE r.roleName = ? AND p.permissionCode = ?";
+        try (PreparedStatement ps = conn.prepareStatement(insertSql)) {
+            ps.setString(1, roleName);
+            ps.setString(2, permissionCode);
+            ps.executeUpdate();
+        }
     }
 
     private void insertPosition(Connection conn, String name, int level, String description) throws SQLException {
