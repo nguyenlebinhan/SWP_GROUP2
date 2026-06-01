@@ -68,11 +68,7 @@
     <a href="${pageContext.request.contextPath}/v1/employee/dashboard">
          Dashboard
     </a>
-    <a href="${pageContext.request.contextPath}/v1/employee/my-profile">
-         Hồ sơ của tôi
-    </a>
-
-
+         
     <c:if test="${sessionScope.userPermissions.contains('VIEW_EMPLOYEES')}">
         <div class="nav-section">Nhân viên</div>
         <a href="${pageContext.request.contextPath}/v1/employee/employee-list">
@@ -89,11 +85,9 @@
     <c:if test="${sessionScope.userPermissions.contains('VIEW_DEPARTMENTS') || sessionScope.userPermissions.contains('MANAGE_DEPARTMENTS')}">
         <div class="nav-section">Phòng ban</div>
     </c:if>
-    <c:if test="${sessionScope.userPermissions.contains('VIEW_DEPARTMENTS')}">
-        <a href="${pageContext.request.contextPath}/v1/employee/department-list">
-            Danh sách phòng ban
-        </a>
-    </c:if>
+    <a href="${pageContext.request.contextPath}/v1/employee/department-list">
+        Danh sách phòng ban
+    </a>
     <c:if test="${sessionScope.userPermissions.contains('EDIT_DEPARTMENTS')}">
         <a href="${pageContext.request.contextPath}/v1/employee/add-department">
             Thêm phòng ban

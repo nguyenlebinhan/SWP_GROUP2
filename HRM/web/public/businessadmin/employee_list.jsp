@@ -40,12 +40,12 @@
 </head>
 <body>
 
-<jsp:include page="/public/components/employeeSideBar.jsp" />
+<jsp:include page="/public/components/businessAdminSideBar.jsp" />
 
 <div class="main">
-    <jsp:include page="/public/components/employeeTopBar.jsp">
+    <jsp:include page="/public/components/businessAdminTopBar.jsp">
         <jsp:param name="title" value="Danh sách nhân viên" />
-        <jsp:param name="backUrl" value="/v1/employee/dashboard" />
+        <jsp:param name="backUrl" value="/v1/businessadmin/dashboard" />
     </jsp:include>
 
     <c:if test="${not empty sessionScope.success}">
@@ -69,12 +69,10 @@
                 <h5 class="fw-bold mb-1">Nhân viên</h5>
                 <span class="text-muted small">${employees.size()} nhân viên</span>
             </div>
-            <c:if test="${canAssignDept}">
-                <a href="${pageContext.request.contextPath}/v1/employee/assign-department"
-                   class="btn btn-primary btn-sm" style="background:#2563eb;border:none">
-                    <i class="fa-solid fa-plus me-1"></i> Phân công nhân viên
-                </a>
-            </c:if>
+            <a href="${pageContext.request.contextPath}/v1/businessadmin/assign-department"
+               class="btn btn-primary btn-sm" style="background:#2563eb;border:none">
+                <i class="fa-solid fa-plus me-1"></i> Phân công nhân viên
+            </a>
         </div>
 
         <c:choose>
@@ -95,6 +93,7 @@
                                 <th>Vị trí</th>
                                 <th>Số điện thoại</th>
                                 <th>Trạng thái</th>
+                                <th class="text-center">Thao tác</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -132,6 +131,12 @@
                                                 <span class="badge-inactive">Không hoạt động</span>
                                             </c:otherwise>
                                         </c:choose>
+                                    </td>
+                                    <td class="text-center">
+                                        <a href="${pageContext.request.contextPath}/v1/businessadmin/employee-detail?id=${emp.employeeId}"
+                                           class="btn btn-sm btn-outline-primary">
+                                            <i class="fa-solid fa-eye"></i> Chi tiết
+                                        </a>
                                     </td>
                                 </tr>
                             </c:forEach>
