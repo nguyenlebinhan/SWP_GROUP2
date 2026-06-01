@@ -1,5 +1,6 @@
 <%@ page contentType="text/html;charset=UTF-8" %>
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
+<%@ taglib prefix="fn" uri="http://java.sun.com/jsp/jstl/functions" %>
 <!DOCTYPE html>
 <html>
 <head>
@@ -36,6 +37,58 @@
             font-weight: 700;
             flex-shrink: 0;
         }
+
+        .search-bar {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+            background: white;
+            padding: 16px 20px;
+            border: 1px solid #eef2f7;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+        .search-bar input[type="text"] {
+            flex: 1;
+            min-width: 200px;
+            padding: 8px 14px;
+            border: 1px solid #e5e7eb;
+            border-radius: 7px;
+            font-size: 14px;
+            outline: none;
+        }
+        .search-bar select {
+            min-width: 160px;
+            padding: 8px 14px;
+            border: 1px solid #e5e7eb;
+            border-radius: 7px;
+            font-size: 14px;
+            outline: none;
+            background: white;
+        }
+        .search-bar input[type="text"]:focus { border-color: #2563eb; }
+        .search-bar select:focus { border-color: #2563eb; }
+        .btn-search {
+            background: #2563eb;
+            color: white;
+            border: none;
+            padding: 8px 18px;
+            border-radius: 7px;
+            font-size: 14px;
+            font-weight: 600;
+        }
+        .btn-clear {
+            background: white;
+            color: #6b7280;
+            border: 1px solid #d1d5db;
+            padding: 8px 14px;
+            border-radius: 7px;
+            font-size: 13px;
+            text-decoration: none;
+            font-weight: 500;
+        }
+        .btn-clear:hover { background: #f3f4f6; color: #374151; }
     </style>
 </head>
 <body>
@@ -77,6 +130,26 @@
             </c:if>
         </div>
 
+        <div class="search-bar" id="filterBar">
+            <input type="text" id="filterKeyword" placeholder="Tìm theo họ và tên, email..." oninput="filterTable()" />
+            <select id="filterDepartment" onchange="filterTable()">
+                <option value="">Tất cả phòng ban</option>
+                <c:forEach var="emp" items="${employees}">
+                    <c:if test="${not empty emp.departmentName}">
+                        <option value="${fn:toLowerCase(emp.departmentName)}">${emp.departmentName}</option>
+                    </c:if>
+                </c:forEach>
+            </select>
+            <select id="filterStatus" onchange="filterTable()">
+                <option value="">Tất cả trạng thái</option>
+                <option value="1">Đang làm việc</option>
+                <option value="2">Đang nghỉ phép</option>
+                <option value="0">Không hoạt động</option>
+            </select>
+            <button type="button" class="btn-search" onclick="filterTable()">Tìm kiếm</button>
+            <a href="javascript:void(0)" class="btn-clear" onclick="clearFilters()">Xóa lọc</a>
+        </div>
+
         <c:choose>
             <c:when test="${empty employees}">
                 <div class="text-center py-5">
@@ -100,7 +173,10 @@
                         </thead>
                         <tbody>
                             <c:forEach var="emp" items="${employees}">
-                                <tr>
+                                <tr data-name="${fn:toLowerCase(emp.fullName)}"
+                                    data-email="${fn:toLowerCase(emp.email)}"
+                                    data-department="${fn:toLowerCase(emp.departmentName)}"
+                                    data-status="${emp.status}">
                                     <td>
                                         <div class="d-flex align-items-center gap-2">
                                             <div class="avatar-circle">
@@ -165,5 +241,46 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        var seen = {};
+        var options = document.querySelectorAll('#filterDepartment option');
+        options.forEach(function(option) {
+            if (!option.value) {
+                return;
+            }
+            if (seen[option.value]) {
+                option.remove();
+                return;
+            }
+            seen[option.value] = true;
+        });
+    });
+
+    function filterTable() {
+        var kw = document.getElementById('filterKeyword').value.toLowerCase().trim();
+        var department = document.getElementById('filterDepartment').value;
+        var status = document.getElementById('filterStatus').value;
+        var rows = document.querySelectorAll('tbody tr[data-name]');
+        rows.forEach(function(row) {
+            var name = row.dataset.name || '';
+            var email = row.dataset.email || '';
+            var rowDepartment = row.dataset.department || '';
+            var rowStatus = row.dataset.status || '';
+            var matchKeyword = !kw || name.includes(kw) || email.includes(kw);
+            var matchDepartment = !department || rowDepartment === department;
+            var matchStatus = !status || rowStatus === status;
+            var match = matchKeyword && matchDepartment && matchStatus;
+            row.style.display = match ? '' : 'none';
+        });
+    }
+
+    function clearFilters() {
+        document.getElementById('filterKeyword').value = '';
+        document.getElementById('filterDepartment').value = '';
+        document.getElementById('filterStatus').value = '';
+        filterTable();
+    }
+</script>
 </body>
 </html>

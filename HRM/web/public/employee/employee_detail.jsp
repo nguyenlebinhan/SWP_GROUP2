@@ -63,6 +63,9 @@
                     </a>
                 </c:if>
                 <c:if test="${canAddEmploymentContract}">
+                    <a class="btn btn-outline-success btn-sm" href="${pageContext.request.contextPath}/v1/employee/contract-preview?employeeId=${employee.employeeId}">
+                        <i class="fa-solid fa-print me-1"></i>In hợp đồng
+                    </a>
                     <a class="btn btn-primary btn-sm" href="${pageContext.request.contextPath}/v1/employee/add-contract?employeeId=${employee.employeeId}">
                         <i class="fa-solid fa-file-contract me-1"></i>Thêm hợp đồng
                     </a>

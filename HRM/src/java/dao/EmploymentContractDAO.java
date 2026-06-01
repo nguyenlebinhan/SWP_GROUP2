@@ -3,6 +3,7 @@ package dao;
 import dal.DBContext;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Types;
 import java.util.logging.Level;
@@ -41,5 +42,74 @@ public class EmploymentContractDAO {
             LOGGER.log(Level.SEVERE, "Cannot add employment contract: " + contract.getContractCode(), e);
         }
         return false;
+    }
+
+    public boolean hasActiveContract(int employeeId) {
+        String SQL = "SELECT 1 FROM Employment_Contracts "
+                + "WHERE employeeId = ? AND status = 1 "
+                + "AND (endDate IS NULL OR endDate >= CURRENT_DATE) "
+                + "LIMIT 1";
+        try (Connection conn = dbContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(SQL)) {
+            ps.setInt(1, employeeId);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next();
+            }
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Cannot check active employment contract for employeeId: " + employeeId, e);
+        }
+        return false;
+    }
+
+    public EmploymentContract getContractById(int contractId) {
+        String SQL = "SELECT contractId, contractCode, employeeId, contractType, startDate, endDate, "
+                + "salary, status, note, createdBy "
+                + "FROM Employment_Contracts WHERE contractId = ?";
+        try (Connection conn = dbContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(SQL)) {
+            ps.setInt(1, contractId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return mapContract(rs);
+                }
+            }
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Cannot retrieve employment contract by id: " + contractId, e);
+        }
+        return null;
+    }
+
+    public EmploymentContract getLatestContractByEmployeeId(int employeeId) {
+        String SQL = "SELECT contractId, contractCode, employeeId, contractType, startDate, endDate, "
+                + "salary, status, note, createdBy "
+                + "FROM Employment_Contracts WHERE employeeId = ? "
+                + "ORDER BY contractId DESC LIMIT 1";
+        try (Connection conn = dbContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(SQL)) {
+            ps.setInt(1, employeeId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return mapContract(rs);
+                }
+            }
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Cannot retrieve latest employment contract for employeeId: " + employeeId, e);
+        }
+        return null;
+    }
+
+    private EmploymentContract mapContract(ResultSet rs) throws SQLException {
+        EmploymentContract contract = new EmploymentContract();
+        contract.setContractId(rs.getInt("contractId"));
+        contract.setContractCode(rs.getString("contractCode"));
+        contract.setEmployeeId(rs.getInt("employeeId"));
+        contract.setContractType(rs.getString("contractType"));
+        contract.setStartDate(rs.getDate("startDate"));
+        contract.setEndDate(rs.getDate("endDate"));
+        contract.setSalary(rs.getBigDecimal("salary"));
+        contract.setStatus(rs.getInt("status"));
+        contract.setNote(rs.getNString("note"));
+        contract.setCreatedBy(rs.getInt("createdBy"));
+        return contract;
     }
 }
