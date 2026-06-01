@@ -1,6 +1,5 @@
 <%@ page contentType="text/html;charset=UTF-8" %>
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
-<%@ taglib prefix="fn" uri="http://java.sun.com/jsp/jstl/functions" %>
 <!DOCTYPE html>
 <html lang="vi">
 <head>
@@ -75,25 +74,19 @@
             </div>
         </div>
 
-        <div class="search-bar">
-            <input type="text" id="filterKeyword" placeholder="Tìm theo họ và tên, email..." oninput="filterTable()" />
-            <select id="filterDepartment" onchange="filterTable()">
-                <option value="">Tất cả phòng ban</option>
-                <c:forEach var="emp" items="${employees}">
-                    <c:if test="${not empty emp.departmentName}">
-                        <option value="${fn:toLowerCase(emp.departmentName)}">${emp.departmentName}</option>
-                    </c:if>
-                </c:forEach>
-            </select>
-            <select id="filterStatus" onchange="filterTable()">
-                <option value="">Tất cả trạng thái</option>
-                <option value="1">Đang làm việc</option>
-                <option value="2">Đang nghỉ phép</option>
-                <option value="0">Không hoạt động</option>
-            </select>
-            <button type="button" class="btn-search" onclick="filterTable()">Tìm kiếm</button>
-            <a href="${pageContext.request.contextPath}/v1/manager/my-department-list" class="btn-clear">Xóa lọc</a>
-        </div>
+        <form method="get" action="${pageContext.request.contextPath}/v1/manager/my-department-list">
+            <div class="search-bar">
+                <input type="text" name="keyword" placeholder="Tìm theo họ và tên, email..." value="${keyword}" />
+                <select name="status">
+                    <option value="">Tất cả trạng thái</option>
+                    <option value="1" ${status == '1' ? 'selected' : ''}>Đang làm việc</option>
+                    <option value="2" ${status == '2' ? 'selected' : ''}>Đang nghỉ phép</option>
+                    <option value="0" ${status == '0' ? 'selected' : ''}>Không hoạt động</option>
+                </select>
+                <button type="submit" class="btn-search">Tìm kiếm</button>
+                <a href="${pageContext.request.contextPath}/v1/manager/my-department-list" class="btn-clear">Xóa lọc</a>
+            </div>
+        </form>
 
         <c:choose>
             <c:when test="${empty employees}">
@@ -118,11 +111,7 @@
                         </thead>
                         <tbody>
                             <c:forEach var="emp" items="${employees}">
-                                <tr class="employee-row"
-                                    data-name="${fn:toLowerCase(emp.fullName)}"
-                                    data-email="${fn:toLowerCase(emp.email)}"
-                                    data-department="${fn:toLowerCase(emp.departmentName)}"
-                                    data-status="${emp.status}">
+                                <tr>
                                     <td>
                                         <div class="d-flex align-items-center gap-2">
                                             <div class="avatar-circle">${emp.fullName.substring(0,1).toUpperCase()}</div>
@@ -156,9 +145,6 @@
                                     </td>
                                 </tr>
                             </c:forEach>
-                            <tr id="noFilterResult" style="display:none">
-                                <td colspan="7" class="text-center text-muted py-4">Không tìm thấy nhân viên phù hợp</td>
-                            </tr>
                         </tbody>
                     </table>
                 </div>
@@ -186,53 +172,6 @@
     </div>
 </div>
 
-<script>
-    function normalize(value) {
-        return (value || '').toLowerCase().trim();
-    }
-
-    function filterTable() {
-        const keyword = normalize(document.getElementById('filterKeyword').value);
-        const department = normalize(document.getElementById('filterDepartment').value);
-        const status = document.getElementById('filterStatus').value;
-        const rows = document.querySelectorAll('.employee-row');
-        let visibleCount = 0;
-
-        rows.forEach(row => {
-            const matchesKeyword = !keyword
-                || row.dataset.name.includes(keyword)
-                || row.dataset.email.includes(keyword);
-            const matchesDepartment = !department || row.dataset.department === department;
-            const matchesStatus = !status || row.dataset.status === status;
-            const visible = matchesKeyword && matchesDepartment && matchesStatus;
-
-            row.style.display = visible ? '' : 'none';
-            if (visible) {
-                visibleCount++;
-            }
-        });
-
-        const noResult = document.getElementById('noFilterResult');
-        if (noResult) {
-            noResult.style.display = visibleCount === 0 ? '' : 'none';
-        }
-    }
-
-    (function dedupeDepartmentOptions() {
-        const select = document.getElementById('filterDepartment');
-        const seen = new Set();
-        Array.from(select.options).forEach(option => {
-            if (!option.value) {
-                return;
-            }
-            if (seen.has(option.value)) {
-                option.remove();
-            } else {
-                seen.add(option.value);
-            }
-        });
-    })();
-</script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
