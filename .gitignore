@@ -2,3 +2,7 @@
 /HRM/build/
 *.env
 *.class
+.idea/
+HRM/nbproject/private/
+HRM/nbproject/*.xml~
+*.log
