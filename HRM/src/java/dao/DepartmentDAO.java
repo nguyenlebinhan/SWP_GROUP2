@@ -223,12 +223,13 @@ public class DepartmentDAO {
 
     public boolean updateDepartmentInfo(Department dept) {
         LOGGER.log(Level.INFO, "Updating department info with departmentId: {0}", dept.getDepartmentId());
-        String SQL = "UPDATE departments SET departmentName = ?, description = ? WHERE departmentId = ?";
+        String SQL = "UPDATE departments SET departmentName = ?, description = ?, status = ? WHERE departmentId = ?";
         try (Connection conn = dbContext.getConnection();
              PreparedStatement ps = conn.prepareStatement(SQL)) {
             ps.setString(1, dept.getDepartmentName());
             ps.setString(2, dept.getDescription());
-            ps.setInt(3, dept.getDepartmentId());
+            ps.setInt(3, dept.getStatus());
+            ps.setInt(4, dept.getDepartmentId());
 
             int rowsAffected = ps.executeUpdate();
             if (rowsAffected > 0) {

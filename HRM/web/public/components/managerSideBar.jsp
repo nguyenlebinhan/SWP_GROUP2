@@ -1,4 +1,5 @@
 <%@ page contentType="text/html;charset=UTF-8" %>
+<%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
 
     <style>
         .sidebar {
@@ -99,19 +100,27 @@
 
             <div class="sidebar-divider"></div>
             <div class="sidebar-section-label">Quản lý</div>
-            <a href="${pageContext.request.contextPath}/v1/manager/employee-list">
-                <i class="fa fa-users"></i> Nhân viên
-            </a>
-            <a href="${pageContext.request.contextPath}/v1/manager/department"
-                class="${pageContext.request.servletPath == '/public/manager/department_list.jsp' || pageContext.request.servletPath == '/public/manager/department_assign.jsp' ? 'active' : ''}">
-                <i class="fa fa-building"></i> Phòng ban
-            </a>
-            <a href="${pageContext.request.contextPath}/v1/manager/leave-requests">
-                <i class="fa fa-calendar-check"></i> Đơn nghỉ phép
-            </a>
-            <a href="${pageContext.request.contextPath}/v1/manager/leave-balances">
-                <i class="fa fa-chart-bar"></i> Ngày phép
-            </a>
+            <c:if test="${sessionScope.userPermissions.contains('VIEW_EMPLOYEES')}">
+                <a href="${pageContext.request.contextPath}/v1/manager/employee-list">
+                    <i class="fa fa-users"></i> Nhân viên
+                </a>
+            </c:if>
+            <c:if test="${sessionScope.userPermissions.contains('VIEW_DEPARTMENTS')}">
+                <a href="${pageContext.request.contextPath}/v1/manager/department"
+                    class="${pageContext.request.servletPath == '/public/manager/department_list.jsp' || pageContext.request.servletPath == '/public/manager/department_assign.jsp' ? 'active' : ''}">
+                    <i class="fa fa-building"></i> Phòng ban
+                </a>
+            </c:if>
+            <c:if test="${sessionScope.userPermissions.contains('APPROVE_LEAVE')}">
+                <a href="${pageContext.request.contextPath}/v1/manager/leave-requests">
+                    <i class="fa fa-calendar-check"></i> Đơn nghỉ phép
+                </a>
+            </c:if>
+            <c:if test="${sessionScope.userPermissions.contains('VIEW_LEAVE_BALANCE')}">
+                <a href="${pageContext.request.contextPath}/v1/manager/leave-balances">
+                    <i class="fa fa-chart-bar"></i> Ngày phép
+                </a>
+            </c:if>
 
             <div class="sidebar-divider"></div>
             <div class="sidebar-section-label">Hệ thống</div>
