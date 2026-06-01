@@ -487,24 +487,22 @@ public class DBInitializer {
                 insertPermission(conn, "ADD_EMPLOYEE","Thêm nhân viên",     "Quyền thêm nhân viên");   
                 insertPermission(conn, "EDIT_EMPLOYEE","Chỉnh sửa nhân viên",     "Quyền chỉnh sửa nhân viên");   
                 insertPermission(conn, "EDIT_DEPARTMENTS","Chỉnh sửa phòng ban",     "Quyền chỉnh sửa phòng ban ");   
-                insertPermission(conn, "ASSIGN_DEPARTMENT","Gán nhân viên vào phòng ban",     "Quyền gán nhân viên vào phòng ban");                  
+                insertPermission(conn, "ASSIGN_DEPARTMENT","Gán nhân viên vào phòng ban",     "Quyền gán nhân viên vào phòng ban");
+                insertPermission(conn, "REASSIGN_DEPARTMENT","Chuyển phòng ban nhân viên",     "Quyền chuyển nhân viên sang phòng ban khác");
                 insertPermission(conn,"ADD_DEPARTMENT","Thêm phòng ban","Quyền thêm phòng ban");
                 insertPermission(conn,"VIEW_ATTENDANCE","Xem chấm công","Quyền xem dữ liệu chấm công (Manager: theo phòng mình; Employee: của bản thân)");
                 insertPermission(conn,"VIEW_DEPARTMENT_EMPLOYEES_DETAIL","Xem danh sách nhân viên của phòng ban khác","Quyền xem dữ liệu nhân viên của phòng ban khác");
             }
 
             if (countRows(conn, "Positions") == 0) {
-
-                // --- Chung ---
                 insertPosition(conn, "Thực tập sinh",          1, "Sinh viên thực tập tại công ty");
                 insertPosition(conn, "Nhân viên chính thức",   2, "Hỗ trợ công việc hành chính");
                 insertPosition(conn, "Trưởng phòng ",   3, "Quản lý toàn bộ hoạt động của phòng ban");
-
-
             }
             
+            
             if (countRows(conn, "Departments") == 0) {
-                // Insert departments without managerId first (circular dep with Employees)
+                
                 insertDepartment(conn, "IT",  "Phòng Công nghệ thông tin", "Phát triển và vận hành hệ thống phần mềm");
                 insertDepartment(conn, "HR",  "Phòng Nhân sự",             "Tuyển dụng, đào tạo và quản lý nhân viên");
                 insertDepartment(conn, "FI", "Phòng Tài chính",           "Quản lý ngân sách và kế toán");
