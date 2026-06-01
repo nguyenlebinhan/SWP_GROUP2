@@ -47,33 +47,13 @@
             align-items: center;
             gap: 10px;
         }
-        .section-title::after {
-            content: '';
-            flex: 1;
-            height: 1px;
-            background: #f1f5f9;
-        }
+        .section-title::after { content: ''; flex: 1; height: 1px; background: #f1f5f9; }
 
-        /* Horizontal form */
-        .h-form-row {
-            display: grid;
-            align-items: start;
-            gap: 0 20px;
-            margin-bottom: 18px;
-        }
-
+        .h-form-row { display: grid; align-items: start; gap: 0 20px; margin-bottom: 18px; }
         .h-form-row.cols-1 { grid-template-columns: 160px 1fr; }
         .h-form-row.cols-2 { grid-template-columns: 160px 1fr 160px 1fr; }
 
-        .h-label {
-            font-size: 13px;
-            font-weight: 600;
-            color: #374151;
-            padding-top: 10px;
-            text-align: right;
-            padding-right: 4px;
-        }
-
+        .h-label { font-size: 13px; font-weight: 600; color: #374151; padding-top: 10px; text-align: right; padding-right: 4px; }
         .h-field { display: flex; flex-direction: column; gap: 4px; }
 
         .form-control, .form-select {
@@ -91,14 +71,7 @@
             outline: none;
         }
 
-        .required-dot {
-            display: inline-block;
-            width: 5px; height: 5px;
-            background: #ef4444;
-            border-radius: 50%;
-            vertical-align: super;
-            margin-left: 3px;
-        }
+        .required-dot { display: inline-block; width: 5px; height: 5px; background: #ef4444; border-radius: 50%; vertical-align: super; margin-left: 3px; }
 
         .user-info-box {
             display: none;
@@ -113,14 +86,7 @@
         .user-info-box.visible { display: flex; align-items: center; flex-wrap: wrap; }
         .user-info-item { display: flex; align-items: center; gap: 5px; }
 
-        .action-bar {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            padding-top: 24px;
-            margin-top: 8px;
-            border-top: 1px solid #f1f5f9;
-        }
+        .action-bar { display: flex; align-items: center; gap: 12px; padding-top: 24px; margin-top: 8px; border-top: 1px solid #f1f5f9; }
 
         .btn-submit {
             background: #2563eb;
@@ -147,10 +113,7 @@
         }
         .btn-cancel:hover { background: #f8fafc; color: #374151; }
 
-        .empty-state {
-            text-align: center;
-            padding: 60px 20px;
-        }
+        .empty-state { text-align: center; padding: 60px 20px; }
         .empty-state-icon {
             width: 72px; height: 72px;
             background: #d1fae5;
@@ -163,12 +126,12 @@
 </head>
 <body>
 
-<jsp:include page="/public/components/employeeSideBar.jsp" />
+<jsp:include page="/public/components/businessAdminSideBar.jsp" />
 
 <div class="main">
-    <jsp:include page="/public/components/employeeTopBar.jsp">
+    <jsp:include page="/public/components/businessAdminTopBar.jsp">
         <jsp:param name="title" value="Phân công phòng ban" />
-        <jsp:param name="backUrl" value="/v1/employee/dashboard" />
+        <jsp:param name="backUrl" value="/v1/businessadmin/employee-list" />
     </jsp:include>
 
     <c:if test="${not empty error}">
@@ -208,14 +171,14 @@
                     </div>
                     <h6 class="fw-bold mb-2">Tất cả người dùng đã được phân công</h6>
                     <p class="text-muted small mb-3">Không còn người dùng nào chưa có hồ sơ nhân viên.</p>
-                    <a href="${pageContext.request.contextPath}/v1/employee/employee-list"
+                    <a href="${pageContext.request.contextPath}/v1/businessadmin/employee-list"
                        class="btn btn-outline-primary btn-sm">
                         <i class="fa-solid fa-list me-1"></i>Xem danh sách nhân viên
                     </a>
                 </div>
             </c:when>
             <c:otherwise>
-                <form action="${pageContext.request.contextPath}/v1/employee/assign-department"
+                <form action="${pageContext.request.contextPath}/v1/businessadmin/assign-department"
                       method="post" id="assignForm" novalidate>
 
                     <div class="section-title">Thông tin bắt buộc</div>
@@ -249,7 +212,6 @@
                         </div>
                     </div>
 
-                    <%-- Phòng ban + Vị trí --%>
                     <div class="h-form-row cols-2">
                         <div class="h-label">
                             Phòng ban <span class="required-dot"></span>
@@ -279,7 +241,7 @@
                         <button type="submit" class="btn btn-submit">
                             <i class="fa-solid fa-check"></i> Xác nhận phân công
                         </button>
-                        <a href="${pageContext.request.contextPath}/v1/employee/employee-list"
+                        <a href="${pageContext.request.contextPath}/v1/businessadmin/employee-list"
                            class="btn-cancel">
                             <i class="fa-solid fa-xmark"></i> Hủy
                         </a>
@@ -321,9 +283,9 @@
             const level = parseInt(o.dataset.level, 10);
             let hide = false;
             if (employeeOnly) {
-                hide = level >= 3;        
+                hide = level >= 3;        // Employee: chỉ vị trí thường (level < 3)
             } else if (managerOnly) {
-                hide = level < 3;         
+                hide = level < 3;         // Manager: chỉ vị trí quản lý (level >= 3)
             }
             o.hidden = hide;
             o.disabled = hide;
