@@ -15,6 +15,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.logging.*;
 import model.Department;
+import model.Position;
 import model.User;
 import static org.apache.tomcat.jakartaee.commons.lang3.StringUtils.isBlank;
 
@@ -57,14 +58,17 @@ public class ManagerController extends HttpServlet {
             case "/department":
                 displayDepartmentList(request, response, user);
                 break;
-            case "/department/assign":
-                displayAssignPage(request, response, user);
+            case "/assign-department":
+                displayAssignDepartmentForm(request, response, user);
                 break;
-            case "/department/assign-employee":
-                displayAssignEmployeePage(request, response, user);
+            case "/reassign-department":
+                displayReassignDepartmentForm(request, response, user);
                 break;
             case "/department/employees":
                 displayDepartmentEmployeesById(request, response, user);
+                break;
+            case "/department/assign":
+                displayAssignManagerForm(request, response, user);
                 break;
             default:
                 response.sendRedirect(request.getContextPath() + "/v1/manager/dashboard");
@@ -91,11 +95,17 @@ public class ManagerController extends HttpServlet {
             return;
         }
         switch (action) {
+            case "/assign-department":
+                handleAssignDepartment(request, response, user);
+                break;
+            case "/reassign-department":
+                handleReassignDepartment(request, response, user);
+                break;
+            case "/unassign-department":
+                handleUnassignDepartment(request, response, user);
+                break;
             case "/department/assign":
                 handleAssignManager(request, response, user);
-                break;
-            case "/department/assign-employee":
-                handleAssignEmployee(request, response, user);
                 break;
             case "/department/unassign":
                 handleUnassignManager(request, response, user);
@@ -127,11 +137,6 @@ public class ManagerController extends HttpServlet {
 
     private void displayEmployeeList(HttpServletRequest request, HttpServletResponse response,
                                       User user) throws ServletException, IOException {
-        if (!hasPermission(user, "VIEW_EMPLOYEES")) {
-            request.getSession().setAttribute("error", "Bạn không có quyền xem danh sách nhân viên.");
-            response.sendRedirect(request.getContextPath() + "/v1/manager/dashboard");
-            return;
-        }
 
         Set<String> perms = getPermissions(user);
         request.getSession().setAttribute("userPermissions", perms);
@@ -283,6 +288,119 @@ public class ManagerController extends HttpServlet {
         request.getRequestDispatcher("/public/manager/employee_list.jsp").forward(request, response);
     }
 
+    // ===== Quản lý manager của phòng ban (Assign MGR / Gỡ MGR) =====
+
+    private void displayAssignManagerForm(HttpServletRequest request, HttpServletResponse response, User user)
+            throws ServletException, IOException {
+        if (!isHrManager(user.getRoleName())) {
+            response.sendRedirect(request.getContextPath() + "/v1/manager/dashboard");
+            return;
+        }
+        if (!hasPermission(user, "ASSIGN_DEPARTMENT")) {
+            request.getSession().setAttribute("deptError", "Bạn không có quyền phân công manager.");
+            response.sendRedirect(request.getContextPath() + "/v1/manager/department");
+            return;
+        }
+
+        String idParam = request.getParameter("id");
+        if (isBlank(idParam)) {
+            response.sendRedirect(request.getContextPath() + "/v1/manager/department");
+            return;
+        }
+        int deptId;
+        try {
+            deptId = Integer.parseInt(idParam.trim());
+        } catch (NumberFormatException e) {
+            response.sendRedirect(request.getContextPath() + "/v1/manager/department");
+            return;
+        }
+
+        Department dept = departmentDAO.getDepartmentById(deptId);
+        if (dept == null) {
+            request.getSession().setAttribute("deptError", "Phòng ban không tồn tại.");
+            response.sendRedirect(request.getContextPath() + "/v1/manager/department");
+            return;
+        }
+
+        Set<String> perms = getPermissions(user);
+        request.getSession().setAttribute("userPermissions", perms);
+        request.setAttribute("dept", dept);
+        request.setAttribute("currentManager", departmentDAO.getCurrentManager(deptId));
+        request.setAttribute("candidates", employeeDAO.getAllEmployees(user.getUserId()));
+        setPermissionFlags(request, perms);
+        request.getRequestDispatcher("/public/manager/department_assign.jsp").forward(request, response);
+    }
+
+    private void handleAssignManager(HttpServletRequest request, HttpServletResponse response, User user)
+            throws ServletException, IOException {
+        if (!isHrManager(user.getRoleName())) {
+            response.sendRedirect(request.getContextPath() + "/v1/manager/dashboard");
+            return;
+        }
+        if (!hasPermission(user, "ASSIGN_DEPARTMENT")) {
+            request.getSession().setAttribute("deptError", "Bạn không có quyền phân công manager.");
+            response.sendRedirect(request.getContextPath() + "/v1/manager/department");
+            return;
+        }
+
+        String rawDept = request.getParameter("departmentId");
+        String rawEmp = request.getParameter("employeeId");
+        if (isBlank(rawDept) || isBlank(rawEmp)) {
+            request.getSession().setAttribute("deptError", "Vui lòng chọn nhân viên làm manager.");
+            response.sendRedirect(request.getContextPath() + "/v1/manager/department");
+            return;
+        }
+
+        int departmentId, employeeId;
+        try {
+            departmentId = Integer.parseInt(rawDept);
+            employeeId = Integer.parseInt(rawEmp);
+        } catch (NumberFormatException e) {
+            request.getSession().setAttribute("deptError", "Dữ liệu không hợp lệ.");
+            response.sendRedirect(request.getContextPath() + "/v1/manager/department");
+            return;
+        }
+
+        boolean ok = employeeDAO.assignAsManager(departmentId, employeeId);
+        request.getSession().setAttribute(ok ? "deptSuccess" : "deptError",
+                ok ? "Đã phân công manager cho phòng ban." : "Phân công manager thất bại.");
+        response.sendRedirect(request.getContextPath() + "/v1/manager/department");
+    }
+
+    private void handleUnassignManager(HttpServletRequest request, HttpServletResponse response, User user)
+            throws ServletException, IOException {
+        if (!isHrManager(user.getRoleName())) {
+            response.sendRedirect(request.getContextPath() + "/v1/manager/dashboard");
+            return;
+        }
+        if (!hasPermission(user, "ASSIGN_DEPARTMENT")) {
+            request.getSession().setAttribute("deptError", "Bạn không có quyền gỡ manager.");
+            response.sendRedirect(request.getContextPath() + "/v1/manager/department");
+            return;
+        }
+
+        String rawDept = request.getParameter("departmentId");
+        if (isBlank(rawDept)) {
+            request.getSession().setAttribute("deptError", "Thiếu mã phòng ban.");
+            response.sendRedirect(request.getContextPath() + "/v1/manager/department");
+            return;
+        }
+
+        int departmentId;
+        try {
+            departmentId = Integer.parseInt(rawDept);
+        } catch (NumberFormatException e) {
+            request.getSession().setAttribute("deptError", "Mã phòng ban không hợp lệ.");
+            response.sendRedirect(request.getContextPath() + "/v1/manager/department");
+            return;
+        }
+
+        boolean ok = departmentDAO.unassignManager(departmentId);
+        request.getSession().setAttribute(ok ? "deptSuccess" : "deptError",
+                ok ? "Đã gỡ manager khỏi phòng ban." : "Gỡ manager thất bại.");
+        response.sendRedirect(request.getContextPath() + "/v1/manager/department");
+    }
+
     private void preventBackCache(HttpServletResponse response) {
         response.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
         response.setHeader("Pragma", "no-cache");
@@ -343,248 +461,328 @@ public class ManagerController extends HttpServlet {
         request.getRequestDispatcher("/public/manager/department_list.jsp").forward(request, response);
     }
 
-    private void displayAssignPage(HttpServletRequest request, HttpServletResponse response, User user)
-            throws ServletException, IOException {
+    private void displayAssignDepartmentForm(HttpServletRequest request, HttpServletResponse response,
+                                              User user) throws ServletException, IOException {
+        
         if (!isHrManager(user.getRoleName())) {
+            request.getSession().setAttribute("error", "Bạn không có quyền phân công phòng ban bởi bạn không phải HR");
             response.sendRedirect(request.getContextPath() + "/v1/manager/dashboard");
             return;
         }
+
         if (!hasPermission(user, "ASSIGN_DEPARTMENT")) {
             request.getSession().setAttribute("error", "Bạn không có quyền phân công phòng ban.");
             response.sendRedirect(request.getContextPath() + "/v1/manager/dashboard");
             return;
         }
 
-        String idParam = request.getParameter("id");
-        if (idParam == null) {
-            response.sendRedirect(request.getContextPath() + "/v1/manager/department");
-            return;
-        }
-        int departmentId;
-        try {
-            departmentId = Integer.parseInt(idParam);
-        } catch (NumberFormatException e) {
-            response.sendRedirect(request.getContextPath() + "/v1/manager/department");
+        Set<String> perms = getPermissions(user);
+        request.getSession().setAttribute("userPermissions", perms);
+        List<User> availableEmployees = employeeDAO.getEmployees(user.getUserId());
+        List<Department> departments = departmentDAO.getAllActiveDepartments();
+        List<Position> positions = departmentDAO.getAllPositions();
+
+        request.setAttribute("availableEmployees", availableEmployees);
+        request.setAttribute("departments", departments);
+        request.setAttribute("positions", positions);
+        setPermissionFlags(request, perms);
+        request.getRequestDispatcher("/public/manager/assign_department.jsp").forward(request, response);
+    }
+
+       private void displayReassignDepartmentForm(HttpServletRequest request, HttpServletResponse response,
+                                                User user) throws ServletException, IOException {
+
+        if (!isHrManager(user.getRoleName())) {
+            request.getSession().setAttribute("error", "Bạn không có quyền chuyển phòng ban bởi bạn không phải HR");
+            response.sendRedirect(request.getContextPath() + "/v1/employee/dashboard");
             return;
         }
 
-        Department dept = departmentDAO.getDepartmentById(departmentId);
-        if (dept == null || dept.getStatus() == 0) {
-            request.getSession().setAttribute("deptError", "Phòng ban không tồn tại hoặc đã bị vô hiệu hóa.");
-            response.sendRedirect(request.getContextPath() + "/v1/manager/department");
+        if (!hasPermission(user, "REASSIGN_DEPARTMENT")) {
+            request.getSession().setAttribute("error", "Bạn không có quyền chuyển phòng ban.");
+            response.sendRedirect(request.getContextPath() + "/v1/employee/dashboard");
             return;
         }
 
         Set<String> perms = getPermissions(user);
         request.getSession().setAttribute("userPermissions", perms);
 
-        EmployeeDetailDTO currentManager = departmentDAO.getCurrentManager(departmentId);
-        List<EmployeeDetailDTO> candidates = departmentDAO.getAssignableManagerDTOs(user.getUserId(), departmentId);
+        String rawEmployeeId = request.getParameter("id");
+        if (!isBlank(rawEmployeeId)) {
+            try {
+                int employeeId = Integer.parseInt(rawEmployeeId);
+                EmployeeDetailDTO selected = employeeDAO.getEmployeeById(employeeId);
+                if (selected != null && selected.getDepartmentId() > 0) {
+                    request.setAttribute("selectedEmployeeId", employeeId);
+                }
+            } catch (NumberFormatException ignored) {
+            }
+        }
 
-        request.setAttribute("dept", dept);
-        request.setAttribute("currentManager", currentManager);
-        request.setAttribute("candidates", candidates);
+        List<EmployeeDetailDTO> assignedEmployees = employeeDAO.getAssignedEmployees(user.getUserId());
+        List<Department> departments = departmentDAO.getAllActiveDepartments();
+        List<Position> positions = departmentDAO.getAllPositions();
 
+        request.setAttribute("assignedEmployees", assignedEmployees);
+        request.setAttribute("departments", departments);
+        request.setAttribute("positions", positions);
         setPermissionFlags(request, perms);
-        request.getRequestDispatcher("/public/manager/department_assign.jsp").forward(request, response);
+        request.getRequestDispatcher("/public/employee/reassign_department.jsp").forward(request, response);
+    }
+       
+  private void handleReassignDepartment(HttpServletRequest request, HttpServletResponse response,
+                                           User user) throws ServletException, IOException {
+        if (!isHrManager(user.getRoleName())) {
+            request.getSession().setAttribute("error", "Bạn không có quyền chuyển phòng ban bởi bạn không phải HR");
+            response.sendRedirect(request.getContextPath() + "/v1/employee/dashboard");
+            return;
+        }
+
+        if (!hasPermission(user, "REASSIGN_DEPARTMENT")) {
+            request.getSession().setAttribute("error", "Bạn không có quyền chuyển phòng ban.");
+            response.sendRedirect(request.getContextPath() + "/v1/employee/dashboard");
+            return;
+        }
+
+        String rawEmployeeId = request.getParameter("employeeId");
+        String rawDepartmentId = request.getParameter("departmentId");
+        String rawPositionId = request.getParameter("positionId");
+
+        if (isBlank(rawEmployeeId) || isBlank(rawDepartmentId) || isBlank(rawPositionId)) {
+            reloadReassignFormWithError(request, response, user,
+                    "Vui lòng chọn đầy đủ nhân viên, phòng ban và vị trí.");
+            return;
+        }
+
+        int employeeId, departmentId, positionId;
+        try {
+            employeeId = Integer.parseInt(rawEmployeeId);
+            departmentId = Integer.parseInt(rawDepartmentId);
+            positionId = Integer.parseInt(rawPositionId);
+        } catch (NumberFormatException e) {
+            reloadReassignFormWithError(request, response, user, "Dữ liệu không hợp lệ.");
+            return;
+        }
+
+        EmployeeDetailDTO employee = employeeDAO.getEmployeeById(employeeId);
+        if (employee == null || employee.getDepartmentId() <= 0) {
+            reloadReassignFormWithError(request, response, user,
+                    "Nhân viên không hợp lệ hoặc chưa được phân công phòng ban.");
+            return;
+        }
+
+        if (employee.getDepartmentId() == departmentId) {
+            reloadReassignFormWithError(request, response, user,
+                    "Nhân viên đã thuộc phòng ban này. Vui lòng chọn phòng ban khác.");
+            return;
+        }
+
+        int userRoleId = userDAO.getRoleIdByUserId(employee.getUserId());
+        if (!departmentDAO.isRoleAllowedForDepartment(departmentId, userRoleId)) {
+            Department dept = departmentDAO.getDepartmentById(departmentId);
+            String deptName = (dept != null) ? dept.getDepartmentName() : "phòng ban này";
+            List<String> allowed = departmentDAO.getAllowedRoleNames(departmentId);
+            String msg = "Vai trò hiện tại của nhân viên không phù hợp với phòng \"" + deptName + "\". "
+                       + "Phòng này chỉ nhận vai trò: " + String.join(", ", allowed) + ". "
+                       + "Vui lòng đổi vai trò của người dùng trước khi chuyển phòng.";
+            reloadReassignFormWithError(request, response, user, msg);
+            return;
+        }
+
+        boolean success = employeeDAO.reassignEmployeeDepartment(employeeId, departmentId, positionId);
+        if (!success) {
+            reloadReassignFormWithError(request, response, user, "Chuyển phòng ban thất bại. Vui lòng thử lại.");
+            return;
+        }
+
+        String roleName = roleDAO.getRoleByUserId(employee.getUserId());
+        Department newDept = departmentDAO.getDepartmentById(departmentId);
+        boolean deptHasManager = newDept != null && newDept.getManagerId() != null;
+        boolean isManagerRole = roleName != null && roleName.toLowerCase().contains("manager");
+
+        if (isManagerRole && !deptHasManager) {
+            employeeDAO.assignAsManager(departmentId, employeeId);
+        } else if (deptHasManager) {
+            employeeDAO.setEmployeeManager(employeeId, newDept.getManagerId());
+        }
+
+        LOGGER.log(Level.INFO, "Employee reassigned: employeeId={0} → deptId={1}",
+                new Object[]{employeeId, departmentId});
+
+        request.getSession().setAttribute("success", "Chuyển nhân viên sang phòng ban mới thành công.");
+        response.sendRedirect(request.getContextPath() + "/v1/employee/department-detail?id=" + departmentId);
     }
 
-    private void displayAssignEmployeePage(HttpServletRequest request, HttpServletResponse response, User user)
-            throws ServletException, IOException {
+    private void handleUnassignDepartment(HttpServletRequest request, HttpServletResponse response,
+                                           User user) throws ServletException, IOException {
         if (!isHrManager(user.getRoleName())) {
-            response.sendRedirect(request.getContextPath() + "/v1/manager/dashboard");
-            return;
-        }
-        if (!hasPermission(user, "ASSIGN_DEPARTMENT")) {
-            request.getSession().setAttribute("error", "Bạn không có quyền phân công phòng ban.");
-            response.sendRedirect(request.getContextPath() + "/v1/manager/dashboard");
+            request.getSession().setAttribute("error", "Bạn không có quyền gỡ phân công bởi bạn không phải HR");
+            response.sendRedirect(request.getContextPath() + "/v1/employee/dashboard");
             return;
         }
 
-        String idParam = request.getParameter("id");
-        if (isBlank(idParam)) {
-            response.sendRedirect(request.getContextPath() + "/v1/manager/department");
+        if (!hasPermission(user, "REASSIGN_DEPARTMENT")) {
+            request.getSession().setAttribute("error", "Bạn không có quyền gỡ phân công.");
+            response.sendRedirect(request.getContextPath() + "/v1/employee/dashboard");
             return;
         }
 
-        int departmentId;
+        String rawEmployeeId = request.getParameter("employeeId");
+        if (isBlank(rawEmployeeId)) {
+            request.getSession().setAttribute("error", "Thiếu mã nhân viên.");
+            response.sendRedirect(request.getContextPath() + "/v1/employee/employee-list");
+            return;
+        }
+
+        int employeeId;
         try {
-            departmentId = Integer.parseInt(idParam.trim());
+            employeeId = Integer.parseInt(rawEmployeeId);
         } catch (NumberFormatException e) {
-            response.sendRedirect(request.getContextPath() + "/v1/manager/department");
+            request.getSession().setAttribute("error", "Mã nhân viên không hợp lệ.");
+            response.sendRedirect(request.getContextPath() + "/v1/employee/employee-list");
             return;
         }
 
-        Department dept = departmentDAO.getDepartmentById(departmentId);
-        if (dept == null || dept.getStatus() == 0) {
-            request.getSession().setAttribute("deptError", "Phòng ban không tồn tại hoặc đã bị vô hiệu hóa.");
-            response.sendRedirect(request.getContextPath() + "/v1/manager/department");
+        EmployeeDetailDTO employee = employeeDAO.getEmployeeById(employeeId);
+        if (employee == null || employee.getDepartmentId() <= 0) {
+            request.getSession().setAttribute("error", "Nhân viên không hợp lệ hoặc chưa được phân công phòng ban.");
+            response.sendRedirect(request.getContextPath() + "/v1/employee/employee-detail?id=" + employeeId);
             return;
         }
 
-        Set<String> perms = getPermissions(user);
-        request.getSession().setAttribute("userPermissions", perms);
-
-        List<EmployeeDetailDTO> candidates = employeeDAO.getAllEmployeesByDepartmentId(departmentId);
-
-        request.setAttribute("dept", dept);
-        request.setAttribute("candidates", candidates);
-
-        setPermissionFlags(request, perms);
-        request.getRequestDispatcher("/public/manager/employee_assign.jsp").forward(request, response);
-    }
-
-    private void handleAssignManager(HttpServletRequest request, HttpServletResponse response, User user)
-            throws IOException {
-        if (!isHrManager(user.getRoleName())) {
-            response.sendRedirect(request.getContextPath() + "/v1/manager/dashboard");
-            return;
-        }
-        if (!hasPermission(user, "ASSIGN_DEPARTMENT")) {
-            request.getSession().setAttribute("error", "Bạn không có quyền phân công phòng ban.");
-            response.sendRedirect(request.getContextPath() + "/v1/manager/dashboard");
-            return;
-        }
-
-        String deptIdParam = request.getParameter("departmentId");
-        String empIdParam  = request.getParameter("employeeId");
-
-        if (isBlank(deptIdParam) || isBlank(empIdParam)) {
-            request.getSession().setAttribute("deptError", "Dữ liệu không hợp lệ.");
-            response.sendRedirect(request.getContextPath() + "/v1/manager/department");
-            return;
-        }
-
-        int departmentId, employeeId;
-        try {
-            departmentId = Integer.parseInt(deptIdParam.trim());
-            employeeId   = Integer.parseInt(empIdParam.trim());
-        } catch (NumberFormatException e) {
-            request.getSession().setAttribute("deptError", "Dữ liệu không hợp lệ.");
-            response.sendRedirect(request.getContextPath() + "/v1/manager/department");
-            return;
-        }
-
-        Department dept = departmentDAO.getDepartmentById(departmentId);
-        if (dept == null || dept.getStatus() == 0) {
-            request.getSession().setAttribute("deptError", "Phòng ban không tồn tại.");
-            response.sendRedirect(request.getContextPath() + "/v1/manager/department");
-            return;
-        }
-
-        // Server-side guard: kiểm tra candidate hợp lệ, không chỉ dựa vào UI
-        List<EmployeeDetailDTO> candidates = departmentDAO.getAssignableManagerDTOs(user.getUserId(), departmentId);
-        boolean isValid = candidates.stream().anyMatch(c -> c.getEmployeeId() == employeeId);
-        if (!isValid) {
-            request.getSession().setAttribute("deptError", "Nhân viên này không đủ điều kiện làm quản lý.");
-            response.sendRedirect(request.getContextPath() + "/v1/manager/department/assign?id=" + departmentId);
-            return;
-        }
-
-        boolean ok = departmentDAO.assignManager(departmentId, employeeId);
-        if (ok) {
-            request.getSession().setAttribute("deptSuccess",
-                    "Assign manager thành công cho phòng ban " + dept.getDepartmentName() + ".");
+        boolean success = employeeDAO.unassignEmployee(employeeId);
+        if (success) {
+            LOGGER.log(Level.INFO, "Employee unassigned: employeeId={0}", employeeId);
+            request.getSession().setAttribute("success",
+                    "Đã gỡ phân công nhân viên. Hệ thống admin có thể đổi vai trò, sau đó phân công lại vào phòng phù hợp.");
         } else {
-            request.getSession().setAttribute("deptError", "Assign thất bại. Vui lòng thử lại.");
+            request.getSession().setAttribute("error", "Gỡ phân công thất bại. Vui lòng thử lại.");
         }
+        response.sendRedirect(request.getContextPath() + "/v1/employee/employee-detail?id=" + employeeId);
+    }
+    private void reloadReassignFormWithError(HttpServletRequest request, HttpServletResponse response,
+                                              User user, String message) throws ServletException, IOException {
+        request.setAttribute("error", message);
+        request.setAttribute("assignedEmployees", employeeDAO.getAssignedEmployees(user.getUserId()));
+        request.setAttribute("departments", departmentDAO.getAllActiveDepartments());
+        request.setAttribute("positions", departmentDAO.getAllPositions());
+        setPermissionFlags(request, getPermissions(user));
+        request.getRequestDispatcher("/public/employee/reassign_department.jsp").forward(request, response);
+    }
+    
+       private void handleAssignDepartment(HttpServletRequest request, HttpServletResponse response,
+                                         User user) throws ServletException, IOException {
+        if (!isHrManager(user.getRoleName())) {
+            request.getSession().setAttribute("error", "Bạn không có quyền thêm phòng ban bởi bạn không phải HR");
+            response.sendRedirect(request.getContextPath() + "/v1/manager/dashboard");
+            return;
+        }
+
+        if (!hasPermission(user, "ASSIGN_DEPARTMENT")) {
+            request.getSession().setAttribute("error", "Bạn không có quyền thêm phòng ban.");
+            response.sendRedirect(request.getContextPath() + "/v1/manager/dashboard");
+            return;
+        }
+
+        String rawUserId = request.getParameter("userId");
+        String rawDepartmentId = request.getParameter("departmentId");
+        String rawPositionId = request.getParameter("positionId");
+        String phoneNumber = request.getParameter("phoneNumber");
+        String skills = request.getParameter("skills");
+        String experience = request.getParameter("experience");
+        String degree = request.getParameter("degree");
+
+        if (isBlank(rawUserId) || isBlank(rawDepartmentId) || isBlank(rawPositionId)) {
+            request.setAttribute("error",  "Vui lòng chọn đầy đủ nhân viên, phòng ban và vị trí.");
+            request.setAttribute("availableEmployees", employeeDAO.getEmployees(user.getUserId()));
+            request.setAttribute("departments", departmentDAO.getAllActiveDepartments());
+            request.setAttribute("positions", departmentDAO.getAllPositions());
+            setPermissionFlags(request, getPermissions(user));
+            request.getRequestDispatcher("/public/manager/assign_department.jsp").forward(request, response);              
+            return;
+        }
+
+        int userId, departmentId, positionId;
+        try {
+            userId = Integer.parseInt(rawUserId);
+            departmentId = Integer.parseInt(rawDepartmentId);
+            positionId = Integer.parseInt(rawPositionId);
+        } catch (NumberFormatException e) {
+            request.setAttribute("error", "Dữ liệu không hợp lệ.");
+            request.setAttribute("availableEmployees", employeeDAO.getEmployees(user.getUserId()));
+            request.setAttribute("departments", departmentDAO.getAllActiveDepartments());
+            request.setAttribute("positions", departmentDAO.getAllPositions());
+            setPermissionFlags(request, getPermissions(user));
+            request.getRequestDispatcher("/public/manager/assign_department.jsp").forward(request, response);              
+            return;
+        }
+
+        if (employeeDAO.isUserAssignedToDepartment(userId)) {
+            request.setAttribute("error", "Người dùng này đã được phân công phòng ban rồi.");
+            request.setAttribute("availableEmployees", employeeDAO.getEmployees(user.getUserId()));
+            request.setAttribute("departments", departmentDAO.getAllActiveDepartments());
+            request.setAttribute("positions", departmentDAO.getAllPositions());
+            setPermissionFlags(request, getPermissions(user));
+            request.getRequestDispatcher("/public/manager/assign_department.jsp").forward(request, response);              
+            return;
+        }
+
+        int userRoleId = userDAO.getRoleIdByUserId(userId);
+        if (!departmentDAO.isRoleAllowedForDepartment(departmentId, userRoleId)) {
+            Department dept = departmentDAO.getDepartmentById(departmentId);
+            String deptName = (dept != null) ? dept.getDepartmentName() : "phòng ban này";
+            List<String> allowed = departmentDAO.getAllowedRoleNames(departmentId);
+            String msg = "Vai trò hiện tại của nhân viên không phù hợp với phòng \"" + deptName + "\". "
+                       + "Phòng này chỉ nhận vai trò: " + String.join(", ", allowed) + ". "
+                       + "Vui lòng đổi vai trò của người dùng trước khi phân công.";
+            request.setAttribute("error", msg);
+            request.setAttribute("availableEmployees", employeeDAO.getEmployees(user.getUserId()));
+            request.setAttribute("departments", departmentDAO.getAllActiveDepartments());
+            request.setAttribute("positions", departmentDAO.getAllPositions());
+            setPermissionFlags(request, getPermissions(user));
+            request.getRequestDispatcher("/public/manager/assign_department.jsp").forward(request, response);            
+            return;
+        }
+
+        boolean success = employeeDAO.assignEmployeeToDepartment(
+                userId, departmentId, positionId,
+                isBlank(phoneNumber) ? null : phoneNumber.trim(),
+                isBlank(skills) ? null : skills.trim(),
+                isBlank(experience) ? null : experience.trim(),
+                isBlank(degree) ? null : degree.trim()
+        );
+
+        if (!success) {
+            request.setAttribute("error", "Phân công thất bại. Vui lòng thử lại.");
+            request.setAttribute("availableEmployees", employeeDAO.getEmployees(user.getUserId()));
+            request.setAttribute("departments", departmentDAO.getAllActiveDepartments());
+            request.setAttribute("positions", departmentDAO.getAllPositions());
+            setPermissionFlags(request, getPermissions(user));
+            request.getRequestDispatcher("/public/manager/assign_department.jsp").forward(request, response);            
+            return;
+        }
+
+        // Thiết lập quan hệ quản lý sau khi phân công:
+        String roleName = roleDAO.getRoleByUserId(userId);
+        EmployeeDetailDTO assigned = employeeDAO.getEmployeeByUserId(userId);
+        if (assigned != null) {
+            Department assignedDept = departmentDAO.getDepartmentById(departmentId);
+            boolean deptHasManager = assignedDept != null && assignedDept.getManagerId() != null;
+            boolean isManagerRole = roleName != null && roleName.toLowerCase().contains("manager");
+
+            if (isManagerRole && !deptHasManager) {
+                employeeDAO.assignAsManager(departmentId, assigned.getEmployeeId());
+            } else if (deptHasManager) {
+                employeeDAO.setEmployeeManager(assigned.getEmployeeId(), assignedDept.getManagerId());
+            }
+        }
+
+        LOGGER.log(Level.INFO, "Employee assigned: userId={0} → deptId={1}", new Object[]{userId, departmentId});
+
+        request.getSession().setAttribute("deptSuccess", "Phân công nhân viên vào phòng ban thành công.");
         response.sendRedirect(request.getContextPath() + "/v1/manager/department");
     }
 
-    private void handleUnassignManager(HttpServletRequest request, HttpServletResponse response, User user)
-            throws IOException {
-        if (!isHrManager(user.getRoleName())) {
-            response.sendRedirect(request.getContextPath() + "/v1/manager/dashboard");
-            return;
-        }
-        if (!hasPermission(user, "ASSIGN_DEPARTMENT")) {
-            request.getSession().setAttribute("error", "Bạn không có quyền phân công phòng ban.");
-            response.sendRedirect(request.getContextPath() + "/v1/manager/dashboard");
-            return;
-        }
-
-        String deptIdParam = request.getParameter("departmentId");
-
-        if (isBlank(deptIdParam)) {
-            request.getSession().setAttribute("deptError", "Dữ liệu không hợp lệ.");
-            response.sendRedirect(request.getContextPath() + "/v1/manager/department");
-            return;
-        }
-
-        int departmentId;
-        try {
-            departmentId = Integer.parseInt(deptIdParam.trim());
-        } catch (NumberFormatException e) {
-            request.getSession().setAttribute("deptError", "Dữ liệu không hợp lệ.");
-            response.sendRedirect(request.getContextPath() + "/v1/manager/department");
-            return;
-        }
-
-        Department dept = departmentDAO.getDepartmentById(departmentId);
-        if (dept == null) {
-            request.getSession().setAttribute("deptError", "Phòng ban không tồn tại.");
-            response.sendRedirect(request.getContextPath() + "/v1/manager/department");
-            return;
-        }
-
-        boolean ok = departmentDAO.unassignManager(departmentId);
-        if (ok) {
-            request.getSession().setAttribute("deptSuccess",
-                    "Đã gỡ manager khỏi phòng ban " + dept.getDepartmentName() + ".");
-        } else {
-            request.getSession().setAttribute("deptError", "Gỡ manager thất bại. Vui lòng thử lại.");
-        }
-        response.sendRedirect(request.getContextPath() + "/v1/manager/department");
-    }
-
-    private void handleAssignEmployee(HttpServletRequest request, HttpServletResponse response, User user)
-            throws IOException {
-        if (!isHrManager(user.getRoleName())) {
-            response.sendRedirect(request.getContextPath() + "/v1/manager/dashboard");
-            return;
-        }
-        if (!hasPermission(user, "ASSIGN_DEPARTMENT")) {
-            request.getSession().setAttribute("error", "Bạn không có quyền phân công phòng ban.");
-            response.sendRedirect(request.getContextPath() + "/v1/manager/dashboard");
-            return;
-        }
-
-        String deptIdParam = request.getParameter("departmentId");
-        String empIdParam  = request.getParameter("employeeId");
-
-        if (isBlank(deptIdParam) || isBlank(empIdParam)) {
-            request.getSession().setAttribute("deptError", "Dữ liệu không hợp lệ.");
-            response.sendRedirect(request.getContextPath() + "/v1/manager/department");
-            return;
-        }
-
-        int departmentId, employeeId;
-        try {
-            departmentId = Integer.parseInt(deptIdParam.trim());
-            employeeId   = Integer.parseInt(empIdParam.trim());
-        } catch (NumberFormatException e) {
-            request.getSession().setAttribute("deptError", "Dữ liệu không hợp lệ.");
-            response.sendRedirect(request.getContextPath() + "/v1/manager/department");
-            return;
-        }
-
-        Department dept = departmentDAO.getDepartmentById(departmentId);
-        if (dept == null || dept.getStatus() == 0) {
-            request.getSession().setAttribute("deptError", "Phòng ban không tồn tại.");
-            response.sendRedirect(request.getContextPath() + "/v1/manager/department");
-            return;
-        }
-
-        boolean ok = employeeDAO.updateEmployeeDepartment(employeeId, departmentId);
-        if (ok) {
-            request.getSession().setAttribute("success", 
-                    "Assign nhân viên thành công cho phòng ban " + dept.getDepartmentName() + ".");
-            response.sendRedirect(request.getContextPath() + "/v1/manager/department");
-        } else {
-            request.getSession().setAttribute("deptError", "Assign thất bại. Vui lòng thử lại.");
-            response.sendRedirect(request.getContextPath() + "/v1/manager/department/assign-employee?id=" + departmentId);
-        }
-    }
 
     @SuppressWarnings("unchecked")
     private Set<String> getPermissions(User user) {
