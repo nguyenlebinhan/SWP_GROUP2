@@ -23,7 +23,7 @@
 <jsp:include page="/public/components/employeeSideBar.jsp" />
 
 <div class="main">
-    <jsp:include page="/public/components/systemAdminTopBar.jsp">
+    <jsp:include page="/public/components/employeeTopBar.jsp">
         <jsp:param name="title" value="Hồ sơ của tôi" />
     </jsp:include>
 

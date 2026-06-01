@@ -53,7 +53,6 @@ public class ManagerController extends HttpServlet {
                 displayEmployeeDetail(request, response, user);
                 break;
             case "/department":
-                // Chỉ HRMANAGER được quản lý phòng ban
                 if (!isHrManager(user.getRoleName())) {
                     response.sendRedirect(request.getContextPath() + "/v1/manager/dashboard");
                     return;
@@ -244,25 +243,17 @@ public class ManagerController extends HttpServlet {
         response.setDateHeader("Expires", 0);
     }
 
-    /**
-     * Kiểm tra role có chứa "manager" (không phân biệt hoa thường).
-     * Cho phép tất cả các loại manager dùng chung controller này.
-     */
+
     private boolean isManagerRole(String roleName) {
         return roleName != null && roleName.trim().toLowerCase().contains("manager");
     }
 
-    /**
-     * Kiểm tra role có phải HRMANAGER không.
-     * Chỉ HRMANAGER mới được phép quản lý phòng ban (assign/unassign).
-     */
+
     private boolean isHrManager(String roleName) {
         return "HRMANAGER".equalsIgnoreCase(roleName != null ? roleName.trim() : "");
     }
 
-    // =========================================================
-    // Department management methods
-    // =========================================================
+
 
     private void displayDepartmentList(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
