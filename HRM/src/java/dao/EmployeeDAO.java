@@ -355,6 +355,58 @@ public class EmployeeDAO {
         return false;
     }
 
+    public boolean assignAsManager(int departmentId, int managerEmployeeId) {
+        LOGGER.log(Level.INFO, "Setting employeeId={0} as manager of departmentId={1}",
+                new Object[]{managerEmployeeId, departmentId});
+        String sqlDept = "UPDATE Departments SET managerId = ? WHERE departmentId = ?";
+        String sqlEmp  = "UPDATE Employees SET managerId = ? WHERE departmentId = ? AND employeeId != ?";
+        Connection conn = null;
+        try {
+            conn = dbContext.getConnection();
+            conn.setAutoCommit(false);
+
+            try (PreparedStatement ps = conn.prepareStatement(sqlDept)) {
+                ps.setInt(1, managerEmployeeId);
+                ps.setInt(2, departmentId);
+                ps.executeUpdate();
+            }
+
+            try (PreparedStatement ps = conn.prepareStatement(sqlEmp)) {
+                ps.setInt(1, managerEmployeeId);
+                ps.setInt(2, departmentId);
+                ps.setInt(3, managerEmployeeId);
+                ps.executeUpdate();
+            }
+
+            conn.commit();
+            return true;
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Cannot assign manager for departmentId: " + departmentId, e);
+            if (conn != null) {
+                try { conn.rollback(); } catch (SQLException ignored) {}
+            }
+        } finally {
+            if (conn != null) {
+                try { conn.setAutoCommit(true); conn.close(); } catch (SQLException ignored) {}
+            }
+        }
+        return false;
+    }
+    
+    
+    public boolean setEmployeeManager(int employeeId, int managerEmployeeId) {
+        String SQL = "UPDATE Employees SET managerId = ? WHERE employeeId = ?";
+        try (Connection conn = dbContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(SQL)) {
+            ps.setInt(1, managerEmployeeId);
+            ps.setInt(2, employeeId);
+            return ps.executeUpdate() > 0;
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Cannot set managerId for employeeId: " + employeeId, e);
+        }
+        return false;
+    }
+
     public boolean updateEmployeeDepartment(int employeeId, int departmentId) {
         String SQL = "UPDATE Employees SET departmentId = ? WHERE employeeId = ?";
         try (Connection conn = dbContext.getConnection();
