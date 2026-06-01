@@ -546,6 +546,143 @@ public class EmployeeDAO {
         return false;
     }
 
+    /**
+     * Danh sách nhân viên đã được phân công phòng ban (departmentId IS NOT NULL),
+     * dùng cho màn hình chuyển phòng ban. Loại trừ chính người đang đăng nhập.
+     */
+    public List<EmployeeDetailDTO> getAssignedEmployees(int userId) {
+        List<EmployeeDetailDTO> list = new ArrayList<>();
+        String SQL = "SELECT e.employeeId, e.employeeCode, e.userId, e.departmentId, e.positionId, "
+                + "e.phoneNumber, e.skills, e.experience, e.degree, e.status, e.managerId, "
+                + "u.fullName, u.email, u.username, "
+                + "d.departmentName, p.positionName, r.roleName "
+                + "FROM Employees e "
+                + "JOIN Users u ON u.userId = e.userId "
+                + "LEFT JOIN Departments d ON d.departmentId = e.departmentId "
+                + "LEFT JOIN Positions p ON p.positionId = e.positionId "
+                + "JOIN Roles r ON r.roleId = u.roleId "
+                + "WHERE e.userId != ? AND e.departmentId IS NOT NULL "
+                + "ORDER BY u.fullName";
+        try (Connection conn = dbContext.getConnection();
+                PreparedStatement ps = conn.prepareStatement(SQL)) {
+            ps.setInt(1, userId);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    list.add(mapEmployeeDTO(rs));
+                }
+            }
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Cannot retrieve assigned employees", e);
+        }
+        return list;
+    }
+
+    /**
+     * Chuyển nhân viên sang phòng ban / vị trí mới trong 1 transaction.
+     * Đồng thời gỡ liên kết quản lý cũ: nếu nhân viên đang là trưởng phòng cũ thì
+     * xóa managerId của phòng đó, và reset managerId của chính nhân viên (sẽ được
+     * thiết lập lại theo phòng ban mới ở tầng controller).
+     */
+    public boolean reassignEmployeeDepartment(int employeeId, int newDepartmentId, int newPositionId) {
+        LOGGER.log(Level.INFO, "Reassigning employeeId={0} to departmentId={1}",
+                new Object[] { employeeId, newDepartmentId });
+        String clearOldDeptManager = "UPDATE Departments SET managerId = NULL WHERE managerId = ?";
+        String updateEmp = "UPDATE Employees SET departmentId = ?, positionId = ?, managerId = NULL WHERE employeeId = ?";
+        Connection conn = null;
+        try {
+            conn = dbContext.getConnection();
+            conn.setAutoCommit(false);
+
+            try (PreparedStatement ps = conn.prepareStatement(clearOldDeptManager)) {
+                ps.setInt(1, employeeId);
+                ps.executeUpdate();
+            }
+
+            int rowsAffected;
+            try (PreparedStatement ps = conn.prepareStatement(updateEmp)) {
+                ps.setInt(1, newDepartmentId);
+                ps.setInt(2, newPositionId);
+                ps.setInt(3, employeeId);
+                rowsAffected = ps.executeUpdate();
+            }
+
+            conn.commit();
+            return rowsAffected > 0;
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Cannot reassign department for employeeId: " + employeeId, e);
+            if (conn != null) {
+                try {
+                    conn.rollback();
+                } catch (SQLException ignored) {
+                }
+            }
+        } finally {
+            if (conn != null) {
+                try {
+                    conn.setAutoCommit(true);
+                    conn.close();
+                } catch (SQLException ignored) {
+                }
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Gỡ phân công nhân viên khỏi phòng ban: đưa hồ sơ về trạng thái chưa phân
+     * công (departmentId/positionId/managerId = NULL). Khi đó system admin có thể
+     * đổi vai trò mà không vướng ràng buộc role↔phòng ban, rồi HR assign lại.
+     */
+    public boolean unassignEmployee(int employeeId) {
+        LOGGER.log(Level.INFO, "Unassigning employeeId={0} from department", employeeId);
+        // Nếu nhân viên này đang là quản lý của 1 phòng → gỡ luôn khỏi phòng đó.
+        String clearDeptManager = "UPDATE Departments SET managerId = NULL WHERE managerId = ?";
+        // Cấp dưới đang trỏ tới người này làm quản lý → gỡ liên kết để tránh treo.
+        String clearSubordinates = "UPDATE Employees SET managerId = NULL WHERE managerId = ?";
+        String clearEmp = "UPDATE Employees SET departmentId = NULL, positionId = NULL, managerId = NULL "
+                + "WHERE employeeId = ? AND departmentId IS NOT NULL";
+        Connection conn = null;
+        try {
+            conn = dbContext.getConnection();
+            conn.setAutoCommit(false);
+
+            try (PreparedStatement ps = conn.prepareStatement(clearDeptManager)) {
+                ps.setInt(1, employeeId);
+                ps.executeUpdate();
+            }
+            try (PreparedStatement ps = conn.prepareStatement(clearSubordinates)) {
+                ps.setInt(1, employeeId);
+                ps.executeUpdate();
+            }
+
+            int rowsAffected;
+            try (PreparedStatement ps = conn.prepareStatement(clearEmp)) {
+                ps.setInt(1, employeeId);
+                rowsAffected = ps.executeUpdate();
+            }
+
+            conn.commit();
+            return rowsAffected > 0;
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Cannot unassign employeeId: " + employeeId, e);
+            if (conn != null) {
+                try {
+                    conn.rollback();
+                } catch (SQLException ignored) {
+                }
+            }
+        } finally {
+            if (conn != null) {
+                try {
+                    conn.setAutoCommit(true);
+                    conn.close();
+                } catch (SQLException ignored) {
+                }
+            }
+        }
+        return false;
+    }
+
     public boolean isUserAlreadyEmployee(int userId) {
         String SQL = "SELECT 1 FROM Employees WHERE userId = ? LIMIT 1";
         try (Connection conn = dbContext.getConnection();

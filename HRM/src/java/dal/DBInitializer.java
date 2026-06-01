@@ -420,7 +420,7 @@ public class DBInitializer {
             String[] createOrder = {
                 "Roles", "Permissions", "Role_Permissions", "Email_Templates", "Positions",
                 "Departments", "Department_Roles", "Users", "Employees", "Employment_Contracts", "Candidates", "Leave_Types",
-                "Leave_Requests", "Leave_Balance", "Uploaded_Files", "Attendance", "Payroll", "Performance", 
+                "Leave_Requests", "Leave_Balance", "Uploaded_Files", "Attendance", "Payroll", "Performance",
                 "Notifications", "Audit_Logs"
             };
 
@@ -493,7 +493,7 @@ public class DBInitializer {
                 insertRole(conn, "FIM", "FIManager",     "Quản lý phòng Tài chính");
                 insertRole(conn, "FIE", "FIEmployee",    "Nhân viên phòng Tài chính");
             }
-            
+
             if (countRows(conn, "Permissions") == 0) {
                 insertPermission(conn, "VIEW_USERS",       "Xem người dùng",         "Quyền xem danh sách và chi tiết người dùng");
                 insertPermission(conn, "ADD_USER",         "Thêm người dùng",         "Quyền thêm mới người dùng");
@@ -504,12 +504,13 @@ public class DBInitializer {
                 insertPermission(conn, "EDIT_ROLE",        "Sửa vai trò",             "Quyền chỉnh sửa thông tin vai trò");
                 insertPermission(conn, "DELETE_ROLE",      "Xóa vai trò",             "Quyền xóa vai trò");
                 insertPermission(conn, "MANAGE_PERMISSIONS","Quản lý phân quyền",     "Quyền gán / thu hồi quyền cho vai trò");
-                insertPermission(conn, "VIEW_EMPLOYEES",   "Xem nhân viên",              "Quyền xem danh sách nhân viên");   
-                insertPermission(conn, "ADD_EMPLOYEE","Thêm nhân viên",     "Quyền thêm nhân viên");   
-                insertPermission(conn, "EDIT_EMPLOYEE","Chỉnh sửa nhân viên",     "Quyền chỉnh sửa nhân viên");   
+                insertPermission(conn, "VIEW_EMPLOYEES",   "Xem nhân viên",              "Quyền xem danh sách nhân viên");
+                insertPermission(conn, "ADD_EMPLOYEE","Thêm nhân viên",     "Quyền thêm nhân viên");
+                insertPermission(conn, "EDIT_EMPLOYEE","Chỉnh sửa nhân viên",     "Quyền chỉnh sửa nhân viên");
                 insertPermission(conn, "ADD_EMPLOYMENT_CONTRACT", "Thêm hợp đồng lao động", "Quyền thêm hợp đồng lao động cho nhân viên");
-                insertPermission(conn, "EDIT_DEPARTMENTS","Chỉnh sửa phòng ban",     "Quyền chỉnh sửa phòng ban ");   
-                insertPermission(conn, "ASSIGN_DEPARTMENT","Gán nhân viên vào phòng ban",     "Quyền gán nhân viên vào phòng ban");                  
+                insertPermission(conn, "EDIT_DEPARTMENTS","Chỉnh sửa phòng ban",     "Quyền chỉnh sửa phòng ban ");
+                insertPermission(conn, "ASSIGN_DEPARTMENT","Gán nhân viên vào phòng ban",     "Quyền gán nhân viên vào phòng ban");
+                insertPermission(conn, "REASSIGN_DEPARTMENT","Chuyển phòng ban nhân viên",     "Quyền chuyển nhân viên sang phòng ban khác");
                 insertPermission(conn,"ADD_DEPARTMENT","Thêm phòng ban","Quyền thêm phòng ban");
                 insertPermission(conn,"VIEW_ATTENDANCE","Xem chấm công","Quyền xem dữ liệu chấm công (Manager: theo phòng mình; Employee: của bản thân)");
                 insertPermission(conn,"VIEW_DEPARTMENT_EMPLOYEES_DETAIL","Xem danh sách nhân viên của phòng ban khác","Quyền xem dữ liệu nhân viên của phòng ban khác");
@@ -517,22 +518,20 @@ public class DBInitializer {
             ensurePermission(conn, "VIEW_EMPLOYEES", "Xem nhân viên", "Quyền xem danh sách nhân viên");
             ensurePermission(conn, "EDIT_EMPLOYEE", "Chỉnh sửa nhân viên", "Quyền chỉnh sửa nhân viên");
             ensurePermission(conn, "ADD_EMPLOYMENT_CONTRACT", "Thêm hợp đồng lao động", "Quyền thêm hợp đồng lao động cho nhân viên");
+            ensurePermission(conn, "REASSIGN_DEPARTMENT", "Chuyển phòng ban nhân viên", "Quyền chuyển nhân viên sang phòng ban khác");
             ensureRolePermission(conn, "HREmployee", "VIEW_EMPLOYEES");
             ensureRolePermission(conn, "HREmployee", "EDIT_EMPLOYEE");
             ensureRolePermission(conn, "HREmployee", "ADD_EMPLOYMENT_CONTRACT");
 
             if (countRows(conn, "Positions") == 0) {
-
-                // --- Chung ---
                 insertPosition(conn, "Thực tập sinh",          1, "Sinh viên thực tập tại công ty");
                 insertPosition(conn, "Nhân viên chính thức",   2, "Hỗ trợ công việc hành chính");
                 insertPosition(conn, "Trưởng phòng ",   3, "Quản lý toàn bộ hoạt động của phòng ban");
-
-
             }
-            
+
+
             if (countRows(conn, "Departments") == 0) {
-                // Insert departments without managerId first (circular dep with Employees)
+
                 insertDepartment(conn, "IT",  "Phòng Công nghệ thông tin", "Phát triển và vận hành hệ thống phần mềm");
                 insertDepartment(conn, "HR",  "Phòng Nhân sự",             "Tuyển dụng, đào tạo và quản lý nhân viên");
                 insertDepartment(conn, "FI", "Phòng Tài chính",           "Quản lý ngân sách và kế toán");
@@ -578,7 +577,7 @@ public class DBInitializer {
                 insertEmployee(conn, "EMP006", 11, 3, 3, "0901000006", "Kế toán, MISA, Excel",   "8 năm kế toán tài chính", "Cử nhân Kế toán");
                 insertEmployee(conn, "EMP007", 12, 3, 2, "0901000007", "Thuế, kiểm toán",        "2 năm tài chính",         "Cử nhân Tài chính");
             }
-            
+
             if (countRows(conn, "Department_Roles") == 0) {
                 // roleId: 3=HRManager, 4=HREmployee, 5=ITManager, 6=ITEmployee, 7=FIManager, 8=FIEmployee
 
@@ -594,7 +593,7 @@ public class DBInitializer {
                 insertDepartmentRole(conn, 3, 7); // FIManager
                 insertDepartmentRole(conn, 3, 8); // FIEmployee
             }
-                 
+
             LOGGER.log(Level.INFO,"Seeding completed successfully.");
         } catch (SQLException e) {
             LOGGER.log(Level.SEVERE, "Cannot insert initial data", e);
@@ -659,7 +658,7 @@ public class DBInitializer {
         }
     }
 
-    
+
     private void insertRole(Connection conn, String code, String name,String description) throws SQLException {
         String sql = "INSERT INTO Roles (roleCode, roleName, description) VALUES (?, ?, ?)";
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -688,7 +687,7 @@ public class DBInitializer {
         ps.executeUpdate();
         }
     }
-    
+
     private void insertDepartmentRole(Connection conn, int departmentId, int roleId) throws SQLException {
         String sql = "INSERT IGNORE INTO Department_Roles (departmentId, roleId) VALUES (?, ?)";
         try (PreparedStatement ps = conn.prepareStatement(sql)) {

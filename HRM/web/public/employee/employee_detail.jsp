@@ -54,6 +54,22 @@
                     <div class="mt-2">
                         <span class="status-pill status-${employee.status}"><c:out value="${employee.statusLabel}"/></span>
                     </div>
+                    <c:if test="${canReassignDept and employee.departmentId > 0}">
+                        <div class="mt-2 d-flex gap-2 flex-wrap">
+                            <a href="${pageContext.request.contextPath}/v1/employee/reassign-department?id=${employee.employeeId}"
+                               class="btn btn-warning btn-sm">
+                                <i class="fa-solid fa-right-left me-1"></i>Chuyển phòng ban
+                            </a>
+                            <form action="${pageContext.request.contextPath}/v1/employee/unassign-department"
+                                  method="post" class="d-inline"
+                                  onsubmit="return confirm('Gỡ phân công sẽ đưa nhân viên về trạng thái chưa có phòng ban. Tiếp tục?');">
+                                <input type="hidden" name="employeeId" value="${employee.employeeId}">
+                                <button type="submit" class="btn btn-outline-danger btn-sm">
+                                    <i class="fa-solid fa-link-slash me-1"></i>Gỡ phân công
+                                </button>
+                            </form>
+                        </div>
+                    </c:if>
                 </div>
             </div>
             <div class="d-flex gap-2">

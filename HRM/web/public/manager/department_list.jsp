@@ -262,7 +262,7 @@
                                                                 <c:otherwise>Assign MGR</c:otherwise>
                                                             </c:choose>
                                                         </a>
-                                                        <a href="${pageContext.request.contextPath}/v1/manager/department/assign-employee?id=${dept.departmentId}"
+                                                        <a href="${pageContext.request.contextPath}/v1/manager/assign-department"
                                                             class="btn btn-assign me-1">Assign NV</a>
                                                         <a href="${pageContext.request.contextPath}/v1/manager/department/employees?id=${dept.departmentId}"
                                                             class="btn btn-assign me-1"
