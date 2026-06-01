@@ -5,16 +5,16 @@
         <servlet-class>controller.AuthController</servlet-class>
     </servlet>
     <servlet>
-        <servlet-name>AdminController</servlet-name>
-        <servlet-class>controller.AdminController</servlet-class>
+        <servlet-name>SystemAdminController</servlet-name>
+        <servlet-class>controller.SystemAdminController</servlet-class>
     </servlet>
     <servlet-mapping>
         <servlet-name>AuthController</servlet-name>
         <url-pattern>/v1/auth/*</url-pattern>
     </servlet-mapping>
     <servlet-mapping>
-        <servlet-name>AdminController</servlet-name>
-        <url-pattern>/v1/admin/*</url-pattern>
+        <servlet-name>SystemAdminController</servlet-name>
+        <url-pattern>/v1/systemadmin/*</url-pattern>
     </servlet-mapping>
     <servlet>
         <servlet-name>ManagerController</servlet-name>
@@ -23,5 +23,21 @@
     <servlet-mapping>
         <servlet-name>ManagerController</servlet-name>
         <url-pattern>/v1/manager/*</url-pattern>
+    </servlet-mapping>
+    <servlet>
+        <servlet-name>EmployeeController</servlet-name>
+        <servlet-class>controller.EmployeeController</servlet-class>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>EmployeeController</servlet-name>
+        <url-pattern>/v1/employee/*</url-pattern>
+    </servlet-mapping>
+    <servlet>
+        <servlet-name>BusinessAdminController</servlet-name>
+        <servlet-class>controller.BusinessAdminController</servlet-class>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>BusinessAdminController</servlet-name>
+        <url-pattern>/v1/businessadmin/*</url-pattern>
     </servlet-mapping>
 </web-app>

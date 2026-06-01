@@ -2,7 +2,6 @@
  * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
  * Click nbfs://nbhost/SystemFileSystem/Templates/JSP_Servlet/Servlet.java to edit this template
  */
-
 package controller;
 
 import dao.UserDAO;
@@ -26,44 +25,50 @@ import service.EmailService;
 import utils.ConfigManager;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+
 /**
  *
  * @author ADMIN
  */
 public class AuthController extends HttpServlet {
+
     private static final Logger LOGGER = Logger.getLogger(AuthController.class.getName());
     private static final String AUTH_BASE_PATH = "/v1/auth";
     private static final UserDAO userDAO = new UserDAO();
     private static final EmailService emailService = new EmailService();
     private static final ConfigManager configManager = ConfigManager.getInstance();
     private static final HttpClient httpClient = HttpClient.newHttpClient();
-    /** 
-     * Processes requests for both HTTP <code>GET</code> and <code>POST</code> methods.
+
+    /**
+     * Processes requests for both HTTP <code>GET</code> and <code>POST</code>
+     * methods.
+     *
      * @param request servlet request
      * @param response servlet response
      * @throws ServletException if a servlet-specific error occurs
      * @throws IOException if an I/O error occurs
      */
     protected void processRequest(HttpServletRequest request, HttpServletResponse response)
-    throws ServletException, IOException {
+            throws ServletException, IOException {
         response.setContentType("text/html;charset=UTF-8");
         try (PrintWriter out = response.getWriter()) {
             /* TODO output your page here. You may use following sample code. */
             out.println("<!DOCTYPE html>");
             out.println("<html>");
             out.println("<head>");
-            out.println("<title>Servlet AuthController</title>");  
+            out.println("<title>Servlet AuthController</title>");
             out.println("</head>");
             out.println("<body>");
-            out.println("<h1>Servlet AuthController at " + request.getContextPath () + "</h1>");
+            out.println("<h1>Servlet AuthController at " + request.getContextPath() + "</h1>");
             out.println("</body>");
             out.println("</html>");
         }
-    } 
+    }
 
     // <editor-fold defaultstate="collapsed" desc="HttpServlet methods. Click on the + sign on the left to edit the code.">
-    /** 
+    /**
      * Handles the HTTP <code>GET</code> method.
+     *
      * @param request servlet request
      * @param response servlet response
      * @throws ServletException if a servlet-specific error occurs
@@ -71,9 +76,9 @@ public class AuthController extends HttpServlet {
      */
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
-    throws ServletException, IOException {
+            throws ServletException, IOException {
         String action = request.getPathInfo();
-        LOGGER.log(Level.INFO,"Action received in AuthController (GET): {0}", action);
+        LOGGER.log(Level.INFO, "Action received in AuthController (GET): {0}", action);
         switch (action != null ? action : "") {
             case "/login":
                 displayLoginForm(request, response);
@@ -91,7 +96,7 @@ public class AuthController extends HttpServlet {
                 displayForgetPasswordForm(request, response);
                 break;
             case "/change-password":
-                displayChangePassword(request,response);
+                displayChangePassword(request, response);
                 break;
             case "/logout":
                 handleLogoutRequest(request, response);
@@ -100,10 +105,11 @@ public class AuthController extends HttpServlet {
                 response.sendRedirect(request.getContextPath() + "/");
                 break;
         }
-    } 
+    }
 
-    /** 
+    /**
      * Handles the HTTP <code>POST</code> method.
+     *
      * @param request servlet request
      * @param response servlet response
      * @throws ServletException if a servlet-specific error occurs
@@ -111,10 +117,10 @@ public class AuthController extends HttpServlet {
      */
     @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response)
-    throws ServletException, IOException {
+            throws ServletException, IOException {
         //processRequest(request, response);
         String action = request.getPathInfo();
-        LOGGER.log(Level.INFO,"Action received in AuthController (POST): {0}", action);
+        LOGGER.log(Level.INFO, "Action received in AuthController (POST): {0}", action);
         switch (action != null ? action : "") {
             case "/login":
                 handleLoginRequest(request, response);
@@ -123,7 +129,7 @@ public class AuthController extends HttpServlet {
                 handleForgetPasswordRequest(request, response);
                 break;
             case "/change-password":
-                handleChangePassword(request,response);
+                handleChangePassword(request, response);
                 break;
             case "/logout":
                 handleLogoutRequest(request, response);
@@ -131,7 +137,7 @@ public class AuthController extends HttpServlet {
             default:
                 response.sendRedirect(request.getContextPath() + "/");
                 break;
-        }        
+        }
     }
 
     @Override
@@ -139,36 +145,61 @@ public class AuthController extends HttpServlet {
         return "Short description";
     }// </editor-fold>
 
-    private void displayLoginForm(HttpServletRequest request, HttpServletResponse response) throws IOException, IOException, ServletException  {
+    private void displayLoginForm(HttpServletRequest request, HttpServletResponse response) throws IOException, IOException, ServletException {
         request.getRequestDispatcher("/public/auth/login.jsp").forward(request, response);
-        
+
     }
 
-    private void displayDashboard(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-        String user = (String)request.getSession().getAttribute("user");
+    private void displayDashboard(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+
+        User user = (User) request.getSession().getAttribute("user");
+
         if (user == null) {
             response.sendRedirect(request.getContextPath() + "/v1/auth/login");
             return;
         }
-        request.getRequestDispatcher("/public/admin/dashboard.jsp").forward(request, response);
+
+        String role = user.getRoleName();
+
+        if (role == null) {
+            response.sendRedirect(request.getContextPath() + "/v1/auth/login");
+            return;
+        }
+
+        role = role.trim().replaceAll("[^A-Za-z0-9]", "").toLowerCase();
+
+        if (role.equals("systemadmin")) {
+
+            request.getRequestDispatcher("/public/systemadmin/dashboard.jsp")
+                    .forward(request, response);
+
+        } else if (role.equals("businessadmin")) {
+
+            request.getRequestDispatcher("/public/businessadmin/dashboard.jsp")
+                    .forward(request, response);
+
+        } else {
+
+            response.sendError(HttpServletResponse.SC_FORBIDDEN,
+                    "You don't have permission to access this page");
+        }
     }
 
     private void displayChangePassword(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-        boolean isAlreadyChanged = userDAO.isPasswordChanged((String)request.getSession().getAttribute("email"));
-        if(isAlreadyChanged){
+        boolean isAlreadyChanged = userDAO.isPasswordChanged((String) request.getSession().getAttribute("email"));
+        if (isAlreadyChanged) {
             request.getRequestDispatcher("/public/auth/change_password.jsp").forward(request, response);
 
-        }else{
+        } else {
             response.sendRedirect(request.getContextPath() + "/");
         }
     }
 
     private void displayForgetPasswordForm(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
         request.getRequestDispatcher("/public/auth/forget_password.jsp").forward(request, response);
-        
+
     }
-
-
 
     private void handleLoginRequest(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
         String identifier = request.getParameter("username");
@@ -329,39 +360,38 @@ public class AuthController extends HttpServlet {
         response.sendRedirect(request.getContextPath() + AUTH_BASE_PATH + "/login");
     }
 
-    private void handleForgetPasswordRequest(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {     
+    private void handleForgetPasswordRequest(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
         String email = request.getParameter("email");
-        LOGGER.log(Level.INFO,"Processing request for email : {0}",email);
-        if(email == null || email.isEmpty()){        
+        LOGGER.log(Level.INFO, "Processing request for email : {0}", email);
+        if (email == null || email.isEmpty()) {
             LOGGER.log(Level.WARNING, "Reset request failed: Email is empty");
             request.setAttribute("error", "Please enter an email");
             request.getRequestDispatcher("/public/auth/forget_password.jsp").forward(request, response);
-            return;                
+            return;
         }
 
         User user = userDAO.getUserByEmail(email);
-        if(user == null){
+        if (user == null) {
             LOGGER.log(Level.INFO, "User not found for email: {0} (not revealing to user)", email);
             request.setAttribute("success", "If email exists, you can get a password to reset");
             request.getRequestDispatcher("/public/auth/forget_password.jsp").forward(request, response);
-            return;            
+            return;
         }
 
-        LOGGER.log(Level.INFO,"User found with userId: {0} and username : {1}",new Object[]{user.getUserId(),user.getFullName()});
+        LOGGER.log(Level.INFO, "User found with userId: {0} and username : {1}", new Object[]{user.getUserId(), user.getFullName()});
 
         String password = userDAO.createResetPassword(user.getUserId());
         if (password != null) {
             LOGGER.log(Level.INFO, "Reset password created successfully for user id: {0}", user.getUserId());
-            boolean isAlreadyChanged = userDAO.updateIsTemporaryPassword(email,1);
-            if(isAlreadyChanged){
-                emailService.sendResetPasswordEmailAsync(user.getEmail(),password);
-                request.setAttribute("success", "A reset password has been sent to your email for a few second.");      
-                request.setAttribute("redirect", true); 
+            boolean isAlreadyChanged = userDAO.updateIsTemporaryPassword(email, 1);
+            if (isAlreadyChanged) {
+                emailService.sendResetPasswordEmailAsync(user.getEmail(), password);
+                request.setAttribute("success", "A reset password has been sent to your email for a few second.");
+                request.setAttribute("redirect", true);
                 request.getSession().setAttribute("email", email);
-    
-                
-            }else{
-                LOGGER.log(Level.SEVERE,"Failed to updated isTemporaryPassword for userId: {0} ",user.getUserId());
+
+            } else {
+                LOGGER.log(Level.SEVERE, "Failed to updated isTemporaryPassword for userId: {0} ", user.getUserId());
                 request.setAttribute("error", "Có lỗi xảy ra khi xử lý yêu cầu. Vui lòng thử lại");
             }
         } else {
@@ -379,7 +409,7 @@ public class AuthController extends HttpServlet {
         String sysPassword = request.getParameter("sysPassword");
         String newPassword = request.getParameter("yourPassword");
         String confirmationPassword = request.getParameter("confirmationPassword");
-        
+
         String email = (String) request.getSession().getAttribute("email");
         User user = userDAO.getUserByEmail(email);
         if (user == null) {
@@ -420,7 +450,7 @@ public class AuthController extends HttpServlet {
             }
             LOGGER.log(Level.INFO, "Password changed successfully for userId: {0}", user.getUserId());
             request.getSession().invalidate();
-            response.sendRedirect(request.getContextPath() +  "/v1/auth/login");
+            response.sendRedirect(request.getContextPath() + "/v1/auth/login");
         } else {
             LOGGER.log(Level.SEVERE, "Failed to change password for userId: {0}", user.getUserId());
             request.setAttribute("error", "Đổi mật khẩu thất bại. Vui lòng thử lại");
@@ -433,14 +463,18 @@ public class AuthController extends HttpServlet {
             return AUTH_BASE_PATH + "/login";
         }
         String role = user.getRoleName().trim().replaceAll("[^A-Za-z0-9]", "").toLowerCase();
-        switch (role) {
-            case "admin":
-                return "/v1/admin/dashboard";
-            case "hrmanager":
-                return "/v1/manager/dashboard";
-            default:
-                LOGGER.log(Level.WARNING, "Unknown role for userId {0}: {1}", new Object[]{user.getUserId(), user.getRoleName()});
-                return AUTH_BASE_PATH + "/login";
+        if (role.equalsIgnoreCase("systemadmin")) {
+            return "/v1/systemadmin/dashboard";
+        } else if (role.equalsIgnoreCase("businessadmin")) {
+            return "/v1/businessadmin/dashboard";
+        } else if (role.substring(2).equalsIgnoreCase("manager")) {
+            return "/v1/manager/dashboard";
+        } else if (role.substring(2).equalsIgnoreCase("employee")) {
+            return "/v1/employee/dashboard";
+        } else {
+            LOGGER.log(Level.WARNING, "Unknown role for userId {0}: {1}", new Object[]{user.getUserId(), user.getRoleName()});
+            return AUTH_BASE_PATH + "/login";
+
         }
     }
 }

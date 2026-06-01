@@ -1,11 +1,11 @@
-<%@ page contentType="text/html;charset=UTF-8" language="java" %>
+<%@ page contentType="text/html;charset=UTF-8" %>
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
+<%@ taglib prefix="fn" uri="http://java.sun.com/jsp/jstl/functions" %>
 <!DOCTYPE html>
 <html lang="vi">
 <head>
     <meta charset="UTF-8"/>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-    <title>Chi tiết người dùng – HRM</title>
+    <title>Chi tiết nhân viên – HRM Manager</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet"/>
     <style>
         body {
@@ -17,7 +17,6 @@
             margin-left: 250px;
             padding: 30px;
         }
-
 
         .alert-flash {
             border-radius: 8px;
@@ -41,10 +40,18 @@
             background: #dbe7f6;
             color: #1267c5;
             font-size: 40px;
+            font-weight: 700;
             display: flex;
             align-items: center;
             justify-content: center;
             margin: 0 auto 16px;
+        }
+
+        .profile-name {
+            font-size: 18px;
+            font-weight: 700;
+            color: #0B0E2A;
+            margin-bottom: 8px;
         }
 
         .role-pill {
@@ -70,6 +77,7 @@
 
         .status-pill.active { background: #d1fae5; color: #065f46; }
         .status-pill.inactive { background: #fee2e2; color: #991b1b; }
+        .status-pill.leave { background: #fef3c7; color: #92400e; }
 
         .status-dot {
             width: 7px;
@@ -128,8 +136,6 @@
             border-bottom: 2px solid #f1f3f5;
         }
 
-        .section-title i { color: #ff8c00; margin-right: 6px; }
-
         .info-section + .info-section {
             margin-top: 30px;
             padding-top: 24px;
@@ -165,30 +171,6 @@
             color: #111827;
         }
 
-        .badge-active {
-            background: #d1fae5; color: #065f46;
-            padding: 3px 10px; border-radius: 20px;
-            font-size: 12px; font-weight: 600;
-        }
-
-        .badge-inactive {
-            background: #fee2e2; color: #991b1b;
-            padding: 3px 10px; border-radius: 20px;
-            font-size: 12px; font-weight: 600;
-        }
-
-        .badge-temp {
-            background: #fef3c7; color: #92400e;
-            padding: 3px 10px; border-radius: 20px;
-            font-size: 12px; font-weight: 600;
-        }
-
-        .badge-set {
-            background: #d1fae5; color: #065f46;
-            padding: 3px 10px; border-radius: 20px;
-            font-size: 12px; font-weight: 600;
-        }
-
         .empty-card {
             background: white;
             border-radius: 12px;
@@ -197,59 +179,68 @@
             padding: 60px 0;
             color: #9ca3af;
         }
-
-        .empty-card i { font-size: 48px; margin-bottom: 12px; display: block; }
     </style>
 </head>
 <body>
 
-<jsp:include page="/public/components/adminSideBar.jsp" />
+<c:choose>
+    <c:when test="${fn:toUpperCase(fn:replace(sessionScope.user.roleName, ' ', '')) == 'HRMANAGER'}">
+        <jsp:include page="/public/components/managerSideBar.jsp" />
+    </c:when>
+    <c:otherwise>
+        <jsp:include page="/public/components/departmentManagerSideBar.jsp" />
+    </c:otherwise>
+</c:choose>
 
 <div class="main-content">
-    <jsp:include page="/public/components/adminTopBar.jsp">
-        <jsp:param name="title" value="Chi tiết người dùng" />
-        <jsp:param name="backUrl" value="/v1/admin/user-list" />
+    <jsp:include page="/public/components/managerTopBar.jsp">
+        <jsp:param name="title" value="Chi tiết nhân viên" />
+        <jsp:param name="backUrl" value="/v1/manager/employee-list" />
     </jsp:include>
 
     <!-- Flash messages -->
     <c:if test="${not empty error}">
         <div class="alert alert-danger alert-flash alert-dismissible fade show" role="alert">
-            <i class="fa fa-circle-exclamation me-2"></i><c:out value="${error}"/>
+            <c:out value="${error}"/>
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
     </c:if>
 
     <c:choose>
-        <c:when test="${empty selectedUser}">
+        <c:when test="${empty employee}">
             <div class="empty-card">
-                
-                Không tìm thấy thông tin người dùng.
+                Không tìm thấy thông tin nhân viên.
             </div>
         </c:when>
         <c:otherwise>
-            <c:set var="displayName" value="${empty selectedUser.fullName ? selectedUser.username : selectedUser.fullName}"/>
             <div class="row g-4">
+                <!-- LEFT: Profile card -->
                 <div class="col-lg-3 col-md-4">
                     <div class="profile-card">
                         <div class="avatar-circle">
-                            <i class="fa fa-user"></i>
+                            ${employee.fullName.substring(0,1).toUpperCase()}
                         </div>
-                        <div class="profile-name"><c:out value="${displayName}"/></div>
+                        <div class="profile-name"><c:out value="${employee.fullName}"/></div>
                         <div class="mb-2">
                             <span class="role-pill">
-                                <c:out value="${empty selectedUser.roleName ? '-' : selectedUser.roleName}"/>
+                                <c:out value="${empty employee.roleName ? '-' : employee.roleName}"/>
                             </span>
                         </div>
                         <div>
                             <c:choose>
-                                <c:when test="${selectedUser.isActive == 1}">
+                                <c:when test="${employee.status == 1}">
                                     <span class="status-pill active">
-                                        <span class="status-dot"></span>Hoạt động
+                                        <span class="status-dot"></span>Đang làm việc
+                                    </span>
+                                </c:when>
+                                <c:when test="${employee.status == 2}">
+                                    <span class="status-pill leave">
+                                        <span class="status-dot"></span>Đang nghỉ phép
                                     </span>
                                 </c:when>
                                 <c:otherwise>
                                     <span class="status-pill inactive">
-                                        <span class="status-dot"></span>Vô hiệu
+                                        <span class="status-dot"></span>Không hoạt động
                                     </span>
                                 </c:otherwise>
                             </c:choose>
@@ -257,28 +248,28 @@
 
                         <div class="profile-meta">
                             <div class="meta-item">
-                                <span class="meta-label">Vai trò</span>
+                                <span class="meta-label">Mã nhân viên</span>
                                 <span class="meta-value">
-                                    <c:out value="${empty selectedUser.roleName ? '-' : selectedUser.roleName}"/>
+                                    <c:out value="${empty employee.employeeCode ? '-' : employee.employeeCode}"/>
                                 </span>
                             </div>
                             <div class="meta-item">
                                 <span class="meta-label">Tên đăng nhập</span>
                                 <span class="meta-value">
-                                    <c:out value="${empty selectedUser.username ? '-' : selectedUser.username}"/>
+                                    <c:out value="${empty employee.username ? '-' : employee.username}"/>
                                 </span>
                             </div>
                             <div class="meta-item">
                                 <span class="meta-label">Email</span>
                                 <span class="meta-value">
-                                    <c:out value="${empty selectedUser.email ? '-' : selectedUser.email}"/>
+                                    <c:out value="${empty employee.email ? '-' : employee.email}"/>
                                 </span>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Right: Info panels -->
+                <!-- RIGHT: Info panels -->
                 <div class="col-lg-9 col-md-8">
                     <div class="info-panel">
 
@@ -291,84 +282,82 @@
                                 <div class="info-item">
                                     <span class="info-label">Họ và tên</span>
                                     <span class="info-value">
-                                        <c:out value="${empty selectedUser.fullName ? '-' : selectedUser.fullName}"/>
-                                    </span>
-                                </div>
-                                <div class="info-item">
-                                    <span class="info-label">Ngày sinh</span>
-                                    <span class="info-value">
-                                        <c:out value="${empty selectedUser.dob ? '-' : selectedUser.dob}"/>
-                                    </span>
-                                </div>
-                                <div class="info-item">
-                                    <span class="info-label">Tên đăng nhập</span>
-                                    <span class="info-value">
-                                        <c:out value="${empty selectedUser.username ? '-' : selectedUser.username}"/>
+                                        <c:out value="${empty employee.fullName ? '-' : employee.fullName}"/>
                                     </span>
                                 </div>
                                 <div class="info-item">
                                     <span class="info-label">Email</span>
                                     <span class="info-value">
-                                        <c:out value="${empty selectedUser.email ? '-' : selectedUser.email}"/>
+                                        <c:out value="${empty employee.email ? '-' : employee.email}"/>
                                     </span>
                                 </div>
-                                <div class="info-item wide">
-                                    <span class="info-label">Địa chỉ</span>
+                                <div class="info-item">
+                                    <span class="info-label">Tên đăng nhập</span>
                                     <span class="info-value">
-                                        <c:out value="${empty selectedUser.address ? '-' : selectedUser.address}"/>
+                                        <c:out value="${empty employee.username ? '-' : employee.username}"/>
+                                    </span>
+                                </div>
+                                <div class="info-item">
+                                    <span class="info-label">Số điện thoại</span>
+                                    <span class="info-value">
+                                        <c:out value="${empty employee.phoneNumber ? '-' : employee.phoneNumber}"/>
                                     </span>
                                 </div>
                             </div>
                         </div>
 
-                        <!-- Thông tin tài khoản -->
+                        <!-- Thông tin công việc -->
                         <div class="info-section">
                             <div class="section-title">
-                                Thông tin tài khoản
+                                Thông tin công việc
                             </div>
                             <div class="info-grid">
                                 <div class="info-item">
                                     <span class="info-label">Mã nhân viên</span>
-                                    <span class="info-value">NV<c:out value="${selectedUser.userId}"/></span>
+                                    <span class="info-value">
+                                        <c:out value="${empty employee.employeeCode ? '-' : employee.employeeCode}"/>
+                                    </span>
                                 </div>
                                 <div class="info-item">
                                     <span class="info-label">Vai trò</span>
                                     <span class="info-value">
-                                        <c:out value="${empty selectedUser.roleName ? '-' : selectedUser.roleName}"/>
+                                        <c:out value="${empty employee.roleName ? '-' : employee.roleName}"/>
                                     </span>
                                 </div>
                                 <div class="info-item">
-                                    <span class="info-label">Trạng thái tài khoản</span>
+                                    <span class="info-label">Phòng ban</span>
                                     <span class="info-value">
-                                        <c:choose>
-                                            <c:when test="${selectedUser.isActive == 1}">
-                                                <span class="badge-active">
-                                                    >Hoạt động
-                                                </span>
-                                            </c:when>
-                                            <c:otherwise>
-                                                <span class="badge-inactive">
-                                                    Vô hiệu
-                                                </span>
-                                            </c:otherwise>
-                                        </c:choose>
+                                        <c:out value="${empty employee.departmentName ? '-' : employee.departmentName}"/>
                                     </span>
                                 </div>
                                 <div class="info-item">
-                                    <span class="info-label">Trạng thái mật khẩu</span>
+                                    <span class="info-label">Vị trí</span>
                                     <span class="info-value">
-                                        <c:choose>
-                                            <c:when test="${selectedUser.isTemporaryPassword}">
-                                                <span class="badge-temp">
-                                                    Mật khẩu tạm thời
-                                                </span>
-                                            </c:when>
-                                            <c:otherwise>
-                                                <span class="badge-set">
-                                                    Đã thiết lập
-                                                </span>
-                                            </c:otherwise>
-                                        </c:choose>
+                                        <c:out value="${empty employee.positionName ? '-' : employee.positionName}"/>
+                                    </span>
+                                </div>
+                                <div class="info-item">
+                                    <span class="info-label">Trạng thái</span>
+                                    <span class="info-value">
+                                        <c:out value="${employee.statusLabel}"/>
+                                    </span>
+                                </div>
+                                <div class="info-item">
+                                    <span class="info-label">Bằng cấp</span>
+                                    <span class="info-value">
+                                        <c:out value="${empty employee.degree ? '-' : employee.degree}"/>
+                                    </span>
+                                </div>
+                                <div class="info-item wide">
+                                    <span class="info-label">Kỹ năng</span>
+                                    <span class="info-value">
+                                        <c:out value="${empty employee.skills ? '-' : employee.skills}"/>
+                                    </span>
+                                </div>
+                                <div class="info-item wide">
+                                    <span class="info-label">Kinh nghiệm</span>
+                                    <span class="info-value">
+                                        <c:out value="${empty employee.experience ? '-' : employee.experience}"/>
                                     </span>
                                 </div>
                             </div>

@@ -12,6 +12,8 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
+import java.sql.Types;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -135,35 +137,99 @@ public class UserDAO {
         return false;
     }
 
-    public boolean addUser(String username, String email, String password, String fullName, String dob, String gender, String address, int roleId) {
-        LOGGER.log(Level.INFO, "Adding new user with email: {0}", email);
+    public boolean addUserAndEmpployee(String username, String email, String password, String fullName, String dob, String gender, String address, int roleId) {
+        LOGGER.log(Level.INFO, "Adding new user + employee with email: {0}", email);
 
         if (isEmailExists(email)) {
             LOGGER.log(Level.WARNING, "Add user failed: email already exists: {0}", email);
             return false;
         }
-        String sql = "INSERT INTO users (username, email, password, fullName, dob, gender, address, roleId, isTemporaryPassword) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1)";
 
-        try (Connection conn = dbContext.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setString(1, username);
-            ps.setString(2, email);
-            ps.setString(3, hashPassword(password));
-            ps.setString(4, fullName);
-            ps.setString(5, dob);
-            ps.setString(6, gender);
-            ps.setString(7, address);
-            ps.setInt(8, roleId);
+        String insertUserSql = "INSERT INTO users (username, email, password, fullName, dob, gender, address, roleId, isTemporaryPassword) "
+                + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1)";
+        String nextCodeSql = "SELECT COALESCE(MAX(employeeId), 0) + 1 AS nextId FROM employees";
+        String insertEmpSql = "INSERT INTO employees (employeeCode, userId, departmentId, positionId, phoneNumber, skills, experience, degree, status, managerId) "
+                + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, ?)";
 
-            int rowsAffected = ps.executeUpdate();
-            if (rowsAffected > 0) {
-                LOGGER.log(Level.INFO, "User added successfully with email: {0}", email);
-                return true;
-            } else {
-                LOGGER.log(Level.WARNING, "Add user failed: no rows affected for email: {0}", email);
-                return false;
+        Connection conn = null;
+        try {
+            conn = dbContext.getConnection();
+            conn.setAutoCommit(false);
+
+            int newUserId;
+            try (PreparedStatement ps = conn.prepareStatement(insertUserSql, Statement.RETURN_GENERATED_KEYS)) {
+                ps.setString(1, username);
+                ps.setString(2, email);
+                ps.setString(3, hashPassword(password));
+                ps.setString(4, fullName);
+                ps.setString(5, dob);
+                ps.setString(6, gender);
+                ps.setString(7, address);
+                ps.setInt(8, roleId);
+
+                if (ps.executeUpdate() == 0) {
+                    LOGGER.log(Level.WARNING, "Add user failed: no rows affected for email: {0}", email);
+                    conn.rollback();
+                    return false;
+                }
+                try (ResultSet keys = ps.getGeneratedKeys()) {
+                    if (keys.next()) {
+                        newUserId = keys.getInt(1);
+                    } else {
+                        LOGGER.log(Level.WARNING, "Add user failed: cannot read generated userId for email: {0}", email);
+                        conn.rollback();
+                        return false;
+                    }
+                }
             }
+
+            String employeeCode = "EMP0001";
+            try (PreparedStatement ps = conn.prepareStatement(nextCodeSql); ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    employeeCode = String.format("EMP%04d", rs.getInt("nextId"));
+                }
+            }
+
+            try (PreparedStatement ps = conn.prepareStatement(insertEmpSql)) {
+                ps.setString(1, employeeCode);
+                ps.setInt(2, newUserId);
+                ps.setNull(3, Types.INTEGER); // departmentId - gán sau
+                ps.setNull(4, Types.INTEGER); // positionId   - gán sau
+                ps.setNull(5, Types.VARCHAR); // phoneNumber
+                ps.setNull(6, Types.VARCHAR); // skills
+                ps.setNull(7, Types.VARCHAR); // experience
+                ps.setNull(8, Types.VARCHAR); // degree
+                ps.setNull(9, Types.INTEGER); // managerId
+
+                if (ps.executeUpdate() == 0) {
+                    LOGGER.log(Level.WARNING, "Add employee failed: no rows affected for userId: {0}", newUserId);
+                    conn.rollback();
+                    return false;
+                }
+            }
+
+            conn.commit();
+            LOGGER.log(Level.INFO, "User + employee added successfully with email: {0}, employeeCode: {1}",
+                    new Object[]{email, employeeCode});
+            return true;
         } catch (SQLException e) {
-            LOGGER.log(Level.SEVERE, "Error adding user with email: " + email, e);
+            LOGGER.log(Level.SEVERE, "Error adding user + employee with email: " + email, e);
+            if (conn != null) {
+                try {
+                    conn.rollback();
+                } catch (SQLException ex) {
+                    LOGGER.log(Level.SEVERE, "Rollback failed for email: " + email, ex);
+                }
+            }
+        } finally {
+            if (conn != null) {
+                try {
+                    conn.setAutoCommit(true);
+                    conn.close();
+                } catch (SQLException ex) {
+                    LOGGER.log(Level.SEVERE, "Closing connection failed for email: " + email, ex);
+                }
+            }
         }
         return false;
     }
@@ -396,6 +462,50 @@ public class UserDAO {
             LOGGER.log(Level.SEVERE, "Error getting users by roleId: " + roleId, e);
         }
         return users;
+    }
+
+    public boolean updateUserRole(int userId, int roleId) {
+        LOGGER.log(Level.INFO, "Updating roleId to {0} for userId: {1}", new Object[]{roleId, userId});
+        String SQL = "UPDATE Users SET roleId = ? WHERE userId = ?";
+        try (Connection conn = dbContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(SQL)) {
+            ps.setInt(1, roleId);
+            ps.setInt(2, userId);
+            boolean updated = ps.executeUpdate() > 0;
+            if (updated) LOGGER.log(Level.INFO, "Role updated successfully for userId: {0}", userId);
+            return updated;
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Error updating role for userId: " + userId, e);
+        }
+        return false;
+    }
+
+    public int getRoleIdByUserId(int userId) {
+        String SQL = "SELECT roleId FROM Users WHERE userId = ?";
+        try (Connection conn = dbContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(SQL)) {
+            ps.setInt(1, userId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) return rs.getInt("roleId");
+            }
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Cannot get roleId for userId: " + userId, e);
+        }
+        return -1;
+    }
+
+    public int getRoleIdByCode(String roleCode) {
+        String SQL = "SELECT roleId FROM Roles WHERE roleCode = ? AND isActive = 1 AND isDeleted = 0";
+        try (Connection conn = dbContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(SQL)) {
+            ps.setString(1, roleCode);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) return rs.getInt("roleId");
+            }
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Error getting roleId by code: " + roleCode, e);
+        }
+        return -1;
     }
 
     private User mapUser(ResultSet rs) throws SQLException {
