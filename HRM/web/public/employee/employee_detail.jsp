@@ -101,6 +101,20 @@
                         </div>
                         <h4 class="fw-bold">${employeeDetail.fullName}</h4>
                         <p class="text-muted">${employeeDetail.email}</p>
+                        <c:if test="${canReassignDept and employeeDetail.departmentId > 0}">
+                            <a href="${pageContext.request.contextPath}/v1/employee/reassign-department?id=${employeeDetail.employeeId}"
+                               class="btn btn-warning btn-sm">
+                                <i class="fa-solid fa-right-left me-1"></i> Chuyển phòng ban
+                            </a>
+                            <form action="${pageContext.request.contextPath}/v1/employee/unassign-department"
+                                  method="post" class="d-inline"
+                                  onsubmit="return confirm('Gỡ phân công sẽ đưa nhân viên về trạng thái chưa có phòng ban. Dùng khi cần đổi vai trò sang loại khác (vd: HR sang IT) rồi phân công lại. Tiếp tục?');">
+                                <input type="hidden" name="employeeId" value="${employeeDetail.employeeId}">
+                                <button type="submit" class="btn btn-outline-danger btn-sm">
+                                    <i class="fa-solid fa-link-slash me-1"></i> Gỡ phân công
+                                </button>
+                            </form>
+                        </c:if>
                     </div>
 
                     <div class="section-title">Thông tin công việc</div>
