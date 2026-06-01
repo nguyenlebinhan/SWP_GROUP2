@@ -150,6 +150,9 @@
             <h5 class="mb-0 fw-bold" style="color:#0B0E2A;">
                 <i class="fa fa-building me-2" style="color:#1565C0;"></i>Danh sách Phòng ban
             </h5>
+            <a href="${pageContext.request.contextPath}/v1/businessadmin/add-department" class="btn btn-assign">
+                <i class="fa fa-plus me-1"></i>Thêm phòng ban
+            </a>
         </div>
         <div class="p-0">
             <table class="table dept-table mb-0">
@@ -213,6 +216,14 @@
                                         </c:choose>
                                     </td>
                                     <td class="text-center">
+                                        <a href="${pageContext.request.contextPath}/v1/businessadmin/department/employees?id=${dept.departmentId}"
+                                           class="btn btn-unassign me-1" style="color:#1565C0;border-color:#1565C0;">
+                                            <i class="fa fa-users me-1"></i>Nhân viên
+                                        </a>
+                                        <a href="${pageContext.request.contextPath}/v1/businessadmin/update-department?id=${dept.departmentId}"
+                                           class="btn btn-unassign me-1" style="color:#475569;border-color:#cbd5e1;">
+                                            <i class="fa fa-pen me-1"></i>Sửa
+                                        </a>
                                         <c:if test="${dept.status == 1}">
                                             <a href="${pageContext.request.contextPath}/v1/businessadmin/department/assign?id=${dept.departmentId}"
                                                class="btn btn-assign me-1">
