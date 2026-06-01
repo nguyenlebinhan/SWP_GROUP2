@@ -76,11 +76,7 @@
         </a>
     </c:if>
 
-    <c:if test="${sessionScope.userPermissions.contains('ASSIGN_DEPARTMENT')}">
-        <a href="${pageContext.request.contextPath}/v1/employee/assign-department">
-             Phân công phòng ban
-        </a>
-    </c:if>
+
 
     <c:if test="${sessionScope.userPermissions.contains('ADD_EMPLOYMENT_CONTRACT')}">
         <a href="${pageContext.request.contextPath}/v1/employee/add-contract">
