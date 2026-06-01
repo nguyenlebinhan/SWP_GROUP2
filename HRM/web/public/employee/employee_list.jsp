@@ -95,6 +95,7 @@
                                 <th>Vị trí</th>
                                 <th>Số điện thoại</th>
                                 <th>Trạng thái</th>
+                                <th>Thao tác</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -132,6 +133,26 @@
                                                 <span class="badge-inactive">Không hoạt động</span>
                                             </c:otherwise>
                                         </c:choose>
+                                    </td>
+                                    <td>
+                                        <div class="d-flex gap-2">
+                                            <a class="btn btn-sm btn-outline-primary"
+                                               href="${pageContext.request.contextPath}/v1/employee/employee-detail?id=${emp.employeeId}">
+                                                <i class="fa-solid fa-eye"></i>
+                                            </a>
+                                            <c:if test="${canEditEmployee}">
+                                                <a class="btn btn-sm btn-outline-secondary"
+                                                   href="${pageContext.request.contextPath}/v1/employee/update-employee?id=${emp.employeeId}">
+                                                    <i class="fa-solid fa-pen"></i>
+                                                </a>
+                                            </c:if>
+                                            <c:if test="${canAddEmploymentContract}">
+                                                <a class="btn btn-sm btn-outline-success"
+                                                   href="${pageContext.request.contextPath}/v1/employee/add-contract?employeeId=${emp.employeeId}">
+                                                    <i class="fa-solid fa-file-contract"></i>
+                                                </a>
+                                            </c:if>
+                                        </div>
                                     </td>
                                 </tr>
                             </c:forEach>
