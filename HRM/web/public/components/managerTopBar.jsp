@@ -154,7 +154,7 @@
                     <span class="manager-user-name">
                         <c:out value="${empty topbarDisplayName ? 'Manager' : topbarDisplayName}" />
                     </span>
-                    <span class="manager-user-role d-block">HR Manager</span>
+                    <span class="manager-user-role d-block">Manager</span>
                 </span>
                 <i class="fa-solid fa-chevron-down" style="font-size:11px;color:#6b7280;margin-left:4px"></i>
             </button>

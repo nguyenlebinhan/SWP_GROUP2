@@ -518,7 +518,9 @@ public class DBInitializer {
             ensurePermission(conn, "VIEW_EMPLOYEES", "Xem nhân viên", "Quyền xem danh sách nhân viên");
             ensurePermission(conn, "EDIT_EMPLOYEE", "Chỉnh sửa nhân viên", "Quyền chỉnh sửa nhân viên");
             ensurePermission(conn, "ADD_EMPLOYMENT_CONTRACT", "Thêm hợp đồng lao động", "Quyền thêm hợp đồng lao động cho nhân viên");
+            ensurePermission(conn, "VIEW_DEPARTMENTS", "Xem phòng ban", "Quyền xem danh sách phòng ban");
             ensurePermission(conn, "REASSIGN_DEPARTMENT", "Chuyển phòng ban nhân viên", "Quyền chuyển nhân viên sang phòng ban khác");
+            ensureRolePermission(conn, "HRManager", "VIEW_DEPARTMENTS");
             ensureRolePermission(conn, "HREmployee", "VIEW_EMPLOYEES");
             ensureRolePermission(conn, "HREmployee", "EDIT_EMPLOYEE");
             ensureRolePermission(conn, "HREmployee", "ADD_EMPLOYMENT_CONTRACT");
