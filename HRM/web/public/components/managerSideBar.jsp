@@ -76,15 +76,15 @@
 
     <c:if test="${sessionScope.userPermissions.contains('VIEW_EMPLOYEES')}">
         <a href="${pageContext.request.contextPath}/v1/manager/employee-list"
-           class="${pageContext.request.servletPath == '/public/manager/employee_all_list.jsp' ? 'active' : ''}">
+           class="${pageContext.request.servletPath == '/public/manager/employee_list.jsp' ? 'active' : ''}">
             Danh sách nhân viên
         </a>
     </c:if>
 
     <c:if test="${sessionScope.userPermissions.contains('VIEW_DEPARTMENTS')}">
         <div class="nav-section">Phòng ban</div>
-        <a href="${pageContext.request.contextPath}/v1/manager/department"
-           class="${pageContext.request.servletPath == '/public/manager/department_list.jsp' || pageContext.request.servletPath == '/public/manager/department_assign.jsp' ? 'active' : ''}">
+        <a href="${pageContext.request.contextPath}/v1/manager/department-list"
+           class="${pageContext.request.servletPath == '/public/manager/department_list.jsp' ? 'active' : ''}">
             Danh sách phòng ban
         </a>
     </c:if>

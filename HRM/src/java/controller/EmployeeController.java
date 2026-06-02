@@ -223,8 +223,6 @@ public class EmployeeController extends HttpServlet {
         Set<String> perms = getPermissions(user);
         request.getSession().setAttribute("userPermissions", perms);
         request.setAttribute("employee", employee);
-        request.setAttribute("departments", departmentDAO.getAllActiveDepartments());
-        request.setAttribute("positions", departmentDAO.getAllPositions());
         setPermissionFlags(request, perms);
         request.getRequestDispatcher("/public/employee/update_employee.jsp").forward(request, response);
     }
@@ -871,15 +869,11 @@ public class EmployeeController extends HttpServlet {
         }
 
         String idParam = request.getParameter("employeeId");
-        String departmentParam = request.getParameter("departmentId");
-        String positionParam = request.getParameter("positionId");
         String statusParam = request.getParameter("status");
 
-        int employeeId, departmentId, positionId, status;
+        int employeeId, status;
         try {
             employeeId = Integer.parseInt(idParam);
-            departmentId = Integer.parseInt(departmentParam);
-            positionId = Integer.parseInt(positionParam);
             status = Integer.parseInt(statusParam);
         } catch (NumberFormatException e) {
             request.getSession().setAttribute("error", "Dữ liệu nhân viên không hợp lệ.");
@@ -900,6 +894,8 @@ public class EmployeeController extends HttpServlet {
             return;
         }
 
+        int departmentId = current.getDepartmentId();
+        int positionId = current.getPositionId();
         int userRoleId = userDAO.getRoleIdByUserId(current.getUserId());
         if (!departmentDAO.isRoleAllowedForDepartment(departmentId, userRoleId)) {
             request.getSession().setAttribute("error", "Vai trò hiện tại của nhân viên không phù hợp với phòng ban đã chọn.");
@@ -1240,8 +1236,4 @@ public class EmployeeController extends HttpServlet {
         setPermissionFlags(request, getPermissions(user));
         request.getRequestDispatcher("/public/employee/reassign_department.jsp").forward(request, response);
     }
-
-
-
-
 }
