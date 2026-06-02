@@ -1,12 +1,11 @@
 <%@ page contentType="text/html;charset=UTF-8" %>
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
 <!DOCTYPE html>
-<html lang="vi">
+<html>
 <head>
-    <meta charset="UTF-8"/>
-    <title>Hồ sơ của tôi - HRM Manager</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet"/>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet"/>
+    <title>My Profile - HRM</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
     <style>
         body { background: #f5f6fa; font-family: 'Segoe UI', sans-serif; }
         .main { margin-left: 250px; padding: 25px; }
@@ -26,7 +25,6 @@
 <div class="main">
     <jsp:include page="/public/components/managerTopBar.jsp">
         <jsp:param name="title" value="Hồ sơ của tôi" />
-        <jsp:param name="backUrl" value="/v1/manager/dashboard" />
     </jsp:include>
 
     <c:if test="${not empty sessionScope.success}">
@@ -72,9 +70,8 @@
                 <input type="text" class="form-control bg-light" value="${myEmployee != null ? myEmployee.positionName : 'N/A'}" readonly>
             </div>
         </div>
-
         <hr>
-        <h5 class="mb-4 mt-4">Cập nhật hồ sơ</h5>
+        <h5 class="mb-4 mt-4">Cập nhật hồ sơ (Chỉ nhân viên)</h5>
         <c:choose>
             <c:when test="${not empty myEmployee}">
                 <form action="${pageContext.request.contextPath}/v1/manager/update-my-profile" method="post">
@@ -96,9 +93,7 @@
                             <textarea name="experience" class="form-control" rows="3">${myEmployee.experience}</textarea>
                         </div>
                     </div>
-                    <button type="submit" class="btn btn-primary mt-2">
-                        <i class="fa-solid fa-save me-2"></i>Lưu thay đổi
-                    </button>
+                    <button type="submit" class="btn btn-primary mt-2"><i class="fa-solid fa-save me-2"></i>Lưu thay đổi</button>
                 </form>
             </c:when>
             <c:otherwise>

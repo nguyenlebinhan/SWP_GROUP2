@@ -479,7 +479,7 @@ public class EmployeeDAO {
         LOGGER.log(Level.INFO, "Setting employeeId={0} as manager of departmentId={1}",
                 new Object[] { managerEmployeeId, departmentId });
         String sqlDept = "UPDATE Departments SET managerId = ? WHERE departmentId = ?";
-        String sqlEmp = "UPDATE Employees SET managerId = ? WHERE departmentId = ? AND employeeId != ?";
+        String sqlEmp = "UPDATE Employees SET managerId = ? WHERE departmentId = ? ";
         Connection conn = null;
         try {
             conn = dbContext.getConnection();
@@ -494,7 +494,6 @@ public class EmployeeDAO {
             try (PreparedStatement ps = conn.prepareStatement(sqlEmp)) {
                 ps.setInt(1, managerEmployeeId);
                 ps.setInt(2, departmentId);
-                ps.setInt(3, managerEmployeeId);
                 ps.executeUpdate();
             }
 

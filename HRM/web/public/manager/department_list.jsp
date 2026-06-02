@@ -1,299 +1,139 @@
 <%@ page contentType="text/html;charset=UTF-8" %>
-    <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
-        <!DOCTYPE html>
-        <html lang="vi">
+<%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Danh sách phòng ban - HRM</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body { background: #f5f6fa; font-family: 'Segoe UI', sans-serif; }
+        .main { margin-left: 250px; padding: 25px; }
 
-        <head>
-            <meta charset="UTF-8">
-            <title>Quản lý Phòng ban - HRM Manager</title>
-            <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-            <style>
-                body {
-                    background: #f5f6fa;
-                    font-family: 'Segoe UI', sans-serif;
-                }
+        .page-card {
+            background: white;
+            border-radius: 14px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.07);
+            padding: 24px;
+        }
 
-                .main {
-                    margin-left: 250px;
-                    padding: 25px;
-                }
+        .dept-card {
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            padding: 20px;
+            transition: box-shadow 0.15s;
+        }
+        .dept-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.10); }
 
-                .dept-card {
-                    background: #fff;
-                    border-radius: 14px;
-                    box-shadow: 0 2px 12px rgba(11, 14, 42, 0.07);
-                    border: none;
-                }
+        .dept-icon {
+            width: 46px; height: 46px;
+            border-radius: 10px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 20px;
+            margin-bottom: 14px;
+        }
 
-                .dept-card:hover {
-                    box-shadow: 0 6px 24px rgba(11, 14, 42, 0.13);
-                }
+        .dept-name { font-size: 15px; font-weight: 700; color: #0f172a; margin-bottom: 4px; }
+        .dept-code { font-size: 12px; color: #94a3b8; margin-bottom: 8px; }
+        .dept-desc { font-size: 13px; color: #64748b; margin-bottom: 12px; min-height: 38px; }
 
-                .badge-active {
-                    background: #d1fae5;
-                    color: #065f46;
-                    font-weight: 600;
-                    border-radius: 20px;
-                    padding: 4px 12px;
-                    font-size: 12px;
-                }
+        .dept-stat {
+            display: flex; align-items: center; gap: 6px;
+            font-size: 13px; color: #374151; font-weight: 600;
+        }
+        .dept-stat .count { font-size: 22px; font-weight: 700; color: #2563eb; }
 
-                .badge-inactive {
-                    background: #fee2e2;
-                    color: #991b1b;
-                    font-weight: 600;
-                    border-radius: 20px;
-                    padding: 4px 12px;
-                    font-size: 12px;
-                }
+        .badge-active   { background: #d1fae5; color: #065f46; padding: 3px 9px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+        .badge-inactive { background: #fee2e2; color: #991b1b; padding: 3px 9px; border-radius: 20px; font-size: 11px; font-weight: 600; }
 
-                .badge-manager {
-                    background: #ede9fe;
-                    color: #5b21b6;
-                    font-weight: 600;
-                    border-radius: 20px;
-                    padding: 4px 12px;
-                    font-size: 12px;
-                }
+        .dept-colors { background: #dbeafe; color: #2563eb; }
+        .dept-colors:nth-child(2n)  > .dept-card .dept-icon { background: #d1fae5; color: #059669; }
+        .dept-colors:nth-child(3n)  > .dept-card .dept-icon { background: #ede9fe; color: #7c3aed; }
+        .dept-colors:nth-child(4n)  > .dept-card .dept-icon { background: #ffedd5; color: #ea580c; }
+    </style>
+</head>
+<body>
 
-                .badge-no-mgr {
-                    background: #fef3c7;
-                    color: #92400e;
-                    font-weight: 600;
-                    border-radius: 20px;
-                    padding: 4px 12px;
-                    font-size: 12px;
-                }
+<jsp:include page="/public/components/managerSideBar.jsp" />
 
-                .dept-table th {
-                    background: #0B0E2A;
-                    color: #fff;
-                    font-size: 13px;
-                    font-weight: 600;
-                }
+<div class="main">
+    <jsp:include page="/public/components/managerTopBar.jsp">
+        <jsp:param name="title" value="Danh sách phòng ban" />
+        <jsp:param name="backUrl" value="/v1/manager/dashboard" />
+    </jsp:include>
 
-                .dept-table td {
-                    vertical-align: middle;
-                    font-size: 14px;
-                }
+    <c:if test="${not empty sessionScope.success}">
+        <div class="alert alert-success alert-dismissible fade show mb-4" role="alert">
+            <i class="fa-solid fa-circle-check me-2"></i>${sessionScope.success}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        <c:remove var="success" scope="session" />
+    </c:if>
 
-                .btn-assign {
-                    background: #1565C0;
-                    color: #fff;
-                    border: none;
-                    border-radius: 8px;
-                    padding: 5px 14px;
-                    font-size: 13px;
-                    font-weight: 600;
-                }
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h5 class="fw-bold mb-1">Phòng ban</h5>
+            <span class="text-muted small">${departments.size()} phòng ban</span>
+        </div>
+    </div>
 
-                .btn-assign:hover {
-                    background: #0d47a1;
-                    color: #fff;
-                }
-
-                .btn-unassign {
-                    background: #fff;
-                    color: #dc2626;
-                    border: 1.5px solid #dc2626;
-                    border-radius: 8px;
-                    padding: 5px 14px;
-                    font-size: 13px;
-                    font-weight: 600;
-                }
-
-                .btn-unassign:hover {
-                    background: #fee2e2;
-                }
-
-                .dept-code {
-                    font-family: monospace;
-                    background: #f3f4f6;
-                    padding: 2px 8px;
-                    border-radius: 6px;
-                    font-size: 13px;
-                    color: #374151;
-                }
-
-                .alert-flash {
-                    border-radius: 10px;
-                    font-weight: 500;
-                }
-            </style>
-        </head>
-
-        <body>
-            <jsp:include page="/public/components/managerSideBar.jsp" />
-
-            <div class="main">
-                <jsp:include page="/public/components/managerTopBar.jsp">
-                    <jsp:param name="title" value="Quản lý Phòng ban" />
-                </jsp:include>
-
-                <c:if test="${not empty success}">
-                    <div class="alert alert-success alert-flash alert-dismissible fade show" role="alert">
-                        ${success}
-                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                    </div>
-                </c:if>
-                <c:if test="${not empty error}">
-                    <div class="alert alert-danger alert-flash alert-dismissible fade show" role="alert">
-                        ${error}
-                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                    </div>
-                </c:if>
-
-                <div class="row g-3 mb-4">
-                    <div class="col-md-3">
-                        <div class="dept-card p-4 d-flex align-items-center gap-3">
-                            <div>
-                                <div style="font-size:22px;font-weight:700;color:#0B0E2A;">${departments.size()}</div>
-                                <div style="font-size:13px;color:#6b7280;">Tổng phòng ban</div>
+    <c:choose>
+        <c:when test="${empty departments}">
+            <div class="page-card text-center py-5">
+                <i class="fa-solid fa-sitemap" style="font-size:48px;color:#cbd5e1;margin-bottom:16px"></i>
+                <h6 class="text-muted">Chưa có phòng ban nào</h6>
+            </div>
+        </c:when>
+        <c:otherwise>
+            <div class="row g-4">
+                <c:forEach var="dept" items="${departments}" varStatus="loop">
+                    <div class="col-md-4 col-lg-3 dept-colors">
+                        <a href="${pageContext.request.contextPath}/v1/manager/department-detail?id=${dept.departmentId}"
+                           class="text-decoration-none text-reset d-block h-100">
+                        <div class="dept-card h-100">
+                            <div class="dept-icon" style="background:#dbeafe;color:#2563eb">
+                                <i class="fa-solid fa-sitemap"></i>
                             </div>
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="dept-card p-4 d-flex align-items-center gap-3">
-                            <div>
-                                <c:set var="activeCount" value="0" />
-                                <c:forEach var="d" items="${departments}">
-                                    <c:if test="${d.status == 1}">
-                                        <c:set var="activeCount" value="${activeCount + 1}" />
-                                    </c:if>
-                                </c:forEach>
-                                <div style="font-size:22px;font-weight:700;color:#0B0E2A;">${activeCount}</div>
-                                <div style="font-size:13px;color:#6b7280;">Đang hoạt động</div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="dept-card p-4 d-flex align-items-center gap-3">
-                            <div>
-                                <c:set var="hasManagerCount" value="0" />
-                                <c:forEach var="d" items="${departments}">
-                                    <c:if test="${not empty managerMap[d.departmentId]}">
-                                        <c:set var="hasManagerCount" value="${hasManagerCount + 1}" />
-                                    </c:if>
-                                </c:forEach>
-                                <div style="font-size:22px;font-weight:700;color:#0B0E2A;">${hasManagerCount}</div>
-                                <div style="font-size:13px;color:#6b7280;">Đã có Manager</div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="dept-card p-4 d-flex align-items-center gap-3">
-                            <div>
-                                <div style="font-size:22px;font-weight:700;color:#0B0E2A;">${activeCount -
-                                    hasManagerCount}</div>
-                                <div style="font-size:13px;color:#6b7280;">Chưa có Manager</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="dept-card">
-                    <div class="p-4 border-bottom d-flex justify-content-between align-items-center">
-                        <h5 class="mb-0 fw-bold" style="color:#0B0E2A;">Danh sách Phòng ban</h5>
-                    </div>
-                    <div class="p-0">
-                        <table class="table dept-table mb-0">
-                            <thead>
-                                <tr>
-                                    <th class="ps-4" style="width:50px">#</th>
-                                    <th>Mã phòng ban</th>
-                                    <th>Tên phòng ban</th>
-                                    <th>Manager hiện tại</th>
-                                    <th>Trạng thái</th>
-                                    <th class="text-center" style="width:340px">Thao tác</th>
-                                </tr>
-                            </thead>
-                            <tbody>
+                            <div class="dept-name">${dept.departmentName}</div>
+                            <div class="dept-code">${dept.departmentCode}</div>
+                            <div class="dept-desc">
                                 <c:choose>
-                                    <c:when test="${empty departments}">
-                                        <tr>
-                                            <td colspan="6" class="text-center py-5 text-muted">Chưa có phòng ban nào
-                                            </td>
-                                        </tr>
+                                    <c:when test="${not empty dept.description}">${dept.description}</c:when>
+                                    <c:otherwise><span class="text-muted">Chưa có mô tả</span></c:otherwise>
+                                </c:choose>
+                            </div>
+
+                            <div class="d-flex align-items-center justify-content-between mt-auto">
+                                <div class="dept-stat">
+                                    <span class="count">${empCounts[dept.departmentId]}</span>
+                                    <span>nhân viên</span>
+                                </div>
+                                <c:choose>
+                                    <c:when test="${dept.status == 1}">
+                                        <span class="badge-active">Hoạt động</span>
                                     </c:when>
                                     <c:otherwise>
-                                        <c:forEach var="dept" items="${departments}" varStatus="st">
-                                            <tr>
-                                                <td class="ps-4 text-muted">${st.index + 1}</td>
-                                                <td><span class="dept-code">${dept.departmentCode}</span></td>
-                                                <td>
-                                                    <span class="fw-semibold">${dept.departmentName}</span>
-                                                    <c:if test="${not empty dept.description}">
-                                                        <div style="font-size:12px;color:#9ca3af;">${dept.description}
-                                                        </div>
-                                                    </c:if>
-                                                </td>
-                                                <td>
-                                                    <c:choose>
-                                                        <c:when test="${not empty managerMap[dept.departmentId]}">
-                                                            <c:set var="mgr" value="${managerMap[dept.departmentId]}" />
-                                                            <div class="d-flex align-items-center gap-2">
-                                                                <div>
-                                                                    <div class="fw-semibold" style="font-size:13px;">
-                                                                        ${mgr.fullName}</div>
-                                                                    <span class="badge-manager">${mgr.roleName}</span>
-                                                                </div>
-                                                            </div>
-                                                        </c:when>
-                                                        <c:otherwise><span class="badge-no-mgr">Chưa có manager</span>
-                                                        </c:otherwise>
-                                                    </c:choose>
-                                                </td>
-                                                <td>
-                                                    <c:choose>
-                                                        <c:when test="${dept.status == 1}"><span
-                                                                class="badge-active">Hoạt động</span></c:when>
-                                                        <c:otherwise><span class="badge-inactive">Tạm dừng</span>
-                                                        </c:otherwise>
-                                                    </c:choose>
-                                                </td>
-                                                <td class="text-center">
-                                                    <c:if test="${dept.status == 1}">
-                                                        <a href="${pageContext.request.contextPath}/v1/manager/department/assign?id=${dept.departmentId}"
-                                                            class="btn btn-assign me-1">
-                                                            <c:choose>
-                                                                <c:when
-                                                                    test="${not empty managerMap[dept.departmentId]}">
-                                                                    Đổi MGR</c:when>
-                                                                <c:otherwise>Assign MGR</c:otherwise>
-                                                            </c:choose>
-                                                        </a>
-                                                        <a href="${pageContext.request.contextPath}/v1/manager/assign-department"
-                                                            class="btn btn-assign me-1">Assign NV</a>
-                                                        <a href="${pageContext.request.contextPath}/v1/manager/department/employees?id=${dept.departmentId}"
-                                                            class="btn btn-assign me-1"
-                                                            style="background:#e0f2fe;color:#0369a1;border-color:#bae6fd;">Xem
-                                                            NV</a>
-                                                        <c:if test="${not empty managerMap[dept.departmentId]}">
-                                                            <form method="post"
-                                                                action="${pageContext.request.contextPath}/v1/manager/department/unassign"
-                                                                style="display:inline">
-                                                                <input type="hidden" name="departmentId"
-                                                                    value="${dept.departmentId}" />
-                                                                <button type="submit" class="btn btn-unassign"
-                                                                    onclick="return confirm('Bạn có chắc muốn gỡ manager khỏi phòng ban &quot;${dept.departmentName}&quot;?')">Gỡ
-                                                                    MGR</button>
-                                                            </form>
-                                                        </c:if>
-                                                    </c:if>
-                                                    <c:if test="${dept.status != 1}"><span class="text-muted"
-                                                            style="font-size:12px;">—</span></c:if>
-                                                </td>
-                                            </tr>
-                                        </c:forEach>
+                                        <span class="badge-inactive">Tạm dừng</span>
                                     </c:otherwise>
                                 </c:choose>
-                            </tbody>
-                        </table>
+                            </div>
+
+                            <c:if test="${not empty dept.region}">
+                                <div class="mt-2 small text-muted">
+                                    <i class="fa-solid fa-location-dot me-1"></i>${dept.region}
+                                </div>
+                            </c:if>
+                        </div>
+                        </a>
                     </div>
-                </div>
+                </c:forEach>
             </div>
+        </c:otherwise>
+    </c:choose>
 
-            <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-        </body>
+</div>
 
-        </html>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
