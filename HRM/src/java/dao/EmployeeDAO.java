@@ -362,7 +362,7 @@ public class EmployeeDAO {
 
     public boolean updateEmployee(Employee emp) {
         LOGGER.log(Level.INFO, "Updating employee with employeeId: {0}", emp.getEmployeeId());
-        String SQL = "UPDATE employees SET departmentId = ?, positionId = ?, phoneNumber = ?, skills = ?, experience = ?, degree = ?, managerId = ? WHERE employeeId = ?";
+        String SQL = "UPDATE employees SET departmentId = ?, positionId = ?, phoneNumber = ?, skills = ?, experience = ?, degree = ?, status = ?, managerId = ? WHERE employeeId = ?";
         try (Connection conn = dbContext.getConnection(); PreparedStatement ps = conn.prepareStatement(SQL)) {
             ps.setInt(1, emp.getDepartmentId());
             ps.setInt(2, emp.getPositionId());
@@ -370,14 +370,15 @@ public class EmployeeDAO {
             ps.setString(4, emp.getSkills());
             ps.setString(5, emp.getExperience());
             ps.setString(6, emp.getDegree());
-
+            ps.setInt(7, emp.getStatus());
+            
             if (emp.getManagerId() != null && emp.getManagerId() > 0) {
-                ps.setInt(7, emp.getManagerId());
+                ps.setInt(8, emp.getManagerId());
             } else {
-                ps.setNull(7, java.sql.Types.INTEGER);
+                ps.setNull(8, java.sql.Types.INTEGER);
             }
 
-            ps.setInt(8, emp.getEmployeeId());
+            ps.setInt(9, emp.getEmployeeId());
 
             int rowsAffected = ps.executeUpdate();
             if (rowsAffected > 0) {
@@ -478,7 +479,7 @@ public class EmployeeDAO {
         LOGGER.log(Level.INFO, "Setting employeeId={0} as manager of departmentId={1}",
                 new Object[] { managerEmployeeId, departmentId });
         String sqlDept = "UPDATE Departments SET managerId = ? WHERE departmentId = ?";
-        String sqlEmp = "UPDATE Employees SET managerId = ? WHERE departmentId = ? AND employeeId != ?";
+        String sqlEmp = "UPDATE Employees SET managerId = ? WHERE departmentId = ? ";
         Connection conn = null;
         try {
             conn = dbContext.getConnection();
@@ -493,7 +494,6 @@ public class EmployeeDAO {
             try (PreparedStatement ps = conn.prepareStatement(sqlEmp)) {
                 ps.setInt(1, managerEmployeeId);
                 ps.setInt(2, departmentId);
-                ps.setInt(3, managerEmployeeId);
                 ps.executeUpdate();
             }
 

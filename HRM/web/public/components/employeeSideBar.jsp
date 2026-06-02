@@ -78,6 +78,12 @@
 
 
 
+    <c:if test="${sessionScope.userPermissions.contains('ADD_EMPLOYMENT_CONTRACT')}">
+        <a href="${pageContext.request.contextPath}/v1/employee/add-contract">
+             Thêm hợp đồng lao động
+        </a>
+    </c:if>
+
     <c:if test="${sessionScope.userPermissions.contains('VIEW_DEPARTMENTS') || sessionScope.userPermissions.contains('MANAGE_DEPARTMENTS')}">
         <div class="nav-section">Phòng ban</div>
     </c:if>
