@@ -143,6 +143,10 @@ public class BusinessAdminController extends HttpServlet {
             throws ServletException, IOException {
         int userSize = userDAO.countUsers("", "");
         request.setAttribute("userSize", userSize);
+        
+        int deptSize = departmentDAO.getAllActiveDepartments().size();
+        request.setAttribute("deptSize", deptSize);
+        
         request.getRequestDispatcher("/public/businessadmin/dashboard.jsp")
                 .forward(request, response);
     }
