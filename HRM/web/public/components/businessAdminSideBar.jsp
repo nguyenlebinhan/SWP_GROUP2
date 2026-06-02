@@ -34,12 +34,12 @@
 <div class="sidebar">
 
             <h4>HRM System</h4>
-          <a href="${pageContext.request.contextPath}/v1/businessadmin/dashboard"><i class="fa fa-chart-pie"></i> Tổng quan</a>
-            <a href="${pageContext.request.contextPath}/v1/businessadmin/employee-list"><i class="fa fa-users"></i> Nhân viên</a>
-            <a href="${pageContext.request.contextPath}/v1/businessadmin/assign-department"><i class="fa fa-arrow-right-to-bracket"></i> Phân công nhân viên</a>
-            <a href="${pageContext.request.contextPath}/v1/businessadmin/department"><i class="fa fa-building"></i> Phòng ban</a>
-            <a href="${pageContext.request.contextPath}/v1/businessadmin/add-department"><i class="fa fa-plus"></i> Thêm phòng ban</a>
-            <a href="${pageContext.request.contextPath}/v1/businessadmin/my-profile"><i class="fa fa-user-gear"></i> Hồ sơ của tôi</a>
-            <a href="${pageContext.request.contextPath}/v1/auth/logout"><i class="fa fa-right-from-bracket"></i> Đăng xuất</a>
+          <a href="${pageContext.request.contextPath}/v1/businessadmin/dashboard"> Tổng quan</a>
+            <a href="${pageContext.request.contextPath}/v1/businessadmin/employee-list"> Nhân viên</a>
+            <a href="${pageContext.request.contextPath}/v1/businessadmin/assign-department"> Phân công nhân viên</a>
+            <a href="${pageContext.request.contextPath}/v1/businessadmin/department"> Phòng ban</a>
+            <a href="${pageContext.request.contextPath}/v1/businessadmin/add-department"> Thêm phòng ban</a>
+            <a href="${pageContext.request.contextPath}/v1/businessadmin/my-profile"> Hồ sơ của tôi</a>
+            <a href="${pageContext.request.contextPath}/v1/auth/logout"> Đăng xuất</a>
 
 </div>
