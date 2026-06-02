@@ -1,0 +1,17 @@
+warning: in the working copy of 'HRM/src/java/controller/EmployeeController.java', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'HRM/src/java/dal/DBInitializer.java', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'HRM/web/public/components/managerSideBar.jsp', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'HRM/web/public/employee/update_employee.jsp', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'HRM/web/public/manager/add_contract.jsp', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'HRM/web/public/manager/add_department.jsp', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'HRM/web/public/manager/assign_department.jsp', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'HRM/web/public/manager/contract_preview.jsp', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'HRM/web/public/manager/dashboard.jsp', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'HRM/web/public/manager/department_employee_detail.jsp', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'HRM/web/public/manager/department_list.jsp', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'HRM/web/public/manager/employee_detail.jsp', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'HRM/web/public/manager/employee_list.jsp', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'HRM/web/public/manager/my_profile.jsp', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'HRM/web/public/manager/reassign_department.jsp', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'HRM/web/public/manager/update_department.jsp', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'HRM/web/public/manager/update_employee.jsp', LF will be replaced by CRLF the next time Git touches it
