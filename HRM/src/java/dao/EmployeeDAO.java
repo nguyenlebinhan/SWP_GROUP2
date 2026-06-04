@@ -453,9 +453,6 @@ public class EmployeeDAO {
             String phoneNumber, String skills,
             String experience, String degree) {
         LOGGER.log(Level.INFO, "Assigning userId={0} to departmentId={1}", new Object[] { userId, departmentId });
-        // Hồ sơ nhân viên đã được tạo sẵn (dept = NULL) khi tạo user → assign là
-        // UPDATE.
-        // Điều kiện departmentId IS NULL đảm bảo không ghi đè người đã được phân công.
         String SQL = "UPDATE Employees SET departmentId = ?, positionId = ?, phoneNumber = ?, "
                 + "skills = ?, experience = ?, degree = ?, status = 1 "
                 + "WHERE userId = ? AND departmentId IS NULL";
@@ -627,11 +624,7 @@ public class EmployeeDAO {
         return false;
     }
 
-    /**
-     * Gỡ phân công nhân viên khỏi phòng ban: đưa hồ sơ về trạng thái chưa phân
-     * công (departmentId/positionId/managerId = NULL). Khi đó system admin có thể
-     * đổi vai trò mà không vướng ràng buộc role↔phòng ban, rồi HR assign lại.
-     */
+
     public boolean unassignEmployee(int employeeId) {
         LOGGER.log(Level.INFO, "Unassigning employeeId={0} from department", employeeId);
         // Nếu nhân viên này đang là quản lý của 1 phòng → gỡ luôn khỏi phòng đó.
