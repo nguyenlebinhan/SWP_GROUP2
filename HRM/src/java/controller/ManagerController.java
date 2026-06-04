@@ -4,6 +4,7 @@ import dao.*;
 import dto.EmployeeDTO;
 import dto.EmployeeDetailDTO;
 import jakarta.servlet.ServletException;
+import jakarta.servlet.annotation.MultipartConfig;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -22,8 +23,13 @@ import model.EmploymentContract;
 import model.Position;
 import model.Role;
 import model.User;
-import static org.apache.tomcat.jakartaee.commons.lang3.StringUtils.isBlank;
 
+
+@MultipartConfig(
+        fileSizeThreshold = 1024 * 1024,        // 1MB ghi ra đĩa
+        maxFileSize = 10L * 1024 * 1024,        // 10MB / file
+        maxRequestSize = 11L * 1024 * 1024      // 11MB / request
+)
 public class ManagerController extends HttpServlet {
 
     private static final Logger LOGGER = Logger.getLogger(ManagerController.class.getName());
@@ -56,7 +62,6 @@ public class ManagerController extends HttpServlet {
                 displayDashboard(request, response, user);
                 break;
             case "/my-department-list":
-            case "/my-department-employees":
                 displayMyDepartmentEmployees(request, response, user);
                 break;
             case "/employee-list":
@@ -534,7 +539,6 @@ public class ManagerController extends HttpServlet {
             return;
         }
 
-        // Thiết lập quan hệ quản lý sau khi phân công:
         String roleName = roleDAO.getRoleByUserId(userId);
         EmployeeDetailDTO assigned = employeeDAO.getEmployeeByUserId(userId);
         if (assigned != null) {

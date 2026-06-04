@@ -101,4 +101,18 @@
         </a>
     </c:if>
 
+    <c:if test="${sessionScope.userPermissions.contains('IMPORT_ATTENDANCE') || sessionScope.userPermissions.contains('VIEW_ATTENDANCE')}">
+        <div class="nav-section">Chấm công</div>
+        <c:if test="${sessionScope.userPermissions.contains('IMPORT_ATTENDANCE')}">
+            <a href="${pageContext.request.contextPath}/v1/employee/attendance-import">
+                Import chấm công
+            </a>
+        </c:if>
+        <c:if test="${sessionScope.userPermissions.contains('VIEW_ATTENDANCE')}">
+            <a href="${pageContext.request.contextPath}/v1/employee/attendance-list">
+                Xem chấm công
+            </a>
+        </c:if>
+    </c:if>
+
 </div>
