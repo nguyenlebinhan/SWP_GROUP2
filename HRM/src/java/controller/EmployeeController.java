@@ -1,34 +1,56 @@
 package controller;
 
+import dao.AttendanceDAO;
 import dao.DepartmentDAO;
 import dao.EmployeeDAO;
 import dao.EmploymentContractDAO;
 import dao.PermissionDAO;
 import dao.RoleDAO;
+import dao.UploadedFileDAO;
 import dao.UserDAO;
+import dto.AttendanceImportResultDTO;
 import dto.EmployeeDetailDTO;
 import jakarta.servlet.ServletException;
+import jakarta.servlet.annotation.MultipartConfig;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
+import jakarta.servlet.http.Part;
 import java.math.BigDecimal;
 import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import model.*;
+import service.AttendanceImportService;
+import utils.ConfigManager;
+
+@MultipartConfig(
+        fileSizeThreshold = 1024 * 1024,        // 1MB ghi ra đĩa
+        maxFileSize = 10L * 1024 * 1024,        // 10MB / file
+        maxRequestSize = 11L * 1024 * 1024      // 11MB / request
+)
 
 public class EmployeeController extends HttpServlet {
 
-    private static final Logger LOGGER = Logger.getLogger(EmployeeController.class.getName());
-    private static final EmployeeDAO employeeDAO = new EmployeeDAO();
-    private static final DepartmentDAO departmentDAO = new DepartmentDAO();
-    private static final EmploymentContractDAO contractDAO = new EmploymentContractDAO();
-    private static final UserDAO userDAO = new UserDAO();
-    private static final PermissionDAO permissionDAO = new PermissionDAO();
-    private static final RoleDAO roleDAO = new RoleDAO();
-
+    private final ConfigManager config = ConfigManager.getInstance();
+    private final Logger LOGGER = Logger.getLogger(EmployeeController.class.getName());
+    private final EmployeeDAO employeeDAO = new EmployeeDAO();
+    private final DepartmentDAO departmentDAO = new DepartmentDAO();
+    private final EmploymentContractDAO contractDAO = new EmploymentContractDAO();
+    private final UserDAO userDAO = new UserDAO();
+    private final PermissionDAO permissionDAO = new PermissionDAO();
+    private final RoleDAO roleDAO = new RoleDAO();
+    private final AttendanceDAO attendanceDAO = new AttendanceDAO();
+    private final UploadedFileDAO uploadedFileDAO = new UploadedFileDAO();
+    private final AttendanceImportService importService = new AttendanceImportService();
+    private final String UPLOAD_DIR = config.getProperty("UPLOAD_DIR");
+    private final String FILE_PART = config.getProperty("FILE_PART");
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
@@ -86,6 +108,15 @@ public class EmployeeController extends HttpServlet {
             case "/my-profile":
                 displayMyProfile(request, response, user);
                 break;
+            case "/attendance-import":
+                displayImportForm(request, response, user);
+                break;
+            case "/attendance-list":
+                displayAttendanceList(request, response, user);
+                break; 
+            case "/own-attendance":
+                displayOwnAttendanceList(request,response,user);
+                break;
             default:
                 response.sendRedirect(request.getContextPath() + "/v1/employee/dashboard");
                 break;
@@ -133,6 +164,9 @@ public class EmployeeController extends HttpServlet {
                 break;
             case "/update-my-profile":
                 handleUpdateMyProfile(request, response, user);
+                break;
+            case "/attendance-import":
+                handleImportAttendance(request,response,user);
                 break;
             case "/update-employee-detail":
                 handleUpdateEmployeeDetail(request, response, user);
@@ -281,15 +315,20 @@ public class EmployeeController extends HttpServlet {
         request.getRequestDispatcher("/public/employee/contract_preview.jsp").forward(request, response);
     }
 
+    private void displayOwnAttendanceList(HttpServletRequest request, HttpServletResponse response,
+                                                  User user) throws ServletException, IOException{
+        Set<String> perms = getPermissions(user);
+        request.getSession().setAttribute("userPermissions", perms);
+        List<Attendance> attendances = attendanceDAO.getAttendanceListByUserId(user.getUserId());
+
+        request.setAttribute("attendances", attendances);
+        request.getRequestDispatcher("/public/employee/own_attendance_list.jsp").forward(request, response);
+    }
+    
     private void displayEmployeeDepartmentDetail(HttpServletRequest request, HttpServletResponse response,
                                                   User user) throws ServletException, IOException {
 
-        if (!isHrStaff(user)) {
-            request.getSession().setAttribute("error", "Bạn không có quyền xem danh sách nhân viên bởi bạn không phải HR");
-            response.sendRedirect(request.getContextPath() + "/v1/employee/dashboard");
-            return;
-        }
-        if (!hasPermission(user, "VIEW_DEPARTMENT_EMPLOYEES_DETAIL")) {
+        if (!isHrStaff(user) ||!hasPermission(user, "VIEW_DEPARTMENT_EMPLOYEES_DETAIL")) {
             request.getSession().setAttribute("error", "Bạn không có quyền xem nhân viên của phòng ban.");
             response.sendRedirect(request.getContextPath() + "/v1/employee/dashboard");
             return;
@@ -330,13 +369,8 @@ public class EmployeeController extends HttpServlet {
     private void displayAssignDepartmentForm(HttpServletRequest request, HttpServletResponse response,
                                               User user) throws ServletException, IOException {
 
-        if (!isHrStaff(user)) {
-            request.getSession().setAttribute("error", "Bạn không có quyền phân công phòng ban bởi bạn không phải HR");
-            response.sendRedirect(request.getContextPath() + "/v1/employee/dashboard");
-            return;
-        }
 
-        if (!hasPermission(user, "ASSIGN_DEPARTMENT")) {
+        if (!isHrStaff(user)||!hasPermission(user, "ASSIGN_DEPARTMENT")) {
             request.getSession().setAttribute("error", "Bạn không có quyền phân công phòng ban.");
             response.sendRedirect(request.getContextPath() + "/v1/employee/dashboard");
             return;
@@ -380,8 +414,179 @@ public class EmployeeController extends HttpServlet {
         request.setAttribute("myEmployee", myEmployee);
         request.getRequestDispatcher("/public/employee/my_profile.jsp").forward(request, response);
     }
+    private void displayImportForm(HttpServletRequest request, HttpServletResponse response,
+            model.User user) throws ServletException, IOException {
+        if (!isHrStaff(user) || !hasPermission(user, "IMPORT_ATTENDANCE")) {
+            request.getSession().setAttribute("error",  "Bạn không có quyền import chấm công.");
+            response.sendRedirect(request.getContextPath() + "/v1/employee/dashboard");          
+            return;
+        }
+        Set<String> perms = getPermissions(user);
+        request.getSession().setAttribute("userPermissions", perms);
+        request.setAttribute("departments", departmentDAO.getAllActiveDepartments());
+        request.getRequestDispatcher("/public/employee/attendance_import.jsp").forward(request, response);
+    }
+
+    private void displayAttendanceList(HttpServletRequest request, HttpServletResponse response,User user) throws ServletException, IOException {
+        if (!isHrStaff(user) ||!hasPermission(user, "VIEW_ATTENDANCE")) {
+            request.getSession().setAttribute("error",  "Bạn không có quyền xem dữ liệu chấm công.");
+            response.sendRedirect(request.getContextPath()+ "/v1/employee/dashboard");
+            return;
+        }
+        Set<String> perms = getPermissions(user);
+        request.getSession().setAttribute("userPermissions", perms);
+        
+        Integer month = parseIntOrNull(request.getParameter("month"));
+        Integer year = parseIntOrNull(request.getParameter("year"));
+        Integer departmentId = parseIntOrNull(request.getParameter("departmentId"));
+        String employeeCode = trimToNull(request.getParameter("employeeCode"));
+        Integer restrictEmployeeId = null;
+        List<Attendance> attendances = attendanceDAO.getAttendanceList(
+                departmentId, month, year, employeeCode, restrictEmployeeId);
+
+        request.setAttribute("attendances", attendances);
+        request.setAttribute("departments", departmentDAO.getAllActiveDepartments());
+        request.setAttribute("filterMonth", month);
+        request.setAttribute("filterYear", year);
+        request.setAttribute("filterDepartmentId", departmentId);
+        request.setAttribute("filterEmployeeCode", employeeCode);
+        request.setAttribute("canFilterDepartment", isHrStaff(user));
+        request.getRequestDispatcher("/public/employee/attendance_list.jsp").forward(request, response);
+    }
+
+    private void handleImportAttendance(HttpServletRequest request, HttpServletResponse response,
+            model.User user) throws ServletException, IOException {
+        if (!isHrStaff(user) || !hasPermission(user, "IMPORT_ATTENDANCE")) {
+            request.getSession().setAttribute("error",  "Bạn không có quyền import chấm công.");
+            response.sendRedirect(request.getContextPath() + "/v1/employee/dashboard");   
+            return;
+        }
+        Set<String> perms = getPermissions(user);
+        request.getSession().setAttribute("userPermissions", perms);
+        
+        request.setAttribute("departments", departmentDAO.getAllActiveDepartments());
+
+        int month,year,departmentId;
+        try{
+            month = Integer.parseInt(request.getParameter("month").trim());
+            year = Integer.parseInt(request.getParameter("year").trim());
+            departmentId = Integer.parseInt(request.getParameter("departmentId").trim());
+        }catch(NumberFormatException e){
+            request.getSession().setAttribute("error",  "Hệ thống bị lỗi.Vui lòng nhập lại ");
+            response.sendRedirect(request.getContextPath()+ "/v1/employee/attendance-import");
+            return;
+        }
+
+        if (month < 1 || month > 12) {
+            request.setAttribute("error", "Vui lòng chọn tháng hợp lệ (1-12).");
+            request.getRequestDispatcher("/public/employee/attendance_import.jsp").forward(request, response);            
+            return;
+        }
+        if (year < 2000 || year > 2100) {
+            request.setAttribute("error", "Vui lòng chọn năm hợp lệ.");
+            request.getRequestDispatcher("/public/employee/attendance_import.jsp").forward(request, response);            
+            return;            
+        }
+
+        Part filePart = request.getPart(FILE_PART);
+        if (filePart == null || filePart.getSize() == 0) {
+            request.setAttribute("error", "Vui lòng chọn file Excel .xlsx để import.");
+            request.getRequestDispatcher("/public/employee/attendance_import.jsp").forward(request, response);                 
+            return;
+        }
+
+        String submittedName = filePart.getSubmittedFileName();
+        if (submittedName == null || !submittedName.toLowerCase().endsWith(".xlsx")) {
+            request.setAttribute("error", "File phải có định dạng .xlsx.");
+            request.getRequestDispatcher("/public/employee/attendance_import.jsp").forward(request, response);                 
+            return;
+        }
+        String contentType = filePart.getContentType();
+        if (contentType != null && !isAcceptableXlsxContentType(contentType)) {
+            request.setAttribute("error", "Loại file không hợp lệ. Yêu cầu file Excel .xlsx.");
+            request.getRequestDispatcher("/public/employee/attendance_import.jsp").forward(request, response);                 
+            return;
+        }
+
+        if (departmentId <= 0) {
+            request.setAttribute("error", "Vui lòng chọn phòng ban hợp lệ.");
+            request.getRequestDispatcher("/public/employee/attendance_import.jsp").forward(request, response);
+            return;
+        }
+
+        EmployeeDetailDTO me = employeeDAO.getEmployeeByUserId(user.getUserId());
+        int fileDepartmentId = departmentId;
+        Integer submitterEmployeeId = (me != null) ? me.getEmployeeId() : null;
+
+        String uploadPath = getServletContext().getRealPath("/" + UPLOAD_DIR);
+        Path savedPath;
+        String serverFileName = "ATT_" + departmentId
+                + "_" + month + "_" + year + "_" + System.currentTimeMillis()
+                + "_" + UUID.randomUUID().toString().substring(0, 8) + ".xlsx";
+        try {
+            Path dir = Paths.get(uploadPath);
+            Files.createDirectories(dir);
+            savedPath = dir.resolve(serverFileName);
+            try (InputStream is = filePart.getInputStream()) {
+                Files.copy(is, savedPath);
+            }
+        } catch (IOException e) {
+            LOGGER.log(Level.SEVERE, "Cannot save uploaded attendance file", e);
+            request.setAttribute("error", "Không thể lưu file lên máy chủ. Vui lòng thử lại.");
+            request.getRequestDispatcher("/public/employee/attendance_import.jsp").forward(request, response);            
+            return;
+        }
+
+        // 2. Tạo record Uploaded_Files (Pending).
+        UploadedFile uf = new UploadedFile();
+        uf.setFileCode("UPF-" + System.currentTimeMillis());
+        uf.setFileType("ATTENDANCE");
+        uf.setDepartmentId(fileDepartmentId);
+        uf.setEmployeeId(submitterEmployeeId);
+        uf.setFileUrl(UPLOAD_DIR + "/" + serverFileName);
+        uf.setFileName(sanitizeFileName(submittedName));
+        uf.setMonth(month);
+        uf.setYear(year);
+        uf.setStatus(AttendanceImportService.FILE_STATUS_PENDING);
+        int fileId = uploadedFileDAO.createUploadedFile(uf);
+        if (fileId <= 0) {
+            request.setAttribute("error", "Không thể tạo bản ghi file. Vui lòng thử lại.");
+            request.getRequestDispatcher("/public/employee/attendance_import.jsp").forward(request, response);             
+            return;
+        }
+
+        // 3. Đọc & import từng dòng.
+        AttendanceImportResultDTO result;
+        try (InputStream is = Files.newInputStream(savedPath)) {
+            result = importService.importAttendance(is, departmentId, fileId);
+        } catch (IOException e) {
+            LOGGER.log(Level.SEVERE, "Cannot read saved attendance file", e);
+            uploadedFileDAO.updateImportResult(fileId, 0, 0, 0,
+                    AttendanceImportService.FILE_STATUS_FAILED, "Không thể đọc lại file đã lưu.");
+            request.setAttribute("error", "Không thể đọc file đã lưu để import.");
+            request.getRequestDispatcher("/public/employee/attendance_import.jsp").forward(request, response);             
+            return;
+        }
+        result.setFileName(uf.getFileName());
+
+        // 4. Cập nhật kết quả import lên Uploaded_Files.
+        uploadedFileDAO.updateImportResult(fileId, result.getTotalRows(), result.getImportedRows(),
+                result.getFailedRows(), result.getStatus(), result.getNote());
+
+        LOGGER.log(Level.INFO, "Attendance import done by userId={0}: fileId={1}, total={2}, imported={3}, failed={4}",
+                new Object[]{user.getUserId(), fileId, result.getTotalRows(),
+                    result.getImportedRows(), result.getFailedRows()});
 
 
+        request.setAttribute("auditLogged", Boolean.TRUE);
+
+        request.setAttribute("importResult", result);
+        request.setAttribute("selectedMonth", month);
+        request.setAttribute("selectedYear", year);
+        request.setAttribute("selectedDepartmentId", departmentId);
+        request.getRequestDispatcher("/public/employee/attendance_import.jsp").forward(request, response);
+    }
+    
     private void handleAssignDepartment(HttpServletRequest request, HttpServletResponse response,
                                          User user) throws ServletException, IOException {
         if (!isHrStaff(user)) {
@@ -474,7 +679,6 @@ public class EmployeeController extends HttpServlet {
             return;
         }
 
-        // Thiết lập quan hệ quản lý sau khi phân công:
         String roleName = roleDAO.getRoleByUserId(userId);
         EmployeeDetailDTO assigned = employeeDAO.getEmployeeByUserId(userId);
         if (assigned != null) {
@@ -736,7 +940,6 @@ public class EmployeeController extends HttpServlet {
             return;
         }
 
-        // Gắn luật vai trò cho phòng ban. Để trống = phòng ban nhận mọi vai trò.
         if (!roleIds.isEmpty()) {
             departmentDAO.replaceDepartmentRoles(newDeptId, roleIds);
         }
@@ -1071,6 +1274,17 @@ public class EmployeeController extends HttpServlet {
         return isBlank(value) ? null : value.trim();
     }
 
+    private Integer parseIntOrNull(String v) {
+        if (isBlank(v)) {
+            return null;
+        }
+        try {
+            return Integer.parseInt(v.trim());
+        } catch (NumberFormatException e) {
+            return null;
+        }
+    }
+
 
 
     @SuppressWarnings("unchecked")
@@ -1236,4 +1450,19 @@ public class EmployeeController extends HttpServlet {
         setPermissionFlags(request, getPermissions(user));
         request.getRequestDispatcher("/public/employee/reassign_department.jsp").forward(request, response);
     }
+    private boolean isAcceptableXlsxContentType(String contentType) {
+        String ct = contentType.toLowerCase();
+        return ct.contains("openxmlformats-officedocument.spreadsheetml.sheet")
+                || ct.contains("application/octet-stream")
+                || ct.contains("application/zip");
+    }
+    private String sanitizeFileName(String name) {
+        if (name == null) {
+            return "attendance.xlsx";
+        }
+        
+        String base = Paths.get(name).getFileName().toString();
+        return base.replaceAll("[\\r\\n]", "");
+    }
+    
 }
