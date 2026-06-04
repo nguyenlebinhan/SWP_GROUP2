@@ -27,7 +27,6 @@ public class DBInitializer {
         this.dbContext = new DBContext();
     }
 
-    // ==================== BẢNG GỐC ====================
 
     public void createTableRoles(Connection conn) {
         String SQL = "CREATE TABLE Roles("
@@ -311,9 +310,12 @@ public class DBInitializer {
                 + "dayOff DATE,"
                 + "workingDay DATE,"
                 + "penalty DECIMAL(15,2) DEFAULT 0,"
+                + "fileId INT NULL,"                 // file Excel import sinh ra dòng này
                 + "createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,"
                 + "updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,"
-                + "FOREIGN KEY (employeeId) REFERENCES Employees(employeeId)"
+                + "UNIQUE KEY uq_att_emp_date (employeeId, workDate)," // chống trùng employee + ngày
+                + "FOREIGN KEY (employeeId) REFERENCES Employees(employeeId),"
+                + "FOREIGN KEY (fileId) REFERENCES Uploaded_Files(fileId)"
                 + ")";
         execute(conn, SQL, "CREATE ATTENDANCE TABLE SUCCESSFULLY");
     }
@@ -448,7 +450,7 @@ public class DBInitializer {
                         case "Departments":       createTableDepartments(conn);       break;
                         case "Department_Roles":  createTableDepartmentRoles(conn);   break;
                         case "Users":             createTableUsers(conn);             break;
-                        case "Employees":         createTableEmployees(conn);         break; // Đã thêm break bị thiếu ở đây
+                        case "Employees":         createTableEmployees(conn);         break;
                         case "Employment_Contracts": createTableEmploymentContracts(conn); break;
                         case "Candidates":        createTableCandidates(conn);        break;
                         case "Leave_Types":       createTableLeaveTypes(conn);        break;
@@ -465,12 +467,9 @@ public class DBInitializer {
                 }
             }
 
-            // Sau khi tất cả các bảng đã được tạo dựng thành công, bật lại ràng buộc để bảo vệ dữ liệu toàn vẹn
             execute(conn, "SET FOREIGN_KEY_CHECKS=1", "ENABLE FK CHECKS AFTER CREATE");
             LOGGER.log(Level.INFO, "Đã kích hoạt lại toàn bộ kiểm tra khóa ngoại hệ thống.");
-            // --- KẾT THÚC ĐOẠN SỬA ĐỔI ---
-
-            ensureUsersUsernameColumn(conn);
+            
             insertInitialData(conn);
             LOGGER.log(Level.INFO,"Database initialized successfully!");
 
@@ -480,7 +479,6 @@ public class DBInitializer {
     }
 
     private void insertInitialData(Connection conn) {
-        UserDAO userDao = new UserDAO();
         try {
             if (countRows(conn, "Roles") == 0) {
                 LOGGER.info("Starting to seed initial data...");
@@ -513,17 +511,9 @@ public class DBInitializer {
                 insertPermission(conn, "REASSIGN_DEPARTMENT","Chuyển phòng ban nhân viên",     "Quyền chuyển nhân viên sang phòng ban khác");
                 insertPermission(conn,"ADD_DEPARTMENT","Thêm phòng ban","Quyền thêm phòng ban");
                 insertPermission(conn,"VIEW_ATTENDANCE","Xem chấm công","Quyền xem dữ liệu chấm công (Manager: theo phòng mình; Employee: của bản thân)");
-                insertPermission(conn,"VIEW_DEPARTMENT_EMPLOYEES_DETAIL","Xem danh sách nhân viên của phòng ban khác","Quyền xem dữ liệu nhân viên của phòng ban khác");
+                insertPermission(conn,"IMPORT_ATTENDANCE","Import chấm công","Quyền import dữ liệu chấm công từ file Excel");
+                insertPermission(conn,"VIEW_DEPARTMENT_EMPLOYEES_DETAIL","Xem danh sách nhân viên của phòng ban khác","Quyền xem dữ liệu nhân viên của phòng ban khác");            
             }
-            ensurePermission(conn, "VIEW_EMPLOYEES", "Xem nhân viên", "Quyền xem danh sách nhân viên");
-            ensurePermission(conn, "EDIT_EMPLOYEE", "Chỉnh sửa nhân viên", "Quyền chỉnh sửa nhân viên");
-            ensurePermission(conn, "ADD_EMPLOYMENT_CONTRACT", "Thêm hợp đồng lao động", "Quyền thêm hợp đồng lao động cho nhân viên");
-            ensurePermission(conn, "VIEW_DEPARTMENTS", "Xem phòng ban", "Quyền xem danh sách phòng ban");
-            ensurePermission(conn, "REASSIGN_DEPARTMENT", "Chuyển phòng ban nhân viên", "Quyền chuyển nhân viên sang phòng ban khác");
-            ensureRolePermission(conn, "HRManager", "VIEW_DEPARTMENTS");
-            ensureRolePermission(conn, "HREmployee", "VIEW_EMPLOYEES");
-            ensureRolePermission(conn, "HREmployee", "EDIT_EMPLOYEE");
-            ensureRolePermission(conn, "HREmployee", "ADD_EMPLOYMENT_CONTRACT");
 
             if (countRows(conn, "Positions") == 0) {
                 insertPosition(conn, "Thực tập sinh",          1, "Sinh viên thực tập tại công ty");
@@ -612,43 +602,6 @@ public class DBInitializer {
         }
     }
 
-    private void ensurePermission(Connection conn, String code, String name, String description) throws SQLException {
-        String checkSql = "SELECT 1 FROM Permissions WHERE permissionCode = ?";
-        try (PreparedStatement ps = conn.prepareStatement(checkSql)) {
-            ps.setString(1, code);
-            try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) {
-                    return;
-                }
-            }
-        }
-        insertPermission(conn, code, name, description);
-    }
-
-    private void ensureRolePermission(Connection conn, String roleName, String permissionCode) throws SQLException {
-        String checkSql = "SELECT 1 FROM Role_Permissions rp "
-                + "JOIN Roles r ON r.roleId = rp.roleId "
-                + "JOIN Permissions p ON p.permissionId = rp.permissionId "
-                + "WHERE r.roleName = ? AND p.permissionCode = ?";
-        try (PreparedStatement ps = conn.prepareStatement(checkSql)) {
-            ps.setString(1, roleName);
-            ps.setString(2, permissionCode);
-            try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) {
-                    return;
-                }
-            }
-        }
-
-        String insertSql = "INSERT INTO Role_Permissions (roleId, permissionId) "
-                + "SELECT r.roleId, p.permissionId FROM Roles r, Permissions p "
-                + "WHERE r.roleName = ? AND p.permissionCode = ?";
-        try (PreparedStatement ps = conn.prepareStatement(insertSql)) {
-            ps.setString(1, roleName);
-            ps.setString(2, permissionCode);
-            ps.executeUpdate();
-        }
-    }
 
     private void insertPosition(Connection conn, String name, int level, String description) throws SQLException {
         String sql = "INSERT INTO Positions (positionName, level, description) VALUES (?, ?, ?)";
@@ -719,42 +672,7 @@ public class DBInitializer {
         }
     }
 
-    private void updateDepartmentManager(Connection conn, int departmentId, int employeeId) throws SQLException {
-        String sql = "UPDATE Departments SET managerId = ? WHERE departmentId = ?";
-        try (PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setInt(1, employeeId);
-            ps.setInt(2, departmentId);
-            ps.executeUpdate();
-        }
-    }
 
-    private void updateEmployeeManager(Connection conn, int employeeId, int managerId) throws SQLException {
-        String sql = "UPDATE Employees SET managerId = ? WHERE employeeId = ?";
-        try (PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setInt(1, managerId);
-            ps.setInt(2, employeeId);
-            ps.executeUpdate();
-        }
-    }
-
-
-    private void ensureUsersUsernameColumn(Connection conn) {
-        try {
-            if (tableExists(conn, "Users") && !columnExists(conn, "Users", "username")) {
-                execute(conn, "ALTER TABLE Users ADD COLUMN username VARCHAR(100) NULL AFTER userId", "ADD USERS.USERNAME COLUMN");
-                execute(conn, "UPDATE Users SET username = SUBSTRING_INDEX(email, '@', 1) WHERE username IS NULL OR username = ''", "BACKFILL USERS.USERNAME");
-            }
-        } catch (SQLException e) {
-            LOGGER.log(Level.SEVERE, "Could not ensure Users.username column: {0}", e.getMessage());
-        }
-    }
-
-    private boolean columnExists(Connection conn, String tableName, String columnName) throws SQLException {
-        DatabaseMetaData meta = conn.getMetaData();
-        try (ResultSet rs = meta.getColumns(null, null, tableName, columnName)) {
-            return rs.next();
-        }
-    }
 
     private void execute(Connection conn, String sql, String label) {
         try (Statement stmt = conn.createStatement()) {
