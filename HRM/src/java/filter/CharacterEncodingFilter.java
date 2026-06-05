@@ -13,8 +13,6 @@ import jakarta.servlet.http.HttpServletRequest;
 import java.io.IOException;
 
 /**
- * Filter đầu tiên trong chain: ép request/response dùng UTF-8 để dữ liệu
- * tiếng Việt không bị lỗi font. Bỏ qua nhánh /v1/auth/*.
  *
  * @author admin
  */
