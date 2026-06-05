@@ -1,0 +1,90 @@
+/*
+ * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
+ * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
+ */
+package dao;
+
+import dal.DBContext;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.sql.Types;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import model.UploadedFile;
+
+/**
+ *
+ * @author admin
+ */
+public class UploadedFileDAO {
+
+    private static final Logger LOGGER = Logger.getLogger(UploadedFileDAO.class.getName());
+    private final DBContext dbContext;
+
+    public UploadedFileDAO() {
+        this.dbContext = new DBContext();
+    }
+
+
+    public int createUploadedFile(UploadedFile file) {
+        LOGGER.log(Level.INFO, "Creating uploaded file record: {0}", file.getFileCode());
+        String SQL = "INSERT INTO Uploaded_Files "
+                + "(fileCode, fileType, departmentId, employeeId, fileUrl, fileName, month, year, "
+                + "status, totalRows, importedRows, failedRows, note) "
+                + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        try (Connection conn = dbContext.getConnection();
+                PreparedStatement ps = conn.prepareStatement(SQL, Statement.RETURN_GENERATED_KEYS)) {
+            ps.setString(1, file.getFileCode());
+            ps.setString(2, file.getFileType());
+            ps.setInt(3, file.getDepartmentId());
+            if (file.getEmployeeId() != null) {
+                ps.setInt(4, file.getEmployeeId());
+            } else {
+                ps.setNull(4, Types.INTEGER);
+            }
+            ps.setString(5, file.getFileUrl());
+            ps.setString(6, file.getFileName());
+            ps.setInt(7, file.getMonth());
+            ps.setInt(8, file.getYear());
+            ps.setInt(9, file.getStatus());
+            ps.setInt(10, file.getTotalRows());
+            ps.setInt(11, file.getImportedRows());
+            ps.setInt(12, file.getFailedRows());
+            ps.setNString(13, file.getNote());
+
+            int rowsAffected = ps.executeUpdate();
+            if (rowsAffected > 0) {
+                try (ResultSet rs = ps.getGeneratedKeys()) {
+                    if (rs.next()) {
+                        return rs.getInt(1);
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Cannot create uploaded file record: " + file.getFileCode(), e);
+        }
+        return -1;
+    }
+
+    public boolean updateImportResult(int fileId, int totalRows, int importedRows, int failedRows,
+            int status, String note) {
+        String SQL = "UPDATE Uploaded_Files SET totalRows = ?, importedRows = ?, failedRows = ?, "
+                + "status = ?, note = ? WHERE fileId = ?";
+        try (Connection conn = dbContext.getConnection();
+                PreparedStatement ps = conn.prepareStatement(SQL)) {
+            ps.setInt(1, totalRows);
+            ps.setInt(2, importedRows);
+            ps.setInt(3, failedRows);
+            ps.setInt(4, status);
+            ps.setNString(5, note);
+            ps.setInt(6, fileId);
+            return ps.executeUpdate() > 0;
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Cannot update import result for fileId: " + fileId, e);
+        }
+        return false;
+    }
+}
