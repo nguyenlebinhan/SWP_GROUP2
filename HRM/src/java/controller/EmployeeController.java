@@ -58,10 +58,6 @@ public class EmployeeController extends HttpServlet {
 
         HttpSession session = request.getSession(false);
         User user = (session != null) ? (User) session.getAttribute("user") : null;
-        if (user == null) {
-            response.sendRedirect(request.getContextPath() + "/v1/auth/login");
-            return;
-        }
 
         String action = request.getPathInfo();
         if (action == null || action.equals("/")) {
@@ -130,10 +126,6 @@ public class EmployeeController extends HttpServlet {
 
         HttpSession session = request.getSession(false);
         User user = (session != null) ? (User) session.getAttribute("user") : null;
-        if (user == null) {
-            response.sendRedirect(request.getContextPath() + "/v1/auth/login");
-            return;
-        }
 
         String action = request.getPathInfo();
         if (action == null) {
