@@ -59,11 +59,6 @@ public class SystemAdminController extends HttpServlet {
 
         HttpSession session = request.getSession(false);
         User user = (session != null) ? (User) session.getAttribute("user") : null;
-
-        if (user == null || user.getRoleName() == null || !"SYSTEMADMIN".equalsIgnoreCase(user.getRoleName())) {
-            response.sendRedirect(request.getContextPath() + "/v1/auth/login");
-            return;
-        }
         if (action == null || action.equals("/")) {
             displayDashboard(request, response);
             return;
@@ -129,11 +124,6 @@ public class SystemAdminController extends HttpServlet {
 
         HttpSession session = request.getSession(false);
         User user = (session != null) ? (User) session.getAttribute("user") : null;
-
-        if (user == null || user.getRoleName() == null || !"SYSTEMADMIN".equalsIgnoreCase(user.getRoleName())) {
-            response.sendRedirect(request.getContextPath() + "/v1/auth/login");
-            return;
-        }
         if (action == null || action.equals("/")) {
             displayDashboard(request, response);
             return;
