@@ -17,11 +17,7 @@ import model.User;
 import service.AuditLogService;
 
 /**
- * Filter ghi nhật ký tự động: mỗi request tới một endpoint nghiệp vụ (tương ứng
- * một method controller) đều được ghi async vào bảng Audit_Logs sau khi xử lý xong.
- *
- * Nhờ đặt ở tầng filter, mọi method hiện có và method thêm mới sau này đều được
- * ghi log mà không cần sửa từng controller.
+
  *
  * @author admin
  */
@@ -29,7 +25,6 @@ public class AuditLogFilter implements Filter {
 
     private static final AuditLogService auditLogService = new AuditLogService();
 
-    // Các tham số thường mang id bản ghi bị tác động.
     private static final String[] ID_PARAMS = {"id", "employeeId", "userId", "departmentId", "roleId", "contractId"};
 
     @Override
@@ -38,7 +33,7 @@ public class AuditLogFilter implements Filter {
         HttpServletRequest request = (HttpServletRequest) req;
         HttpServletResponse response = (HttpServletResponse) res;
 
-        // Lấy thông tin trước khi xử lý (param có thể bị consume khi đọc body multipart).
+       
         Integer userId = currentUserId(request);
         Integer recordId = extractRecordId(request);
         String action = deriveAction(request.getMethod(), request.getPathInfo(), request.getServletPath());
@@ -51,8 +46,6 @@ public class AuditLogFilter implements Filter {
         try {
             chain.doFilter(req, res);
         } finally {
-            // Nếu controller đã tự ghi log chi tiết hơn (đặt cờ "auditLogged") thì bỏ qua
-            // để tránh ghi trùng.
             if (request.getAttribute("auditLogged") == null) {
                 String status = response.getStatus() >= 400 ? "FAILED" : "SUCCESS";
                 auditLogService.logAsync(userId, action, endpoint, recordId,
@@ -73,8 +66,6 @@ public class AuditLogFilter implements Filter {
     }
 
     private Integer extractRecordId(HttpServletRequest request) {
-        // Không đọc parameter của request multipart: gọi getParameter() ở đây sẽ
-        // consume body và làm hỏng request.getPart() trong controller (vd import Excel).
         String contentType = request.getContentType();
         if (contentType != null && contentType.toLowerCase().startsWith("multipart/")) {
             return null;
