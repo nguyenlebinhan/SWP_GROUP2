@@ -66,19 +66,19 @@
 
     <div class="nav-section">Tổng quan</div>
     <a href="${pageContext.request.contextPath}/v1/employee/dashboard">
-         Dashboard
+        Dashboard
     </a>
-         
+
     <c:if test="${sessionScope.userPermissions.contains('VIEW_EMPLOYEES')}">
         <div class="nav-section">Nhân viên</div>
         <a href="${pageContext.request.contextPath}/v1/employee/employee-list">
-             Danh sách nhân viên
+            Danh sách nhân viên
         </a>
     </c:if>
 
     <c:if test="${sessionScope.userPermissions.contains('ASSIGN_DEPARTMENT')}">
         <a href="${pageContext.request.contextPath}/v1/employee/assign-department">
-             Phân công phòng ban
+            Phân công phòng ban
         </a>
     </c:if>
 
@@ -93,4 +93,9 @@
             Thêm phòng ban
         </a>
     </c:if>
+
+    <a href="${pageContext.request.contextPath}/v1/employee/formcreation">
+        Nghỉ Phép
+    </a >
+
 </div>
