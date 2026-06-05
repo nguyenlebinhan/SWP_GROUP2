@@ -43,7 +43,7 @@ public class ConfigManager {
         
     private InputStream openConfigStream(){
         ClassLoader classLoader = ConfigManager.class.getClassLoader();
-        InputStream input = classLoader.getResourceAsStream("config/.properties");
+        InputStream input = classLoader.getResourceAsStream("config/config.properties");
         return (input != null) ? input : classLoader.getResourceAsStream("config/.env");
     }
     

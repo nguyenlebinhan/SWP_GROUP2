@@ -1,125 +1,118 @@
 <%@ page contentType="text/html;charset=UTF-8" %>
+<%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
 
-    <style>
-        .sidebar {
-            width: 250px;
-            height: 100vh;
-            background: #0B0E2A;
-            position: fixed;
-            top: 0;
-            left: 0;
-            color: white;
-            overflow-y: auto;
-            z-index: 100;
-        }
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
 
-        .sidebar-brand {
-            padding: 20px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
+<style>
+    .emp-sidebar {
+        width: 250px;
+        height: 100vh;
+        background: #0B0E2A;
+        position: fixed;
+        top: 0;
+        left: 0;
+        color: white;
+        overflow-y: auto;
+    }
 
-        .sidebar-brand i {
-            font-size: 22px;
-            color: #ff8c00;
-        }
+    .emp-sidebar .brand {
+        padding: 20px 20px 10px;
+        font-size: 18px;
+        font-weight: 700;
+        border-bottom: 1px solid rgba(255,255,255,0.1);
+        margin-bottom: 8px;
+    }
 
-        .sidebar-brand h4 {
-            margin: 0;
-            font-size: 16px;
-            font-weight: 700;
-            color: white;
-        }
+    .emp-sidebar .nav-section {
+        padding: 8px 12px 2px;
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: rgba(255,255,255,0.4);
+        font-weight: 600;
+    }
 
-        .sidebar-nav {
-            padding: 12px 0;
-        }
+    .emp-sidebar a {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 11px 20px;
+        color: rgba(255,255,255,0.85);
+        text-decoration: none;
+        font-size: 14px;
+        border-radius: 6px;
+        margin: 2px 8px;
+        transition: background 0.15s;
+    }
 
-        .sidebar-section-label {
-            padding: 10px 20px 6px;
-            font-size: 10px;
-            font-weight: 700;
-            letter-spacing: .8px;
-            text-transform: uppercase;
-            color: rgba(255, 255, 255, 0.4);
-        }
+    .emp-sidebar a:hover,
+    .emp-sidebar a.active {
+        background: #1565C0;
+        color: white;
+    }
 
-        .sidebar a {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 11px 20px;
-            color: rgba(255, 255, 255, 0.75);
-            text-decoration: none;
-            font-size: 14px;
-            font-weight: 500;
-            transition: all .2s;
-        }
+    .emp-sidebar a i {
+        width: 18px;
+        text-align: center;
+        font-size: 14px;
+    }
+</style>
 
-        .sidebar a i {
-            width: 18px;
-            text-align: center;
-            font-size: 15px;
-        }
+<div class="emp-sidebar">
+    <div class="brand">HRM Manager</div>
 
-        .sidebar a:hover,
-        .sidebar a.active {
-            background: rgba(255, 255, 255, 0.1);
-            color: white;
-            border-right: 3px solid #ff8c00;
-        }
+    <div class="nav-section">Tổng quan</div>
+    <a href="${pageContext.request.contextPath}/v1/manager/dashboard"
+       class="${pageContext.request.servletPath == '/public/manager/dashboard.jsp' ? 'active' : ''}">
+        Dashboard
+    </a>
 
-        .sidebar-divider {
-            height: 1px;
-            background: rgba(255, 255, 255, 0.08);
-            margin: 10px 20px;
-        }
+    <div class="nav-section">Nhân viên</div>
+    <a href="${pageContext.request.contextPath}/v1/manager/my-department-list"
+       class="${pageContext.request.servletPath == '/public/manager/employee_list.jsp' ? 'active' : ''}">
+        Nhân viên phòng ban của tôi
+    </a>
 
-        .sidebar a.logout-link:hover {
-            background: rgba(185, 28, 28, 0.3);
-            color: #fca5a5;
-            border-right-color: #b91c1c;
-        }
-    </style>
+    <c:if test="${sessionScope.userPermissions.contains('VIEW_EMPLOYEES')}">
+        <a href="${pageContext.request.contextPath}/v1/manager/employee-list"
+           class="${pageContext.request.servletPath == '/public/manager/employee_list.jsp' ? 'active' : ''}">
+            Danh sách nhân viên
+        </a>
+    </c:if>
 
-    <div class="sidebar">
-        <div class="sidebar-brand">
-            <i class="fa fa-users-cog"></i>
-            <h4>HRM Manager</h4>
-        </div>
+    <c:if test="${sessionScope.userPermissions.contains('VIEW_DEPARTMENTS')}">
+        <div class="nav-section">Phòng ban</div>
+        <a href="${pageContext.request.contextPath}/v1/manager/department-list"
+           class="${pageContext.request.servletPath == '/public/manager/department_list.jsp' ? 'active' : ''}">
+            Danh sách phòng ban
+        </a>
+    </c:if>
 
-        <nav class="sidebar-nav">
-            <div class="sidebar-section-label">Chính</div>
-            <a href="${pageContext.request.contextPath}/v1/manager/dashboard"
-                class="${pageContext.request.servletPath == '/public/manager/dashboard.jsp' ? 'active' : ''}">
-                <i class="fa fa-chart-pie"></i> Tổng quan
+    <c:if test="${sessionScope.userPermissions.contains('APPROVE_LEAVE')}">
+        <a href="${pageContext.request.contextPath}/v1/manager/leave-requests">
+            Đơn nghỉ phép
+        </a>
+    </c:if>
+
+    <c:if test="${sessionScope.userPermissions.contains('VIEW_LEAVE_BALANCE')}">
+        <a href="${pageContext.request.contextPath}/v1/manager/leave-balances">
+            Ngày phép
+        </a>
+    </c:if>
+
+    <c:if test="${sessionScope.userPermissions.contains('IMPORT_ATTENDANCE') || sessionScope.userPermissions.contains('VIEW_ATTENDANCE')}">
+        <div class="nav-section">Chấm công</div>
+        <c:if test="${sessionScope.userPermissions.contains('IMPORT_ATTENDANCE')}">
+            <a href="${pageContext.request.contextPath}/v1/employee/attendance-import">
+                Import chấm công
             </a>
+        </c:if>
+        <c:if test="${sessionScope.userPermissions.contains('VIEW_ATTENDANCE')}">
+            <a href="${pageContext.request.contextPath}/v1/employee/attendance-list">
+                Xem chấm công
+            </a>
+        </c:if>
+    </c:if>
 
-            <div class="sidebar-divider"></div>
-            <div class="sidebar-section-label">Quản lý</div>
-            <a href="${pageContext.request.contextPath}/v1/manager/employee-list">
-                <i class="fa fa-users"></i> Nhân viên
-            </a>
-            <a href="${pageContext.request.contextPath}/v1/manager/department"
-                class="${pageContext.request.servletPath == '/public/manager/department_list.jsp' || pageContext.request.servletPath == '/public/manager/department_assign.jsp' ? 'active' : ''}">
-                <i class="fa fa-building"></i> Phòng ban
-            </a>
-            <a href="${pageContext.request.contextPath}/v1/manager/leave-requests">
-                <i class="fa fa-calendar-check"></i> Đơn nghỉ phép
-            </a>
-            <a href="${pageContext.request.contextPath}/v1/manager/leave-balances">
-                <i class="fa fa-chart-bar"></i> Ngày phép
-            </a>
-
-            <div class="sidebar-divider"></div>
-            <div class="sidebar-section-label">Hệ thống</div>
-            <a href="${pageContext.request.contextPath}/v1/manager/my-profile">
-                <i class="fa fa-user-gear"></i> Hồ sơ của tôi
-            </a>
-            <a href="${pageContext.request.contextPath}/v1/auth/logout" class="logout-link">
-                <i class="fa fa-right-from-bracket"></i> Đăng xuất
-            </a>
-        </nav>
-    </div>
+</div>
