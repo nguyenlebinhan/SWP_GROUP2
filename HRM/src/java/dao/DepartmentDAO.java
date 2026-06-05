@@ -479,8 +479,9 @@ public class DepartmentDAO {
     }
 
     public boolean unassignManager(int departmentId) {
-        String SQL = "UPDATE Departments SET managerId = NULL WHERE departmentId = ?";
-        try (java.sql.Connection conn = dbContext.getConnection(); java.sql.PreparedStatement ps = conn.prepareStatement(SQL)) {
+        String sqlDept = "UPDATE Departments SET managerId = NULL WHERE departmentId = ?";
+        //String sqlEmp = "UPDATE Employee SET departmentId = NULL WHERE ";
+        try (java.sql.Connection conn = dbContext.getConnection(); java.sql.PreparedStatement ps = conn.prepareStatement(sqlDept)) {
             ps.setInt(1, departmentId);
             boolean ok = ps.executeUpdate() > 0;
             if (ok) {
