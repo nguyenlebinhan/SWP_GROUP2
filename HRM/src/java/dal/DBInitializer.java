@@ -161,6 +161,7 @@ public class DBInitializer {
                 + "managerId INT,"
 //                + "nationalId VARCHAR(20),"          // CCCD/CMND
 //                + "contractType VARCHAR(50),"        // Full-time, Part-time, Thử việc
+                + "startDate DATE,"
                 + "createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,"
                 + "updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,"
                 + "FOREIGN KEY (userId) REFERENCES Users(userId),"
@@ -214,28 +215,23 @@ public class DBInitializer {
 
     // ==================== NGHỈ PHÉP ====================
 
-    public void createTableLeaveTypes(Connection conn) {
-        String SQL = "CREATE TABLE Leave_Types("
-                + "leaveTypeId INT PRIMARY KEY AUTO_INCREMENT,"
-                + "leaveTypeCode VARCHAR(50) NOT NULL UNIQUE,"
-                + "leaveTypeName NVARCHAR(100) NOT NULL UNIQUE,"
-                + "maxDaysPerYear INT DEFAULT 12,"
-                + "isPaid BIT DEFAULT 1,"            // 1: có lương, 0: không lương
+    public void createTableFormTypes(Connection conn) {
+        String SQL = "CREATE TABLE Form_Types("
+                + "formTypeId INT PRIMARY KEY AUTO_INCREMENT,"
+                + "formTypeCode VARCHAR(50) NOT NULL UNIQUE,"
+                + "formTypeName NVARCHAR(100) NOT NULL UNIQUE,"
                 + "createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,"
                 + "updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"
                 + ")";
-        execute(conn, SQL, "CREATE LEAVE_TYPES TABLE SUCCESSFULLY");
+        execute(conn, SQL, "CREATE FORM_TYPES TABLE SUCCESSFULLY");
     }
 
-    public void createTableLeaveRequests(Connection conn) {
-        String SQL = "CREATE TABLE Leave_Requests("
-                + "leaveId INT PRIMARY KEY AUTO_INCREMENT,"
-                + "leaveCode VARCHAR(50) NOT NULL UNIQUE,"
+    public void createTableFormRequests(Connection conn) {
+        String SQL = "CREATE TABLE Form_Requests("
+                + "formId INT PRIMARY KEY AUTO_INCREMENT,"
+                + "formCode VARCHAR(50) NOT NULL UNIQUE,"
                 + "employeeId INT NOT NULL,"
-                + "leaveTypeId INT NOT NULL,"
-                + "startDate DATE NOT NULL,"
-                + "endDate DATE NOT NULL,"
-                + "totalDays DECIMAL(4,1) NOT NULL,"
+                + "formTypeId INT NOT NULL,"
                 + "reason NVARCHAR(500),"
                 + "status TINYINT DEFAULT 0,"        // 0: Chờ duyệt, 1: Đã duyệt, 2: Từ chối, 3: Đã hủy
                 + "approverId INT,"
@@ -244,26 +240,29 @@ public class DBInitializer {
                 + "createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,"
                 + "updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,"
                 + "FOREIGN KEY (employeeId) REFERENCES Employees(employeeId),"
-                + "FOREIGN KEY (leaveTypeId) REFERENCES Leave_Types(leaveTypeId),"
+                + "FOREIGN KEY (formTypeId) REFERENCES Form_Types(formTypeId),"
                 + "FOREIGN KEY (approverId) REFERENCES Employees(employeeId)"
                 + ")";
-        execute(conn, SQL, "CREATE LEAVE_REQUESTS TABLE SUCCESSFULLY");
+        execute(conn, SQL, "CREATE FORM_REQUESTS TABLE SUCCESSFULLY");
     }
 
     //cache để giúp tính toán số ngày còn lại nhanh hơn
-    public void createTableLeaveBalance(Connection conn) {
-        String SQL = "CREATE TABLE Leave_Balance("
-                + "balanceId INT PRIMARY KEY AUTO_INCREMENT,"
+    public void createTableLeaveForm(Connection conn) {
+        String SQL = "CREATE TABLE Leave_Form("
+                + "leaveId INT PRIMARY KEY AUTO_INCREMENT,"
                 + "employeeId INT NOT NULL,"
-                + "leaveTypeId INT NOT NULL,"
-                + "year INT NOT NULL,"
+                + "formTypeId INT NOT NULL,"
+                + "formId INT NOT NULL,"
+                + "startDate DATE NOT NULL,"
+                + "endDate DATE NOT NULL,"
                 + "totalDays DECIMAL(4,1) NOT NULL,"
                 + "usedDays DECIMAL(4,1) DEFAULT 0,"
                 + "createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,"
                 + "updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,"
-                + "UNIQUE KEY uq_balance (employeeId, leaveTypeId, year),"
+                + "UNIQUE KEY uq_balance (employeeId, leaveId, formTypeId),"
                 + "FOREIGN KEY (employeeId) REFERENCES Employees(employeeId),"
-                + "FOREIGN KEY (leaveTypeId) REFERENCES Leave_Types(leaveTypeId)"
+                + "FOREIGN KEY (formId) REFERENCES Form_Requests(formId),"
+                + "FOREIGN KEY (formTypeId) REFERENCES Form_Types(formTypeId)"
                 + ")";
         execute(conn, SQL, "CREATE LEAVE_BALANCE TABLE SUCCESSFULLY");
     }
@@ -413,17 +412,47 @@ public class DBInitializer {
             }
 
             String[] dropOrder = {
-                "Audit_Logs", "Notifications", "Performance", "Payroll", "Attendance",
-                "Uploaded_Files", "Leave_Balance", "Leave_Requests", "Leave_Types", "Candidates", "Employment_Contracts", "Employees",
-                "Users", "Department_Roles", "Role_Permissions", "Permissions", "Email_Templates", "Departments",
-                "Positions", "Roles"
+                "Audit_Logs",
+                "Notifications",
+                "Performance",
+                "Payroll",
+                "Attendance",
+                "Uploaded_Files",
+                "Leave_Form",
+                "Form_Requests",
+                "Form_Types",
+                "Candidates",
+                "Employees",
+                "Users",
+                "Department_Roles",
+                "Role_Permissions",
+                "Permissions",
+                "Email_Templates",
+                "Departments",
+                "Positions",
+                "Roles"
             };
 
             String[] createOrder = {
-                "Roles", "Permissions", "Role_Permissions", "Email_Templates", "Positions",
-                "Departments", "Department_Roles", "Users", "Employees", "Employment_Contracts", "Candidates", "Leave_Types",
-                "Leave_Requests", "Leave_Balance", "Uploaded_Files", "Attendance", "Payroll", "Performance",
-                "Notifications", "Audit_Logs"
+                "Roles",
+                "Permissions",
+                "Role_Permissions",
+                "Email_Templates",
+                "Positions",
+                "Departments",
+                "Department_Roles",
+                "Users",
+                "Employees",
+                "Candidates",
+                "Form_Types",
+                "Form_Requests",
+                "Leave_Form",
+                "Uploaded_Files",
+                "Attendance",
+                "Payroll",
+                "Performance",
+                "Notifications",
+                "Audit_Logs"
             };
 
             if (enforceReset) {
@@ -453,9 +482,9 @@ public class DBInitializer {
                         case "Employees":         createTableEmployees(conn);         break;
                         case "Employment_Contracts": createTableEmploymentContracts(conn); break;
                         case "Candidates":        createTableCandidates(conn);        break;
-                        case "Leave_Types":       createTableLeaveTypes(conn);        break;
-                        case "Leave_Requests":    createTableLeaveRequests(conn);     break;
-                        case "Leave_Balance":     createTableLeaveBalance(conn);      break;
+                        case "Form_Types":       createTableFormTypes(conn);         break;
+                        case "Form_Requests":    createTableFormRequests(conn);     break;
+                        case "Leave_Form":     createTableLeaveForm(conn);      break;
                         case "Uploaded_Files":    createTableUploadedFiles(conn);     break;
                         case "Attendance":        createTableAttendance(conn);        break;
                         case "Payroll":           createTablePayroll(conn);           break;
@@ -679,7 +708,9 @@ public class DBInitializer {
             stmt.execute(sql);
             LOGGER.log(Level.INFO, "EXECUTED: {0}", label);
         } catch (SQLException e) {
-            LOGGER.log(Level.SEVERE, "CANNOT EXECUTE: {0}", label);
+            LOGGER.log(Level.SEVERE,
+                    "CANNOT EXECUTE: " + label,
+                    e);
         }
     }
 

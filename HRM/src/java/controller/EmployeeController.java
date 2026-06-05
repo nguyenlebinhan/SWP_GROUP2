@@ -113,6 +113,9 @@ public class EmployeeController extends HttpServlet {
             case "/own-attendance":
                 displayOwnAttendanceList(request,response,user);
                 break;
+            case "/formcreation":
+                displayForm(request, response, user);
+                break;
             default:
                 response.sendRedirect(request.getContextPath() + "/v1/employee/dashboard");
                 break;
@@ -1417,6 +1420,13 @@ public class EmployeeController extends HttpServlet {
         } else {
             response.sendRedirect(request.getContextPath() + "/v1/employee/employee-detail?id=" + employeeId);
         }
+    }
+
+    private void displayForm(HttpServletRequest request, HttpServletResponse response, User user) throws ServletException, IOException {
+        
+        
+        
+        request.getRequestDispatcher("/public/employee/formcreation.jsp").forward(request, response);
     }
 
 
