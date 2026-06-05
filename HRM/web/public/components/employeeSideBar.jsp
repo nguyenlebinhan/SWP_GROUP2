@@ -79,23 +79,45 @@
     <c:if test="${sessionScope.userPermissions.contains('ASSIGN_DEPARTMENT')}">
         <a href="${pageContext.request.contextPath}/v1/employee/assign-department">
             Phân công phòng ban
-        </a>
-    </c:if>
+        </c:if>
 
-    <c:if test="${sessionScope.userPermissions.contains('VIEW_DEPARTMENTS') || sessionScope.userPermissions.contains('MANAGE_DEPARTMENTS')}">
-        <div class="nav-section">Phòng ban</div>
-    </c:if>
-    <a href="${pageContext.request.contextPath}/v1/employee/department-list">
-        Danh sách phòng ban
-    </a>
-    <c:if test="${sessionScope.userPermissions.contains('EDIT_DEPARTMENTS')}">
-        <a href="${pageContext.request.contextPath}/v1/employee/add-department">
-            Thêm phòng ban
-        </a>
-    </c:if>
 
-    <a href="${pageContext.request.contextPath}/v1/employee/formcreation">
-        Nghỉ Phép
-    </a >
+        <c:if test="${sessionScope.userPermissions.contains('ADD_EMPLOYMENT_CONTRACT')}">
+            <a href="${pageContext.request.contextPath}/v1/employee/add-contract">
+                Thêm hợp đồng lao động
+            </a>
+        </c:if>
+
+        <c:if test="${sessionScope.userPermissions.contains('VIEW_DEPARTMENTS') || sessionScope.userPermissions.contains('MANAGE_DEPARTMENTS')}">
+            <div class="nav-section">Phòng ban</div>
+        </c:if>
+        <a href="${pageContext.request.contextPath}/v1/employee/department-list">
+            Danh sách phòng ban
+        </a>
+        <c:if test="${sessionScope.userPermissions.contains('EDIT_DEPARTMENTS')}">
+            <a href="${pageContext.request.contextPath}/v1/employee/add-department">
+                Thêm phòng ban
+            </a>
+        </c:if>
+
+        <a href="${pageContext.request.contextPath}/v1/employee/formcreation">
+            Nghỉ Phép
+        </a >
+
+        <c:if test="${sessionScope.userPermissions.contains('IMPORT_ATTENDANCE') || sessionScope.userPermissions.contains('VIEW_ATTENDANCE')}">
+            <div class="nav-section">Chấm công</div>
+            <c:if test="${sessionScope.userPermissions.contains('IMPORT_ATTENDANCE')}">
+                <a href="${pageContext.request.contextPath}/v1/employee/attendance-import">
+                    Import chấm công
+                </a>
+            </c:if>
+            <c:if test="${sessionScope.userPermissions.contains('VIEW_ATTENDANCE')}">
+                <a href="${pageContext.request.contextPath}/v1/employee/attendance-list">
+                    Xem chấm công
+                </a>
+            </c:if>
+
+        </c:if>
+
 
 </div>

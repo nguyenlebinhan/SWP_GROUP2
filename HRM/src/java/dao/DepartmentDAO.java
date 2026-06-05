@@ -6,12 +6,10 @@ package dao;
 
 import dal.DBContext;
 import java.sql.Connection;
-import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.sql.Types;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
@@ -148,9 +146,6 @@ public class DepartmentDAO {
         return false;
     }
 
-    /**
-     * Danh sách tên vai trò được phép trong phòng ban — dùng cho thông báo lỗi.
-     */
     public List<String> getAllowedRoleNames(int departmentId) {
         List<String> names = new ArrayList<>();
         String SQL = "SELECT r.roleName FROM Department_Roles dr "
@@ -169,10 +164,6 @@ public class DepartmentDAO {
         return names;
     }
 
-    /**
-     * Ghi đè toàn bộ luật vai trò của một phòng ban (xóa cũ rồi chèn mới) trong
-     * 1 transaction.
-     */
     public boolean replaceDepartmentRoles(int departmentId, List<Integer> roleIds) {
         String deleteSQL = "DELETE FROM Department_Roles WHERE departmentId = ?";
         String insertSQL = "INSERT INTO Department_Roles (departmentId, roleId) VALUES (?, ?)";

@@ -3,209 +3,168 @@
 <%@ taglib prefix="fn" uri="http://java.sun.com/jsp/jstl/functions" %>
 <!DOCTYPE html>
 <html>
-    <head>
-        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-        <title>Nhân viên phòng ban – HRM Manager</title>
-        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-        <style>
-            body {
-                background: #f5f6fa;
-                font-family: 'Segoe UI', sans-serif;
-            }
+<head>
+    <title>Danh sách nhân viên - HRM</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body { background: #f5f6fa; font-family: 'Segoe UI', sans-serif; }
+        .main { margin-left: 250px; padding: 25px; }
 
-            .main-content {
-                margin-left: 250px;
-                padding: 30px;
-            }
+        .page-card {
+            background: white;
+            border-radius: 14px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.07);
+            padding: 24px;
+        }
 
-            /* ── Search bar ── */
-            .search-bar {
-                display: flex;
-                gap: 10px;
-                align-items: center;
-                flex-wrap: wrap;
-                background: white;
-                padding: 16px 20px;
-                border-radius: 10px;
-                box-shadow: 0 1px 4px rgba(0,0,0,.06);
-                margin-bottom: 20px;
-            }
-            .search-bar input[type="text"] {
-                flex: 1;
-                min-width: 200px;
-                padding: 8px 14px;
-                border: 1px solid #e5e7eb;
-                border-radius: 7px;
-                font-size: 14px;
-                outline: none;
-                transition: border .2s;
-            }
-            .search-bar input[type="text"]:focus {
-                border-color: #6366f1;
-            }
-            .btn-search {
-                background: #6366f1;
-                color: white;
-                border: none;
-                padding: 8px 18px;
-                border-radius: 7px;
-                font-size: 14px;
-                font-weight: 600;
-                cursor: pointer;
-            }
-            .btn-search:hover {
-                background: #4f46e5;
-            }
-            .btn-clear {
-                background: white;
-                color: #6b7280;
-                border: 1px solid #d1d5db;
-                padding: 8px 14px;
-                border-radius: 7px;
-                font-size: 13px;
-                text-decoration: none;
-                font-weight: 500;
-            }
-            .btn-clear:hover {
-                background: #f3f4f6;
-            }
+        .table th { font-size: 13px; color: #6b7280; font-weight: 600; background: #f9fafb; }
+        .table td { font-size: 14px; vertical-align: middle; }
 
-            /* ── Table ── */
-            .table thead th {
-                font-weight: 600;
-                font-size: 13px;
-                letter-spacing: .4px;
-                padding: 14px 16px;
-                border: none;
-            }
-            .table tbody tr {
-                vertical-align: middle;
-            }
-            .table tbody td {
-                padding: 12px 16px;
-                font-size: 14px;
-                border-bottom: 1px solid #f3f4f6;
-            }
-            .table tbody tr:hover {
-                background: #fafafa;
-            }
+        .badge-active   { background: #d1fae5; color: #065f46; padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+        .badge-inactive { background: #fee2e2; color: #991b1b; padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+        .badge-leave    { background: #fef3c7; color: #92400e; padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; }
 
-            .badge-active {
-                background: #d1fae5;
-                color: #065f46;
-                padding: 4px 12px;
-                border-radius: 20px;
-                font-size: 12px;
-                font-weight: 600;
-            }
-            .badge-inactive {
-                background: #fee2e2;
-                color: #991b1b;
-                padding: 4px 12px;
-                border-radius: 20px;
-                font-size: 12px;
-                font-weight: 600;
-            }
-            .badge-leave {
-                background: #fef3c7;
-                color: #92400e;
-                padding: 4px 12px;
-                border-radius: 20px;
-                font-size: 12px;
-                font-weight: 600;
-            }
+        .avatar-circle {
+            width: 36px; height: 36px;
+            border-radius: 50%;
+            background: #2563eb;
+            color: white;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            font-weight: 700;
+            flex-shrink: 0;
+        }
 
-            .btn-action {
-                padding: 5px 12px;
-                font-size: 13px;
-                border-radius: 6px;
-                text-decoration: none;
-                display: inline-flex;
-                align-items: center;
-                gap: 5px;
-                font-weight: 500;
-                transition: opacity .2s;
-            }
-            .btn-action:hover {
-                opacity: .85;
-            }
-            .btn-detail {
-                background:#e0f2fe;
-                color:#0369a1;
-                border:1px solid #bae6fd;
-            }
+        .search-bar {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+            background: white;
+            padding: 16px 20px;
+            border: 1px solid #eef2f7;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+        .search-bar input[type="text"] {
+            flex: 1;
+            min-width: 200px;
+            padding: 8px 14px;
+            border: 1px solid #e5e7eb;
+            border-radius: 7px;
+            font-size: 14px;
+            outline: none;
+        }
+        .search-bar select {
+            min-width: 160px;
+            padding: 8px 14px;
+            border: 1px solid #e5e7eb;
+            border-radius: 7px;
+            font-size: 14px;
+            outline: none;
+            background: white;
+        }
+        .search-bar input[type="text"]:focus { border-color: #2563eb; }
+        .search-bar select:focus { border-color: #2563eb; }
+        .btn-search {
+            background: #2563eb;
+            color: white;
+            border: none;
+            padding: 8px 18px;
+            border-radius: 7px;
+            font-size: 14px;
+            font-weight: 600;
+        }
+        .btn-clear {
+            background: white;
+            color: #6b7280;
+            border: 1px solid #d1d5db;
+            padding: 8px 14px;
+            border-radius: 7px;
+            font-size: 13px;
+            text-decoration: none;
+            font-weight: 500;
+        }
+        .btn-clear:hover { background: #f3f4f6; color: #374151; }
+    </style>
+</head>
+<body>
 
-            .total-label {
-                font-size: 13px;
-                color: #6b7280;
-                padding: 14px 20px;
-                border-top: 1px solid #f3f4f6;
-            }
+<jsp:include page="/public/components/managerSideBar.jsp" />
 
-            .alert-flash {
-                border-radius: 8px;
-                font-size: 14px;
-                margin-bottom: 20px;
-            }
-            .empty-state {
-                text-align: center;
-                padding: 60px 0;
-                color: #9ca3af;
-            }
-        </style>
-    </head>
-    <body>
+<div class="main">
+    <jsp:include page="/public/components/managerTopBar.jsp">
+        <jsp:param name="title" value="Danh sách nhân viên" />
+        <jsp:param name="backUrl" value="/v1/manager/dashboard" />
+    </jsp:include>
+
+    <c:if test="${not empty sessionScope.success}">
+        <div class="alert alert-success alert-dismissible fade show mb-4" role="alert">
+            <i class="fa-solid fa-circle-check me-2"></i>${sessionScope.success}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        <c:remove var="success" scope="session" />
+    </c:if>
+    <c:if test="${not empty sessionScope.error}">
+        <div class="alert alert-danger alert-dismissible fade show mb-4" role="alert">
+            <i class="fa-solid fa-circle-xmark me-2"></i>${sessionScope.error}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        <c:remove var="error" scope="session" />
+    </c:if>
+
+    <div class="page-card">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h5 class="fw-bold mb-1">Nhân viên</h5>
+                <span class="text-muted small">${employees.size()} nhân viên</span>
+            </div>
+            <c:if test="${canAssignDept}">
+                <a href="${pageContext.request.contextPath}/v1/manager/assign-department"
+                   class="btn btn-primary btn-sm" style="background:#2563eb;border:none">
+                    <i class="fa-solid fa-plus me-1"></i> Phân công nhân viên
+                </a>
+            </c:if>
+        </div>
+
+        <div class="search-bar" id="filterBar">
+            <input type="text" id="filterKeyword" placeholder="Tìm theo họ và tên, email..." oninput="filterTable()" />
+            <select id="filterDepartment" onchange="filterTable()">
+                <option value="">Tất cả phòng ban</option>
+                <c:forEach var="emp" items="${employees}">
+                    <c:if test="${not empty emp.departmentName}">
+                        <option value="${fn:toLowerCase(emp.departmentName)}">${emp.departmentName}</option>
+                    </c:if>
+                </c:forEach>
+            </select>
+            <select id="filterStatus" onchange="filterTable()">
+                <option value="">Tất cả trạng thái</option>
+                <option value="1">Đang làm việc</option>
+                <option value="2">Đang nghỉ phép</option>
+                <option value="0">Không hoạt động</option>
+            </select>
+            <button type="button" class="btn-search" onclick="filterTable()">Tìm kiếm</button>
+            <a href="javascript:void(0)" class="btn-clear" onclick="clearFilters()">Xóa lọc</a>
+        </div>
+
         <c:choose>
-            <c:when test="${fn:toUpperCase(fn:replace(sessionScope.user.roleName, ' ', '')) == 'HRMANAGER'}">
-                <jsp:include page="/public/components/managerSideBar.jsp" />
+            <c:when test="${empty employees}">
+                <div class="text-center py-5">
+                    <i class="fa-solid fa-users-slash" style="font-size:48px;color:#cbd5e1;margin-bottom:16px"></i>
+                    <h6 class="text-muted">Chưa có nhân viên nào</h6>
+                </div>
             </c:when>
             <c:otherwise>
-                <jsp:include page="/public/components/departmentManagerSideBar.jsp" />
-            </c:otherwise>
-        </c:choose>
-
-        <div class="main-content">
-            <jsp:include page="/public/components/managerTopBar.jsp">
-                <jsp:param name="title" value="Nhân viên phòng ban" />
-            </jsp:include>
-
-            <%-- Flash messages --%>
-            <c:if test="${not empty error}">
-                <div class="alert alert-warning alert-flash alert-dismissible fade show">
-                    ${error}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                </div>
-            </c:if>
-
-            <%-- Header --%>
-            <div class="d-flex justify-content-between align-items-center mb-3">
-                <div>
-                    <h5 class="fw-bold mb-0">
-                        <c:choose>
-                            <c:when test="${not empty departmentName}">Phòng ${departmentName}</c:when>
-                            <c:otherwise>Nhân viên</c:otherwise>
-                        </c:choose>
-                    </h5>
-                </div>
-            </div>
-
-            <%-- Search bar --%>
-            <div class="search-bar" id="filterBar">
-                <input type="text" id="filterKeyword" placeholder="Tìm theo họ và tên, email..." oninput="filterTable()" />
-                <button type="button" class="btn-search" onclick="filterTable()">Tìm kiếm</button>
-                <a href="javascript:void(0)" class="btn-clear" onclick="clearFilters()">Xóa lọc</a>
-            </div>
-
-            <%-- Table --%>
-            <div class="card">
-                <div class="card-body p-0">
-                    <table class="table mb-0" id="employeeTable">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
                         <thead>
                             <tr>
-                                <th>#</th>
-                                <th>Họ và tên</th>
+                                <th>Nhân viên</th>
                                 <th>Mã NV</th>
-                                <th>Email</th>
+                                <th>Phòng ban</th>
                                 <th>Vị trí</th>
                                 <th>Số điện thoại</th>
                                 <th>Trạng thái</th>
@@ -213,81 +172,115 @@
                             </tr>
                         </thead>
                         <tbody>
-                            <c:choose>
-                                <c:when test="${empty employees}">
-                                    <tr>
-                                        <td colspan="8">
-                                            <div class="empty-state">Chưa có nhân viên nào trong phòng ban</div>
-                                        </td>
-                                    </tr>
-                                </c:when>
-                                <c:otherwise>
-                                    <c:forEach var="emp" items="${employees}" varStatus="loop">
-                                        <tr data-name="${fn:toLowerCase(emp.fullName)}"
-                                            data-email="${fn:toLowerCase(emp.email)}">
-                                            <td style="color:#9ca3af;font-size:13px">
-                                                ${loop.index + 1}
-                                            </td>
-                                            <td><strong>${emp.fullName}</strong></td>
-                                            <td><code>${emp.employeeCode}</code></td>
-                                            <td style="color:#6b7280">${emp.email}</td>
-                                            <td>${emp.positionName}</td>
-                                            <td>
-                                                <c:choose>
-                                                    <c:when test="${not empty emp.phoneNumber}">${emp.phoneNumber}</c:when>
-                                                    <c:otherwise><span class="text-muted">—</span></c:otherwise>
-                                                </c:choose>
-                                            </td>
-                                            <td>
-                                                <c:choose>
-                                                    <c:when test="${emp.status == 1}">
-                                                        <span class="badge-active">Đang làm việc</span>
-                                                    </c:when>
-                                                    <c:when test="${emp.status == 2}">
-                                                        <span class="badge-leave">Đang nghỉ phép</span>
-                                                    </c:when>
-                                                    <c:otherwise>
-                                                        <span class="badge-inactive">Không hoạt động</span>
-                                                    </c:otherwise>
-                                                </c:choose>
-                                            </td>
-                                            <td>
-                                                <a href="${pageContext.request.contextPath}/v1/manager/employee-detail?id=${emp.employeeId}"
-                                                   class="btn-action btn-detail">Chi tiết</a>
-                                            </td>
-                                        </tr>
-                                    </c:forEach>
-                                </c:otherwise>
-                            </c:choose>
+                            <c:forEach var="emp" items="${employees}">
+                                <tr data-name="${fn:toLowerCase(emp.fullName)}"
+                                    data-email="${fn:toLowerCase(emp.email)}"
+                                    data-department="${fn:toLowerCase(emp.departmentName)}"
+                                    data-status="${emp.status}">
+                                    <td>
+                                        <div class="d-flex align-items-center gap-2">
+                                            <div class="avatar-circle">
+                                                ${emp.fullName.substring(0,1).toUpperCase()}
+                                            </div>
+                                            <div>
+                                                <div class="fw-semibold">${emp.fullName}</div>
+                                                <small class="text-muted">${emp.email}</small>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td><code>${emp.employeeCode}</code></td>
+                                    <td>${emp.departmentName}</td>
+                                    <td>${emp.positionName}</td>
+                                    <td>
+                                        <c:choose>
+                                            <c:when test="${not empty emp.phoneNumber}">${emp.phoneNumber}</c:when>
+                                            <c:otherwise><span class="text-muted">—</span></c:otherwise>
+                                        </c:choose>
+                                    </td>
+                                    <td>
+                                        <c:choose>
+                                            <c:when test="${emp.status == 1}">
+                                                <span class="badge-active">Đang làm việc</span>
+                                            </c:when>
+                                            <c:when test="${emp.status == 2}">
+                                                <span class="badge-leave">Đang nghỉ phép</span>
+                                            </c:when>
+                                            <c:otherwise>
+                                                <span class="badge-inactive">Không hoạt động</span>
+                                            </c:otherwise>
+                                        </c:choose>
+                                    </td>
+                                    <td>
+                                        <div class="d-flex gap-2">
+                                            <a class="btn btn-sm btn-outline-primary"
+                                               href="${pageContext.request.contextPath}/v1/manager/employee-detail?id=${emp.employeeId}">
+                                                <i class="fa-solid fa-eye"></i>
+                                            </a>
+                                            <c:if test="${canEditEmployee}">
+                                                <a class="btn btn-sm btn-outline-secondary"
+                                                   href="${pageContext.request.contextPath}/v1/manager/update-employee?id=${emp.employeeId}">
+                                                    <i class="fa-solid fa-pen"></i>
+                                                </a>
+                                            </c:if>
+                                            <c:if test="${canAddEmploymentContract}">
+                                                <a class="btn btn-sm btn-outline-success"
+                                                   href="${pageContext.request.contextPath}/v1/manager/add-contract?employeeId=${emp.employeeId}">
+                                                    <i class="fa-solid fa-file-contract"></i>
+                                                </a>
+                                            </c:if>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </c:forEach>
                         </tbody>
                     </table>
-
-                    <c:if test="${not empty employees}">
-                        <div class="total-label">
-                            Tổng <strong>${employees.size()}</strong> nhân viên
-                        </div>
-                    </c:if>
                 </div>
-            </div>
-        </div>
+            </c:otherwise>
+        </c:choose>
+    </div>
+</div>
 
-        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-        <script>
-            function filterTable() {
-                var kw = document.getElementById('filterKeyword').value.toLowerCase().trim();
-                var rows = document.querySelectorAll('#employeeTable tbody tr[data-name]');
-                rows.forEach(function(row) {
-                    var name = row.dataset.name || '';
-                    var email = row.dataset.email || '';
-                    var match = !kw || name.includes(kw) || email.includes(kw);
-                    row.style.display = match ? '' : 'none';
-                });
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        var seen = {};
+        var options = document.querySelectorAll('#filterDepartment option');
+        options.forEach(function(option) {
+            if (!option.value) {
+                return;
             }
+            if (seen[option.value]) {
+                option.remove();
+                return;
+            }
+            seen[option.value] = true;
+        });
+    });
 
-            function clearFilters() {
-                document.getElementById('filterKeyword').value = '';
-                filterTable();
-            }
-        </script>
-    </body>
+    function filterTable() {
+        var kw = document.getElementById('filterKeyword').value.toLowerCase().trim();
+        var department = document.getElementById('filterDepartment').value;
+        var status = document.getElementById('filterStatus').value;
+        var rows = document.querySelectorAll('tbody tr[data-name]');
+        rows.forEach(function(row) {
+            var name = row.dataset.name || '';
+            var email = row.dataset.email || '';
+            var rowDepartment = row.dataset.department || '';
+            var rowStatus = row.dataset.status || '';
+            var matchKeyword = !kw || name.includes(kw) || email.includes(kw);
+            var matchDepartment = !department || rowDepartment === department;
+            var matchStatus = !status || rowStatus === status;
+            var match = matchKeyword && matchDepartment && matchStatus;
+            row.style.display = match ? '' : 'none';
+        });
+    }
+
+    function clearFilters() {
+        document.getElementById('filterKeyword').value = '';
+        document.getElementById('filterDepartment').value = '';
+        document.getElementById('filterStatus').value = '';
+        filterTable();
+    }
+</script>
+</body>
 </html>
