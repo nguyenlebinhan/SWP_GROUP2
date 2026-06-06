@@ -133,10 +133,10 @@ public class BusinessAdminController extends HttpServlet {
             throws ServletException, IOException {
         int userSize = userDAO.countUsers("", "");
         request.setAttribute("userSize", userSize);
-        
+
         int deptSize = departmentDAO.getAllActiveDepartments().size();
         request.setAttribute("deptSize", deptSize);
-        
+
         request.getRequestDispatcher("/public/businessadmin/dashboard.jsp")
                 .forward(request, response);
     }
@@ -207,7 +207,8 @@ public class BusinessAdminController extends HttpServlet {
         for (Department d : departments) {
             if (d.getManagerId() != null) {
                 EmployeeDetailDTO mgr = departmentDAO.getCurrentManager(d.getDepartmentId());
-                if (mgr != null) managerMap.put(d.getDepartmentId(), mgr);
+                if (mgr != null)
+                    managerMap.put(d.getDepartmentId(), mgr);
             }
         }
 
@@ -218,9 +219,15 @@ public class BusinessAdminController extends HttpServlet {
         HttpSession session = request.getSession(false);
         if (session != null) {
             String success = (String) session.getAttribute("deptSuccess");
-            String error   = (String) session.getAttribute("deptError");
-            if (success != null) { request.setAttribute("success", success); session.removeAttribute("deptSuccess"); }
-            if (error   != null) { request.setAttribute("error",   error);   session.removeAttribute("deptError");   }
+            String error = (String) session.getAttribute("deptError");
+            if (success != null) {
+                request.setAttribute("success", success);
+                session.removeAttribute("deptSuccess");
+            }
+            if (error != null) {
+                request.setAttribute("error", error);
+                session.removeAttribute("deptError");
+            }
         }
 
         request.getRequestDispatcher("/public/businessadmin/department_list.jsp").forward(request, response);
@@ -261,7 +268,7 @@ public class BusinessAdminController extends HttpServlet {
     private void handleAssignManager(HttpServletRequest request, HttpServletResponse response, User ba)
             throws IOException {
         String deptIdParam = request.getParameter("departmentId");
-        String empIdParam  = request.getParameter("employeeId");
+        String empIdParam = request.getParameter("employeeId");
 
         if (isBlank(deptIdParam) || isBlank(empIdParam)) {
             request.getSession().setAttribute("deptError", "Dữ liệu không hợp lệ.");
@@ -272,7 +279,7 @@ public class BusinessAdminController extends HttpServlet {
         int departmentId, employeeId;
         try {
             departmentId = Integer.parseInt(deptIdParam.trim());
-            employeeId   = Integer.parseInt(empIdParam.trim());
+            employeeId = Integer.parseInt(empIdParam.trim());
         } catch (NumberFormatException e) {
             request.getSession().setAttribute("deptError", "Dữ liệu không hợp lệ.");
             response.sendRedirect(request.getContextPath() + "/v1/businessadmin/department");
@@ -446,8 +453,8 @@ public class BusinessAdminController extends HttpServlet {
             String deptName = (dept != null) ? dept.getDepartmentName() : "phòng ban này";
             List<String> allowed = departmentDAO.getAllowedRoleNames(departmentId);
             String msg = "Vai trò hiện tại của nhân viên không phù hợp với phòng \"" + deptName + "\". "
-                       + "Phòng này chỉ nhận vai trò: " + String.join(", ", allowed) + ". "
-                       + "Vui lòng đổi vai trò của người dùng trước khi phân công.";
+                    + "Phòng này chỉ nhận vai trò: " + String.join(", ", allowed) + ". "
+                    + "Vui lòng đổi vai trò của người dùng trước khi phân công.";
             repopulateAssignForm(request, response, user, msg);
             return;
         }
@@ -457,8 +464,7 @@ public class BusinessAdminController extends HttpServlet {
                 isBlank(phoneNumber) ? null : phoneNumber.trim(),
                 isBlank(skills) ? null : skills.trim(),
                 isBlank(experience) ? null : experience.trim(),
-                isBlank(degree) ? null : degree.trim()
-        );
+                isBlank(degree) ? null : degree.trim());
 
         if (!success) {
             repopulateAssignForm(request, response, user, "Phân công thất bại. Vui lòng thử lại.");
@@ -489,7 +495,7 @@ public class BusinessAdminController extends HttpServlet {
     }
 
     private void repopulateAssignForm(HttpServletRequest request, HttpServletResponse response,
-                                       User user, String errorMsg) throws ServletException, IOException {
+            User user, String errorMsg) throws ServletException, IOException {
         request.setAttribute("error", errorMsg);
         request.setAttribute("availableEmployees", employeeDAO.getEmployees(user.getUserId()));
         request.setAttribute("departments", departmentDAO.getAllActiveDepartments());
@@ -593,7 +599,8 @@ public class BusinessAdminController extends HttpServlet {
 
         if (isBlank(idParam) || isBlank(name)) {
             request.getSession().setAttribute("error", "Tên phòng ban là bắt buộc.");
-            response.sendRedirect(request.getContextPath() + "/v1/businessadmin/update-department?id=" + (idParam != null ? idParam : ""));
+            response.sendRedirect(request.getContextPath() + "/v1/businessadmin/update-department?id="
+                    + (idParam != null ? idParam : ""));
             return;
         }
 

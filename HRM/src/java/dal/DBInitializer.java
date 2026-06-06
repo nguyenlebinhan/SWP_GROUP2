@@ -237,6 +237,8 @@ public class DBInitializer {
                 + "approverId INT,"
                 + "approverNote NVARCHAR(255),"
                 + "approvedAt TIMESTAMP NULL,"
+                + "attachmentUrl VARCHAR(255) NULL,"  // đường dẫn file đính kèm trên server
+                + "attachmentName VARCHAR(255) NULL," // tên file gốc của người dùng
                 + "createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,"
                 + "updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,"
                 + "FOREIGN KEY (employeeId) REFERENCES Employees(employeeId),"
@@ -541,7 +543,10 @@ public class DBInitializer {
                 insertPermission(conn,"ADD_DEPARTMENT","Thêm phòng ban","Quyền thêm phòng ban");
                 insertPermission(conn,"VIEW_ATTENDANCE","Xem chấm công","Quyền xem dữ liệu chấm công (Manager: theo phòng mình; Employee: của bản thân)");
                 insertPermission(conn,"IMPORT_ATTENDANCE","Import chấm công","Quyền import dữ liệu chấm công từ file Excel");
-                insertPermission(conn,"VIEW_DEPARTMENT_EMPLOYEES_DETAIL","Xem danh sách nhân viên của phòng ban khác","Quyền xem dữ liệu nhân viên của phòng ban khác");            
+                insertPermission(conn,"VIEW_DEPARTMENT_EMPLOYEES_DETAIL","Xem danh sách nhân viên của phòng ban khác","Quyền xem dữ liệu nhân viên của phòng ban khác");
+                insertPermission(conn,"SUBMIT_FORM","Gửi đơn yêu cầu","Quyền gửi đơn yêu cầu (nghỉ phép, tăng ca, tạm ứng,...)");
+                insertPermission(conn,"APPROVE_FORM","Duyệt đơn yêu cầu","Quyền duyệt hoặc từ chối đơn yêu cầu của nhân viên trong phòng");
+                insertPermission(conn,"VIEW_ALL_FORMS","Xem tất cả đơn","Quyền xem toàn bộ đơn yêu cầu của mọi phòng ban (chỉ HR)");
             }
 
             if (countRows(conn, "Positions") == 0) {
@@ -615,6 +620,13 @@ public class DBInitializer {
                 insertDepartmentRole(conn, 3, 8); // FIEmployee
             }
 
+            if (countRows(conn, "Form_Types") == 0) {
+                insertFormType(conn, "LEAVE",    "Nghỉ phép");
+                insertFormType(conn, "OVERTIME", "Tăng ca");
+                insertFormType(conn, "ADVANCE",  "Tạm ứng");
+                insertFormType(conn, "OTHER",    "Khác");
+            }
+
             LOGGER.log(Level.INFO,"Seeding completed successfully.");
         } catch (SQLException e) {
             LOGGER.log(Level.SEVERE, "Cannot insert initial data", e);
@@ -627,6 +639,15 @@ public class DBInitializer {
             ps.setString(1, code);
             ps.setString(2, name);
             ps.setNString(3, description);
+            ps.executeUpdate();
+        }
+    }
+
+    private void insertFormType(Connection conn, String code, String name) throws SQLException {
+        String sql = "INSERT INTO Form_Types (formTypeCode, formTypeName) VALUES (?, ?)";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, code);
+            ps.setNString(2, name);
             ps.executeUpdate();
         }
     }
