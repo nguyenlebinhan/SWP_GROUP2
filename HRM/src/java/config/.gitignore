@@ -2,3 +2,4 @@
 *.env
 *.properties
 !*.properties.example
+.vscode
