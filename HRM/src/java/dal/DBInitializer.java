@@ -545,6 +545,8 @@ public class DBInitializer {
                 insertPermission(conn,"IMPORT_ATTENDANCE","Import chấm công","Quyền import dữ liệu chấm công từ file Excel");
                 insertPermission(conn,"VIEW_DEPARTMENT_EMPLOYEES_DETAIL","Xem danh sách nhân viên của phòng ban khác","Quyền xem dữ liệu nhân viên của phòng ban khác");
                 insertPermission(conn,"SUBMIT_FORM","Gửi đơn yêu cầu","Quyền gửi đơn yêu cầu (nghỉ phép, tăng ca, tạm ứng,...)");
+                insertPermission(conn,"VIEW_MY_FORM", "Xem đơn nhân viên", "Quyền xem toàn bộ đơn yêu cầu của một nhân viên");
+                insertPermission(conn,"VIEW_DEPT_FORMS", "Xem đơn phòng ban", "Quyền xem toàn bộ đơn yêu cầu của một phòng ban");
                 insertPermission(conn,"APPROVE_FORM","Duyệt đơn yêu cầu","Quyền duyệt hoặc từ chối đơn yêu cầu của nhân viên trong phòng");
                 insertPermission(conn,"VIEW_ALL_FORMS","Xem tất cả đơn","Quyền xem toàn bộ đơn yêu cầu của mọi phòng ban (chỉ HR)");
             }
