@@ -282,7 +282,6 @@ public class DBInitializer {
                 + "fileName VARCHAR(255) NOT NULL,"
                 + "month TINYINT NOT NULL,"
                 + "year INT NOT NULL,"
-                + "status TINYINT DEFAULT 0,"        // 0: Pending, 1: Approved, 2: Rejected
                 + "totalRows INT DEFAULT 0,"
                 + "importedRows INT DEFAULT 0,"
                 + "failedRows INT DEFAULT 0,"
@@ -296,6 +295,21 @@ public class DBInitializer {
                 + "FOREIGN KEY (reviewedBy) REFERENCES Employees(employeeId)"
                 + ")";
         execute(conn, SQL, "CREATE UPLOADED_FILES TABLE SUCCESSFULLY");
+    }
+    
+    public void createTableAttendancePeriods(Connection conn){
+        String SQL = "CREATE TABLE Attendance_Periods("
+                   + "periodId     INT PRIMARY KEY AUTO_INCREMENT, "
+                   + "departmentId INT NOT NULL UNIQUE, "
+                   + "month        TINYINT NOT NULL UNIQUE, "
+                   + "year         INT NOT NULL UNIQUE, "
+                   + "status       TINYINT DEFAULT 0, "
+                   + "publishedBy  INT NULL, "
+                   + "publishedAt  TIMESTAMP NULL, "
+                   + "FOREIGN KEY (departmentId) REFERENCES Departments(departmentId), "
+                   + "FOREIGN KEY (publishedBy)  REFERENCES Employees(employeeId)"
+                   + ")";
+        execute(conn,SQL,"CREATE ATTENDANCE_PERIODS TABLE SUCCESSFULLY");
     }
 
     public void createTableAttendance(Connection conn) {
