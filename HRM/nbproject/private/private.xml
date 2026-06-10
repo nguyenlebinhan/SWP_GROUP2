@@ -7,18 +7,23 @@
             <file>file:/C:/Users/PC/Documents/SWP_GROUP2/HRM/src/java/dal/DBContext.java</file>
             <file>file:/C:/Users/PC/Documents/SWP_GROUP2/HRM/web/public/components/employeeTopBar.jsp</file>
             <file>file:/C:/Users/PC/Documents/SWP_GROUP2/HRM/src/java/utils/ConfigManager.java</file>
+            <file>file:/C:/Users/PC/Documents/SWP_GROUP2/HRM/src/java/dao/EmployeeDAO.java</file>
             <file>file:/C:/Users/PC/Documents/SWP_GROUP2/HRM/web/public/components/employeeSideBar.jsp</file>
-            <file>file:/C:/Users/PC/Documents/SWP_GROUP2/HRM/web/public/employee/dashboard.jsp</file>
-            <file>file:/C:/Users/PC/Documents/SWP_GROUP2/HRM/src/java/controller/EmployeeController.java</file>
+            <file>file:/C:/Users/PC/Documents/SWP_GROUP2/HRM/web/public/auth/forget_password.jsp</file>
+            <file>file:/C:/Users/PC/Documents/SWP_GROUP2/HRM/src/java/dto/EmployeeDTO.java</file>
+            <file>file:/C:/Users/PC/Documents/SWP_GROUP2/HRM/web/public/businessadmin/employee_detail.jsp</file>
             <file>file:/C:/Users/PC/Documents/SWP_GROUP2/HRM/web/public/businessadmin/dashboard.jsp</file>
+            <file>file:/C:/Users/PC/Documents/SWP_GROUP2/HRM/src/java/dao/UserDAO.java</file>
+            <file>file:/C:/Users/PC/Documents/SWP_GROUP2/HRM/web/public/auth/change_password.jsp</file>
+            <file>file:/C:/Users/PC/Documents/SWP_GROUP2/HRM/web/public/manager/reassign_department.jsp</file>
             <file>file:/C:/Users/PC/Documents/SWP_GROUP2/HRM/src/java/dao/DepartmentDAO.java</file>
             <file>file:/C:/Users/PC/Documents/SWP_GROUP2/HRM/web/public/systemadmin/user_list.jsp</file>
             <file>file:/C:/Users/PC/Documents/SWP_GROUP2/HRM/web/public/businessadmin/department_assign.jsp</file>
             <file>file:/C:/Users/PC/Documents/SWP_GROUP2/HRM/src/java/dal/DBInitializer.java</file>
+            <file>file:/C:/Users/PC/Documents/SWP_GROUP2/HRM/web/public/components/managerSideBar.jsp</file>
             <file>file:/C:/Users/PC/Documents/SWP_GROUP2/HRM/src/java/dto/EmployeeDetailDTO.java</file>
-            <file>file:/C:/Users/PC/Documents/SWP_GROUP2/HRM/src/java/controller/BusinessAdminController.java</file>
+            <file>file:/C:/Users/PC/Documents/SWP_GROUP2/HRM/web/public/businessadmin/add_department.jsp</file>
             <file>file:/C:/Users/PC/Documents/SWP_GROUP2/HRM/web/public/businessadmin/department_list.jsp</file>
-            <file>file:/C:/Users/PC/Documents/SWP_GROUP2/HRM/web/WEB-INF/web.xml</file>
             <file>file:/C:/Users/PC/Documents/SWP_GROUP2/HRM/src/java/utils/ExcelAttendanceParser.java</file>
         </group>
     </open-files>

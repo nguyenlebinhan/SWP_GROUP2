@@ -4,6 +4,7 @@
  */
 package model;
 
+import java.sql.Date;
 import java.time.LocalDate;
 
 /**
@@ -22,11 +23,12 @@ public class Employee {
     private String degree;
     private int status;
     private Integer managerId;
+    private Date startDate;
 
 
     public Employee() {}
 
-    public Employee(int employeeId, String employeeCode, int userId, int departmentId, int positionId, String phoneNumber, String skills, String experience, String degree, int status, Integer managerId) {
+    public Employee(int employeeId, String employeeCode, int userId, int departmentId, int positionId, String phoneNumber, String skills, String experience, String degree, int status, Integer managerId, Date startDate) {
         this.employeeId = employeeId;
         this.employeeCode = employeeCode;
         this.userId = userId;
@@ -38,12 +40,9 @@ public class Employee {
         this.degree = degree;
         this.status = status;
         this.managerId = managerId;
+        this.startDate = startDate;
     }
 
-
-
-    
-    
     public int getEmployeeId() {
         return employeeId;
     }
@@ -132,4 +131,13 @@ public class Employee {
         this.managerId = managerId;
     }
 
+    public Date getStartDate() {
+        return startDate;
+    }
+
+    public void setStartDate(Date startDate) {
+        this.startDate = startDate;
+    }
+
+    
 }
