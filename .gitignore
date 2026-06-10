@@ -6,3 +6,4 @@
 HRM/nbproject/private/
 HRM/nbproject/*.xml~
 *.log
+.vscode/

@@ -237,6 +237,8 @@ public class DBInitializer {
                 + "approverId INT,"
                 + "approverNote NVARCHAR(255),"
                 + "approvedAt TIMESTAMP NULL,"
+                + "attachmentUrl VARCHAR(255) NULL,"  // đường dẫn file đính kèm trên server
+                + "attachmentName VARCHAR(255) NULL," // tên file gốc của người dùng
                 + "createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,"
                 + "updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,"
                 + "FOREIGN KEY (employeeId) REFERENCES Employees(employeeId),"
@@ -280,7 +282,6 @@ public class DBInitializer {
                 + "fileName VARCHAR(255) NOT NULL,"
                 + "month TINYINT NOT NULL,"
                 + "year INT NOT NULL,"
-                + "status TINYINT DEFAULT 0,"        // 0: Pending, 1: Approved, 2: Rejected
                 + "totalRows INT DEFAULT 0,"
                 + "importedRows INT DEFAULT 0,"
                 + "failedRows INT DEFAULT 0,"
@@ -294,6 +295,21 @@ public class DBInitializer {
                 + "FOREIGN KEY (reviewedBy) REFERENCES Employees(employeeId)"
                 + ")";
         execute(conn, SQL, "CREATE UPLOADED_FILES TABLE SUCCESSFULLY");
+    }
+    
+    public void createTableAttendancePeriods(Connection conn){
+        String SQL = "CREATE TABLE Attendance_Periods("
+                   + "periodId     INT PRIMARY KEY AUTO_INCREMENT, "
+                   + "departmentId INT NOT NULL UNIQUE, "
+                   + "month        TINYINT NOT NULL UNIQUE, "
+                   + "year         INT NOT NULL UNIQUE, "
+                   + "status       TINYINT DEFAULT 0, "
+                   + "publishedBy  INT NULL, "
+                   + "publishedAt  TIMESTAMP NULL, "
+                   + "FOREIGN KEY (departmentId) REFERENCES Departments(departmentId), "
+                   + "FOREIGN KEY (publishedBy)  REFERENCES Employees(employeeId)"
+                   + ")";
+        execute(conn,SQL,"CREATE ATTENDANCE_PERIODS TABLE SUCCESSFULLY");
     }
 
     public void createTableAttendance(Connection conn) {
@@ -541,7 +557,12 @@ public class DBInitializer {
                 insertPermission(conn,"ADD_DEPARTMENT","Thêm phòng ban","Quyền thêm phòng ban");
                 insertPermission(conn,"VIEW_ATTENDANCE","Xem chấm công","Quyền xem dữ liệu chấm công (Manager: theo phòng mình; Employee: của bản thân)");
                 insertPermission(conn,"IMPORT_ATTENDANCE","Import chấm công","Quyền import dữ liệu chấm công từ file Excel");
-                insertPermission(conn,"VIEW_DEPARTMENT_EMPLOYEES_DETAIL","Xem danh sách nhân viên của phòng ban khác","Quyền xem dữ liệu nhân viên của phòng ban khác");            
+                insertPermission(conn,"VIEW_DEPARTMENT_EMPLOYEES_DETAIL","Xem danh sách nhân viên của phòng ban khác","Quyền xem dữ liệu nhân viên của phòng ban khác");
+                insertPermission(conn,"SUBMIT_FORM","Gửi đơn yêu cầu","Quyền gửi đơn yêu cầu (nghỉ phép, tăng ca, tạm ứng,...)");
+                insertPermission(conn,"VIEW_MY_FORM", "Xem đơn nhân viên", "Quyền xem toàn bộ đơn yêu cầu của một nhân viên");
+                insertPermission(conn,"VIEW_DEPT_FORMS", "Xem đơn phòng ban", "Quyền xem toàn bộ đơn yêu cầu của một phòng ban");
+                insertPermission(conn,"APPROVE_FORM","Duyệt đơn yêu cầu","Quyền duyệt hoặc từ chối đơn yêu cầu của nhân viên trong phòng");
+                insertPermission(conn,"VIEW_ALL_FORMS","Xem tất cả đơn","Quyền xem toàn bộ đơn yêu cầu của mọi phòng ban (chỉ HR)");
             }
 
             if (countRows(conn, "Positions") == 0) {
@@ -615,6 +636,13 @@ public class DBInitializer {
                 insertDepartmentRole(conn, 3, 8); // FIEmployee
             }
 
+            if (countRows(conn, "Form_Types") == 0) {
+                insertFormType(conn, "LEAVE",    "Nghỉ phép");
+                insertFormType(conn, "OVERTIME", "Tăng ca");
+                insertFormType(conn, "ADVANCE",  "Tạm ứng");
+                insertFormType(conn, "OTHER",    "Khác");
+            }
+
             LOGGER.log(Level.INFO,"Seeding completed successfully.");
         } catch (SQLException e) {
             LOGGER.log(Level.SEVERE, "Cannot insert initial data", e);
@@ -627,6 +655,15 @@ public class DBInitializer {
             ps.setString(1, code);
             ps.setString(2, name);
             ps.setNString(3, description);
+            ps.executeUpdate();
+        }
+    }
+
+    private void insertFormType(Connection conn, String code, String name) throws SQLException {
+        String sql = "INSERT INTO Form_Types (formTypeCode, formTypeName) VALUES (?, ?)";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, code);
+            ps.setNString(2, name);
             ps.executeUpdate();
         }
     }

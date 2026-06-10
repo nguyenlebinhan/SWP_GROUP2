@@ -3,6 +3,7 @@
     <editor-bookmarks xmlns="http://www.netbeans.org/ns/editor-bookmarks/2" lastBookmarkId="0"/>
     <open-files xmlns="http://www.netbeans.org/ns/projectui-open-files/2">
         <group>
+<<<<<<< HEAD
             <file>file:/C:/Users/PC/Documents/SWP_GROUP2/HRM/src/java/model/Employee.java</file>
             <file>file:/C:/Users/PC/Documents/SWP_GROUP2/HRM/src/java/dal/DBContext.java</file>
             <file>file:/C:/Users/PC/Documents/SWP_GROUP2/HRM/web/public/components/employeeTopBar.jsp</file>
@@ -25,6 +26,11 @@
             <file>file:/C:/Users/PC/Documents/SWP_GROUP2/HRM/web/public/businessadmin/add_department.jsp</file>
             <file>file:/C:/Users/PC/Documents/SWP_GROUP2/HRM/web/public/businessadmin/department_list.jsp</file>
             <file>file:/C:/Users/PC/Documents/SWP_GROUP2/HRM/src/java/utils/ExcelAttendanceParser.java</file>
+=======
+            <file>file:/C:/Users/Default/Documents/SWP_GROUP2/HRM/src/java/dao/DepartmentDAO.java</file>
+            <file>file:/C:/Users/Default/Documents/SWP_GROUP2/HRM/src/java/model/FormRequest.java</file>
+            <file>file:/C:/Users/Default/Documents/SWP_GROUP2/HRM/src/java/dao/FormRequestDAO.java</file>
+>>>>>>> main
         </group>
     </open-files>
 </project-private>
