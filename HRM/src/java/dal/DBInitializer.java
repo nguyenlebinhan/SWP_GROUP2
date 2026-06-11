@@ -286,6 +286,7 @@ public class DBInitializer {
                 + "importedRows INT DEFAULT 0,"
                 + "failedRows INT DEFAULT 0,"
                 + "errorFileUrl VARCHAR(255),"
+                + "status TINYINT DEFAULT 0,"        // 0: Pending, 1: Imported, 2: Failed, 3: Partial
                 + "submittedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,"
                 + "reviewedBy INT,"
                 + "reviewedAt TIMESTAMP NULL,"
@@ -300,12 +301,13 @@ public class DBInitializer {
     public void createTableAttendancePeriods(Connection conn){
         String SQL = "CREATE TABLE Attendance_Periods("
                    + "periodId     INT PRIMARY KEY AUTO_INCREMENT, "
-                   + "departmentId INT NOT NULL UNIQUE, "
-                   + "month        TINYINT NOT NULL UNIQUE, "
-                   + "year         INT NOT NULL UNIQUE, "
-                   + "status       TINYINT DEFAULT 0, "
+                   + "departmentId INT NOT NULL, "
+                   + "month        TINYINT NOT NULL, "
+                   + "year         INT NOT NULL, "
+                   + "status       TINYINT DEFAULT 0, " // 0: Private (nháp), 1: Public (đã công khai cho nhân viên)
                    + "publishedBy  INT NULL, "
                    + "publishedAt  TIMESTAMP NULL, "
+                   + "UNIQUE KEY uq_period (departmentId, month, year), "
                    + "FOREIGN KEY (departmentId) REFERENCES Departments(departmentId), "
                    + "FOREIGN KEY (publishedBy)  REFERENCES Employees(employeeId)"
                    + ")";
@@ -326,13 +328,52 @@ public class DBInitializer {
                 + "workingDay DATE,"
                 + "penalty DECIMAL(15,2) DEFAULT 0,"
                 + "fileId INT NULL,"                 // file Excel import sinh ra dòng này
+                + "periodId INT NULL,"               // kỳ chấm công snapshot lúc import (không suy từ phòng ban hiện tại)
                 + "createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,"
                 + "updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,"
                 + "UNIQUE KEY uq_att_emp_date (employeeId, workDate)," // chống trùng employee + ngày
                 + "FOREIGN KEY (employeeId) REFERENCES Employees(employeeId),"
-                + "FOREIGN KEY (fileId) REFERENCES Uploaded_Files(fileId)"
+                + "FOREIGN KEY (fileId) REFERENCES Uploaded_Files(fileId),"
+                + "FOREIGN KEY (periodId) REFERENCES Attendance_Periods(periodId)"
                 + ")";
         execute(conn, SQL, "CREATE ATTENDANCE TABLE SUCCESSFULLY");
+    }
+
+    // Lưu staging từng dòng của mọi file import (kể cả dòng lỗi) để giữ lịch sử,
+    // dữ liệu giữ nguyên dạng chuỗi như trong file Excel.
+    public void createTableAttendanceImportRows(Connection conn) {
+        String SQL = "CREATE TABLE Attendance_Import_Rows("
+                + "importRowId INT PRIMARY KEY AUTO_INCREMENT,"
+                + "fileId INT NOT NULL,"
+                + "rowNumber INT NOT NULL,"
+                + "employeeCode VARCHAR(50),"
+                + "workDate VARCHAR(50),"
+                + "timeIn VARCHAR(20),"
+                + "timeOut VARCHAR(20),"
+                + "attendanceStatus VARCHAR(30),"
+                + "note NVARCHAR(255),"
+                + "validateStatus TINYINT DEFAULT 0," // 0: lỗi/bị từ chối, 1: hợp lệ đã merge vào Attendance
+                + "errorMessage NVARCHAR(500),"
+                + "createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,"
+                + "FOREIGN KEY (fileId) REFERENCES Uploaded_Files(fileId)"
+                + ")";
+        execute(conn, SQL, "CREATE ATTENDANCE_IMPORT_ROWS TABLE SUCCESSFULLY");
+    }
+
+    // Lịch sử chỉnh sửa chấm công: ai sửa, sửa gì, lý do.
+    public void createTableAttendanceAdjustmentHistory(Connection conn) {
+        String SQL = "CREATE TABLE Attendance_Adjustment_History("
+                + "adjustmentId INT PRIMARY KEY AUTO_INCREMENT,"
+                + "attendanceId INT NOT NULL,"
+                + "oldValue NVARCHAR(500),"
+                + "newValue NVARCHAR(500),"
+                + "reason NVARCHAR(500) NOT NULL,"
+                + "updatedBy INT NOT NULL,"          // userId người sửa
+                + "updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,"
+                + "FOREIGN KEY (attendanceId) REFERENCES Attendance(attendanceId),"
+                + "FOREIGN KEY (updatedBy) REFERENCES Users(userId)"
+                + ")";
+        execute(conn, SQL, "CREATE ATTENDANCE_ADJUSTMENT_HISTORY TABLE SUCCESSFULLY");
     }
 
     // ==================== LƯƠNG & ĐÁNH GIÁ ====================
@@ -432,8 +473,11 @@ public class DBInitializer {
                 "Notifications",
                 "Performance",
                 "Payroll",
+                "Attendance_Adjustment_History",
+                "Attendance_Import_Rows",
                 "Attendance",
                 "Uploaded_Files",
+                "Attendance_Periods",
                 "Leave_Form",
                 "Form_Requests",
                 "Form_Types",
@@ -464,7 +508,10 @@ public class DBInitializer {
                 "Form_Requests",
                 "Leave_Form",
                 "Uploaded_Files",
+                "Attendance_Periods",
                 "Attendance",
+                "Attendance_Import_Rows",
+                "Attendance_Adjustment_History",
                 "Payroll",
                 "Performance",
                 "Notifications",
@@ -498,11 +545,14 @@ public class DBInitializer {
                         case "Employees":         createTableEmployees(conn);         break;
                         case "Employment_Contracts": createTableEmploymentContracts(conn); break;
                         case "Candidates":        createTableCandidates(conn);        break;
+                        case "Attendance_Periods": createTableAttendancePeriods(conn);break;
                         case "Form_Types":       createTableFormTypes(conn);         break;
                         case "Form_Requests":    createTableFormRequests(conn);     break;
                         case "Leave_Form":     createTableLeaveForm(conn);      break;
                         case "Uploaded_Files":    createTableUploadedFiles(conn);     break;
                         case "Attendance":        createTableAttendance(conn);        break;
+                        case "Attendance_Import_Rows":        createTableAttendanceImportRows(conn);        break;
+                        case "Attendance_Adjustment_History": createTableAttendanceAdjustmentHistory(conn); break;
                         case "Payroll":           createTablePayroll(conn);           break;
                         case "Performance":       createTablePerformance(conn);       break;
                         case "Notifications":     createTableNotifications(conn);     break;
@@ -514,7 +564,7 @@ public class DBInitializer {
 
             execute(conn, "SET FOREIGN_KEY_CHECKS=1", "ENABLE FK CHECKS AFTER CREATE");
             LOGGER.log(Level.INFO, "Đã kích hoạt lại toàn bộ kiểm tra khóa ngoại hệ thống.");
-            
+
             insertInitialData(conn);
             LOGGER.log(Level.INFO,"Database initialized successfully!");
 
@@ -522,6 +572,8 @@ public class DBInitializer {
             LOGGER.log(Level.SEVERE,"Database initialization failed: {0} ", e.getMessage());
         }
     }
+
+
 
     private void insertInitialData(Connection conn) {
         try {
@@ -553,11 +605,11 @@ public class DBInitializer {
                 insertPermission(conn, "ADD_EMPLOYMENT_CONTRACT", "Thêm hợp đồng lao động", "Quyền thêm hợp đồng lao động cho nhân viên");
                 insertPermission(conn, "EDIT_DEPARTMENTS","Chỉnh sửa phòng ban",     "Quyền chỉnh sửa phòng ban ");
                 insertPermission(conn, "ASSIGN_DEPARTMENT","Gán nhân viên vào phòng ban",     "Quyền gán nhân viên vào phòng ban");
-                insertPermission(conn, "REASSIGN_DEPARTMENT","Chuyển phòng ban nhân viên",     "Quyền chuyển nhân viên sang phòng ban khác");
+                insertPermission(conn, "UNASSIGN_DEPARTMENT","Xóa gán phòng ban nhân viên",     "Quyền xóa gán nhân viên sang phòng ban khác");
                 insertPermission(conn,"ADD_DEPARTMENT","Thêm phòng ban","Quyền thêm phòng ban");
                 insertPermission(conn,"VIEW_ATTENDANCE","Xem chấm công","Quyền xem dữ liệu chấm công (Manager: theo phòng mình; Employee: của bản thân)");
                 insertPermission(conn,"IMPORT_ATTENDANCE","Import chấm công","Quyền import dữ liệu chấm công từ file Excel");
-                insertPermission(conn,"VIEW_DEPARTMENT_EMPLOYEES_DETAIL","Xem danh sách nhân viên của phòng ban khác","Quyền xem dữ liệu nhân viên của phòng ban khác");
+                insertPermission(conn,"EDIT_ATTENDANCE","Chỉnh sửa chấm công","Quyền chỉnh sửa trạng thái chấm công khi kỳ chấm công chưa công khai");                insertPermission(conn,"VIEW_DEPARTMENT_EMPLOYEES_DETAIL","Xem danh sách nhân viên của phòng ban khác","Quyền xem dữ liệu nhân viên của phòng ban khác");
                 insertPermission(conn,"SUBMIT_FORM","Gửi đơn yêu cầu","Quyền gửi đơn yêu cầu (nghỉ phép, tăng ca, tạm ứng,...)");
                 insertPermission(conn,"VIEW_MY_FORM", "Xem đơn nhân viên", "Quyền xem toàn bộ đơn yêu cầu của một nhân viên");
                 insertPermission(conn,"VIEW_DEPT_FORMS", "Xem đơn phòng ban", "Quyền xem toàn bộ đơn yêu cầu của một phòng ban");
