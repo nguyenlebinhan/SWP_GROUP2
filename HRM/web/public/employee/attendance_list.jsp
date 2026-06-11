@@ -20,6 +20,8 @@
         .badge-s1 { background:#fef3c7; color:#92400e; }
         .badge-s2 { background:#fee2e2; color:#991b1b; }
         .badge-s3 { background:#e5e7eb; color:#374151; }
+        .badge-private { background:#fef3c7; color:#92400e; }
+        .badge-public  { background:#d1fae5; color:#065f46; }
         .badge-st { padding:4px 10px; border-radius:20px; font-size:12px; font-weight:600; }
     </style>
 </head>
@@ -31,6 +33,21 @@
     <jsp:include page="${empty topbarPage ? '/public/components/employeeTopBar.jsp' : topbarPage}">
         <jsp:param name="title" value="Dữ liệu chấm công" />
     </jsp:include>
+
+    <c:if test="${not empty sessionScope.success}">
+        <div class="alert alert-success alert-dismissible fade show">
+            <i class="fa-solid fa-circle-check me-2"></i>${sessionScope.success}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        <c:remove var="success" scope="session"/>
+    </c:if>
+    <c:if test="${not empty sessionScope.error}">
+        <div class="alert alert-danger alert-dismissible fade show">
+            <i class="fa-solid fa-circle-xmark me-2"></i>${sessionScope.error}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        <c:remove var="error" scope="session"/>
+    </c:if>
 
     <div class="section-card">
         <form method="get" action="${pageContext.request.contextPath}/v1/employee/attendance-list" class="row g-3">
@@ -72,7 +89,6 @@
             </div>
         </form>
     </div>
-
     <div class="section-card">
         <div class="table-responsive">
             <table class="table table-hover align-middle">
@@ -86,12 +102,16 @@
                         <th>Giờ ra</th>
                         <th>Số giờ</th>
                         <th>Trạng thái</th>
+                        <th>Kỳ</th>
+                        <c:if test="${canEditAttendance}">
+                            <th>Thao tác</th>
+                        </c:if>
                     </tr>
                 </thead>
                 <tbody>
                     <c:choose>
                         <c:when test="${empty attendances}">
-                            <tr><td colspan="8" class="text-center text-muted py-4">Không có dữ liệu chấm công.</td></tr>
+                            <tr><td colspan="${canEditAttendance ? 10 : 9}" class="text-center text-muted py-4">Không có dữ liệu chấm công.</td></tr>
                         </c:when>
                         <c:otherwise>
                             <c:forEach var="a" items="${attendances}">
@@ -106,6 +126,26 @@
                                     <td>
                                         <span class="badge-st badge-s${a.attendanceStatus}">${a.statusLabel}</span>
                                     </td>
+                                    <td>
+                                        <c:choose>
+                                            <c:when test="${a.periodStatus == 1}">
+                                                <span class="badge-st badge-public">Công khai</span>
+                                            </c:when>
+                                            <c:otherwise>
+                                                <span class="badge-st badge-private">Riêng tư</span>
+                                            </c:otherwise>
+                                        </c:choose>
+                                    </td>
+                                    <c:if test="${canEditAttendance}">
+                                        <td class="text-end">
+                                            <c:if test="${a.editable}">
+                                                <a class="btn btn-sm btn-outline-primary" title="Sửa dữ liệu chấm công"
+                                                   href="${pageContext.request.contextPath}/v1/employee/attendance-update?id=${a.attendanceId}&month=${filterMonth}&year=${filterYear}&departmentId=${filterDepartmentId}&employeeCode=${filterEmployeeCode}">
+                                                    <i class="fa-solid fa-pen"></i> Sửa
+                                                </a>
+                                            </c:if>
+                                        </td>
+                                    </c:if>
                                 </tr>
                             </c:forEach>
                         </c:otherwise>

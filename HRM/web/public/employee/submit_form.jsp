@@ -73,7 +73,7 @@
                     <select id="formTypeId" name="formTypeId" class="form-select" required>
                         <option value="">-- Chọn loại đơn --</option>
                         <c:forEach var="ft" items="${formTypes}">
-                            <option value="${ft.formTypeId}"><c:out value="${ft.formTypeName}"/></option>
+                            <option value="${ft.formTypeId}" data-code="${ft.formTypeCode}"><c:out value="${ft.formTypeName}"/></option>
                         </c:forEach>
                     </select>
                 </div>
