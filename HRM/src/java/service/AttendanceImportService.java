@@ -4,7 +4,11 @@
  */
 package service;
 
+import dal.DBContext;
 import dao.AttendanceDAO;
+import dao.AttendanceImportRowDAO;
+import dao.AttendancePeriodDAO;
+import dao.UploadedFileDAO;
 import dto.AttendanceDataDTO;
 import dto.AttendanceImportResultDTO;
 import exception.InvalidFormatException;
@@ -12,7 +16,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.sql.Connection;
 import java.sql.Date;
+import java.sql.SQLException;
 import java.sql.Time;
 import java.util.HashMap;
 import java.util.List;
@@ -21,6 +27,7 @@ import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import model.Attendance;
+import model.AttendancePeriod;
 import utils.ExcelAttendanceParser;
 
 public class AttendanceImportService {
@@ -41,16 +48,27 @@ public class AttendanceImportService {
         STATUS_MAP.put("UNEXCUSED", 3);
     }
 
+    private final DBContext dbContext;
     private final AttendanceDAO attendanceDAO;
+    private final AttendancePeriodDAO periodDAO;
+    private final AttendanceImportRowDAO importRowDAO;
+    private final UploadedFileDAO uploadedFileDAO;
+    private final AttendancePeriodService periodService;
     private final ExcelAttendanceParser parser;
 
     public AttendanceImportService() {
+        this.dbContext = new DBContext();
         this.attendanceDAO = new AttendanceDAO();
+        this.periodDAO = new AttendancePeriodDAO();
+        this.importRowDAO = new AttendanceImportRowDAO();
+        this.uploadedFileDAO = new UploadedFileDAO();
+        this.periodService = new AttendancePeriodService();
         this.parser = new ExcelAttendanceParser();
     }
 
 
-    public AttendanceImportResultDTO importAttendance(InputStream in, Integer departmentId, int fileId) {
+    public AttendanceImportResultDTO importAttendance(InputStream in, int departmentId,
+            int month, int year, int fileId) {
         AttendanceImportResultDTO result = new AttendanceImportResultDTO();
         result.setFileId(fileId);
 
@@ -61,39 +79,93 @@ public class AttendanceImportService {
             result.setStatus(FILE_STATUS_FAILED);
             result.setNote(e.getMessage());
             result.addError(1, null, e.getMessage());
+            uploadedFileDAO.updateImportResult(fileId, 0, 0, 0, FILE_STATUS_FAILED, result.getNote());
             return result;
         } catch (IOException e) {
             LOGGER.log(Level.SEVERE, "Cannot read Excel file", e);
             result.setStatus(FILE_STATUS_FAILED);
             result.setNote("Không thể đọc file Excel. File có thể bị hỏng hoặc không đúng định dạng .xlsx.");
             result.addError(1, null, result.getNote());
+            uploadedFileDAO.updateImportResult(fileId, 0, 0, 0, FILE_STATUS_FAILED, result.getNote());
             return result;
         }
 
         result.setTotalRows(attendanceDataDTOs.size());
-        int imported = 0;
 
-        for (AttendanceDataDTO ad : attendanceDataDTOs) {
+        try (Connection conn = dbContext.getConnection()) {
+            conn.setAutoCommit(false);
             try {
-                Attendance att = buildAndValidate(ad, departmentId, fileId);
-                if (attendanceDAO.upsertAttendance(att)) {
-                    imported++;
-                } else {
-                    result.addError(ad.getRowNumber(), ad.getEmployeeCode(),
-                            "Lưu dữ liệu thất bại (lỗi cơ sở dữ liệu).");
+
+                AttendancePeriod period = periodDAO.getPeriodForUpdate(conn, departmentId, month, year);
+                String periodError = periodService.checkImport(period, month, year);
+                if (periodError == null && period == null) {
+                    periodDAO.insertPeriod(conn, departmentId, month, year);
+                    period = periodDAO.getPeriodForUpdate(conn, departmentId, month, year);
+                    periodError = periodService.checkImport(period, month, year);
                 }
-            } catch (RowValidationException e) {
-                result.addError(ad.getRowNumber(), ad.getEmployeeCode(), e.getMessage());
-            } catch (RuntimeException e) {
-                LOGGER.log(Level.WARNING, "Unexpected error importing row " + ad.getRowNumber(), e);
-                result.addError(ad.getRowNumber(), ad.getEmployeeCode(),
-                        "Lỗi không xác định: " + e.getMessage());
+                if (periodError != null) {
+                    for (AttendanceDataDTO ad : attendanceDataDTOs) {
+                        int rowId = importRowDAO.insertRow(conn, fileId, ad);
+                        importRowDAO.markRow(conn, rowId, false, periodError);
+                        result.addError(ad.getRowNumber(), ad.getEmployeeCode(), periodError);
+                    }
+                    result.setImportedRows(0);
+                    result.setFailedRows(result.getTotalRows());
+                    result.setStatus(FILE_STATUS_FAILED);
+                    result.setNote(periodError);
+                    uploadedFileDAO.updateImportResult(conn, fileId, result.getTotalRows(), 0,
+                            result.getTotalRows(), FILE_STATUS_FAILED, periodError);
+                    conn.commit();
+                    return result;
+                }
+
+                int periodId = period.getPeriodId();
+                int imported = 0;
+                for (AttendanceDataDTO ad : attendanceDataDTOs) {
+                    int rowId = importRowDAO.insertRow(conn, fileId, ad);
+                    try {
+                        Attendance att = buildAndValidate(ad, departmentId, month, year, fileId, periodId);
+                        if (attendanceDAO.upsertAttendance(conn, att)) {
+                            importRowDAO.markRow(conn, rowId, true, null);
+                            imported++;
+                        } else {
+                            importRowDAO.markRow(conn, rowId, false, "Lưu dữ liệu thất bại (lỗi cơ sở dữ liệu).");
+                            result.addError(ad.getRowNumber(), ad.getEmployeeCode(),
+                                    "Lưu dữ liệu thất bại (lỗi cơ sở dữ liệu).");
+                        }
+                    } catch (RowValidationException e) {
+                        importRowDAO.markRow(conn, rowId, false, e.getMessage());
+                        result.addError(ad.getRowNumber(), ad.getEmployeeCode(), e.getMessage());
+                    }
+                }
+
+                result.setImportedRows(imported);
+                result.setFailedRows(result.getTotalRows() - imported);
+                applyResultStatus(result, imported);
+                uploadedFileDAO.updateImportResult(conn, fileId, result.getTotalRows(),
+                        result.getImportedRows(), result.getFailedRows(), result.getStatus(), result.getNote());
+                conn.commit();
+                return result;
+            } catch (SQLException | RuntimeException e) {
+                conn.rollback();
+                throw e;
+            } finally {
+                conn.setAutoCommit(true);
             }
+        } catch (SQLException | RuntimeException e) {
+            LOGGER.log(Level.SEVERE, "Attendance import transaction failed for fileId: " + fileId, e);
+            result.setImportedRows(0);
+            result.setFailedRows(result.getTotalRows());
+            result.setStatus(FILE_STATUS_FAILED);
+            result.setNote("Lỗi hệ thống khi import. Toàn bộ thay đổi đã được hoàn tác, dữ liệu cũ không bị mất.");
+            result.addError(1, null, result.getNote());
+            uploadedFileDAO.updateImportResult(fileId, result.getTotalRows(), 0,
+                    result.getTotalRows(), FILE_STATUS_FAILED, result.getNote());
+            return result;
         }
+    }
 
-        result.setImportedRows(imported);
-        result.setFailedRows(result.getTotalRows() - imported);
-
+    private void applyResultStatus(AttendanceImportResultDTO result, int imported) {
         if (result.getTotalRows() == 0) {
             result.setStatus(FILE_STATUS_FAILED);
             result.setNote("File không có dòng dữ liệu nào.");
@@ -108,11 +180,10 @@ public class AttendanceImportService {
             result.setNote("Import thành công " + imported + "/" + result.getTotalRows()
                     + " dòng, " + result.getFailedRows() + " dòng lỗi.");
         }
-        return result;
     }
 
-    private Attendance buildAndValidate(AttendanceDataDTO ad, Integer departmentId, int fileId)
-            throws RowValidationException {
+    private Attendance buildAndValidate(AttendanceDataDTO ad, int departmentId,
+            int month, int year, int fileId, int periodId) throws RowValidationException {
 
         String employeeCode = trimToNull(ad.getEmployeeCode());
         if (employeeCode == null) {
@@ -127,6 +198,10 @@ public class AttendanceImportService {
             workDate = Date.valueOf(ad.getWorkDate().trim());
         } catch (IllegalArgumentException e) {
             throw new RowValidationException("workDate không hợp lệ (yêu cầu yyyy-MM-dd): " + ad.getWorkDate());
+        }
+        if (!periodService.isDateInPeriod(workDate.toLocalDate(), month, year)) {
+            throw new RowValidationException("workDate " + ad.getWorkDate().trim()
+                    + " không thuộc kỳ " + month + "/" + year + " đã chọn.");
         }
 
         String statusRaw = trimToNull(ad.getAttendanceStatus());
@@ -158,12 +233,11 @@ public class AttendanceImportService {
             hoursWorked = null; // không đủ dữ liệu để tính giờ
         }
 
-        // Map nhân viên theo employeeCode
         int employeeId = attendanceDAO.findEmployeeIdByCode(employeeCode);
         if (employeeId <= 0) {
             throw new RowValidationException("employeeCode không tồn tại: " + employeeCode);
         }
-        if (departmentId != null && !attendanceDAO.employeeBelongsToDepartment(employeeId, departmentId)) {
+        if (!attendanceDAO.employeeBelongsToDepartment(employeeId, departmentId)) {
             throw new RowValidationException("Nhân viên " + employeeCode
                     + " không thuộc phòng ban đã chọn để import.");
         }
@@ -177,6 +251,7 @@ public class AttendanceImportService {
         att.setHoursWorked(hoursWorked);
         att.setAttendanceStatus(statusCode);
         att.setFileId(fileId);
+        att.setPeriodId(periodId);
         return att;
     }
 

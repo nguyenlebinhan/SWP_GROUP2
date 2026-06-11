@@ -1,6 +1,7 @@
 package controller;
 
 import dao.AttendanceDAO;
+import dao.AttendancePeriodDAO;
 import dao.DepartmentDAO;
 import dao.EmployeeDAO;
 import dao.EmploymentContractDAO;
@@ -20,8 +21,10 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 import jakarta.servlet.http.Part;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.io.IOException;
 import java.io.InputStream;
+import java.sql.Time;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -30,6 +33,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import model.*;
 import service.AttendanceImportService;
+import service.AttendancePeriodService;
 import utils.ConfigManager;
 
 @MultipartConfig(
@@ -51,8 +55,10 @@ public class EmployeeController extends HttpServlet {
     private final FormRequestDAO formRequestDAO = new FormRequestDAO();
     private final FormTypeDAO formTypeDAO = new FormTypeDAO();
     private final AttendanceDAO attendanceDAO = new AttendanceDAO();
+    private final AttendancePeriodDAO attendancePeriodDAO = new AttendancePeriodDAO();
     private final UploadedFileDAO uploadedFileDAO = new UploadedFileDAO();
     private final AttendanceImportService importService = new AttendanceImportService();
+    private final AttendancePeriodService periodService = new AttendancePeriodService();
     private final String UPLOAD_DIR = config.getProperty("UPLOAD_DIR");
     private final String FILE_PART = config.getProperty("FILE_PART");
 
@@ -94,9 +100,6 @@ public class EmployeeController extends HttpServlet {
             case "/assign-department":
                 displayAssignDepartmentForm(request, response, user);
                 break;
-            case "/reassign-department":
-                displayReassignDepartmentForm(request, response, user);
-                break;
             case "/department-list":
                 displayDepartmentList(request, response, user);
                 break;
@@ -115,8 +118,14 @@ public class EmployeeController extends HttpServlet {
             case "/attendance-list":
                 displayAttendanceList(request, response, user);
                 break;
+            case "/attendance-update":
+                displayUpdateAttendanceForm(request, response, user);
+                break;
             case "/own-attendance":
                 displayOwnAttendanceList(request, response, user);
+                break;
+            case "/attendance-periods":
+                displayAttendancePeriods(request, response, user);
                 break;
             case "/formcreation":
                 displayForm(request, response, user);
@@ -162,9 +171,6 @@ public class EmployeeController extends HttpServlet {
             case "/add-contract":
                 handleAddContract(request, response, user);
                 break;
-            case "/reassign-department":
-                handleReassignDepartment(request, response, user);
-                break;
             case "/unassign-department":
                 handleUnassignDepartment(request, response, user);
                 break;
@@ -179,6 +185,12 @@ public class EmployeeController extends HttpServlet {
                 break;
             case "/attendance-import":
                 handleImportAttendance(request, response, user);
+                break;
+            case "/attendance-update":
+                handleUpdateAttendance(request, response, user);
+                break;
+            case "/attendance-period-status":
+                handleChangePeriodStatus(request, response, user);
                 break;
             case "/update-employee-detail":
                 handleUpdateEmployeeDetail(request, response, user);
@@ -334,6 +346,7 @@ public class EmployeeController extends HttpServlet {
             User user) throws ServletException, IOException {
         Set<String> perms = getPermissions(user);
         request.getSession().setAttribute("userPermissions", perms);
+        setPermissionFlags(request, perms);
         List<Attendance> attendances = attendanceDAO.getAttendanceListByUserId(user.getUserId());
 
         request.setAttribute("attendances", attendances);
@@ -450,6 +463,7 @@ public class EmployeeController extends HttpServlet {
         }
         Set<String> perms = getPermissions(user);
         request.getSession().setAttribute("userPermissions", perms);
+        setPermissionFlags(request, perms);
 
         Integer month = parseIntOrNull(request.getParameter("month"));
         Integer year = parseIntOrNull(request.getParameter("year"));
@@ -458,9 +472,14 @@ public class EmployeeController extends HttpServlet {
         Integer restrictEmployeeId = null;
         List<Attendance> attendances = attendanceDAO.getAttendanceList(
                 departmentId, month, year, employeeCode, restrictEmployeeId);
-
+        for (Attendance a : attendances) {
+            int m = a.getWorkDate().toLocalDate().getMonthValue();
+            int y = a.getWorkDate().toLocalDate().getYear();
+            a.setEditable(periodService.canEdit(a.getPeriodStatus(), m, y));
+        }
+        List<Department> activeDepartments = departmentDAO.getAllActiveDepartments();
         request.setAttribute("attendances", attendances);
-        request.setAttribute("departments", departmentDAO.getAllActiveDepartments());
+        request.setAttribute("departments", activeDepartments);
         request.setAttribute("filterMonth", month);
         request.setAttribute("filterYear", year);
         request.setAttribute("filterDepartmentId", departmentId);
@@ -468,6 +487,120 @@ public class EmployeeController extends HttpServlet {
         request.setAttribute("canFilterDepartment", isHrStaff(user));
         request.getRequestDispatcher("/public/employee/attendance_list.jsp").forward(request, response);
     }
+
+ 
+    private void displayUpdateAttendanceForm(HttpServletRequest request, HttpServletResponse response,
+            User user) throws ServletException, IOException {
+        if (!isHrStaff(user) || !hasPermission(user, "EDIT_ATTENDANCE")) {
+            request.getSession().setAttribute("error", "Bạn không có quyền chỉnh sửa dữ liệu chấm công.");
+            response.sendRedirect(request.getContextPath() + "/v1/employee/dashboard");
+            return;
+        }
+        Set<String> perms = getPermissions(user);
+        request.getSession().setAttribute("userPermissions", perms);
+
+        String backUrl = request.getContextPath() + "/v1/employee/attendance-list"
+                + buildAttendanceFilterQuery(request);
+
+        Integer attendanceId = parseIntOrNull(request.getParameter("id"));
+        Attendance attendance = (attendanceId != null) ? attendanceDAO.getAttendanceById(attendanceId) : null;
+        if (attendance == null) {
+            request.getSession().setAttribute("error", "Không tìm thấy bản ghi chấm công.");
+            response.sendRedirect(backUrl);
+            return;
+        }
+        int attMonth = attendance.getWorkDate().toLocalDate().getMonthValue();
+        int attYear = attendance.getWorkDate().toLocalDate().getYear();
+        String editError = periodService.checkEdit(attendance.getPeriodStatus(), attMonth, attYear);
+        if (editError != null) {
+            request.getSession().setAttribute("error", editError);
+            response.sendRedirect(backUrl);
+            return;
+        }
+
+        request.setAttribute("attendance", attendance);
+        request.setAttribute("editDeadline", periodService.getEditDeadlineDate(attMonth, attYear));
+        request.setAttribute("adjustmentHistory", attendanceDAO.getAdjustmentHistory(attendanceId));
+        request.setAttribute("backUrl", backUrl);
+        request.setAttribute("filterMonth", trimToNull(request.getParameter("month")));
+        request.setAttribute("filterYear", trimToNull(request.getParameter("year")));
+        request.setAttribute("filterDepartmentId", trimToNull(request.getParameter("departmentId")));
+        request.setAttribute("filterEmployeeCode", trimToNull(request.getParameter("employeeCode")));
+        request.getRequestDispatcher("/public/employee/attendance_update.jsp").forward(request, response);
+    }
+
+    private void handleUpdateAttendance(HttpServletRequest request, HttpServletResponse response,
+            User user) throws ServletException, IOException {
+        if (!isHrStaff(user) || !hasPermission(user, "EDIT_ATTENDANCE")) {
+            request.getSession().setAttribute("error", "Bạn không có quyền chỉnh sửa dữ liệu chấm công.");
+            response.sendRedirect(request.getContextPath() + "/v1/employee/dashboard");
+            return;
+        }
+
+        String redirectUrl = request.getContextPath() + "/v1/employee/attendance-list"
+                + buildAttendanceFilterQuery(request);
+
+        Integer attendanceId = parseIntOrNull(request.getParameter("attendanceId"));
+        Integer status = parseIntOrNull(request.getParameter("attendanceStatus"));
+        if (attendanceId == null || status == null || status < 0 || status > 3) {
+            request.getSession().setAttribute("error", "Dữ liệu chỉnh sửa chấm công không hợp lệ.");
+            response.sendRedirect(redirectUrl);
+            return;
+        }
+
+        // Mọi chỉnh sửa phải có lý do.
+        String reason = trimToNull(request.getParameter("reason"));
+        if (reason == null) {
+            request.getSession().setAttribute("error", "Vui lòng nhập lý do chỉnh sửa chấm công.");
+            response.sendRedirect(redirectUrl);
+            return;
+        }
+
+        Attendance attendance = attendanceDAO.getAttendanceById(attendanceId);
+        if (attendance == null) {
+            request.getSession().setAttribute("error", "Không tìm thấy bản ghi chấm công.");
+            response.sendRedirect(redirectUrl);
+            return;
+        }
+
+        Time timeIn;
+        Time timeOut;
+        try {
+            timeIn = parseTimeOrNull(request.getParameter("timeIn"));
+            timeOut = parseTimeOrNull(request.getParameter("timeOut"));
+        } catch (IllegalArgumentException e) {
+            request.getSession().setAttribute("error", "Giờ vào / giờ ra không hợp lệ.");
+            response.sendRedirect(redirectUrl);
+            return;
+        }
+
+        boolean isAbsent = (status == 2 || status == 3);
+        BigDecimal hoursWorked;
+        if (isAbsent) {
+            hoursWorked = BigDecimal.ZERO;
+        } else if (timeIn != null && timeOut != null) {
+            long diffMillis = timeOut.getTime() - timeIn.getTime();
+            if (diffMillis < 0) {
+                request.getSession().setAttribute("error", "Giờ ra phải sau giờ vào.");
+                response.sendRedirect(redirectUrl);
+                return;
+            }
+            hoursWorked = new BigDecimal(diffMillis)
+                    .divide(new BigDecimal(3600000), 2, RoundingMode.HALF_UP);
+        } else {
+            hoursWorked = null;
+        }
+
+        String updateError = attendanceDAO.updateAttendanceWithHistory(attendanceId, timeIn, timeOut,
+                hoursWorked, status, reason, user.getUserId(), periodService);
+        if (updateError == null) {
+            request.getSession().setAttribute("success", "Đã cập nhật dữ liệu chấm công.");
+        } else {
+            request.getSession().setAttribute("error", updateError);
+        }
+        response.sendRedirect(redirectUrl);
+    }
+
 
     private void handleImportAttendance(HttpServletRequest request, HttpServletResponse response,
             model.User user) throws ServletException, IOException {
@@ -529,6 +662,14 @@ public class EmployeeController extends HttpServlet {
             return;
         }
 
+        AttendancePeriod existingPeriod = attendancePeriodDAO.getPeriod(departmentId, month, year);
+        String periodError = periodService.checkImport(existingPeriod, month, year);
+        if (periodError != null) {
+            request.setAttribute("error", periodError);
+            request.getRequestDispatcher("/public/employee/attendance_import.jsp").forward(request, response);
+            return;
+        }
+
         EmployeeDetailDTO me = employeeDAO.getEmployeeByUserId(user.getUserId());
         int fileDepartmentId = departmentId;
         Integer submitterEmployeeId = (me != null) ? me.getEmployeeId() : null;
@@ -562,7 +703,6 @@ public class EmployeeController extends HttpServlet {
         uf.setFileName(sanitizeFileName(submittedName));
         uf.setMonth(month);
         uf.setYear(year);
-        uf.setStatus(AttendanceImportService.FILE_STATUS_PENDING);
         int fileId = uploadedFileDAO.createUploadedFile(uf);
         if (fileId <= 0) {
             request.setAttribute("error", "Không thể tạo bản ghi file. Vui lòng thử lại.");
@@ -570,10 +710,10 @@ public class EmployeeController extends HttpServlet {
             return;
         }
 
-        // 3. Đọc & import từng dòng.
+        // 3. Đọc & import trong một transaction (staging rows + merge + kết quả file).
         AttendanceImportResultDTO result;
         try (InputStream is = Files.newInputStream(savedPath)) {
-            result = importService.importAttendance(is, departmentId, fileId);
+            result = importService.importAttendance(is, departmentId, month, year, fileId);
         } catch (IOException e) {
             LOGGER.log(Level.SEVERE, "Cannot read saved attendance file", e);
             uploadedFileDAO.updateImportResult(fileId, 0, 0, 0,
@@ -583,10 +723,6 @@ public class EmployeeController extends HttpServlet {
             return;
         }
         result.setFileName(uf.getFileName());
-
-        // 4. Cập nhật kết quả import lên Uploaded_Files.
-        uploadedFileDAO.updateImportResult(fileId, result.getTotalRows(), result.getImportedRows(),
-                result.getFailedRows(), result.getStatus(), result.getNote());
 
         LOGGER.log(Level.INFO, "Attendance import done by userId={0}: fileId={1}, total={2}, imported={3}, failed={4}",
                 new Object[]{user.getUserId(), fileId, result.getTotalRows(),
@@ -599,6 +735,90 @@ public class EmployeeController extends HttpServlet {
         request.setAttribute("selectedYear", year);
         request.setAttribute("selectedDepartmentId", departmentId);
         request.getRequestDispatcher("/public/employee/attendance_import.jsp").forward(request, response);
+    }
+
+    private void displayAttendancePeriods(HttpServletRequest request, HttpServletResponse response,
+            User user) throws ServletException, IOException {
+        if (!isHrStaff(user) || !hasPermission(user, "VIEW_ATTENDANCE")) {
+            request.getSession().setAttribute("error", "Bạn không có quyền xem kỳ chấm công.");
+            response.sendRedirect(request.getContextPath() + "/v1/employee/dashboard");
+            return;
+        }
+        Set<String> perms = getPermissions(user);
+        setPermissionFlags(request, perms);
+        request.getSession().setAttribute("userPermissions", perms);
+
+        java.time.LocalDate today = java.time.LocalDate.now(AttendancePeriodService.ZONE);
+        Integer month = parseIntOrNull(request.getParameter("month"));
+        Integer year = parseIntOrNull(request.getParameter("year"));
+        if (month == null || month < 1 || month > 12) {
+            month = today.getMonthValue();
+        }
+        if (year == null || year < 2000 || year > 2100) {
+            year = today.getYear();
+        }
+
+        request.setAttribute("periods", attendancePeriodDAO.getPeriodSummaries(month, year));
+        request.setAttribute("filterMonth", month);
+        request.setAttribute("filterYear", year);
+        request.setAttribute("editDeadline", periodService.getEditDeadlineDate(month, year));
+        request.setAttribute("periodLocked", periodService.isLocked(month, year));
+        request.getRequestDispatcher("/public/employee/attendance_periods.jsp").forward(request, response);
+    }
+
+    private void handleChangePeriodStatus(HttpServletRequest request, HttpServletResponse response,
+            User user) throws ServletException, IOException {
+        if (!isHrStaff(user) || !hasPermission(user, "EDIT_ATTENDANCE")) {
+            request.getSession().setAttribute("error", "Bạn không có quyền thay đổi trạng thái kỳ chấm công.");
+            response.sendRedirect(request.getContextPath() + "/v1/employee/dashboard");
+            return;
+        }
+
+        Integer departmentId = parseIntOrNull(request.getParameter("departmentId"));
+        Integer month = parseIntOrNull(request.getParameter("month"));
+        Integer year = parseIntOrNull(request.getParameter("year"));
+        Integer targetStatus = parseIntOrNull(request.getParameter("targetStatus"));
+
+        String redirectUrl = request.getContextPath() + "/v1/employee/attendance-periods"
+                + (month != null && year != null ? "?month=" + month + "&year=" + year : "");
+
+        if (departmentId == null || month == null || year == null || targetStatus == null
+                || month < 1 || month > 12
+                || (targetStatus != AttendancePeriod.STATUS_PRIVATE
+                && targetStatus != AttendancePeriod.STATUS_PUBLIC)) {
+            request.getSession().setAttribute("error", "Dữ liệu thay đổi trạng thái kỳ không hợp lệ.");
+            response.sendRedirect(redirectUrl);
+            return;
+        }
+
+        AttendancePeriod period = attendancePeriodDAO.getPeriod(departmentId, month, year);
+        String transitionError = periodService.checkTransition(period, targetStatus);
+        if (transitionError != null) {
+            request.getSession().setAttribute("error", transitionError);
+            response.sendRedirect(redirectUrl);
+            return;
+        }
+
+        EmployeeDetailDTO me = employeeDAO.getEmployeeByUserId(user.getUserId());
+        Integer publishedBy = (targetStatus == AttendancePeriod.STATUS_PUBLIC && me != null)
+                ? me.getEmployeeId() : null;
+        int expectedStatus = (targetStatus == AttendancePeriod.STATUS_PUBLIC)
+                ? AttendancePeriod.STATUS_PRIVATE : AttendancePeriod.STATUS_PUBLIC;
+
+        boolean ok = attendancePeriodDAO.setStatusConditional(
+                period.getPeriodId(), expectedStatus, targetStatus, publishedBy);
+        if (ok) {
+            LOGGER.log(Level.INFO, "Attendance period status changed by userId={0}: deptId={1}, {2}/{3} -> {4}",
+                    new Object[]{user.getUserId(), departmentId, month, year, targetStatus});
+            request.getSession().setAttribute("success",
+                    targetStatus == AttendancePeriod.STATUS_PUBLIC
+                            ? "Đã công khai kỳ chấm công cho nhân viên."
+                            : "Đã chuyển kỳ chấm công về riêng tư để chỉnh sửa.");
+        } else {
+            request.getSession().setAttribute("error",
+                    "Không thể đổi trạng thái: kỳ chấm công vừa bị thay đổi bởi người khác. Vui lòng tải lại trang.");
+        }
+        response.sendRedirect(redirectUrl);
     }
 
     private void handleAssignDepartment(HttpServletRequest request, HttpServletResponse response,
@@ -713,130 +933,6 @@ public class EmployeeController extends HttpServlet {
         response.sendRedirect(request.getContextPath() + "/v1/employee/dashboard");
     }
 
-    private void displayReassignDepartmentForm(HttpServletRequest request, HttpServletResponse response,
-            User user) throws ServletException, IOException {
-
-        if (!isHrStaff(user)) {
-            request.getSession().setAttribute("error", "Bạn không có quyền chuyển phòng ban bởi bạn không phải HR");
-            response.sendRedirect(request.getContextPath() + "/v1/employee/dashboard");
-            return;
-        }
-
-        if (!hasPermission(user, "REASSIGN_DEPARTMENT")) {
-            request.getSession().setAttribute("error", "Bạn không có quyền chuyển phòng ban.");
-            response.sendRedirect(request.getContextPath() + "/v1/employee/dashboard");
-            return;
-        }
-
-        Set<String> perms = getPermissions(user);
-        request.getSession().setAttribute("userPermissions", perms);
-
-        String rawEmployeeId = request.getParameter("id");
-        if (!isBlank(rawEmployeeId)) {
-            try {
-                int employeeId = Integer.parseInt(rawEmployeeId);
-                EmployeeDetailDTO selected = employeeDAO.getEmployeeById(employeeId);
-                if (selected != null && selected.getDepartmentId() > 0) {
-                    request.setAttribute("selectedEmployeeId", employeeId);
-                }
-            } catch (NumberFormatException ignored) {
-            }
-        }
-
-        List<EmployeeDetailDTO> assignedEmployees = employeeDAO.getAssignedEmployees(user.getUserId());
-        List<Department> departments = departmentDAO.getAllActiveDepartments();
-        List<Position> positions = departmentDAO.getAllPositions();
-
-        request.setAttribute("assignedEmployees", assignedEmployees);
-        request.setAttribute("departments", departments);
-        request.setAttribute("positions", positions);
-        setPermissionFlags(request, perms);
-        request.getRequestDispatcher("/public/employee/reassign_department.jsp").forward(request, response);
-    }
-
-    private void handleReassignDepartment(HttpServletRequest request, HttpServletResponse response,
-            User user) throws ServletException, IOException {
-        if (!isHrStaff(user)) {
-            request.getSession().setAttribute("error", "Bạn không có quyền chuyển phòng ban bởi bạn không phải HR");
-            response.sendRedirect(request.getContextPath() + "/v1/employee/dashboard");
-            return;
-        }
-
-        if (!hasPermission(user, "REASSIGN_DEPARTMENT")) {
-            request.getSession().setAttribute("error", "Bạn không có quyền chuyển phòng ban.");
-            response.sendRedirect(request.getContextPath() + "/v1/employee/dashboard");
-            return;
-        }
-
-        String rawEmployeeId = request.getParameter("employeeId");
-        String rawDepartmentId = request.getParameter("departmentId");
-        String rawPositionId = request.getParameter("positionId");
-
-        if (isBlank(rawEmployeeId) || isBlank(rawDepartmentId) || isBlank(rawPositionId)) {
-            reloadReassignFormWithError(request, response, user,
-                    "Vui lòng chọn đầy đủ nhân viên, phòng ban và vị trí.");
-            return;
-        }
-
-        int employeeId, departmentId, positionId;
-        try {
-            employeeId = Integer.parseInt(rawEmployeeId);
-            departmentId = Integer.parseInt(rawDepartmentId);
-            positionId = Integer.parseInt(rawPositionId);
-        } catch (NumberFormatException e) {
-            reloadReassignFormWithError(request, response, user, "Dữ liệu không hợp lệ.");
-            return;
-        }
-
-        EmployeeDetailDTO employee = employeeDAO.getEmployeeById(employeeId);
-        if (employee == null || employee.getDepartmentId() <= 0) {
-            reloadReassignFormWithError(request, response, user,
-                    "Nhân viên không hợp lệ hoặc chưa được phân công phòng ban.");
-            return;
-        }
-
-        if (employee.getDepartmentId() == departmentId) {
-            reloadReassignFormWithError(request, response, user,
-                    "Nhân viên đã thuộc phòng ban này. Vui lòng chọn phòng ban khác.");
-            return;
-        }
-
-        int userRoleId = userDAO.getRoleIdByUserId(employee.getUserId());
-        if (!departmentDAO.isRoleAllowedForDepartment(departmentId, userRoleId)) {
-            Department dept = departmentDAO.getDepartmentById(departmentId);
-            String deptName = (dept != null) ? dept.getDepartmentName() : "phòng ban này";
-            List<String> allowed = departmentDAO.getAllowedRoleNames(departmentId);
-            String msg = "Vai trò hiện tại của nhân viên không phù hợp với phòng \"" + deptName + "\". "
-                    + "Phòng này chỉ nhận vai trò: " + String.join(", ", allowed) + ". "
-                    + "Vui lòng đổi vai trò của người dùng trước khi chuyển phòng.";
-            reloadReassignFormWithError(request, response, user, msg);
-            return;
-        }
-
-        boolean success = employeeDAO.reassignEmployeeDepartment(employeeId, departmentId, positionId);
-        if (!success) {
-            reloadReassignFormWithError(request, response, user, "Chuyển phòng ban thất bại. Vui lòng thử lại.");
-            return;
-        }
-
-        String roleName = roleDAO.getRoleByUserId(employee.getUserId());
-        Department newDept = departmentDAO.getDepartmentById(departmentId);
-        boolean deptHasManager = newDept != null && newDept.getManagerId() != null;
-        boolean isManagerRole = roleName != null && roleName.toLowerCase().contains("manager");
-
-        if (isManagerRole && !deptHasManager) {
-            employeeDAO.assignAsManager(departmentId, employeeId);
-        } else if (deptHasManager) {
-            employeeDAO.setEmployeeManager(employeeId, newDept.getManagerId());
-        }
-
-        LOGGER.log(Level.INFO, "Employee reassigned: employeeId={0} → deptId={1}",
-                new Object[]{employeeId, departmentId});
-
-        request.getSession().setAttribute("success", "Chuyển nhân viên sang phòng ban mới thành công.");
-        response.sendRedirect(request.getContextPath() + "/v1/employee/department-detail?id=" + departmentId);
-    }
-
     private void handleUnassignDepartment(HttpServletRequest request, HttpServletResponse response,
             User user) throws ServletException, IOException {
         if (!isHrStaff(user)) {
@@ -845,7 +941,7 @@ public class EmployeeController extends HttpServlet {
             return;
         }
 
-        if (!hasPermission(user, "REASSIGN_DEPARTMENT")) {
+        if (!hasPermission(user, "UNASSIGN_DEPARTMENT")) {
             request.getSession().setAttribute("error", "Bạn không có quyền gỡ phân công.");
             response.sendRedirect(request.getContextPath() + "/v1/employee/dashboard");
             return;
@@ -1335,7 +1431,8 @@ public class EmployeeController extends HttpServlet {
         request.setAttribute("canViewDepartments", perms.contains("VIEW_DEPARTMENTS"));
         request.setAttribute("canEditDepts", perms.contains("EDIT_DEPARTMENTS"));
         request.setAttribute("canAssignDept", perms.contains("ASSIGN_DEPARTMENT"));
-        request.setAttribute("canReassignDept", perms.contains("REASSIGN_DEPARTMENT"));
+        request.setAttribute("canUnassignDept", perms.contains("UNASSIGN_DEPARTMENT"));
+        request.setAttribute("canEditAttendance", perms.contains( "EDIT_ATTENDANCE"));
     }
 
     private void handleUpdateMyProfile(HttpServletRequest request, HttpServletResponse response,
@@ -1639,15 +1736,6 @@ public class EmployeeController extends HttpServlet {
         return ids;
     }
 
-    private void reloadReassignFormWithError(HttpServletRequest request, HttpServletResponse response,
-            User user, String message) throws ServletException, IOException {
-        request.setAttribute("error", message);
-        request.setAttribute("assignedEmployees", employeeDAO.getAssignedEmployees(user.getUserId()));
-        request.setAttribute("departments", departmentDAO.getAllActiveDepartments());
-        request.setAttribute("positions", departmentDAO.getAllPositions());
-        setPermissionFlags(request, getPermissions(user));
-        request.getRequestDispatcher("/public/employee/reassign_department.jsp").forward(request, response);
-    }
 
     private boolean isAcceptableXlsxContentType(String contentType) {
         String ct = contentType.toLowerCase();
@@ -1664,5 +1752,31 @@ public class EmployeeController extends HttpServlet {
         String base = Paths.get(name).getFileName().toString();
         return base.replaceAll("[\\r\\n]", "");
     }
+    private Time parseTimeOrNull(String raw) {
+        String value = trimToNull(raw);
+        if (value == null) {
+            return null;
+        }
+        if (value.matches("\\d{2}:\\d{2}")) {
+            value += ":00";
+        }
+        return Time.valueOf(value);
+    }
 
+    private String buildAttendanceFilterQuery(HttpServletRequest request) {
+        StringBuilder qs = new StringBuilder();
+        appendParamIfPresent(qs, request, "month");
+        appendParamIfPresent(qs, request, "year");
+        appendParamIfPresent(qs, request, "departmentId");
+        appendParamIfPresent(qs, request, "employeeCode");
+        return qs.toString();
+    }
+
+    private void appendParamIfPresent(StringBuilder qs, HttpServletRequest request, String name) {
+        String value = trimToNull(request.getParameter(name));
+        if (value != null) {
+            qs.append(qs.length() == 0 ? '?' : '&').append(name).append('=')
+              .append(java.net.URLEncoder.encode(value, java.nio.charset.StandardCharsets.UTF_8));
+        }
+    }
 }
