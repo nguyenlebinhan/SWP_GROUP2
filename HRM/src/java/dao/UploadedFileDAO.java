@@ -33,8 +33,8 @@ public class UploadedFileDAO {
         LOGGER.log(Level.INFO, "Creating uploaded file record: {0}", file.getFileCode());
         String SQL = "INSERT INTO Uploaded_Files "
                 + "(fileCode, fileType, departmentId, employeeId, fileUrl, fileName, month, year, "
-                + "status, totalRows, importedRows, failedRows, note) "
-                + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                + "totalRows, importedRows, failedRows, note) "
+                + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         try (Connection conn = dbContext.getConnection();
                 PreparedStatement ps = conn.prepareStatement(SQL, Statement.RETURN_GENERATED_KEYS)) {
             ps.setString(1, file.getFileCode());
@@ -49,11 +49,10 @@ public class UploadedFileDAO {
             ps.setString(6, file.getFileName());
             ps.setInt(7, file.getMonth());
             ps.setInt(8, file.getYear());
-            ps.setInt(9, file.getStatus());
-            ps.setInt(10, file.getTotalRows());
-            ps.setInt(11, file.getImportedRows());
-            ps.setInt(12, file.getFailedRows());
-            ps.setNString(13, file.getNote());
+            ps.setInt(9, file.getTotalRows());
+            ps.setInt(10, file.getImportedRows());
+            ps.setInt(11, file.getFailedRows());
+            ps.setNString(12, file.getNote());
 
             int rowsAffected = ps.executeUpdate();
             if (rowsAffected > 0) {
@@ -71,20 +70,28 @@ public class UploadedFileDAO {
 
     public boolean updateImportResult(int fileId, int totalRows, int importedRows, int failedRows,
             int status, String note) {
+        try (Connection conn = dbContext.getConnection()) {
+            updateImportResult(conn, fileId, totalRows, importedRows, failedRows, status, note);
+            return true;
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Cannot update import result for fileId: " + fileId, e);
+        }
+        return false;
+    }
+
+    /** Cập nhật kết quả import trên connection của transaction import. */
+    public void updateImportResult(Connection conn, int fileId, int totalRows, int importedRows,
+            int failedRows, int status, String note) throws SQLException {
         String SQL = "UPDATE Uploaded_Files SET totalRows = ?, importedRows = ?, failedRows = ?, "
                 + "status = ?, note = ? WHERE fileId = ?";
-        try (Connection conn = dbContext.getConnection();
-                PreparedStatement ps = conn.prepareStatement(SQL)) {
+        try (PreparedStatement ps = conn.prepareStatement(SQL)) {
             ps.setInt(1, totalRows);
             ps.setInt(2, importedRows);
             ps.setInt(3, failedRows);
             ps.setInt(4, status);
             ps.setNString(5, note);
             ps.setInt(6, fileId);
-            return ps.executeUpdate() > 0;
-        } catch (SQLException e) {
-            LOGGER.log(Level.SEVERE, "Cannot update import result for fileId: " + fileId, e);
+            ps.executeUpdate();
         }
-        return false;
     }
 }
