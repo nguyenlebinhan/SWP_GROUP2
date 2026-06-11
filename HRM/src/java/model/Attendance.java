@@ -22,10 +22,13 @@ public class Attendance {
     private BigDecimal hoursWorked;
     private int attendanceStatus;   // 0: Đúng giờ, 1: Đi muộn, 2: Vắng mặt, 3: Không phép
     private Integer fileId;
+    private Integer periodId;       // kỳ chấm công snapshot lúc import
 
     private String employeeCode;
     private String fullName;
     private String departmentName;
+    private int periodStatus;       // 0: Private (nháp), 1: Public (đã công khai)
+    private boolean editable;       
 
     public Attendance() {
     }
@@ -124,6 +127,34 @@ public class Attendance {
 
     public void setDepartmentName(String departmentName) {
         this.departmentName = departmentName;
+    }
+
+    public Integer getPeriodId() {
+        return periodId;
+    }
+
+    public void setPeriodId(Integer periodId) {
+        this.periodId = periodId;
+    }
+
+    public int getPeriodStatus() {
+        return periodStatus;
+    }
+
+    public void setPeriodStatus(int periodStatus) {
+        this.periodStatus = periodStatus;
+    }
+
+    public boolean isEditable() {
+        return editable;
+    }
+
+    public void setEditable(boolean editable) {
+        this.editable = editable;
+    }
+
+    public boolean isPeriodPublished() {
+        return periodStatus == 1;
     }
 
     public String getStatusLabel() {

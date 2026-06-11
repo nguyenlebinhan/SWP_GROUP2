@@ -124,6 +124,9 @@
             <a href="${pageContext.request.contextPath}/v1/employee/attendance-list">
                 Xem chấm công
             </a>
+            <a href="${pageContext.request.contextPath}/v1/employee/own-attendance">
+                Chấm công của tôi
+            </a>
         </c:if>
     </c:if>
 

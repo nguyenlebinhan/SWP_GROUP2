@@ -18,11 +18,11 @@ public class UploadedFile {
     private String fileUrl;
     private String fileName;
     private int month;
-    private int year;
-    private int status;            
+    private int year;            
     private int totalRows;
     private int importedRows;
     private int failedRows;
+    private int status;             // 0: Pending, 1: Imported, 2: Failed, 3: Partial
     private String note;
 
     public UploadedFile() {
@@ -100,14 +100,6 @@ public class UploadedFile {
         this.year = year;
     }
 
-    public int getStatus() {
-        return status;
-    }
-
-    public void setStatus(int status) {
-        this.status = status;
-    }
-
     public int getTotalRows() {
         return totalRows;
     }
@@ -130,6 +122,14 @@ public class UploadedFile {
 
     public void setFailedRows(int failedRows) {
         this.failedRows = failedRows;
+    }
+
+    public int getStatus() {
+        return status;
+    }
+
+    public void setStatus(int status) {
+        this.status = status;
     }
 
     public String getNote() {
