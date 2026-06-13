@@ -18,7 +18,7 @@
             border: none;
         }
 
-        /* Dept info banner */
+
         .dept-banner {
             background: linear-gradient(135deg, #0B0E2A 0%, #1565C0 100%);
             border-radius: 14px;
@@ -36,7 +36,7 @@
             margin-bottom: 8px;
         }
 
-        /* Current manager card */
+
         .mgr-current {
             background: #f0fdf4;
             border: 1.5px solid #bbf7d0;
@@ -62,7 +62,7 @@
             font-weight: 500;
         }
 
-        /* Candidate list */
+
         .candidate-item {
             border: 1.5px solid #e5e7eb;
             border-radius: 12px;
@@ -147,7 +147,7 @@
         <jsp:param name="backUrl" value="/v1/businessadmin/department" />
     </jsp:include>
 
-    <%-- Dept banner --%>
+
     <div class="dept-banner">
         <div class="dept-code-badge">${dept.departmentCode}</div>
         <h4 class="mb-1 fw-bold">${dept.departmentName}</h4>
@@ -158,7 +158,7 @@
 
     <div class="row g-4">
 
-        <%-- LEFT: Manager hiện tại + action --%>
+
         <div class="col-lg-4">
             <div class="assign-card p-4 h-100">
                 <h6 class="fw-bold mb-3" style="color:#0B0E2A;">
@@ -196,7 +196,7 @@
                     </c:otherwise>
                 </c:choose>
 
-                <%-- Nút submit nằm ở đây để luôn hiện --%>
+
                 <div class="mt-4">
                     <button type="submit" form="assignForm" class="btn btn-submit w-100" id="submitBtn" disabled>
                         <i class="fa fa-user-check me-2"></i>Xác nhận Assign
@@ -205,7 +205,7 @@
             </div>
         </div>
 
-        <%-- RIGHT: Danh sách ứng viên --%>
+
         <div class="col-lg-8">
             <div class="assign-card p-4">
                 <div class="d-flex justify-content-between align-items-center mb-3">
@@ -216,7 +216,7 @@
                     </h6>
                 </div>
 
-                <%-- Search --%>
+
                 <div class="mb-3">
                     <div class="position-relative">
                         <i class="fa fa-search" style="position:absolute;left:14px;top:50%;transform:translateY(-50%);color:#9ca3af;"></i>
@@ -280,16 +280,16 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script>
     function onSelectCandidate(radio) {
-        // Reset tất cả
+
         document.querySelectorAll('.candidate-item').forEach(function(el) {
             el.classList.remove('selected');
             el.querySelector('.selected-icon').style.display = 'none';
         });
-        // Highlight item được chọn
+
         var label = radio.closest('.candidate-item');
         label.classList.add('selected');
         label.querySelector('.selected-icon').style.display = 'block';
-        // Bật nút submit
+
         document.getElementById('submitBtn').disabled = false;
     }
 

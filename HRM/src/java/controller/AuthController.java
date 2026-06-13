@@ -1,7 +1,7 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/JSP_Servlet/Servlet.java to edit this template
- */
+
+
+
+
 package controller;
 
 import dao.UserDAO;
@@ -26,10 +26,10 @@ import utils.ConfigManager;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
-/**
- *
- * @author ADMIN
- */
+
+
+
+
 public class AuthController extends HttpServlet {
 
     private static final Logger LOGGER = Logger.getLogger(AuthController.class.getName());
@@ -39,20 +39,20 @@ public class AuthController extends HttpServlet {
     private static final ConfigManager configManager = ConfigManager.getInstance();
     private static final HttpClient httpClient = HttpClient.newHttpClient();
 
-    /**
-     * Processes requests for both HTTP <code>GET</code> and <code>POST</code>
-     * methods.
-     *
-     * @param request servlet request
-     * @param response servlet response
-     * @throws ServletException if a servlet-specific error occurs
-     * @throws IOException if an I/O error occurs
-     */
+
+
+
+
+
+
+
+
+
     protected void processRequest(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         response.setContentType("text/html;charset=UTF-8");
         try (PrintWriter out = response.getWriter()) {
-            /* TODO output your page here. You may use following sample code. */
+
             out.println("<!DOCTYPE html>");
             out.println("<html>");
             out.println("<head>");
@@ -65,15 +65,15 @@ public class AuthController extends HttpServlet {
         }
     }
 
-    // <editor-fold defaultstate="collapsed" desc="HttpServlet methods. Click on the + sign on the left to edit the code.">
-    /**
-     * Handles the HTTP <code>GET</code> method.
-     *
-     * @param request servlet request
-     * @param response servlet response
-     * @throws ServletException if a servlet-specific error occurs
-     * @throws IOException if an I/O error occurs
-     */
+
+
+
+
+
+
+
+
+
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
@@ -107,18 +107,18 @@ public class AuthController extends HttpServlet {
         }
     }
 
-    /**
-     * Handles the HTTP <code>POST</code> method.
-     *
-     * @param request servlet request
-     * @param response servlet response
-     * @throws ServletException if a servlet-specific error occurs
-     * @throws IOException if an I/O error occurs
-     */
+
+
+
+
+
+
+
+
     @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-        //processRequest(request, response);
+
         String action = request.getPathInfo();
         LOGGER.log(Level.INFO, "Action received in AuthController (POST): {0}", action);
         switch (action != null ? action : "") {
@@ -143,7 +143,7 @@ public class AuthController extends HttpServlet {
     @Override
     public String getServletInfo() {
         return "Short description";
-    }// </editor-fold>
+    }
 
     private void displayLoginForm(HttpServletRequest request, HttpServletResponse response) throws IOException, IOException, ServletException {
         request.getRequestDispatcher("/public/auth/login.jsp").forward(request, response);

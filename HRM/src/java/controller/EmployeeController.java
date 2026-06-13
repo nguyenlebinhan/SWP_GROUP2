@@ -474,7 +474,7 @@ public class EmployeeController extends HttpServlet {
             return;
         }
 
-        // Thiết lập quan hệ quản lý sau khi phân công:
+
         String roleName = roleDAO.getRoleByUserId(userId);
         EmployeeDetailDTO assigned = employeeDAO.getEmployeeByUserId(userId);
         if (assigned != null) {
@@ -736,7 +736,7 @@ public class EmployeeController extends HttpServlet {
             return;
         }
 
-        // Gắn luật vai trò cho phòng ban. Để trống = phòng ban nhận mọi vai trò.
+
         if (!roleIds.isEmpty()) {
             departmentDAO.replaceDepartmentRoles(newDeptId, roleIds);
         }

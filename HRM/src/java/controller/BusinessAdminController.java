@@ -129,9 +129,9 @@ public class BusinessAdminController extends HttpServlet {
         }
     }
 
-    // =========================================================
-    // Existing methods (unchanged)
-    // =========================================================
+
+
+
 
     private void preventBackCache(HttpServletResponse response) {
         response.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
@@ -200,15 +200,15 @@ public class BusinessAdminController extends HttpServlet {
         response.sendRedirect(request.getContextPath() + "/v1/businessadmin/my-profile");
     }
 
-    // =========================================================
-    // Department management methods (new)
-    // =========================================================
+
+
+
 
     private void displayDepartmentList(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         List<Department> departments = departmentDAO.getAllDepartments();
 
-        // Build manager map: departmentId -> EmployeeDetailDTO
+
         Map<Integer, EmployeeDetailDTO> managerMap = new HashMap<>();
         for (Department d : departments) {
             if (d.getManagerId() != null) {
@@ -220,7 +220,7 @@ public class BusinessAdminController extends HttpServlet {
         request.setAttribute("departments", departments);
         request.setAttribute("managerMap", managerMap);
 
-        // Flash messages set by redirect from assign/unassign
+
         HttpSession session = request.getSession(false);
         if (session != null) {
             String success = (String) session.getAttribute("deptSuccess");
@@ -292,7 +292,7 @@ public class BusinessAdminController extends HttpServlet {
             return;
         }
 
-        // Server-side guard: kiểm tra candidate hợp lệ, không chỉ dựa vào UI
+
         List<EmployeeDetailDTO> candidates = departmentDAO.getAssignableManagerDTOs(ba.getUserId(), departmentId);
         boolean isValid = candidates.stream().anyMatch(c -> c.getEmployeeId() == employeeId);
         if (!isValid) {
@@ -347,9 +347,9 @@ public class BusinessAdminController extends HttpServlet {
         response.sendRedirect(request.getContextPath() + "/v1/businessadmin/department");
     }
 
-    // =========================================================
-    // Employee management methods (kế thừa từ Employee & Manager)
-    // =========================================================
+
+
+
 
     private void displayEmployeeList(HttpServletRequest request, HttpServletResponse response, User user)
             throws ServletException, IOException {
@@ -471,7 +471,7 @@ public class BusinessAdminController extends HttpServlet {
             return;
         }
 
-        // Thiết lập quan hệ quản lý sau khi phân công:
+
         String roleName = roleDAO.getRoleByUserId(userId);
         EmployeeDetailDTO assigned = employeeDAO.getEmployeeByUserId(userId);
         if (assigned != null) {
@@ -480,12 +480,12 @@ public class BusinessAdminController extends HttpServlet {
             boolean isManagerRole = roleName != null && roleName.toLowerCase().contains("manager");
 
             if (isManagerRole && !deptHasManager) {
-                // Phòng chưa có manager → người này làm manager, đồng thời gán
-                // managerId cho các nhân viên hiện có trong phòng.
+
+
                 employeeDAO.assignAsManager(departmentId, assigned.getEmployeeId());
             } else if (deptHasManager) {
-                // Phòng đã có manager → người mới (kể cả role manager) làm cấp dưới
-                // của manager hiện tại, không ghi đè manager.
+
+
                 employeeDAO.setEmployeeManager(assigned.getEmployeeId(), assignedDept.getManagerId());
             }
         }
@@ -503,9 +503,9 @@ public class BusinessAdminController extends HttpServlet {
         request.getRequestDispatcher("/public/businessadmin/assign_department.jsp").forward(request, response);
     }
 
-    // =========================================================
-    // Add / Update department (kế thừa từ Employee)
-    // =========================================================
+
+
+
 
     private void displayAddDepartmentForm(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {

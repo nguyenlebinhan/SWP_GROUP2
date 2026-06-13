@@ -54,7 +54,7 @@
             background: #f1f5f9;
         }
 
-        /* Horizontal form */
+
         .h-form-row {
             display: grid;
             align-items: start;
@@ -249,7 +249,7 @@
                         </div>
                     </div>
 
-                    <%-- Phòng ban + Vị trí --%>
+
                     <div class="h-form-row cols-2">
                         <div class="h-label">
                             Phòng ban <span class="required-dot"></span>

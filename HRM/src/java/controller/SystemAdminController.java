@@ -1,7 +1,7 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/JSP_Servlet/Servlet.java to edit this template
- */
+
+
+
+
 package controller;
 
 import dao.*;
@@ -19,10 +19,10 @@ import model.*;
 import service.*;
 import java.util.*;
 
-/**
- *
- * @author ADMIN
- */
+
+
+
+
 public class SystemAdminController extends HttpServlet {
 
     private static final Logger LOGGER = Logger.getLogger(SystemAdminController.class.getName());
@@ -110,7 +110,7 @@ public class SystemAdminController extends HttpServlet {
             case "/change-status-role":
                 handleChangingStatusRole(request, response);
                 break;
-                    
+
             default:
                 response.sendRedirect(request.getContextPath() + "/");
                 break;
@@ -196,14 +196,14 @@ public class SystemAdminController extends HttpServlet {
 
         int offset = (currentPage - 1) * PAGE_SIZE;
 
-        // countUsers chỉ chạy COUNT(*) — rất nhẹ dù có nghìn người
+
         int totalUsers = userDAO.countUsers(keyword, role);
         int totalPages = (int) Math.ceil((double) totalUsers / PAGE_SIZE);
         if (totalPages < 1) {
             totalPages = 1;
         }
 
-        // getUsersFiltered chỉ lấy đúng 5 người của trang hiện tại
+
         List<User> list = userDAO.getUsersFiltered(keyword, role, offset, PAGE_SIZE);
 
         List<Role> roles = roleDAO.getAllRoles();
@@ -223,7 +223,7 @@ public class SystemAdminController extends HttpServlet {
     private void displayDashboard(HttpServletRequest request,
             HttpServletResponse response)
             throws ServletException, IOException {
-        // Thay vì getAllUsers() rồi .size(), chỉ đếm trực tiếp
+
         int userSize = userDAO.countUsers("", "");
         request.setAttribute("userSize", userSize);
         request.getRequestDispatcher("/public/systemadmin/dashboard.jsp")
@@ -281,8 +281,8 @@ public class SystemAdminController extends HttpServlet {
         String address = request.getParameter("address");
         int roleId = Integer.parseInt(request.getParameter("role_selection"));
 
-        // Chặn chiều ngược (đối xứng với assign-department): nếu user đã là nhân viên
-        // thuộc một phòng ban, vai trò mới phải hợp lệ với phòng ban đó.
+
+
         EmployeeDetailDTO emp = employeeDAO.getEmployeeByUserId(userId);
         if (emp != null && !departmentDAO.isRoleAllowedForDepartment(emp.getDepartmentId(), roleId)) {
             List<String> allowed = departmentDAO.getAllowedRoleNames(emp.getDepartmentId());
@@ -637,6 +637,14 @@ public class SystemAdminController extends HttpServlet {
             roleId = Integer.parseInt(rawRoleId);
         } catch (NumberFormatException e) {
             request.getSession().setAttribute("error", "Mã vai trò không hợp lệ");
+            response.sendRedirect(request.getContextPath() + "/v1/systemadmin/role-list");
+            return;
+        }
+
+        // Lấy roleCode từ roleId
+        Role roleToUpdate = roleDAO.getRoleById(roleId);
+        if (roleToUpdate != null && ("SA".equalsIgnoreCase(roleToUpdate.getRoleCode()) || "BA".equalsIgnoreCase(roleToUpdate.getRoleCode()))) {
+            request.getSession().setAttribute("error", "Không thể chỉnh sửa quyền của vai trò System Admin hoặc Business Admin.");
             response.sendRedirect(request.getContextPath() + "/v1/systemadmin/role-list");
             return;
         }

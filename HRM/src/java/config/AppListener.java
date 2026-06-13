@@ -1,7 +1,7 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
+
+
+
+
 package config;
 
 import dal.DBInitializer;
@@ -12,10 +12,10 @@ import jakarta.servlet.ServletContextListener;
 import jakarta.servlet.annotation.WebListener;
 import java.util.logging.*;
 
-/**
- *
- * @author ADMIN
- */
+
+
+
+
 @WebListener
 public class AppListener implements ServletContextListener{
     private static final Logger LOGGER = Logger.getLogger(AppListener.class.getName());
@@ -35,6 +35,6 @@ public class AppListener implements ServletContextListener{
     public void contextDestroyed(ServletContextEvent sce) {
         LOGGER.log(Level.INFO,"WEB IS TRYING TO SHUT DOWN.CLEAN THE RESOURCES ....");
     }
-    
-    
+
+
 }

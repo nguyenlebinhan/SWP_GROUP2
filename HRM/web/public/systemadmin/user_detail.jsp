@@ -25,7 +25,7 @@
             margin-bottom: 20px;
         }
 
-        /* Profile card */
+
         .profile-card {
             background: white;
             border-radius: 12px;
@@ -211,7 +211,7 @@
         <jsp:param name="backUrl" value="/v1/systemadmin/user-list" />
     </jsp:include>
 
-    <!-- Flash messages -->
+
     <c:if test="${not empty error}">
         <div class="alert alert-danger alert-flash alert-dismissible fade show" role="alert">
             <i class="fa fa-circle-exclamation me-2"></i><c:out value="${error}"/>
@@ -222,7 +222,7 @@
     <c:choose>
         <c:when test="${empty selectedUser}">
             <div class="empty-card">
-                
+
                 Không tìm thấy thông tin người dùng.
             </div>
         </c:when>
@@ -278,11 +278,11 @@
                     </div>
                 </div>
 
-                <!-- Right: Info panels -->
+
                 <div class="col-lg-9 col-md-8">
                     <div class="info-panel">
 
-                        <!-- Thông tin cơ bản -->
+
                         <div class="info-section">
                             <div class="section-title">
                                 Thông tin cơ bản
@@ -321,7 +321,7 @@
                             </div>
                         </div>
 
-                        <!-- Thông tin tài khoản -->
+
                         <div class="info-section">
                             <div class="section-title">
                                 Thông tin tài khoản

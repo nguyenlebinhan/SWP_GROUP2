@@ -1,7 +1,7 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
+
+
+
+
 package dao;
 
 import dal.DBContext;
@@ -22,10 +22,10 @@ import model.User;
 import dto.EmployeeDTO;
 import dto.EmployeeDetailDTO;
 
-/**
- *
- * @author admin
- */
+
+
+
+
 public class EmployeeDAO {
 
     private static final Logger LOGGER = Logger.getLogger(EmployeeDAO.class.getName());
@@ -206,7 +206,7 @@ public class EmployeeDAO {
                 + "JOIN Users u ON u.userId = e.userId "
                 + "LEFT JOIN Departments d ON d.departmentId = e.departmentId "
                 + "WHERE 1=1 ");
-        
+
         List<Object> params = new ArrayList<>();
         if (hrUserId != null) {
             sql.append("AND e.userId != ? ");
@@ -261,7 +261,7 @@ public class EmployeeDAO {
                 + "LEFT JOIN Positions p ON p.positionId = e.positionId "
                 + "JOIN Roles r ON r.roleId = u.roleId "
                 + "WHERE 1=1 ");
-        
+
         List<Object> params = new ArrayList<>();
         if (hrUserId != null) {
             sql.append("AND e.userId != ? ");
@@ -371,7 +371,7 @@ public class EmployeeDAO {
             ps.setString(5, emp.getExperience());
             ps.setString(6, emp.getDegree());
             ps.setInt(7, emp.getStatus());
-            
+
             if (emp.getManagerId() != null && emp.getManagerId() > 0) {
                 ps.setInt(8, emp.getManagerId());
             } else {
@@ -453,9 +453,9 @@ public class EmployeeDAO {
             String phoneNumber, String skills,
             String experience, String degree) {
         LOGGER.log(Level.INFO, "Assigning userId={0} to departmentId={1}", new Object[] { userId, departmentId });
-        // Hồ sơ nhân viên đã được tạo sẵn (dept = NULL) khi tạo user → assign là
-        // UPDATE.
-        // Điều kiện departmentId IS NULL đảm bảo không ghi đè người đã được phân công.
+
+
+
         String SQL = "UPDATE Employees SET departmentId = ?, positionId = ?, phoneNumber = ?, "
                 + "skills = ?, experience = ?, degree = ?, status = 1 "
                 + "WHERE userId = ? AND departmentId IS NULL";
@@ -545,10 +545,10 @@ public class EmployeeDAO {
         return false;
     }
 
-    /**
-     * Danh sách nhân viên đã được phân công phòng ban (departmentId IS NOT NULL),
-     * dùng cho màn hình chuyển phòng ban. Loại trừ chính người đang đăng nhập.
-     */
+
+
+
+
     public List<EmployeeDetailDTO> getAssignedEmployees(int userId) {
         List<EmployeeDetailDTO> list = new ArrayList<>();
         String SQL = "SELECT e.employeeId, e.employeeCode, e.userId, e.departmentId, e.positionId, "
@@ -576,12 +576,12 @@ public class EmployeeDAO {
         return list;
     }
 
-    /**
-     * Chuyển nhân viên sang phòng ban / vị trí mới trong 1 transaction.
-     * Đồng thời gỡ liên kết quản lý cũ: nếu nhân viên đang là trưởng phòng cũ thì
-     * xóa managerId của phòng đó, và reset managerId của chính nhân viên (sẽ được
-     * thiết lập lại theo phòng ban mới ở tầng controller).
-     */
+
+
+
+
+
+
     public boolean reassignEmployeeDepartment(int employeeId, int newDepartmentId, int newPositionId) {
         LOGGER.log(Level.INFO, "Reassigning employeeId={0} to departmentId={1}",
                 new Object[] { employeeId, newDepartmentId });
@@ -627,16 +627,16 @@ public class EmployeeDAO {
         return false;
     }
 
-    /**
-     * Gỡ phân công nhân viên khỏi phòng ban: đưa hồ sơ về trạng thái chưa phân
-     * công (departmentId/positionId/managerId = NULL). Khi đó system admin có thể
-     * đổi vai trò mà không vướng ràng buộc role↔phòng ban, rồi HR assign lại.
-     */
+
+
+
+
+
     public boolean unassignEmployee(int employeeId) {
         LOGGER.log(Level.INFO, "Unassigning employeeId={0} from department", employeeId);
-        // Nếu nhân viên này đang là quản lý của 1 phòng → gỡ luôn khỏi phòng đó.
+
         String clearDeptManager = "UPDATE Departments SET managerId = NULL WHERE managerId = ?";
-        // Cấp dưới đang trỏ tới người này làm quản lý → gỡ liên kết để tránh treo.
+
         String clearSubordinates = "UPDATE Employees SET managerId = NULL WHERE managerId = ?";
         String clearEmp = "UPDATE Employees SET departmentId = NULL, positionId = NULL, managerId = NULL "
                 + "WHERE employeeId = ? AND departmentId IS NOT NULL";

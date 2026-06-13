@@ -1,13 +1,13 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
+
+
+
+
 package dto;
 
-/**
- *
- * @author ADMIN
- */
+
+
+
+
 public class EmployeeDetailDTO {
     private int employeeId;
     private String employeeCode;
@@ -25,7 +25,7 @@ public class EmployeeDetailDTO {
     private String username;
     private String departmentName;
     private String positionName;
-    private String roleName;    
+    private String roleName;
 
     public EmployeeDetailDTO() {
     }
@@ -185,7 +185,7 @@ public class EmployeeDetailDTO {
     public void setRoleName(String roleName) {
         this.roleName = roleName;
     }
-    
+
     public String getStatusLabel() {
         switch (status) {
             case 0: return "Không hoạt động";

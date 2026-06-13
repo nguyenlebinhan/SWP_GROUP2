@@ -241,7 +241,7 @@
                         </div>
                     </div>
 
-                    <%-- Phòng ban mới + Vị trí --%>
+
                     <div class="h-form-row cols-2">
                         <div class="h-label">
                             Phòng ban mới <span class="required-dot"></span>
@@ -360,7 +360,7 @@
         }
     });
 
-    // Kích hoạt sẵn nếu nhân viên được chọn từ trang chi tiết
+
     document.addEventListener('DOMContentLoaded', function () {
         const sel = document.getElementById('employeeId');
         if (sel && sel.value) {
