@@ -87,7 +87,7 @@
             </div>
             <div>
                 <c:if test="${canEditDepts}">
-                    <a href="${pageContext.request.contextPath}/v1/employee/update-department?id=${department.departmentId}" 
+                    <a href="${pageContext.request.contextPath}/v1/employee/update-department?id=${department.departmentId}"
                        class="btn btn-sm btn-outline-primary me-2">
                        <i class="fa-solid fa-pen"></i> Chỉnh sửa
                     </a>
@@ -170,7 +170,7 @@
                                         </c:choose>
                                     </td>
                                     <td>
-                                        <a href="${pageContext.request.contextPath}/v1/employee/employee-detail?id=${emp.employeeId}" 
+                                        <a href="${pageContext.request.contextPath}/v1/employee/employee-detail?id=${emp.employeeId}"
                                            class="btn btn-sm btn-outline-primary" title="Xem chi tiết">
                                            <i class="fa-solid fa-eye"></i> Chi tiết
                                         </a>

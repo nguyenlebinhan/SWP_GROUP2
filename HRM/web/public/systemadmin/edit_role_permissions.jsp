@@ -202,7 +202,7 @@
                     <div class="card-body p-4">
                         <div class="section-label">Vai trò đang chỉnh sửa</div>
                         <div class="role-badge">
-                           
+
                             <span><c:out value="${selectedRole.roleName}"/></span>
                             <span style="color:#818cf8;font-weight:400">·</span>
                             <span style="font-size:12px;color:#6366f1"><c:out value="${selectedRole.roleCode}"/></span>
@@ -234,7 +234,7 @@
                                     <div class="col-md-3">
                                         <label class="perm-card ${assignedPermissionIds.contains(p.permissionId) ? 'selected' : ''}">
                                             <input type="checkbox" name="permissionIds" value="${p.permissionId}" ${assignedPermissionIds.contains(p.permissionId) ? 'checked' : ''}/>
-                                         
+
                                             <div class="perm-name"><c:out value="${p.permissionName}"/></div>
                                             <div><span class="perm-code"><c:out value="${p.permissionCode}"/></span></div>
                                             <div class="perm-desc"><c:out value="${empty p.description ? '—' : p.description}"/></div>
@@ -244,7 +244,7 @@
                             </c:forEach>
                         </div>
 
-                        <%-- Nhóm: Vai trò & Phân quyền --%>
+
                         <div class="group-title">Vai trò &amp; Phân quyền</div>
                         <div class="row g-3 mb-2">
                             <c:forEach var="p" items="${allPermissions}">
@@ -252,7 +252,7 @@
                                     <div class="col-md-3">
                                         <label class="perm-card ${assignedPermissionIds.contains(p.permissionId) ? 'selected' : ''}">
                                             <input type="checkbox" name="permissionIds" value="${p.permissionId}" ${assignedPermissionIds.contains(p.permissionId) ? 'checked' : ''}/>
-                                            
+
                                             <div class="perm-name"><c:out value="${p.permissionName}"/></div>
                                             <div><span class="perm-code"><c:out value="${p.permissionCode}"/></span></div>
                                             <div class="perm-desc"><c:out value="${empty p.description ? '—' : p.description}"/></div>
@@ -261,16 +261,17 @@
                                 </c:if>
                             </c:forEach>
                         </div>
-                        
-                        <%-- Nhóm:  Nhân viên --%>
+
+
                         <div class="group-title">Vai trò &amp; Nhân viên</div>
                         <div class="row g-3 mb-2">
                             <c:forEach var="p" items="${allPermissions}">
-                                <c:if test="${p.permissionCode == 'VIEW_EMPLOYEES' || p.permissionCode == 'ADD_EMPLOYEE' || p.permissionCode == 'EDIT_EMPLOYEE' || p.permissionCode == 'ADD_EMPLOYMENT_CONTRACT' || p.permissionCode == 'VIEW_DEPARTMENTS' || p.permissionCode == 'EDIT_DEPARTMENTS' || p.permissionCode == 'ASSIGN_DEPARTMENT' || p.permissionCode == 'VIEW_DEPARTMENT_EMPLOYEES_DETAIL' || p.permissionCode == 'REASSIGN_DEPARTMENT'}">
+                                <c:if test="${p.permissionCode == 'VIEW_EMPLOYEES' || p.permissionCode == 'ADD_EMPLOYEE' || p.permissionCode == 'EDIT_EMPLOYEE' || p.permissionCode == 'ADD_EMPLOYMENT_CONTRACT' 
+                                              || p.permissionCode == 'VIEW_DEPARTMENTS' || p.permissionCode == 'EDIT_DEPARTMENTS' || p.permissionCode == 'ASSIGN_DEPARTMENT' || p.permissionCode == 'VIEW_DEPARTMENT_EMPLOYEES_DETAIL' || p.permissionCode == 'REASSIGN_DEPARTMENT'}">
                                     <div class="col-md-3">
                                         <label class="perm-card ${assignedPermissionIds.contains(p.permissionId) ? 'selected' : ''}">
                                             <input type="checkbox" name="permissionIds" value="${p.permissionId}" ${assignedPermissionIds.contains(p.permissionId) ? 'checked' : ''}/>
-                                            
+
                                             <div class="perm-name"><c:out value="${p.permissionName}"/></div>
                                             <div><span class="perm-code"><c:out value="${p.permissionCode}"/></span></div>
                                             <div class="perm-desc"><c:out value="${empty p.description ? '—' : p.description}"/></div>
@@ -279,8 +280,8 @@
                                 </c:if>
                             </c:forEach>
                         </div>
-                        
-                        
+
+
                         <div class="d-flex gap-3 pt-2 border-top">
                             <button type="submit" class="btn-save mt-3">
                                 Lưu phân quyền
@@ -298,8 +299,8 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-    // Checkbox nằm trong <label> nên click vào card đã tự toggle checkbox.
-    // Chỉ lắng nghe sự kiện change để đồng bộ giao diện (tránh double-toggle làm mất giá trị).
+
+
     document.querySelectorAll('#permForm input[type=checkbox]').forEach(function (cb) {
         cb.addEventListener('change', function () {
             this.closest('label').classList.toggle('selected', this.checked);

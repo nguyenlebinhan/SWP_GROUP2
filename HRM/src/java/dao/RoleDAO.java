@@ -1,7 +1,7 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
+
+
+
+
 package dao;
 
 import dal.DBContext;
@@ -10,18 +10,18 @@ import java.util.*;
 import java.sql.*;
 
 import model.Role;
-/**
- *
- * @author ADMIN
- */
+
+
+
+
 public class RoleDAO {
     private static final Logger LOGGER = Logger.getLogger(RoleDAO.class.getName());
     private final DBContext dbContext;
 
     public RoleDAO() {
         this.dbContext = new DBContext();
-    }    
-    
+    }
+
     public List<Role> getAllRoles(){
         LOGGER.log(Level.INFO,"Get all roles");
         List<Role> roles = new ArrayList<>();
@@ -38,7 +38,7 @@ public class RoleDAO {
         }
         return roles;
     }
-    
+
     public List<Role> getAllActiveRoles(){
         LOGGER.log(Level.INFO,"Get all roles");
         List<Role> roles = new ArrayList<>();
@@ -54,8 +54,8 @@ public class RoleDAO {
             LOGGER.log(Level.SEVERE,"Cannot retrieve roles from DB",e);
         }
         return roles;
-    }    
-    
+    }
+
     public Role getRoleById(int roleId) {
         LOGGER.log(Level.INFO, "Get role by roleId: {0}", roleId);
         String SQL = "SELECT * FROM roles WHERE roleId = ?";
@@ -72,7 +72,7 @@ public class RoleDAO {
         }
         return null;
     }
-    
+
         public String getRoleByUserId(int userId) {
         LOGGER.log(Level.INFO, "Get role by userId: {0}", userId);
         String SQL = "SELECT r.roleName FROM users u INNER JOIN roles r ON r.roleId = u.roleId WHERE u.userId = ?";
@@ -117,7 +117,7 @@ public class RoleDAO {
         }
         return 0;
     }
-    
+
     public boolean handleStatus(int status, int roleId){
         LOGGER.log(Level.INFO,"Handling new status role with roleId: {0}", roleId);
         String SQL = "UPDATE roles SET isActive = ? WHERE roleId = ? AND roleName != 'ADMIN'";
@@ -137,8 +137,8 @@ public class RoleDAO {
         } catch (SQLException e) {
             LOGGER.log(Level.SEVERE, "Error updating roles with roleId: " + roleId, e);
         }
-        return false;        
-    }    
+        return false;
+    }
     public boolean addRole(String roleCode, String roleName, String description) {
         LOGGER.log(Level.INFO, "Adding new role  {0}", roleCode);
 
@@ -205,10 +205,10 @@ public class RoleDAO {
             LOGGER.log(Level.SEVERE, "Error updating role with roleId: " + roleId, e);
         }
         return false;
-    }    
-    
-    
-    
+    }
+
+
+
     private Role mapRole(ResultSet rs) throws SQLException{
         Role role = new Role();
         role.setRoleId(rs.getInt("roleId"));
@@ -218,5 +218,5 @@ public class RoleDAO {
         role.setIsActive(rs.getInt("isActive"));
         return role;
     }
-        
+
 }

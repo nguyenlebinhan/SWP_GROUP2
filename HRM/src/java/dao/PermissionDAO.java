@@ -1,7 +1,7 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
+
+
+
+
 package dao;
 
 import dal.DBContext;
@@ -9,18 +9,18 @@ import java.util.*;
 import java.util.logging.*;
 import model.Permission;
 import java.sql.*;
-/**
- *
- * @author ADMIN
- */
+
+
+
+
 public class PermissionDAO {
     private static final Logger LOGGER = Logger.getLogger(PermissionDAO.class.getName());
     private final DBContext dbContext;
 
     public PermissionDAO() {
         this.dbContext = new DBContext();
-    }    
-    
+    }
+
     public Set<Permission>getAllPermissionByRoleId(int roleId){
         LOGGER.log(Level.INFO,"Getting all permissions by roleId: {0}",roleId);
         Set<Permission> permissions  = new HashSet<>();
