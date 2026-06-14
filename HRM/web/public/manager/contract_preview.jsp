@@ -66,7 +66,7 @@
 
         <p>
             Hợp đồng lao động này ("Hợp đồng") được lập ngày
-            <span class="field"><fmt:formatDate value="${contract.startDate}" pattern="dd/MM/yyyy"/></span>,
+            <span class="field"><fmt:formatDate value="${contract.effectiveDate}" pattern="dd/MM/yyyy"/></span>,
             giữa <span class="field">Công ty HRM</span>, có địa chỉ tại
             <span class="field">Địa chỉ công ty</span> ("Người sử dụng lao động"), và
             <span class="field"><c:out value="${employee.fullName}"/></span>,
@@ -85,7 +85,7 @@
         <h2>2. Thời hạn hợp đồng.</h2>
         <p>
             Hợp đồng bắt đầu có hiệu lực từ ngày
-            <span class="field"><fmt:formatDate value="${contract.startDate}" pattern="dd/MM/yyyy"/></span>.
+            <span class="field"><fmt:formatDate value="${contract.effectiveDate}" pattern="dd/MM/yyyy"/></span>.
             Loại hợp đồng:
             <span class="field"><c:out value="${contract.contractType}"/></span>.
         </p>

@@ -16,13 +16,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.*;
+import model.ContractStatus;
+import model.ContractType;
 import model.Department;
 import model.Employee;
 import model.EmploymentContract;
 import model.Position;
 import model.Role;
 import model.User;
-import static org.apache.tomcat.jakartaee.commons.lang3.StringUtils.isBlank;
+import java.util.Objects;
 
 public class ManagerController extends HttpServlet {
 
@@ -1016,7 +1018,7 @@ public class ManagerController extends HttpServlet {
         EmploymentContract contract = new EmploymentContract();
         try {
             contract.setEmployeeId(Integer.parseInt(employeeParam));
-            contract.setStartDate(java.sql.Date.valueOf(startDate));
+            contract.setEffectiveDate(java.sql.Date.valueOf(startDate));
             contract.setEndDate(isBlank(endDate) ? null : java.sql.Date.valueOf(endDate));
             contract.setSalary(new BigDecimal(salaryParam));
         } catch (IllegalArgumentException e) {
@@ -1027,8 +1029,19 @@ public class ManagerController extends HttpServlet {
             return;
         }
 
-        if (!isValidContractType(type) || contract.getSalary().compareTo(BigDecimal.ZERO) < 0) {
-            request.setAttribute("error", "Loại hợp đồng hoặc lương không hợp lệ.");
+        ContractType contractTypeEnum;
+        try {
+            contractTypeEnum = ContractType.valueOf(type.toUpperCase().replace('-', '_'));
+        } catch (IllegalArgumentException e) {
+            request.setAttribute("error", "Loại hợp đồng không hợp lệ.");
+            request.setAttribute("employees", employeeDAO.getAllEmployees(user.getUserId()));
+            setPermissionFlags(request, getPermissions(user));
+            request.getRequestDispatcher("/public/manager/add_contract.jsp").forward(request, response);
+            return;
+        }
+
+        if (contract.getSalary().compareTo(BigDecimal.ZERO) < 0) {
+            request.setAttribute("error", "Lương không hợp lệ.");
             request.setAttribute("employees", employeeDAO.getAllEmployees(user.getUserId()));
             setPermissionFlags(request, getPermissions(user));
             request.getRequestDispatcher("/public/manager/add_contract.jsp").forward(request, response);
@@ -1043,7 +1056,7 @@ public class ManagerController extends HttpServlet {
             return;
         }
 
-        if (contractDAO.hasActiveContract(contract.getEmployeeId())) {
+        if (contractDAO.getActiveContract(contract.getEmployeeId()) != null) {
             request.setAttribute("error", "Hợp đồng của nhân viên vẫn còn hiệu lực");
             request.setAttribute("employees", employeeDAO.getAllEmployees(user.getUserId()));
             setPermissionFlags(request, getPermissions(user));
@@ -1051,7 +1064,7 @@ public class ManagerController extends HttpServlet {
             return;
         }
 
-        if (contract.getEndDate() != null && contract.getEndDate().before(contract.getStartDate())) {
+        if (contract.getEndDate() != null && contract.getEndDate().before(contract.getEffectiveDate())) {
             request.setAttribute("error", "Ngày kết thúc không được trước ngày bắt đầu.");
             request.setAttribute("employees", employeeDAO.getAllEmployees(user.getUserId()));
             setPermissionFlags(request, getPermissions(user));
@@ -1060,8 +1073,8 @@ public class ManagerController extends HttpServlet {
         }
 
         contract.setContractCode(code);
-        contract.setContractType(type);
-        contract.setStatus(1);
+        contract.setContractType(contractTypeEnum);
+        contract.setStatus(ContractStatus.DRAFT);
         contract.setNote(trimToNull(request.getParameter("note")));
         contract.setCreatedBy(user.getUserId());
 
@@ -1147,10 +1160,12 @@ public class ManagerController extends HttpServlet {
     }
 
     private boolean isValidContractType(String type) {
-        return "Probation".equals(type)
-                || "Full-time".equals(type)
-                || "Part-time".equals(type)
-                || "Fixed-term".equals(type);
+        try {
+            ContractType.valueOf(type.toUpperCase().replace('-', '_'));
+            return true;
+        } catch (IllegalArgumentException e) {
+            return false;
+        }
     }
 
     private boolean isHrStaff(User user) {
@@ -1198,10 +1213,6 @@ public class ManagerController extends HttpServlet {
             request.getSession().setAttribute("error", "Cập nhật thất bại. Vui lòng thử lại.");
         }
         response.sendRedirect(request.getContextPath() + "/v1/manager/my-profile");
-    }
-
-    private boolean isBlank(String v) {
-        return v == null || v.trim().isEmpty();
     }
 
     private void preventBackCache(HttpServletResponse response) {
@@ -1293,5 +1304,9 @@ public class ManagerController extends HttpServlet {
         request.setAttribute("positions", departmentDAO.getAllPositions());
         setPermissionFlags(request, getPermissions(user));
         request.getRequestDispatcher("/public/manager/reassign_department.jsp").forward(request, response);
+    }
+
+    private boolean isBlank(String str) {
+        return str == null || str.trim().isEmpty();
     }
 }

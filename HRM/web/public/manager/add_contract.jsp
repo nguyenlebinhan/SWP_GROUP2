@@ -36,7 +36,7 @@
             <div class="row g-3">
                 <div class="col-md-6">
                     <label class="form-label">Mã hợp đồng</label>
-                    <input type="text" name="contractCode" class="form-control" required>
+                    <input type="text" name="contractCode" class="form-control" value="${param.contractCode}" required>
                 </div>
                 <div class="col-md-6">
                     <label class="form-label">Nhân viên</label>
@@ -53,27 +53,27 @@
                     <label class="form-label">Loại hợp đồng</label>
                     <select name="contractType" class="form-select" required>
                         <option value="">-- Chọn loại hợp đồng --</option>
-                        <option value="Probation">Thử việc</option>
-                        <option value="Full-time">Chính thức</option>
-                        <option value="Part-time">Bán thời gian</option>
-                        <option value="Fixed-term">Có thời hạn</option>
+                        <option value="PROBATION" ${param.contractType == 'PROBATION' ? 'selected' : ''}>Thử việc</option>
+                        <option value="INTERNSHIP" ${param.contractType == 'INTERNSHIP' ? 'selected' : ''}>Thực tập</option>
+                        <option value="FIXED_TERM" ${param.contractType == 'FIXED_TERM' ? 'selected' : ''}>Có thời hạn</option>
+                        <option value="INDEFINITE" ${param.contractType == 'INDEFINITE' ? 'selected' : ''}>Không xác định thời hạn</option>
                     </select>
                 </div>
                 <div class="col-md-6">
                     <label class="form-label">Lương</label>
-                    <input type="number" name="salary" class="form-control" min="0" step="1000" required>
+                    <input type="number" name="salary" class="form-control" min="0" step="1000" value="${param.salary}" required>
                 </div>
                 <div class="col-md-6">
                     <label class="form-label">Ngày bắt đầu</label>
-                    <input type="date" name="startDate" class="form-control" required>
+                    <input type="date" name="startDate" class="form-control" value="${param.startDate}" required>
                 </div>
                 <div class="col-md-6">
                     <label class="form-label">Ngày kết thúc</label>
-                    <input type="date" name="endDate" class="form-control">
+                    <input type="date" name="endDate" class="form-control" value="${param.endDate}">
                 </div>
                 <div class="col-md-12">
                     <label class="form-label">Ghi chú</label>
-                    <textarea name="note" class="form-control" rows="3"></textarea>
+                    <textarea name="note" class="form-control" rows="3">${param.note}</textarea>
                 </div>
             </div>
 
