@@ -40,6 +40,30 @@ public class PermissionDAO {
         return permissions;
     }
 
+    /**
+     * Get permission codes for a user using an injected connection (for filter transactional flow).
+     */
+    public Set<String> getPermissionCodesByUserId(Connection conn, int userId) {
+        LOGGER.log(Level.FINE, "Getting permissions by userId (conn-injected): {0}", userId);
+        Set<String> permissions = new HashSet<>();
+        String SQL = "SELECT p.permissionCode "
+                + "FROM permissions p "
+                + "JOIN role_permissions rp ON rp.permissionId = p.permissionId "
+                + "JOIN users u ON u.roleId = rp.roleId "
+                + "WHERE u.userId = ?";
+        try (PreparedStatement ps = conn.prepareStatement(SQL)) {
+            ps.setInt(1, userId);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    permissions.add(rs.getString("permissionCode"));
+                }
+            }
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Cannot retrieve permissions by userId: " + userId, e);
+        }
+        return permissions;
+    }
+
     public Set<String> getPermissionCodeByUserId(int userId) {
         LOGGER.log(Level.INFO, "Getting permissions by userId through role_permissions: {0}", userId);
         Set<String> permissions = new HashSet<>();

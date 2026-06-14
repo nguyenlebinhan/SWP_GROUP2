@@ -159,18 +159,40 @@ public class DBInitializer {
                 + "contractCode VARCHAR(50) NOT NULL UNIQUE,"
                 + "employeeId INT NOT NULL,"
                 + "contractType VARCHAR(50) NOT NULL,"
-                + "startDate DATE NOT NULL,"
+                + "signedDate DATE NULL,"
+                + "effectiveDate DATE NOT NULL,"
                 + "endDate DATE NULL,"
+                + "actualEndDate DATE NULL,"
                 + "salary DECIMAL(15,2) NOT NULL DEFAULT 0,"
-                + "status TINYINT DEFAULT 1,"
+                + "status VARCHAR(50) NOT NULL DEFAULT 'DRAFT',"
                 + "note NVARCHAR(500),"
+                + "previousContractId INT NULL,"
+                + "terminationReason NVARCHAR(500) NULL,"
+                + "rejectionReason NVARCHAR(500) NULL,"
                 + "createdBy INT,"
                 + "createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,"
                 + "updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,"
                 + "FOREIGN KEY (employeeId) REFERENCES Employees(employeeId),"
-                + "FOREIGN KEY (createdBy) REFERENCES Users(userId)"
+                + "FOREIGN KEY (createdBy) REFERENCES Users(userId),"
+                + "FOREIGN KEY (previousContractId) REFERENCES Employment_Contracts(contractId)"
                 + ")";
         execute(conn, SQL, "CREATE EMPLOYMENT_CONTRACTS TABLE SUCCESSFULLY");
+
+        // Indexes for performance
+        String[] indexes = {
+            "CREATE INDEX idx_employee_contract ON Employment_Contracts(employeeId)",
+            "CREATE INDEX idx_contract_status ON Employment_Contracts(status)",
+            "CREATE INDEX idx_contract_effective ON Employment_Contracts(effectiveDate)"
+        };
+        for (String indexSQL : indexes) {
+            try (Statement stmt = conn.createStatement()) {
+                stmt.execute(indexSQL);
+            } catch (SQLException e) {
+                // Index might already exist, log but don't fail
+                LOGGER.log(Level.WARNING, "Index creation skipped (may already exist): " + indexSQL, e);
+            }
+        }
+        LOGGER.log(Level.INFO, "EMPLOYMENT_CONTRACTS TABLE INDEXES CREATED SUCCESSFULLY");
     }
 
     public void createTableCandidates(Connection conn) {
@@ -523,6 +545,8 @@ public class DBInitializer {
                 insertPermission(conn, "ADD_DEPARTMENT", "Thêm phòng ban", "Quyền thêm phòng ban");
                 insertPermission(conn, "VIEW_ATTENDANCE", "Xem chấm công", "Quyền xem dữ liệu chấm công (Manager: theo phòng mình; Employee: của bản thân)");
                 insertPermission(conn, "VIEW_DEPARTMENT_EMPLOYEES_DETAIL", "Xem danh sách nhân viên của phòng ban khác", "Quyền xem dữ liệu nhân viên của phòng ban khác");
+                insertPermission(conn, "PERM_APPROVE_CONTRACT", "Duyet hop dong", "Quyen duyet/tu choi hop dong lao dong");
+                insertPermission(conn, "PERM_VIEW_ALL_CONTRACTS", "Xem tat ca hop dong", "Quyen xem tat ca hop dong trong he thong");
             }
             ensurePermission(conn, "VIEW_EMPLOYEES", "Xem nhân viên", "Quyền xem danh sách nhân viên");
             ensurePermission(conn, "EDIT_EMPLOYEE", "Chỉnh sửa nhân viên", "Quyền chỉnh sửa nhân viên");
@@ -557,6 +581,8 @@ public class DBInitializer {
             ensureRolePermission(conn, "BusinessAdmin", "VIEW_ATTENDANCE");
             ensureRolePermission(conn, "BusinessAdmin", "VIEW_DEPARTMENT_EMPLOYEES_DETAIL");
             ensureRolePermission(conn, "BusinessAdmin", "MANAGE_PERMISSIONS");
+            ensureRolePermission(conn, "BusinessAdmin", "PERM_APPROVE_CONTRACT");
+            ensureRolePermission(conn, "BusinessAdmin", "PERM_VIEW_ALL_CONTRACTS");
 
             if (countRows(conn, "Positions") == 0) {
                 insertPosition(conn, "Thực tập sinh", 1, "Sinh viên thực tập tại công ty");
