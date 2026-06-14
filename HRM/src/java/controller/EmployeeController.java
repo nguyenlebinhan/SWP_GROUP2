@@ -18,6 +18,8 @@ import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import model.*;
+import service.EmploymentContractService;
+import dal.DBContext;
 
 public class EmployeeController extends HttpServlet {
 
@@ -25,6 +27,7 @@ public class EmployeeController extends HttpServlet {
     private static final EmployeeDAO employeeDAO = new EmployeeDAO();
     private static final DepartmentDAO departmentDAO = new DepartmentDAO();
     private static final EmploymentContractDAO contractDAO = new EmploymentContractDAO();
+    private static final EmploymentContractService contractService = new EmploymentContractService(contractDAO, new DBContext());
     private static final UserDAO userDAO = new UserDAO();
     private static final PermissionDAO permissionDAO = new PermissionDAO();
     private static final RoleDAO roleDAO = new RoleDAO();
@@ -1057,12 +1060,12 @@ public class EmployeeController extends HttpServlet {
         contract.setNote(trimToNull(request.getParameter("note")));
         contract.setCreatedBy(user.getUserId());
 
-        boolean success = contractDAO.addContract(contract);
-        if (success) {
-            request.getSession().setAttribute("success", "Thêm hợp đồng lao động thành công.");
+        ContractOperationResult result = contractService.createContract(contract);
+        if (result.isSuccess()) {
+            request.getSession().setAttribute("success", result.getMessage());
             response.sendRedirect(request.getContextPath() + "/v1/employee/contract-preview?employeeId=" + contract.getEmployeeId());
         } else {
-            request.setAttribute("error", "Thêm hợp đồng thất bại. Mã hợp đồng có thể đã tồn tại.");
+            request.setAttribute("error", result.getMessage());
             request.setAttribute("employees", employeeDAO.getAllEmployees(user.getUserId()));
             setPermissionFlags(request, getPermissions(user));
             request.getRequestDispatcher("/public/employee/add_contract.jsp").forward(request, response);

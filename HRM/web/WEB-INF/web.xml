@@ -74,6 +74,14 @@
         <load-on-startup>3</load-on-startup>
     </servlet>
 
+    <!-- Contract History Search Servlet (Phase 8) -->
+    <!-- Handles GET /contracts/history for audit trail search -->
+    <servlet>
+        <servlet-name>ContractHistorySearchServlet</servlet-name>
+        <servlet-class>controller.ContractHistorySearchServlet</servlet-class>
+        <load-on-startup>4</load-on-startup>
+    </servlet>
+
     <!-- =====================================================================
          SERVLET MAPPINGS
          ===================================================================== -->
@@ -110,6 +118,11 @@
     </servlet-mapping>
 
     <!-- Contract Approval Endpoint (Phase 7 - HR Manual Approval Flow) -->
+    <servlet-mapping>
+        <servlet-name>ContractHistorySearchServlet</servlet-name>
+        <url-pattern>/contracts/history</url-pattern>
+    </servlet-mapping>
+
     <servlet-mapping>
         <servlet-name>ContractApprovalServlet</servlet-name>
         <url-pattern>/contracts/approve</url-pattern>
