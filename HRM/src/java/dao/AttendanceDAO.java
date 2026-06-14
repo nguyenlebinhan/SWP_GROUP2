@@ -169,9 +169,10 @@ public class AttendanceDAO {
     }
     
     
-    public List<Attendance> getAttendanceListByUserId(int userId) {
+    public List<Attendance> getAttendanceListByUserId(int userId, Integer month, Integer year) {
         List<Attendance> list = new ArrayList<>();
-        String sql = "SELECT a.attendanceId, a.attendanceCode, a.employeeId, a.workDate, a.timeIn, a.timeOut, "
+        StringBuilder sql = new StringBuilder(
+                "SELECT a.attendanceId, a.attendanceCode, a.employeeId, a.workDate, a.timeIn, a.timeOut, "
                 + "a.hoursWorked, a.attendanceStatus, a.fileId, a.periodId, "
                 + "e.employeeCode, u.fullName, d.departmentName, "
                 + "p.status AS periodStatus "
@@ -182,13 +183,28 @@ public class AttendanceDAO {
                 + "LEFT JOIN Attendance_Periods p ON (a.periodId IS NOT NULL AND p.periodId = a.periodId) "
                 + "OR (a.periodId IS NULL AND p.departmentId = e.departmentId "
                 + "AND p.month = MONTH(a.workDate) AND p.year = YEAR(a.workDate)) "
-                + "WHERE u.userId = ? AND p.status = 1 "
-                + "ORDER BY a.workDate DESC";
+                + "WHERE u.userId = ? AND p.status = 1 ");
+
+        List<Object> params = new ArrayList<>();
+        params.add(userId);
+
+        if (month != null && month > 0) {
+            sql.append("AND MONTH(a.workDate) = ? ");
+            params.add(month);
+        }
+        if (year != null && year > 0) {
+            sql.append("AND YEAR(a.workDate) = ? ");
+            params.add(year);
+        }
+
+        sql.append("ORDER BY a.workDate DESC");
 
 
         try (Connection conn = dbContext.getConnection();
-                PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setInt(1, userId);
+                PreparedStatement ps = conn.prepareStatement(sql.toString())) {
+            for (int i = 0; i < params.size(); i++) {
+                ps.setObject(i + 1, params.get(i));
+            }
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
                     list.add(mapAttendance(rs));
