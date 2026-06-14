@@ -347,9 +347,27 @@ public class EmployeeController extends HttpServlet {
         Set<String> perms = getPermissions(user);
         request.getSession().setAttribute("userPermissions", perms);
         setPermissionFlags(request, perms);
-        List<Attendance> attendances = attendanceDAO.getAttendanceListByUserId(user.getUserId());
+
+        String rawMonth = request.getParameter("month");
+        String rawYear = request.getParameter("year");
+        Integer month = null;
+        Integer year = null;
+        try {
+            if (rawMonth != null && !rawMonth.isEmpty() && !rawMonth.equals("0")) {
+                month = Integer.parseInt(rawMonth);
+            }
+            if (rawYear != null && !rawYear.isEmpty()) {
+                year = Integer.parseInt(rawYear);
+            }
+        } catch (NumberFormatException e) {
+            // ignore
+        }
+
+        List<Attendance> attendances = attendanceDAO.getAttendanceListByUserId(user.getUserId(), month, year);
 
         request.setAttribute("attendances", attendances);
+        request.setAttribute("selectedMonth", month);
+        request.setAttribute("selectedYear", year);
         request.getRequestDispatcher("/public/employee/own_attendance_list.jsp").forward(request, response);
     }
 
@@ -488,7 +506,6 @@ public class EmployeeController extends HttpServlet {
         request.getRequestDispatcher("/public/employee/attendance_list.jsp").forward(request, response);
     }
 
- 
     private void displayUpdateAttendanceForm(HttpServletRequest request, HttpServletResponse response,
             User user) throws ServletException, IOException {
         if (!isHrStaff(user) || !hasPermission(user, "EDIT_ATTENDANCE")) {
@@ -600,7 +617,6 @@ public class EmployeeController extends HttpServlet {
         }
         response.sendRedirect(redirectUrl);
     }
-
 
     private void handleImportAttendance(HttpServletRequest request, HttpServletResponse response,
             model.User user) throws ServletException, IOException {
@@ -1432,7 +1448,7 @@ public class EmployeeController extends HttpServlet {
         request.setAttribute("canEditDepts", perms.contains("EDIT_DEPARTMENTS"));
         request.setAttribute("canAssignDept", perms.contains("ASSIGN_DEPARTMENT"));
         request.setAttribute("canUnassignDept", perms.contains("UNASSIGN_DEPARTMENT"));
-        request.setAttribute("canEditAttendance", perms.contains( "EDIT_ATTENDANCE"));
+        request.setAttribute("canEditAttendance", perms.contains("EDIT_ATTENDANCE"));
     }
 
     private void handleUpdateMyProfile(HttpServletRequest request, HttpServletResponse response,
@@ -1736,7 +1752,6 @@ public class EmployeeController extends HttpServlet {
         return ids;
     }
 
-
     private boolean isAcceptableXlsxContentType(String contentType) {
         String ct = contentType.toLowerCase();
         return ct.contains("openxmlformats-officedocument.spreadsheetml.sheet")
@@ -1752,6 +1767,7 @@ public class EmployeeController extends HttpServlet {
         String base = Paths.get(name).getFileName().toString();
         return base.replaceAll("[\\r\\n]", "");
     }
+
     private Time parseTimeOrNull(String raw) {
         String value = trimToNull(raw);
         if (value == null) {
@@ -1776,7 +1792,7 @@ public class EmployeeController extends HttpServlet {
         String value = trimToNull(request.getParameter(name));
         if (value != null) {
             qs.append(qs.length() == 0 ? '?' : '&').append(name).append('=')
-              .append(java.net.URLEncoder.encode(value, java.nio.charset.StandardCharsets.UTF_8));
+                    .append(java.net.URLEncoder.encode(value, java.nio.charset.StandardCharsets.UTF_8));
         }
     }
 }
