@@ -92,7 +92,7 @@ public class EmploymentContractDAO {
     public EmploymentContract getContractById(Connection conn, int contractId) {
         String SQL = "SELECT contractId, contractCode, employeeId, contractType, signedDate, effectiveDate, "
                 + "endDate, actualEndDate, salary, status, note, previousContractId, terminationReason, "
-                + "createdBy, createdAt, updatedAt "
+                + "rejectionReason, createdBy, createdAt, updatedAt "
                 + "FROM Employment_Contracts WHERE contractId = ?";
         try (PreparedStatement ps = conn.prepareStatement(SQL)) {
             ps.setInt(1, contractId);
@@ -114,7 +114,7 @@ public class EmploymentContractDAO {
     public EmploymentContract getLatestContractByEmployeeId(int employeeId) {
         String SQL = "SELECT contractId, contractCode, employeeId, contractType, signedDate, effectiveDate, "
                 + "endDate, actualEndDate, salary, status, note, previousContractId, terminationReason, "
-                + "createdBy, createdAt, updatedAt "
+                + "rejectionReason, createdBy, createdAt, updatedAt "
                 + "FROM Employment_Contracts WHERE employeeId = ? "
                 + "ORDER BY effectiveDate DESC, contractId DESC LIMIT 1";
         try (Connection conn = getInternalConnection();
@@ -167,7 +167,7 @@ public class EmploymentContractDAO {
     public EmploymentContract getActiveContract(Connection conn, int employeeId) {
         String SQL = "SELECT contractId, contractCode, employeeId, contractType, signedDate, effectiveDate, "
                 + "endDate, actualEndDate, salary, status, note, previousContractId, terminationReason, "
-                + "createdBy, createdAt, updatedAt "
+                + "rejectionReason, createdBy, createdAt, updatedAt "
                 + "FROM Employment_Contracts WHERE employeeId = ? AND status = 'ACTIVE' "
                 + "LIMIT 1";
         try (PreparedStatement ps = conn.prepareStatement(SQL)) {
@@ -190,7 +190,7 @@ public class EmploymentContractDAO {
     public EmploymentContract getCurrentOrUpcomingContract(int employeeId) {
         String SQL = "SELECT contractId, contractCode, employeeId, contractType, signedDate, effectiveDate, "
                 + "endDate, actualEndDate, salary, status, note, previousContractId, terminationReason, "
-                + "createdBy, createdAt, updatedAt "
+                + "rejectionReason, createdBy, createdAt, updatedAt "
                 + "FROM Employment_Contracts WHERE employeeId = ? "
                 + "AND status IN ('ACTIVE', 'PENDING_ACTIVATION') "
                 + "ORDER BY CASE WHEN status = 'ACTIVE' THEN 0 ELSE 1 END, "
@@ -217,7 +217,7 @@ public class EmploymentContractDAO {
         List<EmploymentContract> contracts = new ArrayList<>();
         String SQL = "SELECT contractId, contractCode, employeeId, contractType, signedDate, effectiveDate, "
                 + "endDate, actualEndDate, salary, status, note, previousContractId, terminationReason, "
-                + "createdBy, createdAt, updatedAt "
+                + "rejectionReason, createdBy, createdAt, updatedAt "
                 + "FROM Employment_Contracts WHERE employeeId = ? "
                 + "ORDER BY effectiveDate ASC, contractId ASC";
         try (Connection conn = getInternalConnection();
@@ -282,7 +282,7 @@ public class EmploymentContractDAO {
         List<EmploymentContract> contracts = new ArrayList<>();
         String SQL = "SELECT contractId, contractCode, employeeId, contractType, signedDate, effectiveDate, "
                 + "endDate, actualEndDate, salary, status, note, previousContractId, terminationReason, "
-                + "createdBy, createdAt, updatedAt "
+                + "rejectionReason, createdBy, createdAt, updatedAt "
                 + "FROM Employment_Contracts "
                 + "WHERE employeeId = ? AND status IN ('ACTIVE', 'PENDING_ACTIVATION')";
         try (Connection conn = getInternalConnection();
@@ -379,7 +379,7 @@ public class EmploymentContractDAO {
         List<EmploymentContract> contracts = new ArrayList<>();
         String SQL = "SELECT contractId, contractCode, employeeId, contractType, signedDate, effectiveDate, "
                 + "endDate, actualEndDate, salary, status, note, previousContractId, terminationReason, "
-                + "createdBy, createdAt, updatedAt "
+                + "rejectionReason, createdBy, createdAt, updatedAt "
                 + "FROM Employment_Contracts "
                 + "WHERE status = 'PENDING_ACTIVATION' AND effectiveDate <= CURRENT_DATE";
         try (Connection conn = getInternalConnection();
