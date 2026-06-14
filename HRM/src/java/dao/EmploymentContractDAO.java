@@ -10,6 +10,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import model.ContractAuditLog;
 import model.ContractOperationResult;
 import model.ContractStatus;
 import model.ContractType;
@@ -35,13 +36,15 @@ public class EmploymentContractDAO {
     // CRUD Methods
     // =========================================================================
 
-    public boolean addContract(EmploymentContract contract) {
+    /**
+     * Insert a new contract using an injected connection (transactional flow).
+     */
+    public boolean addContract(Connection conn, EmploymentContract contract) throws SQLException {
         String SQL = "INSERT INTO Employment_Contracts "
                 + "(contractCode, employeeId, contractType, signedDate, effectiveDate, endDate, "
                 + "salary, status, note, previousContractId, terminationReason, createdBy) "
                 + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
-        try (Connection conn = getInternalConnection();
-             PreparedStatement ps = conn.prepareStatement(SQL)) {
+        try (PreparedStatement ps = conn.prepareStatement(SQL)) {
             ps.setString(1, contract.getContractCode());
             ps.setInt(2, contract.getEmployeeId());
             ps.setString(3, contract.getContractType() != null ? contract.getContractType().name() : null);
@@ -63,8 +66,17 @@ public class EmploymentContractDAO {
             ps.setString(11, contract.getTerminationReason());
             ps.setInt(12, contract.getCreatedBy());
             return ps.executeUpdate() > 0;
+        }
+    }
+
+    /**
+     * Insert a new contract with its own connection (backward compatible).
+     */
+    public boolean addContract(EmploymentContract contract) {
+        try (Connection conn = getInternalConnection()) {
+            return addContract(conn, contract);
         } catch (SQLException e) {
-            LOGGER.log(Level.SEVERE, "Cannot add employment contract: " + contract.getContractCode(), e);
+            LOGGER.log(Level.SEVERE, "Cannot get connection for contract insert: " + contract.getContractCode(), e);
         }
         return false;
     }
@@ -267,62 +279,54 @@ public class EmploymentContractDAO {
      * Check if a new contract period would overlap with existing ACTIVE or
      * PENDING_ACTIVATION contracts.
      */
+    /**
+     * Check if a new contract overlaps with existing active/pending contracts using pure SQL.
+     * Overlap formula: (ExistingStart <= NewEnd OR NewEnd IS NULL) AND (ExistingEnd >= NewStart OR ExistingEnd IS NULL)
+     * Only checks against statuses: ACTIVE, PENDING_ACTIVATION, PENDING_APPROVAL.
+     *
+     * @param conn            Database connection (caller manages transaction)
+     * @param employeeId      Employee to check
+     * @param newStart        New contract effective date
+     * @param newEnd          New contract end date (null = indefinite)
+     * @param excludeContractId Contract ID to exclude from check (for updates), or null
+     * @return true if overlap exists
+     * @throws SQLException   Database error
+     */
+    public boolean hasOverlappingContract(Connection conn, int employeeId, java.sql.Date newStart,
+                                          java.sql.Date newEnd, Integer excludeContractId) throws SQLException {
+        String SQL = "SELECT 1 FROM Employment_Contracts "
+                + "WHERE employeeId = ? "
+                + "AND status IN ('ACTIVE', 'PENDING_ACTIVATION', 'PENDING_APPROVAL') "
+                + "AND (effectiveDate <= COALESCE(?, '9999-12-31')) "
+                + "AND (COALESCE(endDate, '9999-12-31') >= ?)"
+                + (excludeContractId != null ? " AND contractId != ?" : "");
+
+        try (PreparedStatement ps = conn.prepareStatement(SQL)) {
+            ps.setInt(1, employeeId);
+            ps.setDate(2, newEnd);
+            ps.setDate(3, newStart);
+            if (excludeContractId != null) {
+                ps.setInt(4, excludeContractId);
+            }
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next();
+            }
+        }
+    }
+
+    /**
+     * @deprecated Use {@link #hasOverlappingContract(Connection, int, java.sql.Date, java.sql.Date, Integer)} instead.
+     * This method loads all contracts into memory and checks in Java (inefficient).
+     */
+    @Deprecated
     public boolean checkOverlappingPeriods(int employeeId, java.sql.Date effectiveDate,
                                            java.sql.Date endDate, Integer excludeContractId) {
-        List<EmploymentContract> existing = getActiveAndPendingContracts(employeeId, excludeContractId);
-        for (EmploymentContract existingContract : existing) {
-            if (hasOverlap(effectiveDate, endDate, existingContract)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    private List<EmploymentContract> getActiveAndPendingContracts(int employeeId, Integer excludeContractId) {
-        List<EmploymentContract> contracts = new ArrayList<>();
-        String SQL = "SELECT contractId, contractCode, employeeId, contractType, signedDate, effectiveDate, "
-                + "endDate, actualEndDate, salary, status, note, previousContractId, terminationReason, "
-                + "rejectionReason, createdBy, createdAt, updatedAt "
-                + "FROM Employment_Contracts "
-                + "WHERE employeeId = ? AND status IN ('ACTIVE', 'PENDING_ACTIVATION')";
-        try (Connection conn = getInternalConnection();
-             PreparedStatement ps = conn.prepareStatement(SQL)) {
-            ps.setInt(1, employeeId);
-            try (ResultSet rs = ps.executeQuery()) {
-                while (rs.next()) {
-                    EmploymentContract c = mapContract(rs);
-                    if (excludeContractId != null && c.getContractId() == excludeContractId) {
-                        continue;
-                    }
-                    contracts.add(c);
-                }
-            }
+        try (Connection conn = getInternalConnection()) {
+            return hasOverlappingContract(conn, employeeId, effectiveDate, endDate, excludeContractId);
         } catch (SQLException e) {
-            LOGGER.log(Level.SEVERE, "Cannot retrieve active/pending contracts for employeeId: " + employeeId, e);
+            LOGGER.log(Level.SEVERE, "Cannot check overlapping contracts for employeeId: " + employeeId, e);
+            return false;
         }
-        return contracts;
-    }
-
-    private boolean hasOverlap(java.sql.Date newStart, java.sql.Date newEnd,
-                               EmploymentContract existing) {
-        java.sql.Date existingEffective = existing.getEffectiveDate();
-        java.sql.Date existingEnd = existing.getActualContractEndDate();
-
-        boolean newBeforeExistingEnd;
-        if (existingEnd == null) {
-            newBeforeExistingEnd = !newStart.before(existingEffective);
-        } else {
-            newBeforeExistingEnd = newStart.before(existingEnd);
-        }
-
-        boolean existingBeforeNewEnd;
-        if (newEnd == null) {
-            existingBeforeNewEnd = !existingEffective.before(newStart);
-        } else {
-            existingBeforeNewEnd = existingEffective.before(newEnd);
-        }
-
-        return newBeforeExistingEnd && existingBeforeNewEnd;
     }
 
     // =========================================================================
@@ -540,6 +544,98 @@ public class EmploymentContractDAO {
             LOGGER.log(Level.SEVERE, "Cannot retrieve contracts ready for expiration", e);
         }
         return contracts;
+    }
+
+    // =========================================================================
+    // Audit Log Methods
+    // =========================================================================
+
+    /**
+     * Insert an audit log entry for a contract state transition.
+     * Shares the connection with the status update for transactional integrity.
+     */
+    public void insertAuditLog(Connection conn, int contractId, String oldStatus,
+                               String newStatus, int changedBy, String actionReason) throws SQLException {
+        String SQL = "INSERT INTO Contract_Audit_Log (ContractId, OldStatus, NewStatus, ChangedBy, ChangeDate, ActionReason) "
+                   + "VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP, ?)";
+        try (PreparedStatement ps = conn.prepareStatement(SQL)) {
+            ps.setInt(1, contractId);
+            ps.setString(2, oldStatus);
+            ps.setString(3, newStatus);
+            ps.setInt(4, changedBy);
+            ps.setString(5, actionReason);
+            ps.executeUpdate();
+        }
+    }
+
+    /**
+     * Advanced search for contract audit history with dynamic SQL construction.
+     * Enforces strict employee isolation for non-HR users.
+     *
+     * @param targetEmpId    Filter by employee ID (optional)
+     * @param nameKeyword    Filter by employee full name LIKE (optional)
+     * @param departmentId   Filter by department ID (optional)
+     * @param loggedInEmpId  Logged-in employee's ID (for isolation enforcement)
+     * @param isHrManager    true = full access, false = own contracts only
+     * @return List of audit log entries
+     */
+    public List<ContractAuditLog> searchContractHistory(Integer targetEmpId, String nameKeyword,
+                                                        Integer departmentId, int loggedInEmpId, boolean isHrManager) {
+        List<ContractAuditLog> logs = new ArrayList<>();
+        StringBuilder sql = new StringBuilder(
+            "SELECT la.LogId, la.ContractId, la.OldStatus, la.NewStatus, "
+            + "la.ChangedBy, la.ChangeDate, la.ActionReason, "
+            + "u.userName AS changedByName, ec.employeeId "
+            + "FROM Contract_Audit_Log la "
+            + "JOIN Employment_Contracts ec ON la.ContractId = ec.contractId "
+            + "JOIN Users u ON la.ChangedBy = u.userId "
+            + "JOIN Employees e ON ec.employeeId = e.employeeId "
+            + "WHERE 1=1 "
+        );
+
+        if (targetEmpId != null) {
+            sql.append("AND ec.employeeId = ? ");
+        }
+        if (nameKeyword != null && !nameKeyword.isBlank()) {
+            sql.append("AND e.fullName LIKE ? ");
+        }
+        if (departmentId != null) {
+            sql.append("AND e.departmentId = ? ");
+        }
+
+        // CRITICAL: Data Isolation for non-HR users
+        if (!isHrManager) {
+            sql.append("AND ec.employeeId = ? ");
+        }
+
+        sql.append("ORDER BY la.ChangeDate DESC");
+
+        try (Connection conn = getInternalConnection();
+             PreparedStatement ps = conn.prepareStatement(sql.toString())) {
+            int idx = 1;
+            if (targetEmpId != null) ps.setInt(idx++, targetEmpId);
+            if (nameKeyword != null && !nameKeyword.isBlank()) ps.setString(idx++, "%" + nameKeyword + "%");
+            if (departmentId != null) ps.setInt(idx++, departmentId);
+            if (!isHrManager) ps.setInt(idx++, loggedInEmpId);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    ContractAuditLog log = new ContractAuditLog();
+                    log.setLogId(rs.getInt("LogId"));
+                    log.setContractId(rs.getInt("ContractId"));
+                    log.setOldStatus(rs.getString("OldStatus"));
+                    log.setNewStatus(rs.getString("NewStatus"));
+                    log.setChangedBy(rs.getInt("ChangedBy"));
+                    log.setChangedByName(rs.getString("changedByName"));
+                    log.setChangeDate(rs.getTimestamp("ChangeDate"));
+                    log.setActionReason(rs.getString("ActionReason"));
+                    logs.add(log);
+                }
+            }
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Error searching contract audit history", e);
+        }
+        return logs;
     }
 
     // =========================================================================

@@ -29,6 +29,9 @@ public class ContractOperationResult {
     /** Unexpected runtime anomalies. */
     public static final String SYSTEM_ERROR = "SYSTEM_ERROR";
 
+    /** Timeline overlap detected with existing active/pending contracts. */
+    public static final String DATE_OVERLAP = "DATE_OVERLAP";
+
     // =========================================================================
     // Fields
     // =========================================================================

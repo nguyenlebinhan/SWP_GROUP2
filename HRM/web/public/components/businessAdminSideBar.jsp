@@ -1,4 +1,5 @@
 <%@ page contentType="text/html;charset=UTF-8" %>
+<%@ taglib prefix="c" uri="jakarta.tags.core" %>
 
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
 
@@ -40,6 +41,16 @@
             <a href="${pageContext.request.contextPath}/v1/businessadmin/department"><i class="fa fa-building"></i> Phòng ban</a>
             <a href="${pageContext.request.contextPath}/v1/businessadmin/add-department"><i class="fa fa-plus"></i> Thêm phòng ban</a>
             <a href="${pageContext.request.contextPath}/v1/businessadmin/my-profile"><i class="fa fa-user-gear"></i> Hồ sơ của tôi</a>
+
+            <hr style="border-color: #2a2d4a; margin: 10px 0;">
+            <small class="text-muted px-3">HỢP ĐỒNG</small>
+
+            <c:if test="${sessionScope.permissions != null && sessionScope.permissions.contains('PERM_APPROVE_CONTRACT')}">
+                <a href="${pageContext.request.contextPath}/contracts/approve"><i class="fa fa-check-circle"></i> Duyệt hợp đồng</a>
+            </c:if>
+
+            <a href="${pageContext.request.contextPath}/contracts/history"><i class="fa fa-clock-rotate-left"></i> Lịch sử hợp đồng</a>
+
             <a href="${pageContext.request.contextPath}/v1/auth/logout"><i class="fa fa-right-from-bracket"></i> Đăng xuất</a>
 
 </div>

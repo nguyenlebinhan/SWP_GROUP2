@@ -121,7 +121,7 @@ public class ContractActivationServlet extends HttpServlet {
         // Execute the HR activation flow via Service Layer
         ContractOperationResult result;
         try {
-            result = contractService.activateContract(contractId);
+            result = contractService.activateContract(contractId, user.getUserId());
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "Unexpected system error during HR activation for contract: " + contractId, e);
             // Map unexpected exceptions to SYSTEM_ERROR

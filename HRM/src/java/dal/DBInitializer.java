@@ -395,6 +395,35 @@ public class DBInitializer {
         execute(conn, SQL, "CREATE AUDIT_LOGS TABLE SUCCESSFULLY");
     }
 
+    public void createTableContractAuditLogs(Connection conn) {
+        String SQL = "CREATE TABLE Contract_Audit_Log("
+                + "logId INT PRIMARY KEY AUTO_INCREMENT,"
+                + "contractId INT NOT NULL,"
+                + "oldStatus VARCHAR(50),"
+                + "newStatus VARCHAR(50) NOT NULL,"
+                + "changedBy INT NOT NULL,"
+                + "changeDate DATETIME DEFAULT CURRENT_TIMESTAMP,"
+                + "actionReason VARCHAR(500),"
+                + "FOREIGN KEY (contractId) REFERENCES Employment_Contracts(contractId),"
+                + "FOREIGN KEY (changedBy) REFERENCES Users(userId)"
+                + ")";
+        execute(conn, SQL, "CREATE CONTRACT_AUDIT_LOG TABLE SUCCESSFULLY");
+
+        // Indexes for fast history retrieval
+        String[] indexes = {
+            "CREATE INDEX IX_ContractAudit_ContractId ON Contract_Audit_Log(contractId)",
+            "CREATE INDEX IX_ContractAudit_Date ON Contract_Audit_Log(changeDate)"
+        };
+        for (String indexSQL : indexes) {
+            try (Statement stmt = conn.createStatement()) {
+                stmt.execute(indexSQL);
+            } catch (SQLException e) {
+                LOGGER.log(Level.WARNING, "Index creation skipped (may already exist): " + indexSQL, e);
+            }
+        }
+        LOGGER.log(Level.INFO, "CONTRACT_AUDIT_LOG TABLE INDEXES CREATED SUCCESSFULLY");
+    }
+
     public void initializeDatabase(boolean enforceReset) {
         try (Connection conn = dbContext.getConnection()) {
             if (conn == null) {
@@ -403,7 +432,7 @@ public class DBInitializer {
             }
 
             String[] dropOrder = {
-                "Audit_Logs", "Notifications", "Performance", "Payroll", "Attendance",
+                "Contract_Audit_Log", "Audit_Logs", "Notifications", "Performance", "Payroll", "Attendance",
                 "Uploaded_Files", "Leave_Balance", "Leave_Requests", "Leave_Types", "Candidates", "Employment_Contracts", "Employees",
                 "Users", "Department_Roles", "Role_Permissions", "Permissions", "Email_Templates", "Departments",
                 "Positions", "Roles"
@@ -413,7 +442,7 @@ public class DBInitializer {
                 "Roles", "Permissions", "Role_Permissions", "Email_Templates", "Positions",
                 "Departments", "Department_Roles", "Users", "Employees", "Employment_Contracts", "Candidates", "Leave_Types",
                 "Leave_Requests", "Leave_Balance", "Uploaded_Files", "Attendance", "Payroll", "Performance",
-                "Notifications", "Audit_Logs"
+                "Notifications", "Audit_Logs", "Contract_Audit_Log"
             };
 
             if (enforceReset) {
@@ -490,6 +519,9 @@ public class DBInitializer {
                             break;
                         case "Audit_Logs":
                             createTableAuditLogs(conn);
+                            break;
+                        case "Contract_Audit_Log":
+                            createTableContractAuditLogs(conn);
                             break;
                         default:
                             LOGGER.log(Level.WARNING, "Unknown table: {0}", table);
