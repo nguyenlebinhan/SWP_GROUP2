@@ -17,6 +17,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.*;
+import model.Attendance;
 import model.Department;
 import model.Employee;
 import model.EmploymentContract;
@@ -39,6 +40,7 @@ public class ManagerController extends HttpServlet {
     private static final PermissionDAO permissionDAO = new PermissionDAO();
     private static final EmploymentContractDAO contractDAO = new EmploymentContractDAO();
     private static final FormRequestDAO formRequestDAO = new FormRequestDAO();
+    private static final AttendanceDAO attendanceDAO = new AttendanceDAO();
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
@@ -103,6 +105,12 @@ public class ManagerController extends HttpServlet {
                 break;
             case "/dept-forms":
                 displayDeptForms(request, response, user);
+                break;
+            case "/department-attendance":
+                displayDepartmentAttendance(request, response, user);
+                break;
+            case "/own-attendance":
+                displayOwnAttendance(request, response, user);
                 break;
             default:
                 response.sendRedirect(request.getContextPath() + "/v1/manager/dashboard");
@@ -230,6 +238,75 @@ public class ManagerController extends HttpServlet {
 
         setPermissionFlags(request, perms);
         request.getRequestDispatcher("/public/manager/employee_list.jsp").forward(request, response);
+    }
+
+    private void displayDepartmentAttendance(HttpServletRequest request, HttpServletResponse response,
+            User user) throws ServletException, IOException {
+        Set<String> perms = getPermissions(user);
+        request.getSession().setAttribute("userPermissions", perms);
+        setPermissionFlags(request, perms);
+
+        EmployeeDetailDTO manager = employeeDAO.getEmployeeByUserId(user.getUserId());
+        if (manager == null || manager.getDepartmentId() <= 0) {
+            request.setAttribute("error", "Bạn chưa được phân công vào phòng ban nào.");
+            request.getRequestDispatcher("/public/manager/department_attendance.jsp").forward(request, response);
+            return;
+        }
+
+        String rawMonth = request.getParameter("month");
+        String rawYear = request.getParameter("year");
+        String employeeCode = request.getParameter("employeeCode");
+        if (employeeCode != null) employeeCode = employeeCode.trim();
+
+        Integer month = null;
+        Integer year = null;
+        try {
+            if (rawMonth != null && !rawMonth.trim().isEmpty() && !rawMonth.equals("0")) {
+                month = Integer.parseInt(rawMonth.trim());
+            }
+            if (rawYear != null && !rawYear.trim().isEmpty()) {
+                year = Integer.parseInt(rawYear.trim());
+            }
+        } catch (NumberFormatException ignored) {}
+
+        List<Attendance> attendances = attendanceDAO.getAttendanceList(
+                manager.getDepartmentId(), month, year, employeeCode, null);
+
+        request.setAttribute("attendances", attendances);
+        request.setAttribute("filterMonth", month);
+        request.setAttribute("filterYear", year);
+        request.setAttribute("filterEmployeeCode", employeeCode);
+        request.setAttribute("departmentName", manager.getDepartmentName());
+
+        request.getRequestDispatcher("/public/manager/department_attendance.jsp").forward(request, response);
+    }
+
+    private void displayOwnAttendance(HttpServletRequest request, HttpServletResponse response,
+            User user) throws ServletException, IOException {
+        Set<String> perms = getPermissions(user);
+        request.getSession().setAttribute("userPermissions", perms);
+        setPermissionFlags(request, perms);
+
+        String rawMonth = request.getParameter("month");
+        String rawYear = request.getParameter("year");
+        Integer month = null;
+        Integer year = null;
+        try {
+            if (rawMonth != null && !rawMonth.trim().isEmpty() && !rawMonth.equals("0")) {
+                month = Integer.parseInt(rawMonth.trim());
+            }
+            if (rawYear != null && !rawYear.trim().isEmpty()) {
+                year = Integer.parseInt(rawYear.trim());
+            }
+        } catch (NumberFormatException ignored) {
+        }
+
+        List<Attendance> attendances = attendanceDAO.getAttendanceListByUserId(user.getUserId(), month, year);
+
+        request.setAttribute("attendances", attendances);
+        request.setAttribute("selectedMonth", month);
+        request.setAttribute("selectedYear", year);
+        request.getRequestDispatcher("/public/manager/own_attendance.jsp").forward(request, response);
     }
 
     private void displayEmployeeList(HttpServletRequest request, HttpServletResponse response,
