@@ -563,6 +563,8 @@ public class DBInitializer {
                 insertPermission(conn,"VIEW_DEPT_FORMS", "Xem đơn phòng ban", "Quyền xem toàn bộ đơn yêu cầu của một phòng ban");
                 insertPermission(conn,"APPROVE_FORM","Duyệt đơn yêu cầu","Quyền duyệt hoặc từ chối đơn yêu cầu của nhân viên trong phòng");
                 insertPermission(conn,"VIEW_ALL_FORMS","Xem tất cả đơn","Quyền xem toàn bộ đơn yêu cầu của mọi phòng ban (chỉ HR)");
+                insertPermission(conn, "VIEW_UPLOADED_FILES", "Xem tất cả file tải lên", "Quyền xem toàn bộ, tải xuống file đã được tải lên hệ thống");
+
             }
 
             if (countRows(conn, "Positions") == 0) {

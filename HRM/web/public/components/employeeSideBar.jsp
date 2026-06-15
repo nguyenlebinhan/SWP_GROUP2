@@ -101,9 +101,6 @@
         </a>
     </c:if>
 
-    <a href="${pageContext.request.contextPath}/v1/employee/formcreation">
-        Nghỉ Phép
-    </a >
     <c:if test="${sessionScope.userPermissions.contains('VIEW_MY_FORM')}">
         <a href="${pageContext.request.contextPath}/v1/employee/my-forms">
             <i class="fa-solid fa-file-lines"></i> Đơn của tôi
