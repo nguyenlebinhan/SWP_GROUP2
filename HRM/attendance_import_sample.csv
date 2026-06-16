@@ -1,6 +1,0 @@
-employeeCode,fullName,Phòng ban,workDate,timeIn,timeOut,attendanceStatus,note
-EMP001,Nguyễn Văn A,Phòng Kỹ thuật,2026-06-01,08:00,17:00,PRESENT,
-EMP002,Trần Thị B,Phòng Kỹ thuật,2026-06-01,08:20,17:00,LATE,Đi muộn 20 phút
-EMP003,Lê Văn C,Phòng Kỹ thuật,2026-06-01,,,ABSENT,Nghỉ không lý do
-EMP004,Phạm Thị D,Phòng Kỹ thuật,2026-06-01,08:00,17:30,PRESENT,
-EMP005,Hoàng Văn E,Phòng Kỹ thuật,2026-06-01,,,UNEXCUSED,
