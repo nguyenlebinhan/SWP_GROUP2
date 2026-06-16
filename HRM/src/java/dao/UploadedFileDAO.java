@@ -70,21 +70,10 @@ public class UploadedFileDAO {
 
     public boolean updateImportResult(int fileId, int totalRows, int importedRows, int failedRows,
             int status, String note) {
-        try (Connection conn = dbContext.getConnection()) {
-            updateImportResult(conn, fileId, totalRows, importedRows, failedRows, status, note);
-            return true;
-        } catch (SQLException e) {
-            LOGGER.log(Level.SEVERE, "Cannot update import result for fileId: " + fileId, e);
-        }
-        return false;
-    }
-
-    /** Cập nhật kết quả import trên connection của transaction import. */
-    public void updateImportResult(Connection conn, int fileId, int totalRows, int importedRows,
-            int failedRows, int status, String note) throws SQLException {
         String SQL = "UPDATE Uploaded_Files SET totalRows = ?, importedRows = ?, failedRows = ?, "
                 + "status = ?, note = ? WHERE fileId = ?";
-        try (PreparedStatement ps = conn.prepareStatement(SQL)) {
+        try (Connection conn = dbContext.getConnection();
+            PreparedStatement ps = conn.prepareStatement(SQL)) {
             ps.setInt(1, totalRows);
             ps.setInt(2, importedRows);
             ps.setInt(3, failedRows);
@@ -92,6 +81,10 @@ public class UploadedFileDAO {
             ps.setNString(5, note);
             ps.setInt(6, fileId);
             ps.executeUpdate();
+            return true;
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Cannot update import result for fileId: " + fileId, e);
         }
+        return false;
     }
 }

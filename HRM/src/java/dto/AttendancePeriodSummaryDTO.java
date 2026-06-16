@@ -7,24 +7,36 @@ package dto;
 import java.sql.Timestamp;
 
 /**
- * Tổng quan một kỳ chấm công của một phòng ban trong tháng/năm
- * (dùng cho màn hình quản lý kỳ chấm công).
  *
  * @author admin
  */
 public class AttendancePeriodSummaryDTO {
     private int departmentId;
     private String departmentName;
-    private Integer periodId;       // null = phòng ban chưa có kỳ (chưa import)
-    private Integer status;         // null khi chưa có kỳ; 0 Private, 1 Public
+    private Integer periodId;       
+    private Integer status;         
     private String publishedByName;
     private Timestamp publishedAt;
     private int fileCount;
-    private int importedRows;       // số dòng staging hợp lệ đã merge
-    private int failedRows;         // số dòng staging lỗi
+    private int importedRows;       
+    private int failedRows;         
 
     public AttendancePeriodSummaryDTO() {
     }
+
+    public AttendancePeriodSummaryDTO(int departmentId, String departmentName, Integer periodId, Integer status, String publishedByName, Timestamp publishedAt, int fileCount, int importedRows, int failedRows) {
+        this.departmentId = departmentId;
+        this.departmentName = departmentName;
+        this.periodId = periodId;
+        this.status = status;
+        this.publishedByName = publishedByName;
+        this.publishedAt = publishedAt;
+        this.fileCount = fileCount;
+        this.importedRows = importedRows;
+        this.failedRows = failedRows;
+    }
+    
+    
 
     public int getDepartmentId() {
         return departmentId;
