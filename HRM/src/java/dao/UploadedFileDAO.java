@@ -71,16 +71,22 @@ public class UploadedFileDAO {
     public boolean updateImportResult(int fileId, int totalRows, int importedRows, int failedRows,
             int status, String note) {
         try (Connection conn = dbContext.getConnection()) {
-            updateImportResult(conn, fileId, totalRows, importedRows, failedRows, status, note);
-            return true;
+            return updateImportResult(conn, fileId, totalRows, importedRows, failedRows, status, note);
         } catch (SQLException e) {
             LOGGER.log(Level.SEVERE, "Cannot update import result for fileId: " + fileId, e);
         }
         return false;
     }
 
-    /** Cập nhật kết quả import trên connection của transaction import. */
-    public void updateImportResult(Connection conn, int fileId, int totalRows, int importedRows,
+    /**
+     * Updates the import result on the caller-supplied transaction connection. This MUST
+     * be used while an import transaction is still open on {@code conn}: inserting child
+     * rows into Attendance_Import_Rows takes an FK shared lock on this Uploaded_Files row,
+     * so updating it through a separate connection would block on that lock and fail with
+     * "Lock wait timeout exceeded". Reusing {@code conn} keeps lock owner and updater on
+     * the same transaction.
+     */
+    public boolean updateImportResult(Connection conn, int fileId, int totalRows, int importedRows,
             int failedRows, int status, String note) throws SQLException {
         String SQL = "UPDATE Uploaded_Files SET totalRows = ?, importedRows = ?, failedRows = ?, "
                 + "status = ?, note = ? WHERE fileId = ?";
@@ -92,6 +98,7 @@ public class UploadedFileDAO {
             ps.setNString(5, note);
             ps.setInt(6, fileId);
             ps.executeUpdate();
+            return true;
         }
     }
 }
