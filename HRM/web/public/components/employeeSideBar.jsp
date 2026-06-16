@@ -84,6 +84,17 @@
         </a>
     </c:if>
 
+    <c:if test="${sessionScope.userPermissions.contains('VIEW_CONTRACT_PREVIEW')}">
+        <a href="${pageContext.request.contextPath}/v1/employee/contract-current">
+            <i class="fas fa-file-contract me-2"></i>Hợp đồng hiện tại
+        </a>
+    </c:if>
+    <c:if test="${sessionScope.userPermissions.contains('VIEW_CONTRACT_PREVIEW')}">
+        <a href="${pageContext.request.contextPath}/v1/employee/contract-history">
+            <i class="fas fa-history me-2"></i>Lịch sử hợp đồng
+        </a>
+    </c:if>
+
     <c:if test="${sessionScope.userPermissions.contains('VIEW_DEPARTMENTS') || sessionScope.userPermissions.contains('MANAGE_DEPARTMENTS')}">
         <div class="nav-section">Phòng ban</div>
     </c:if>

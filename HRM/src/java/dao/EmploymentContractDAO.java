@@ -5,6 +5,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.sql.Types;
 import java.util.ArrayList;
 import java.util.List;
@@ -25,6 +26,13 @@ public class EmploymentContractDAO {
     }
 
     /**
+     * Expose the DBContext for service layer construction.
+     */
+    public DBContext getDBContext() {
+        return dbContext;
+    }
+
+    /**
      * Get a connection from the context (for backward compatibility).
      * New code should prefer injecting Connection from the caller.
      */
@@ -38,13 +46,14 @@ public class EmploymentContractDAO {
 
     /**
      * Insert a new contract using an injected connection (transactional flow).
+     * Returns the generated contractId, or -1 if failed.
      */
-    public boolean addContract(Connection conn, EmploymentContract contract) throws SQLException {
+    public int addContract(Connection conn, EmploymentContract contract) throws SQLException {
         String SQL = "INSERT INTO Employment_Contracts "
                 + "(contractCode, employeeId, contractType, signedDate, effectiveDate, endDate, "
                 + "salary, status, note, previousContractId, terminationReason, createdBy) "
                 + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
-        try (PreparedStatement ps = conn.prepareStatement(SQL)) {
+        try (PreparedStatement ps = conn.prepareStatement(SQL, Statement.RETURN_GENERATED_KEYS)) {
             ps.setString(1, contract.getContractCode());
             ps.setInt(2, contract.getEmployeeId());
             ps.setString(3, contract.getContractType() != null ? contract.getContractType().name() : null);
@@ -65,20 +74,29 @@ public class EmploymentContractDAO {
             }
             ps.setString(11, contract.getTerminationReason());
             ps.setInt(12, contract.getCreatedBy());
-            return ps.executeUpdate() > 0;
+            
+            int affectedRows = ps.executeUpdate();
+            if (affectedRows > 0) {
+                try (ResultSet generatedKeys = ps.getGeneratedKeys()) {
+                    if (generatedKeys.next()) {
+                        return generatedKeys.getInt(1);
+                    }
+                }
+            }
+            return -1;
         }
     }
 
     /**
      * Insert a new contract with its own connection (backward compatible).
      */
-    public boolean addContract(EmploymentContract contract) {
+    public int addContract(EmploymentContract contract) {
         try (Connection conn = getInternalConnection()) {
             return addContract(conn, contract);
         } catch (SQLException e) {
             LOGGER.log(Level.SEVERE, "Cannot get connection for contract insert: " + contract.getContractCode(), e);
         }
-        return false;
+        return -1;
     }
 
     // =========================================================================
@@ -686,4 +704,23 @@ public class EmploymentContractDAO {
         contract.setUpdatedAt(rs.getDate("updatedAt"));
         return contract;
     }
+
+    public List<EmploymentContract> getPendingContracts() throws SQLException {
+        List<EmploymentContract> contracts = new ArrayList<>();
+        String SQL = "SELECT ec.*, e.fullName, e.employeeCode "
+                   + "FROM Employment_Contracts ec "
+                   + "JOIN Employees e ON ec.employeeId = e.employeeId "
+                   + "WHERE ec.status = ?";
+        try (Connection conn = dbContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(SQL)) {
+            ps.setString(1, ContractStatus.PENDING_APPROVAL.name());
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    contracts.add(mapContract(rs));
+                }
+            }
+        }
+        return contracts;
+    }
 }
+

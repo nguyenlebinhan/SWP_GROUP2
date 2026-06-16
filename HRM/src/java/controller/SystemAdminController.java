@@ -663,6 +663,16 @@ public class SystemAdminController extends HttpServlet {
         } else {
             LOGGER.log(Level.INFO, "Role permissions updated: roleId={0}, count={1}", new Object[]{roleId, permissionIds.size()});
             request.getSession().setAttribute("success", "Cập nhật quyền cho vai trò thành công");
+            
+            // TASK 2: RBAC Session Synchronization
+            // Refresh the current admin's session permissions immediately
+            HttpSession session = request.getSession(false);
+            User currentUser = (session != null) ? (User) session.getAttribute("user") : null;
+            if (currentUser != null) {
+                Set<String> freshPermissions = permissionDAO.getPermissionCodeByUserId(currentUser.getUserId());
+                session.setAttribute("permissions", freshPermissions);
+                LOGGER.log(Level.INFO, "Session permissions refreshed for userId: {0}", currentUser.getUserId());
+            }
         }
         response.sendRedirect(request.getContextPath() + "/v1/systemadmin/role-list");
     }
@@ -678,3 +688,4 @@ public class SystemAdminController extends HttpServlet {
     }
 
 }
+

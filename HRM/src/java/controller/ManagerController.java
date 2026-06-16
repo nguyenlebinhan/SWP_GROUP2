@@ -16,6 +16,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.*;
+import model.ContractOperationResult;
 import model.ContractStatus;
 import model.ContractType;
 import model.Department;
@@ -24,6 +25,7 @@ import model.EmploymentContract;
 import model.Position;
 import model.Role;
 import model.User;
+import service.EmploymentContractService;
 import java.util.Objects;
 
 public class ManagerController extends HttpServlet {
@@ -35,6 +37,7 @@ public class ManagerController extends HttpServlet {
     private static final DepartmentDAO departmentDAO = new DepartmentDAO();
     private static final PermissionDAO permissionDAO = new PermissionDAO();
     private static final EmploymentContractDAO contractDAO = new EmploymentContractDAO();
+    private static final EmploymentContractService contractService = new EmploymentContractService(contractDAO, contractDAO.getDBContext());
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
@@ -44,7 +47,7 @@ public class ManagerController extends HttpServlet {
         HttpSession session = request.getSession(false);
         User user = (session != null) ? (User) session.getAttribute("user") : null;
 
-        if (user == null || !isManagerRole(user.getRoleName())) {
+        if (user == null || !isHrManager(user)) {
             response.sendRedirect(request.getContextPath() + "/v1/auth/login");
             return;
         }
@@ -69,9 +72,6 @@ public class ManagerController extends HttpServlet {
                 break;
             case "/update-employee":
                 displayUpdateEmployeeForm(request, response, user);
-                break;
-            case "/add-contract":
-                displayAddContractForm(request, response, user);
                 break;
             case "/contract-preview":
                 displayContractPreview(request, response, user);
@@ -112,7 +112,7 @@ public class ManagerController extends HttpServlet {
         HttpSession session = request.getSession(false);
         User user = (session != null) ? (User) session.getAttribute("user") : null;
 
-        if (user == null || !isManagerRole(user.getRoleName())) {
+        if (user == null || !isHrManager(user)) {
             response.sendRedirect(request.getContextPath() + "/v1/auth/login");
             return;
         }
@@ -128,9 +128,6 @@ public class ManagerController extends HttpServlet {
                 break;
             case "/update-employee":
                 handleUpdateEmployee(request, response, user);
-                break;
-            case "/add-contract":
-                handleAddContract(request, response, user);
                 break;
             case "/reassign-department":
                 handleReassignDepartment(request, response, user);
@@ -224,13 +221,19 @@ public class ManagerController extends HttpServlet {
         request.getRequestDispatcher("/public/manager/employee_list.jsp").forward(request, response);
     }
 
-    private boolean isManagerRole(String roleName) {
-        return roleName != null && roleName.trim().toLowerCase().contains("manager");
+    private boolean isHrManager(User user) {
+        String role = roleDAO.getRoleByUserId(user.getUserId());
+        return "HRManager".equals(role);
+    }
+
+    private boolean isHrEmployee(User user) {
+        String role = roleDAO.getRoleByUserId(user.getUserId());
+        return "HREmployee".equals(role);
     }
 
     private void displayEmployeeList(HttpServletRequest request, HttpServletResponse response,
             User user) throws ServletException, IOException {
-        if (!isManagerRole(user.getRoleName())) {
+        if (!isHrEmployee(user) && !isHrManager(user)) {
             request.getSession().setAttribute("error", "Bạn không có quyền xem danh sách nhân viên bởi bạn không phải HR");
             response.sendRedirect(request.getContextPath() + "/v1/manager/dashboard");
             return;
@@ -266,7 +269,7 @@ public class ManagerController extends HttpServlet {
 
     private void displayUpdateEmployeeForm(HttpServletRequest request, HttpServletResponse response,
             User user) throws ServletException, IOException {
-        if (!isManagerRole(user.getRoleName())) {
+        if (!isHrEmployee(user) && !isHrManager(user)) {
             request.getSession().setAttribute("error", "Bạn không có quyền chỉnh sửa nhân viên bởi bạn không phải HR");
             response.sendRedirect(request.getContextPath() + "/v1/manager/dashboard");
             return;
@@ -290,34 +293,14 @@ public class ManagerController extends HttpServlet {
         request.getRequestDispatcher("/public/manager/update_employee.jsp").forward(request, response);
     }
 
-    private void displayAddContractForm(HttpServletRequest request, HttpServletResponse response,
-            User user) throws ServletException, IOException {
-        if (!isManagerRole(user.getRoleName())) {
-            request.getSession().setAttribute("error", "Bạn không có quyền thêm hợp đồng bởi bạn không phải HR");
-            response.sendRedirect(request.getContextPath() + "/v1/manager/dashboard");
-            return;
-        }
-        if (!hasPermission(user, "ADD_EMPLOYMENT_CONTRACT")) {
-            request.getSession().setAttribute("error", "Bạn không có quyền thêm hợp đồng lao động.");
-            response.sendRedirect(request.getContextPath() + "/v1/manager/dashboard");
-            return;
-        }
-
-        Set<String> perms = getPermissions(user);
-        request.getSession().setAttribute("userPermissions", perms);
-        request.setAttribute("employees", employeeDAO.getAllEmployees(user.getUserId()));
-        setPermissionFlags(request, perms);
-        request.getRequestDispatcher("/public/manager/add_contract.jsp").forward(request, response);
-    }
-
     private void displayContractPreview(HttpServletRequest request, HttpServletResponse response,
             User user) throws ServletException, IOException {
-        if (!isManagerRole(user.getRoleName())) {
+        if (!isHrManager(user) && !isHrEmployee(user)) {
             request.getSession().setAttribute("error", "Bạn không có quyền xem hợp đồng lao động.");
             response.sendRedirect(request.getContextPath() + "/v1/manager/dashboard");
             return;
         }
-        if (!hasPermission(user, "ADD_EMPLOYMENT_CONTRACT")) {
+        if (!hasPermission(user, "VIEW_CONTRACT_PREVIEW")) {
             request.getSession().setAttribute("error", "Bạn không có quyền xem hợp đồng lao động.");
             response.sendRedirect(request.getContextPath() + "/v1/manager/dashboard");
             return;
@@ -347,7 +330,7 @@ public class ManagerController extends HttpServlet {
     private void displayEmployeeDepartmentDetail(HttpServletRequest request, HttpServletResponse response,
             User user) throws ServletException, IOException {
 
-        if (!isManagerRole(user.getRoleName())) {
+        if (!isHrEmployee(user) && !isHrManager(user)) {
             request.getSession().setAttribute("error", "Bạn không có quyền xem danh sách nhân viên bởi bạn không phải HR");
             response.sendRedirect(request.getContextPath() + "/v1/manager/dashboard");
             return;
@@ -393,7 +376,7 @@ public class ManagerController extends HttpServlet {
     private void displayAssignDepartmentForm(HttpServletRequest request, HttpServletResponse response,
             User user) throws ServletException, IOException {
 
-        if (!isManagerRole(user.getRoleName())) {
+        if (!isHrEmployee(user) && !isHrManager(user)) {
             request.getSession().setAttribute("error", "Bạn không có quyền phân công phòng ban bởi bạn không phải HR");
             response.sendRedirect(request.getContextPath() + "/v1/manager/dashboard");
             return;
@@ -446,7 +429,7 @@ public class ManagerController extends HttpServlet {
 
     private void handleAssignDepartment(HttpServletRequest request, HttpServletResponse response,
             User user) throws ServletException, IOException {
-        if (!isManagerRole(user.getRoleName())) {
+        if (!isHrEmployee(user) && !isHrManager(user)) {
             request.getSession().setAttribute("error", "Bạn không có quyền thêm phòng ban bởi bạn không phải HR");
             response.sendRedirect(request.getContextPath() + "/v1/manager/dashboard");
             return;
@@ -542,9 +525,9 @@ public class ManagerController extends HttpServlet {
         if (assigned != null) {
             Department assignedDept = departmentDAO.getDepartmentById(departmentId);
             boolean deptHasManager = assignedDept != null && assignedDept.getManagerId() != null;
-            boolean isManagerRole = roleName != null && roleName.toLowerCase().contains("manager");
+            boolean isHrManagerRole = "HRManager".equals(roleName);
 
-            if (isManagerRole && !deptHasManager) {
+            if (isHrManagerRole && !deptHasManager) {
                 employeeDAO.assignAsManager(departmentId, assigned.getEmployeeId());
             } else if (deptHasManager) {
                 employeeDAO.setEmployeeManager(assigned.getEmployeeId(), assignedDept.getManagerId());
@@ -560,7 +543,7 @@ public class ManagerController extends HttpServlet {
     private void displayReassignDepartmentForm(HttpServletRequest request, HttpServletResponse response,
             User user) throws ServletException, IOException {
 
-        if (!isManagerRole(user.getRoleName())) {
+        if (!isHrEmployee(user) && !isHrManager(user)) {
             request.getSession().setAttribute("error", "Bạn không có quyền chuyển phòng ban bởi bạn không phải HR");
             response.sendRedirect(request.getContextPath() + "/v1/manager/dashboard");
             return;
@@ -600,7 +583,7 @@ public class ManagerController extends HttpServlet {
 
     private void handleReassignDepartment(HttpServletRequest request, HttpServletResponse response,
             User user) throws ServletException, IOException {
-        if (!isManagerRole(user.getRoleName())) {
+        if (!isHrEmployee(user) && !isHrManager(user)) {
             request.getSession().setAttribute("error", "Bạn không có quyền chuyển phòng ban bởi bạn không phải HR");
             response.sendRedirect(request.getContextPath() + "/v1/manager/dashboard");
             return;
@@ -666,9 +649,9 @@ public class ManagerController extends HttpServlet {
         String roleName = roleDAO.getRoleByUserId(employee.getUserId());
         Department newDept = departmentDAO.getDepartmentById(departmentId);
         boolean deptHasManager = newDept != null && newDept.getManagerId() != null;
-        boolean isManagerRole = roleName != null && roleName.toLowerCase().contains("manager");
+        boolean isHrManagerRole = "HRManager".equals(roleName);
 
-        if (isManagerRole && !deptHasManager) {
+        if (isHrManagerRole && !deptHasManager) {
             employeeDAO.assignAsManager(departmentId, employeeId);
         } else if (deptHasManager) {
             employeeDAO.setEmployeeManager(employeeId, newDept.getManagerId());
@@ -683,7 +666,7 @@ public class ManagerController extends HttpServlet {
 
     private void handleUnassignDepartment(HttpServletRequest request, HttpServletResponse response,
             User user) throws ServletException, IOException {
-        if (!isManagerRole(user.getRoleName())) {
+        if (!isHrEmployee(user) && !isHrManager(user)) {
             request.getSession().setAttribute("error", "Bạn không có quyền gỡ phân công bởi bạn không phải HR");
             response.sendRedirect(request.getContextPath() + "/v1/manager/dashboard");
             return;
@@ -732,7 +715,7 @@ public class ManagerController extends HttpServlet {
     private void displayAddDepartmentForm(HttpServletRequest request, HttpServletResponse response,
             User user) throws ServletException, IOException {
 
-        if (!isManagerRole(user.getRoleName())) {
+        if (!isHrEmployee(user) && !isHrManager(user)) {
             request.getSession().setAttribute("error", "Bạn không có quyền thêm phòng ban bởi bạn không phải HR");
             response.sendRedirect(request.getContextPath() + "/v1/manager/dashboard");
             return;
@@ -752,7 +735,7 @@ public class ManagerController extends HttpServlet {
 
     private void handleAddDepartment(HttpServletRequest request, HttpServletResponse response,
             User user) throws ServletException, IOException {
-        if (!isManagerRole(user.getRoleName())) {
+        if (!isHrEmployee(user) && !isHrManager(user)) {
             request.getSession().setAttribute("error", "Bạn không có quyền thêm phòng ban bởi bạn không phải HR");
             response.sendRedirect(request.getContextPath() + "/v1/manager/dashboard");
             return;
@@ -810,7 +793,7 @@ public class ManagerController extends HttpServlet {
     private void displayUpdateDepartmentForm(HttpServletRequest request, HttpServletResponse response,
             User user) throws ServletException, IOException {
 
-        if (!isManagerRole(user.getRoleName())) {
+        if (!isHrEmployee(user) && !isHrManager(user)) {
             request.getSession().setAttribute("error", "Bạn không có quyền sửa phòng ban.");
             response.sendRedirect(request.getContextPath() + "/v1/manager/dashboard");
             return;
@@ -861,7 +844,7 @@ public class ManagerController extends HttpServlet {
     private void handleUpdateDepartment(HttpServletRequest request, HttpServletResponse response,
             User user) throws ServletException, IOException {
 
-        if (!isManagerRole(user.getRoleName())) {
+        if (!isHrEmployee(user) && !isHrManager(user)) {
             request.getSession().setAttribute("error", "Bạn không có quyền sửa phòng ban.");
             response.sendRedirect(request.getContextPath() + "/v1/manager/dashboard");
             return;
@@ -920,7 +903,7 @@ public class ManagerController extends HttpServlet {
 
     private void handleUpdateEmployee(HttpServletRequest request, HttpServletResponse response,
             User user) throws ServletException, IOException {
-        if (!isManagerRole(user.getRoleName())) {
+        if (!isHrEmployee(user) && !isHrManager(user)) {
             request.getSession().setAttribute("error", "Bạn không có quyền chỉnh sửa nhân viên.");
             response.sendRedirect(request.getContextPath() + "/v1/manager/dashboard");
             return;
@@ -984,109 +967,6 @@ public class ManagerController extends HttpServlet {
         } else {
             request.getSession().setAttribute("error", "Cập nhật nhân viên thất bại. Vui lòng thử lại.");
             response.sendRedirect(request.getContextPath() + "/v1/manager/update-employee?id=" + employeeId);
-        }
-    }
-
-    private void handleAddContract(HttpServletRequest request, HttpServletResponse response,
-            User user) throws ServletException, IOException {
-        if (!isManagerRole(user.getRoleName())) {
-            request.getSession().setAttribute("error", "Bạn không có quyền thêm hợp đồng lao động.");
-            response.sendRedirect(request.getContextPath() + "/v1/manager/dashboard");
-            return;
-        }
-        if (!hasPermission(user, "ADD_EMPLOYMENT_CONTRACT")) {
-            request.getSession().setAttribute("error", "Bạn không có quyền thêm hợp đồng lao động.");
-            response.sendRedirect(request.getContextPath() + "/v1/manager/dashboard");
-            return;
-        }
-
-        String code = trimToNull(request.getParameter("contractCode"));
-        String type = trimToNull(request.getParameter("contractType"));
-        String employeeParam = request.getParameter("employeeId");
-        String startDate = request.getParameter("startDate");
-        String endDate = request.getParameter("endDate");
-        String salaryParam = request.getParameter("salary");
-
-        if (code == null || type == null || isBlank(employeeParam) || isBlank(startDate) || isBlank(salaryParam)) {
-            request.setAttribute("error", "Vui lòng nhập đầy đủ mã hợp đồng, nhân viên, loại hợp đồng, ngày bắt đầu và lương.");
-            request.setAttribute("employees", employeeDAO.getAllEmployees(user.getUserId()));
-            setPermissionFlags(request, getPermissions(user));
-            request.getRequestDispatcher("/public/manager/add_contract.jsp").forward(request, response);
-            return;
-        }
-
-        EmploymentContract contract = new EmploymentContract();
-        try {
-            contract.setEmployeeId(Integer.parseInt(employeeParam));
-            contract.setEffectiveDate(java.sql.Date.valueOf(startDate));
-            contract.setEndDate(isBlank(endDate) ? null : java.sql.Date.valueOf(endDate));
-            contract.setSalary(new BigDecimal(salaryParam));
-        } catch (IllegalArgumentException e) {
-            request.setAttribute("error", "Dữ liệu hợp đồng không hợp lệ.");
-            request.setAttribute("employees", employeeDAO.getAllEmployees(user.getUserId()));
-            setPermissionFlags(request, getPermissions(user));
-            request.getRequestDispatcher("/public/manager/add_contract.jsp").forward(request, response);
-            return;
-        }
-
-        ContractType contractTypeEnum;
-        try {
-            contractTypeEnum = ContractType.valueOf(type.toUpperCase().replace('-', '_'));
-        } catch (IllegalArgumentException e) {
-            request.setAttribute("error", "Loại hợp đồng không hợp lệ.");
-            request.setAttribute("employees", employeeDAO.getAllEmployees(user.getUserId()));
-            setPermissionFlags(request, getPermissions(user));
-            request.getRequestDispatcher("/public/manager/add_contract.jsp").forward(request, response);
-            return;
-        }
-
-        if (contract.getSalary().compareTo(BigDecimal.ZERO) < 0) {
-            request.setAttribute("error", "Lương không hợp lệ.");
-            request.setAttribute("employees", employeeDAO.getAllEmployees(user.getUserId()));
-            setPermissionFlags(request, getPermissions(user));
-            request.getRequestDispatcher("/public/manager/add_contract.jsp").forward(request, response);
-            return;
-        }
-
-        if (employeeDAO.getEmployeeById(contract.getEmployeeId()) == null) {
-            request.setAttribute("error", "Nhân viên được chọn không tồn tại.");
-            request.setAttribute("employees", employeeDAO.getAllEmployees(user.getUserId()));
-            setPermissionFlags(request, getPermissions(user));
-            request.getRequestDispatcher("/public/manager/add_contract.jsp").forward(request, response);
-            return;
-        }
-
-        if (contractDAO.getActiveContract(contract.getEmployeeId()) != null) {
-            request.setAttribute("error", "Hợp đồng của nhân viên vẫn còn hiệu lực");
-            request.setAttribute("employees", employeeDAO.getAllEmployees(user.getUserId()));
-            setPermissionFlags(request, getPermissions(user));
-            request.getRequestDispatcher("/public/manager/add_contract.jsp").forward(request, response);
-            return;
-        }
-
-        if (contract.getEndDate() != null && contract.getEndDate().before(contract.getEffectiveDate())) {
-            request.setAttribute("error", "Ngày kết thúc không được trước ngày bắt đầu.");
-            request.setAttribute("employees", employeeDAO.getAllEmployees(user.getUserId()));
-            setPermissionFlags(request, getPermissions(user));
-            request.getRequestDispatcher("/public/manager/add_contract.jsp").forward(request, response);
-            return;
-        }
-
-        contract.setContractCode(code);
-        contract.setContractType(contractTypeEnum);
-        contract.setStatus(ContractStatus.DRAFT);
-        contract.setNote(trimToNull(request.getParameter("note")));
-        contract.setCreatedBy(user.getUserId());
-
-        boolean success = contractDAO.addContract(contract);
-        if (success) {
-            request.getSession().setAttribute("success", "Thêm hợp đồng lao động thành công.");
-            response.sendRedirect(request.getContextPath() + "/v1/manager/contract-preview?employeeId=" + contract.getEmployeeId());
-        } else {
-            request.setAttribute("error", "Thêm hợp đồng thất bại. Mã hợp đồng có thể đã tồn tại.");
-            request.setAttribute("employees", employeeDAO.getAllEmployees(user.getUserId()));
-            setPermissionFlags(request, getPermissions(user));
-            request.getRequestDispatcher("/public/manager/add_contract.jsp").forward(request, response);
         }
     }
 
@@ -1168,21 +1048,20 @@ public class ManagerController extends HttpServlet {
         }
     }
 
-    private boolean isHrStaff(User user) {
-        String role = roleDAO.getRoleByUserId(user.getUserId());
-        return role.contains("HR");
-    }
-
     private void setPermissionFlags(HttpServletRequest request, Set<String> perms) {
         request.setAttribute("canViewEmployees", perms.contains("VIEW_EMPLOYEES"));
         request.setAttribute("canAddEmployee", perms.contains("ADD_EMPLOYEE"));
         request.setAttribute("canAddEmploymentContract", perms.contains("ADD_EMPLOYMENT_CONTRACT"));
+        request.setAttribute("canCreateContract", perms.contains("ADD_EMPLOYMENT_CONTRACT"));
         request.setAttribute("canEditEmployee", perms.contains("EDIT_EMPLOYEE"));
         request.setAttribute("canDeleteEmployee", perms.contains("DELETE_EMPLOYEE"));
         request.setAttribute("canViewDepartments", perms.contains("VIEW_DEPARTMENTS"));
         request.setAttribute("canEditDepts", perms.contains("EDIT_DEPARTMENTS"));
         request.setAttribute("canAssignDept", perms.contains("ASSIGN_DEPARTMENT"));
         request.setAttribute("canReassignDept", perms.contains("REASSIGN_DEPARTMENT"));
+        request.setAttribute("canPreviewContract", perms.contains("VIEW_CONTRACT_PREVIEW"));
+        request.setAttribute("canApproveContract", perms.contains("PERM_APPROVE_CONTRACT"));
+        request.setAttribute("canViewContractHistory", perms.contains("PERM_VIEW_ALL_CONTRACTS"));
     }
 
     private void handleUpdateMyProfile(HttpServletRequest request, HttpServletResponse response,
@@ -1224,7 +1103,7 @@ public class ManagerController extends HttpServlet {
 
     private void handleUpdateEmployeeDetail(HttpServletRequest request, HttpServletResponse response,
             User user) throws ServletException, IOException {
-        if (!isManagerRole(user.getRoleName())) {
+        if (!isHrEmployee(user) && !isHrManager(user)) {
             request.getSession().setAttribute("error", "Bạn không có quyền cập nhật nhân viên.");
             response.sendRedirect(request.getContextPath() + "/v1/manager/dashboard");
             return;
@@ -1310,3 +1189,4 @@ public class ManagerController extends HttpServlet {
         return str == null || str.trim().isEmpty();
     }
 }
+

@@ -68,17 +68,17 @@ public class EmploymentContractService {
                     "Khong the tao! Thoi gian hop dong bi trung lap voi hop dong dang co hieu luc hoac dang cho duyet cua nhan vien nay.");
             }
 
-            // 2. Insert the contract
-            boolean success = contractDAO.addContract(conn, contract);
+            // 2. Insert the contract and capture generated ID
+            int contractId = contractDAO.addContract(conn, contract);
 
-            if (success) {
+            if (contractId > 0) {
                 // 3. Audit log: Creation (OldStatus = null, NewStatus = DRAFT)
-                contractDAO.insertAuditLog(conn, contract.getContractId(), 
+                contractDAO.insertAuditLog(conn, contractId, 
                     null, ContractStatus.DRAFT.name(), 
                     contract.getCreatedBy(), "Created contract");
                 
                 conn.commit();
-                LOGGER.log(Level.INFO, "Contract created successfully for employee {0}", contract.getEmployeeId());
+                LOGGER.log(Level.INFO, "Contract created successfully for employee {0}, contractId={1}", new Object[]{contract.getEmployeeId(), contractId});
                 return new ContractOperationResult(true, null, "Tao hop dong thanh cong.");
             } else {
                 conn.rollback();
@@ -384,3 +384,4 @@ public class EmploymentContractService {
         LOGGER.log(Level.INFO, "Automated Daily Contract Updates Batch Process Completed.");
     }
 }
+

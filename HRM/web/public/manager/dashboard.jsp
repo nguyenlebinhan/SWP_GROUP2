@@ -155,6 +155,42 @@
             </c:choose>
         </div>
     </div>
+
+    <div class="row g-4 mt-4">
+        <c:if test="${canCreateContract}">
+            <div class="col-md-4">
+                <a href="${pageContext.request.contextPath}/v1/employee/add-contract" class="feature-card">
+                    <div class="feature-icon" style="background: #e3f2fd; color: #1565c0;">
+                        <i class="fas fa-file-contract"></i>
+                    </div>
+                    <div class="feature-title">Tạo hợp đồng mới</div>
+                    <div class="feature-desc">Soạn thảo và gửi hợp đồng lao động cho nhân viên</div>
+                </a>
+            </div>
+        </c:if>
+        <c:if test="${canApproveContract}">
+            <div class="col-md-4">
+                <a href="${pageContext.request.contextPath}/v1/manager/contracts/pending" class="feature-card">
+                    <div class="feature-icon" style="background: #fff3e0; color: #ef6c00;">
+                        <i class="fas fa-check-circle"></i>
+                    </div>
+                    <div class="feature-title">Duyệt hợp đồng</div>
+                    <div class="feature-desc">Xem xét và duyệt/từ chối hợp đồng chờ phê duyệt</div>
+                </a>
+            </div>
+        </c:if>
+        <c:if test="${canViewContractHistory}">
+            <div class="col-md-4">
+                <a href="${pageContext.request.contextPath}/v1/contracts/history" class="feature-card">
+                    <div class="feature-icon" style="background: #f3e5f5; color: #7b1fa2;">
+                        <i class="fas fa-history"></i>
+                    </div>
+                    <div class="feature-title">Lịch sử hợp đồng</div>
+                    <div class="feature-desc">Tra cứu, lọc và xuất báo cáo lịch sử hợp đồng</div>
+                </a>
+            </div>
+        </c:if>
+    </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>

@@ -191,3 +191,4 @@ public class ContractSchedulerInitializerListener implements ServletContextListe
         return secondsUntilMidnight;
     }
 }
+

@@ -59,7 +59,61 @@
                     <div class="alert alert-info d-flex align-items-center shadow-sm" role="alert">
                         <i class="fa-solid fa-circle-info me-3 fs-4"></i>
                         <div>
-                            Bạn hiện tại không có hợp đồng lao động nào đang trong trạng thái kích hoạt.
+                            Bạn hiện tại không có hợp đồng lao động nào đang hiệu lực hoặc sắp có hiệu lực.
+                        </div>
+                    </div>
+                </c:when>
+
+                <%-- PENDING_ACTIVATION: Show as upcoming contract --%>
+                <c:when test="${activeContract.status == 'PENDING_ACTIVATION'}">
+                    <div class="alert alert-warning d-flex align-items-center shadow-sm" role="alert">
+                        <i class="fa-solid fa-clock me-3 fs-4"></i>
+                        <div>
+                            <strong>Hợp đồng sắp có hiệu lực.</strong> Hợp đồng này sẽ có hiệu lực từ ngày <strong><fmt:formatDate value="${activeContract.effectiveDate}" pattern="dd/MM/yyyy" /></strong>.
+                        </div>
+                    </div>
+                    <%-- Render contract detail --%>
+                    <div class="row justify-content-center mt-3">
+                        <div class="col-lg-8">
+                            <div class="card contract-profile-card">
+                                <div class="card-header-custom d-flex justify-content-between align-items-center">
+                                    <h4 class="mb-0">Hợp Đồng Sắp Có Hiệu Lực</h4>
+                                    <span class="badge bg-warning text-dark fs-6">
+                                        <i class="fa-solid fa-clock me-1"></i>
+                                        Sắp hiệu lực
+                                    </span>
+                                </div>
+                                <div class="card-body p-4">
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="data-row">
+                                                <div class="info-label">Số hợp đồng</div>
+                                                <div class="info-value">${activeContract.contractCode != null ? activeContract.contractCode : activeContract.contractId}</div>
+                                            </div>
+                                            <div class="data-row">
+                                                <div class="info-label">Loại hợp đồng</div>
+                                                <div class="info-value">
+                                                    <span class="badge bg-info text-dark">${activeContract.contractType}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="data-row">
+                                                <div class="info-label">Mức lương cơ bản</div>
+                                                <div class="info-value">
+                                                    <fmt:formatNumber value="${activeContract.salary}" type="currency" currencySymbol="₫" />
+                                                </div>
+                                            </div>
+                                            <div class="data-row">
+                                                <div class="info-label">Ngày bắt đầu</div>
+                                                <div class="info-value">
+                                                    <strong><fmt:formatDate value="${activeContract.effectiveDate}" pattern="dd/MM/yyyy" /></strong>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </c:when>

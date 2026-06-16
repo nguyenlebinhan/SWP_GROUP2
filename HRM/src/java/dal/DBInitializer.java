@@ -579,16 +579,20 @@ public class DBInitializer {
                 insertPermission(conn, "VIEW_DEPARTMENT_EMPLOYEES_DETAIL", "Xem danh sách nhân viên của phòng ban khác", "Quyền xem dữ liệu nhân viên của phòng ban khác");
                 insertPermission(conn, "PERM_APPROVE_CONTRACT", "Duyet hop dong", "Quyen duyet/tu choi hop dong lao dong");
                 insertPermission(conn, "PERM_VIEW_ALL_CONTRACTS", "Xem tat ca hop dong", "Quyen xem tat ca hop dong trong he thong");
+                insertPermission(conn, "VIEW_CONTRACT_PREVIEW", "Xem trước hợp đồng", "Cho phép xem trước chi tiết hợp đồng lao động");
             }
             ensurePermission(conn, "VIEW_EMPLOYEES", "Xem nhân viên", "Quyền xem danh sách nhân viên");
             ensurePermission(conn, "EDIT_EMPLOYEE", "Chỉnh sửa nhân viên", "Quyền chỉnh sửa nhân viên");
             ensurePermission(conn, "ADD_EMPLOYMENT_CONTRACT", "Thêm hợp đồng lao động", "Quyền thêm hợp đồng lao động cho nhân viên");
             ensurePermission(conn, "VIEW_DEPARTMENTS", "Xem phòng ban", "Quyền xem danh sách phòng ban");
             ensurePermission(conn, "REASSIGN_DEPARTMENT", "Chuyển phòng ban nhân viên", "Quyền chuyển nhân viên sang phòng ban khác");
+            ensurePermission(conn, "VIEW_CONTRACT_PREVIEW", "Xem trước hợp đồng", "Cho phép xem trước chi tiết hợp đồng lao động");
             ensureRolePermission(conn, "HRManager", "VIEW_DEPARTMENTS");
+            ensureRolePermission(conn, "HRManager", "VIEW_CONTRACT_PREVIEW");
             ensureRolePermission(conn, "HREmployee", "VIEW_EMPLOYEES");
             ensureRolePermission(conn, "HREmployee", "EDIT_EMPLOYEE");
             ensureRolePermission(conn, "HREmployee", "ADD_EMPLOYMENT_CONTRACT");
+            ensureRolePermission(conn, "HREmployee", "VIEW_CONTRACT_PREVIEW");
 
             // System Admin: All permissions for Users and Roles management
             ensureRolePermission(conn, "SystemAdmin", "VIEW_USERS");
@@ -882,3 +886,4 @@ public class DBInitializer {
         initializer.initializeDatabase(true);
     }
 }
+

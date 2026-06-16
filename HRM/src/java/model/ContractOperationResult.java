@@ -94,3 +94,4 @@ public class ContractOperationResult {
         return "ContractOperationResult{success=false, errorCode='" + errorCode + "', message='" + message + "'}";
     }
 }
+

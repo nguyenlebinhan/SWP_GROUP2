@@ -134,3 +134,4 @@ public class ContractAuthorizationFilter implements Filter {
         LOGGER.info("ContractAuthorizationFilter destroyed.");
     }
 }
+

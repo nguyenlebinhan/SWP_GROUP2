@@ -128,6 +128,20 @@
         <url-pattern>/contracts/approve</url-pattern>
     </servlet-mapping>
 
+    <!-- Manager Contract Approval Views -->
+    <servlet-mapping>
+        <servlet-name>ContractApprovalServlet</servlet-name>
+        <url-pattern>/v1/manager/contracts/pending</url-pattern>
+    </servlet-mapping>
+    <servlet-mapping>
+        <servlet-name>ContractApprovalServlet</servlet-name>
+        <url-pattern>/v1/manager/contracts/approve-preview</url-pattern>
+    </servlet-mapping>
+    <servlet-mapping>
+        <servlet-name>ContractApprovalServlet</servlet-name>
+        <url-pattern>/v1/manager/contracts/reject-dialog</url-pattern>
+    </servlet-mapping>
+
     <!-- =====================================================================
          FILTER MAPPINGS
          ===================================================================== -->
