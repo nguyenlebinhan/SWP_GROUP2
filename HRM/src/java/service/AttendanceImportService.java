@@ -7,7 +7,6 @@ package service;
 import dal.DBContext;
 import dao.AttendanceDAO;
 import dao.AttendanceImportRowDAO;
-import dao.AttendancePeriodDAO;
 import dao.UploadedFileDAO;
 import dto.AttendanceDataDTO;
 import dto.AttendanceImportResultDTO;
@@ -29,7 +28,6 @@ import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import model.Attendance;
-import model.AttendancePeriod;
 import utils.ExcelAttendanceParser;
 
 public class AttendanceImportService {
@@ -43,19 +41,15 @@ public class AttendanceImportService {
     }
         private final DBContext dbContext;
     private final AttendanceDAO attendanceDAO;
-    private final AttendancePeriodDAO periodDAO;
     private final AttendanceImportRowDAO importRowDAO;
     private final UploadedFileDAO uploadedFileDAO;
-    private final AttendancePeriodService periodService;
     private final ExcelAttendanceParser parser;
 
     public AttendanceImportService() {
         this.dbContext = new DBContext();
         this.attendanceDAO = new AttendanceDAO();
-        this.periodDAO = new AttendancePeriodDAO();
         this.importRowDAO = new AttendanceImportRowDAO();
         this.uploadedFileDAO = new UploadedFileDAO();
-        this.periodService = new AttendancePeriodService();
         this.parser = new ExcelAttendanceParser();
     }
 
@@ -88,36 +82,11 @@ public class AttendanceImportService {
         try (Connection conn = dbContext.getConnection()) {
             conn.setAutoCommit(false);
             try {
-
-                AttendancePeriod period = periodDAO.getPeriodForUpdate(conn, departmentId, month, year);
-                String periodError = periodService.checkImport(period, month, year);
-                if (periodError == null && period == null) {
-                    periodDAO.insertPeriod(departmentId, month, year);
-                    period = periodDAO.getPeriodForUpdate(conn, departmentId, month, year);
-                    periodError = periodService.checkImport(period, month, year);
-                }
-                if (periodError != null) {
-                    for (AttendanceDataDTO ad : attendanceDataDTOs) {
-                        int rowId = importRowDAO.insertRow(conn, fileId, ad);
-                        importRowDAO.markRow(conn, rowId, false, periodError);
-                        result.addError(ad.getRowNumber(), ad.getEmployeeCode(), periodError);
-                    }
-                    result.setImportedRows(0);
-                    result.setFailedRows(result.getTotalRows());
-                    result.setStatus(FileStatus.FILE_STATUS_FAILED.getRelatedNum());
-                    result.setNote(periodError);
-                    uploadedFileDAO.updateImportResult(fileId, result.getTotalRows(), 0,
-                            result.getTotalRows(), FileStatus.FILE_STATUS_FAILED.getRelatedNum(), periodError);
-                    conn.commit();
-                    return result;
-                }
-
-                int periodId = period.getPeriodId();
                 int imported = 0;
                 for (AttendanceDataDTO ad : attendanceDataDTOs) {
                     int rowId = importRowDAO.insertRow(conn, fileId, ad);
                     try {
-                        Attendance att = buildAndValidate(ad, departmentId, month, year, fileId, periodId);
+                        Attendance att = buildAndValidate(ad, departmentId, month, year, fileId);
                         if (attendanceDAO.upsertAttendance(conn, att)) {
                             importRowDAO.markRow(conn, rowId, true, null);
                             imported++;
@@ -135,7 +104,7 @@ public class AttendanceImportService {
                 result.setImportedRows(imported);
                 result.setFailedRows(result.getTotalRows() - imported);
                 applyResultStatus(result, imported);
-                uploadedFileDAO.updateImportResult( fileId, result.getTotalRows(),
+                uploadedFileDAO.updateImportResult(conn, fileId, result.getTotalRows(),
                         result.getImportedRows(), result.getFailedRows(), result.getStatus(), result.getNote());
                 conn.commit();
                 return result;
@@ -176,7 +145,7 @@ public class AttendanceImportService {
     }
 
     private Attendance buildAndValidate(AttendanceDataDTO ad, int departmentId,
-            int month, int year, int fileId, int periodId) throws RowValidationException {
+            int month, int year, int fileId) throws RowValidationException {
 
         String employeeCode = trimToNull(ad.getEmployeeCode());
         if (employeeCode == null) {
@@ -192,9 +161,10 @@ public class AttendanceImportService {
         } catch (IllegalArgumentException e) {
             throw new RowValidationException("workDate không hợp lệ (yêu cầu yyyy-MM-dd): " + ad.getWorkDate());
         }
-        if (!periodService.isDateInPeriod(workDate.toLocalDate(), month, year)) {
+        if (workDate.toLocalDate().getMonthValue() != month
+                || workDate.toLocalDate().getYear() != year) {
             throw new RowValidationException("workDate " + ad.getWorkDate().trim()
-                    + " không thuộc kỳ " + month + "/" + year + " đã chọn.");
+                    + " không thuộc tháng " + month + "/" + year + " đã chọn.");
         }
 
         String statusRaw = trimToNull(ad.getAttendanceStatus());
@@ -242,7 +212,6 @@ public class AttendanceImportService {
         att.setHoursWorked(hoursWorked);
         att.setAttendanceStatus(statusCode);
         att.setFileId(fileId);
-        att.setPeriodId(periodId);
         return att;
     }
 
