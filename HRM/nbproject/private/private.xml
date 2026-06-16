@@ -54,6 +54,20 @@
             <file>file:/C:/Users/ADMIN/Desktop/SWP_GROUP2/HRM/src/java/utils/ConfigManager.java</file>
             <file>file:/C:/Users/ADMIN/Desktop/SWP_GROUP2/HRM/web/public/systemadmin/add_user.jsp</file>
             <file>file:/C:/Users/ADMIN/Desktop/SWP_GROUP2/HRM/src/java/dao/AttendancePeriodDAO.java</file>
+            <file>file:/C:/Users/FPT/SWP_GROUP2/HRM/src/java/dao/DepartmentDAO.java</file>
+            <file>file:/C:/Users/FPT/SWP_GROUP2/HRM/src/java/controller/SystemAdminController.java</file>
+            <file>file:/C:/Users/FPT/SWP_GROUP2/HRM/web/public/systemadmin/edit_role_permissions.jsp</file>
+            <file>file:/C:/Users/FPT/SWP_GROUP2/HRM/src/java/dal/DBInitializer.java</file>
+            <file>file:/C:/Users/FPT/SWP_GROUP2/HRM/src/java/dao/PermissionDAO.java</file>
+            <file>file:/C:/Users/FPT/SWP_GROUP2/HRM/src/java/controller/EmployeeController.java</file>
+            <file>file:/C:/Users/FPT/SWP_GROUP2/HRM/src/java/dao/EmployeeDAO.java</file>
+            <file>file:/C:/Users/FPT/SWP_GROUP2/HRM/web/public/employee/employee_list.jsp</file>
+            <file>file:/C:/Users/FPT/SWP_GROUP2/HRM/src/java/config/.env</file>
+            <file>file:/C:/Users/FPT/SWP_GROUP2/HRM/src/java/model/Department.java</file>
+            <file>file:/C:/Users/FPT/SWP_GROUP2/HRM/web/public/employee/department_employee_detail.jsp</file>
+            <file>file:/C:/Users/FPT/SWP_GROUP2/HRM/web/public/employee/my_profile.jsp</file>
+            <file>file:/C:/Users/FPT/SWP_GROUP2/HRM/web/public/employee/update_department.jsp</file>
+            <file>file:/C:/Users/FPT/SWP_GROUP2/HRM/web/public/employee/employee_detail.jsp</file>
         </group>
     </open-files>
 </project-private>
