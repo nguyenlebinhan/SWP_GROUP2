@@ -303,6 +303,10 @@ public class DBInitializer {
                 + "attendanceId INT PRIMARY KEY AUTO_INCREMENT,"
                 + "attendanceCode VARCHAR(50) NOT NULL UNIQUE,"
                 + "employeeId INT NOT NULL,"
+                + "employeeCode VARCHAR(50),"         
+                + "fullName NVARCHAR(100),"           
+                + "departmentId INT,"                
+                + "departmentName NVARCHAR(100),"     
                 + "workDate DATE NOT NULL,"
                 + "timeIn TIME,"
                 + "timeOut TIME,"
@@ -311,11 +315,12 @@ public class DBInitializer {
                 + "dayOff DATE,"
                 + "workingDay DATE,"
                 + "penalty DECIMAL(15,2) DEFAULT 0,"
-                + "fileId INT NULL,"                
+                + "fileId INT NULL,"
                 + "createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,"
                 + "updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,"
                 + "UNIQUE KEY uq_att_emp_date (employeeId, workDate)," // chống trùng employee + ngày
                 + "FOREIGN KEY (employeeId) REFERENCES Employees(employeeId),"
+                + "FOREIGN KEY (departmentId) REFERENCES Departments(departmentId),"
                 + "FOREIGN KEY (fileId) REFERENCES Uploaded_Files(fileId)"
                 + ")";
         execute(conn, SQL, "CREATE ATTENDANCE TABLE SUCCESSFULLY");
@@ -328,6 +333,8 @@ public class DBInitializer {
                 + "fileId INT NOT NULL,"
                 + "rowNumber INT NOT NULL,"
                 + "employeeCode VARCHAR(50),"
+                + "fullName NVARCHAR(100),"
+                + "departmentName NVARCHAR(100),"
                 + "workDate VARCHAR(50),"
                 + "timeIn VARCHAR(20),"
                 + "timeOut VARCHAR(20),"

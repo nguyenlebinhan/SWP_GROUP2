@@ -70,35 +70,46 @@ public class AttendanceDAO {
 
     public boolean upsertAttendance(Connection conn, Attendance a) throws SQLException {
         String SQL = "INSERT INTO Attendance "
-                + "(attendanceCode, employeeId, workDate, timeIn, timeOut, hoursWorked, attendanceStatus, fileId) "
-                + "VALUES (?, ?, ?, ?, ?, ?, ?, ?) "
+                + "(attendanceCode, employeeId, employeeCode, fullName, departmentId, departmentName, "
+                + "workDate, timeIn, timeOut, hoursWorked, attendanceStatus, fileId) "
+                + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) "
                 + "ON DUPLICATE KEY UPDATE "
+                + "employeeCode = VALUES(employeeCode), fullName = VALUES(fullName), "
+                + "departmentId = VALUES(departmentId), departmentName = VALUES(departmentName), "
                 + "timeIn = VALUES(timeIn), timeOut = VALUES(timeOut), hoursWorked = VALUES(hoursWorked), "
                 + "attendanceStatus = VALUES(attendanceStatus), fileId = VALUES(fileId)";
         try (PreparedStatement ps = conn.prepareStatement(SQL)) {
             ps.setString(1, a.getAttendanceCode());
             ps.setInt(2, a.getEmployeeId());
-            ps.setDate(3, a.getWorkDate());
-            if (a.getTimeIn() != null) {
-                ps.setTime(4, a.getTimeIn());
+            ps.setString(3, a.getEmployeeCode());
+            ps.setNString(4, a.getFullName());
+            if (a.getDepartmentId() != null) {
+                ps.setInt(5, a.getDepartmentId());
             } else {
-                ps.setNull(4, Types.TIME);
+                ps.setNull(5, Types.INTEGER);
+            }
+            ps.setNString(6, a.getDepartmentName());
+            ps.setDate(7, a.getWorkDate());
+            if (a.getTimeIn() != null) {
+                ps.setTime(8, a.getTimeIn());
+            } else {
+                ps.setNull(8, Types.TIME);
             }
             if (a.getTimeOut() != null) {
-                ps.setTime(5, a.getTimeOut());
+                ps.setTime(9, a.getTimeOut());
             } else {
-                ps.setNull(5, Types.TIME);
+                ps.setNull(9, Types.TIME);
             }
             if (a.getHoursWorked() != null) {
-                ps.setBigDecimal(6, a.getHoursWorked());
+                ps.setBigDecimal(10, a.getHoursWorked());
             } else {
-                ps.setNull(6, Types.DECIMAL);
+                ps.setNull(10, Types.DECIMAL);
             }
-            ps.setInt(7, a.getAttendanceStatus());
+            ps.setInt(11, a.getAttendanceStatus());
             if (a.getFileId() != null) {
-                ps.setInt(8, a.getFileId());
+                ps.setInt(12, a.getFileId());
             } else {
-                ps.setNull(8, Types.INTEGER);
+                ps.setNull(12, Types.INTEGER);
             }
             return ps.executeUpdate() > 0;
         }
@@ -111,16 +122,13 @@ public class AttendanceDAO {
         StringBuilder sql = new StringBuilder(
                 "SELECT a.attendanceId, a.attendanceCode, a.employeeId, a.workDate, a.timeIn, a.timeOut, "
                 + "a.hoursWorked, a.attendanceStatus, a.fileId, "
-                + "e.employeeCode, e.departmentId, u.fullName, d.departmentName "
+                + "a.employeeCode, a.departmentId, a.fullName, a.departmentName "
                 + "FROM Attendance a "
-                + "JOIN Employees e ON e.employeeId = a.employeeId "
-                + "JOIN Users u ON u.userId = e.userId "
-                + "LEFT JOIN Departments d ON d.departmentId = e.departmentId "
                 + "WHERE 1=1 ");
 
         List<Object> params = new ArrayList<>();
         if (departmentId != null) {
-            sql.append("AND e.departmentId = ? ");
+            sql.append("AND a.departmentId = ? ");
             params.add(departmentId);
         }
         if (month != null) {
@@ -132,14 +140,14 @@ public class AttendanceDAO {
             params.add(year);
         }
         if (employeeCode != null && !employeeCode.trim().isEmpty()) {
-            sql.append("AND e.employeeCode = ? ");
+            sql.append("AND a.employeeCode = ? ");
             params.add(employeeCode.trim());
         }
         if (restrictEmployeeId != null) {
             sql.append("AND a.employeeId = ? ");
             params.add(restrictEmployeeId);
         }
-        sql.append("ORDER BY a.workDate DESC, e.employeeCode ASC");
+        sql.append("ORDER BY a.workDate DESC, a.employeeCode ASC");
 
         try (Connection conn = dbContext.getConnection();
                 PreparedStatement ps = conn.prepareStatement(sql.toString())) {
@@ -158,20 +166,17 @@ public class AttendanceDAO {
     }
     
     
-    public List<Attendance> getAttendanceListByUserId(int userId, Integer month, Integer year) {
+    public List<Attendance> getAttendanceListByEmployeeId(int employeeId, Integer month, Integer year) {
         List<Attendance> list = new ArrayList<>();
         StringBuilder sql = new StringBuilder(
                 "SELECT a.attendanceId, a.attendanceCode, a.employeeId, a.workDate, a.timeIn, a.timeOut, "
                 + "a.hoursWorked, a.attendanceStatus, a.fileId, "
-                + "e.employeeCode, e.departmentId, u.fullName, d.departmentName "
+                + "a.employeeCode, a.departmentId, a.fullName, a.departmentName "
                 + "FROM Attendance a "
-                + "JOIN Employees e ON e.employeeId = a.employeeId "
-                + "JOIN Users u ON u.userId = e.userId "
-                + "LEFT JOIN Departments d ON d.departmentId = e.departmentId "
-                + "WHERE u.userId = ? ");
+                + "WHERE a.employeeId = ? ");
 
         List<Object> params = new ArrayList<>();
-        params.add(userId);
+        params.add(employeeId);
 
         if (month != null && month > 0) {
             sql.append("AND MONTH(a.workDate) = ? ");
@@ -204,11 +209,8 @@ public class AttendanceDAO {
     public Attendance getAttendanceById(int attendanceId) {
         String sql = "SELECT a.attendanceId, a.attendanceCode, a.employeeId, a.workDate, a.timeIn, a.timeOut, "
                 + "a.hoursWorked, a.attendanceStatus, a.fileId, "
-                + "e.employeeCode, e.departmentId, u.fullName, d.departmentName "
+                + "a.employeeCode, a.departmentId, a.fullName, a.departmentName "
                 + "FROM Attendance a "
-                + "JOIN Employees e ON e.employeeId = a.employeeId "
-                + "JOIN Users u ON u.userId = e.userId "
-                + "LEFT JOIN Departments d ON d.departmentId = e.departmentId "
                 + "WHERE a.attendanceId = ?";
         try (Connection conn = dbContext.getConnection();
                 PreparedStatement ps = conn.prepareStatement(sql)) {
