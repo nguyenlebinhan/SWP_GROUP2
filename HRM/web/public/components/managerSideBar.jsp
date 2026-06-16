@@ -101,4 +101,24 @@
         </a>
     </c:if>
 
+    <div class="nav-section">Hợp đồng lao động</div>
+    <c:if test="${canCreateContract}">
+        <a href="${pageContext.request.contextPath}/v1/employee/add-contract"
+           class="${pageContext.request.servletPath == '/public/employee/add_contract.jsp' ? 'active' : ''}">
+            <i class="fas fa-file-contract"></i> Tạo hợp đồng
+        </a>
+    </c:if>
+    <c:if test="${canApproveContract}">
+        <a href="${pageContext.request.contextPath}/v1/manager/contracts/pending"
+           class="${pageContext.request.servletPath == '/public/manager/contract-pending-list.jsp' ? 'active' : ''}">
+            <i class="fas fa-check-circle"></i> Duyệt hợp đồng
+        </a>
+    </c:if>
+    <c:if test="${canViewContractHistory}">
+        <a href="${pageContext.request.contextPath}/v1/contracts/history"
+           class="${pageContext.request.servletPath == '/public/manager/manager-contract-history.jsp' ? 'active' : ''}">
+            <i class="fas fa-history"></i> Lịch sử hợp đồng
+        </a>
+    </c:if>
+
 </div>

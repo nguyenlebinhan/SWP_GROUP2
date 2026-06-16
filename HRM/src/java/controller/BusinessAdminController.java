@@ -477,9 +477,9 @@ public class BusinessAdminController extends HttpServlet {
         if (assigned != null) {
             Department assignedDept = departmentDAO.getDepartmentById(departmentId);
             boolean deptHasManager = assignedDept != null && assignedDept.getManagerId() != null;
-            boolean isManagerRole = roleName != null && roleName.toLowerCase().contains("manager");
+            boolean isHrManagerRole = "HRManager".equals(roleName);
 
-            if (isManagerRole && !deptHasManager) {
+            if (isHrManagerRole && !deptHasManager) {
 
 
                 employeeDAO.assignAsManager(departmentId, assigned.getEmployeeId());
@@ -644,3 +644,4 @@ public class BusinessAdminController extends HttpServlet {
         return ids;
     }
 }
+

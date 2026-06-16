@@ -1,16 +1,19 @@
 package controller;
 
 import dao.EmploymentContractDAO;
+import dao.RoleDAO;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 import java.io.IOException;
+import java.sql.SQLException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import model.ContractOperationResult;
 import model.User;
+import service.EmploymentContractService;
 
 /**
  * Servlet handling contract approval/rejection actions by HR Managers.
@@ -24,18 +27,93 @@ public class ContractApprovalServlet extends HttpServlet {
 
     private static final Logger LOGGER = Logger.getLogger(ContractApprovalServlet.class.getName());
     private EmploymentContractDAO contractDAO;
+    private EmploymentContractService contractService;
+    private RoleDAO roleDAO;
 
     @Override
     public void init() throws ServletException {
         super.init();
         contractDAO = new EmploymentContractDAO();
+        contractService = new EmploymentContractService(contractDAO, contractDAO.getDBContext());
+        roleDAO = new RoleDAO();
         LOGGER.info("ContractApprovalServlet initialized. Approval workflow ready.");
+    }
+
+    private boolean isHrManager(User user) {
+        String role = roleDAO.getRoleByUserId(user.getUserId());
+        return "HRManager".equals(role);
     }
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-        // POST only - return 405 Method Not Allowed
+        HttpSession session = request.getSession(false);
+        User user = (session != null) ? (User) session.getAttribute("user") : null;
+        
+        if (user == null) {
+            response.sendRedirect(request.getContextPath() + "/v1/auth/login");
+            return;
+        }
+        
+        String path = request.getServletPath();
+        String action = request.getParameter("action");
+        
+        // Handle JSP view mappings
+        if ("/v1/manager/contracts/pending".equals(path)) {
+            // List pending contracts - HR Manager only
+            if (!isHrManager(user)) {
+                response.sendRedirect(request.getContextPath() + "/v1/manager/dashboard");
+                return;
+            }
+            try {
+                request.setAttribute("pendingContracts", contractDAO.getPendingContracts());
+            } catch (SQLException e) {
+                LOGGER.log(Level.SEVERE, "Error fetching pending contracts", e);
+                request.setAttribute("error", "Không thể tải danh sách hợp đồng chờ duyệt.");
+            }
+            request.getRequestDispatcher("/v1/manager/contract-pending-list.jsp").forward(request, response);
+            return;
+        }
+        
+        if ("/v1/manager/contracts/approve-preview".equals(path)) {
+            // Preview contract for approval - HR Manager only
+            if (!isHrManager(user)) {
+                response.sendRedirect(request.getContextPath() + "/v1/manager/dashboard");
+                return;
+            }
+            String contractIdParam = request.getParameter("contractId");
+            if (contractIdParam != null) {
+                try {
+                    int contractId = Integer.parseInt(contractIdParam);
+                    request.setAttribute("contract", contractDAO.getContractById(contractId));
+                } catch (NumberFormatException e) {
+                    request.setAttribute("error", "ID hợp đồng không hợp lệ.");
+                }
+            }
+            request.getRequestDispatcher("/v1/manager/contract-approval-preview.jsp").forward(request, response);
+            return;
+        }
+        
+        if ("/v1/manager/contracts/reject-dialog".equals(path)) {
+            // Reject dialog - HR Manager only
+            if (!isHrManager(user)) {
+                response.sendRedirect(request.getContextPath() + "/v1/manager/dashboard");
+                return;
+            }
+            String contractIdParam = request.getParameter("contractId");
+            if (contractIdParam != null) {
+                try {
+                    int contractId = Integer.parseInt(contractIdParam);
+                    request.setAttribute("contract", contractDAO.getContractById(contractId));
+                } catch (NumberFormatException e) {
+                    request.setAttribute("error", "ID hợp đồng không hợp lệ.");
+                }
+            }
+            request.getRequestDispatcher("/v1/manager/contract-reject-dialog.jsp").forward(request, response);
+            return;
+        }
+        
+        // Default: Method not allowed for API endpoints
         response.setStatus(HttpServletResponse.SC_METHOD_NOT_ALLOWED);
         response.setContentType("application/json;charset=UTF-8");
         response.getWriter().write("{\"error\":\"Method not allowed. Use POST.\"}");
@@ -53,6 +131,12 @@ public class ContractApprovalServlet extends HttpServlet {
         if (user == null) {
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             response.getWriter().write("{\"error\":\"Unauthorized. Please login.\"}");
+            return;
+        }
+
+        if (!isHrManager(user)) {
+            response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+            response.getWriter().write("{\"error\":\"Chỉ HRManager mới được duyệt/từ chối hợp đồng.\"}");
             return;
         }
 
@@ -80,7 +164,7 @@ public class ContractApprovalServlet extends HttpServlet {
         try {
             switch (action) {
                 case "approve":
-                    result = contractDAO.approveContract(contractId);
+                    result = contractService.approveContract(contractId, user.getUserId());
                     break;
                 case "reject":
                     if (reason == null || reason.trim().isEmpty()) {
@@ -88,7 +172,7 @@ public class ContractApprovalServlet extends HttpServlet {
                         response.getWriter().write("{\"error\":\"Rejection reason is required for reject action.\"}");
                         return;
                     }
-                    result = contractDAO.rejectContract(contractId, reason.trim());
+                    result = contractService.rejectContract(contractId, user.getUserId(), reason.trim());
                     break;
                 default:
                     response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
@@ -128,3 +212,4 @@ public class ContractApprovalServlet extends HttpServlet {
         };
     }
 }
+

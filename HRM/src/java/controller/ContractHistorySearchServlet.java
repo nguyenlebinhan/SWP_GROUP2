@@ -1,6 +1,7 @@
 package controller;
 
 import dao.EmploymentContractDAO;
+import dao.RoleDAO;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
@@ -16,6 +17,7 @@ public class ContractHistorySearchServlet extends HttpServlet {
 
     private static final long serialVersionUID = 1L;
     private final EmploymentContractDAO contractDAO = new EmploymentContractDAO();
+    private final RoleDAO roleDAO = new RoleDAO();
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
@@ -27,9 +29,12 @@ public class ContractHistorySearchServlet extends HttpServlet {
             return;
         }
 
+        // HR Manager check: only HRManager can view global contract history
+        boolean isHrManager = "HRManager".equals(roleDAO.getRoleByUserId(user.getUserId()));
+
         // Session key MUST be "permissions" to match sidebar.jsp
         Set<String> perms = (Set<String>) session.getAttribute("permissions");
-        boolean isHrManager = perms != null && perms.contains("PERM_VIEW_ALL_CONTRACTS");
+        isHrManager = perms != null && perms.contains("PERM_VIEW_ALL_CONTRACTS");
 
         // Extract search parameters
         Integer targetEmpId = null;
@@ -60,6 +65,6 @@ public class ContractHistorySearchServlet extends HttpServlet {
         request.setAttribute("keyword", keyword);
         request.setAttribute("employeeId", targetEmpId);
         request.setAttribute("deptId", deptId);
-        request.getRequestDispatcher("/web/v1/employee/contract-audit-history.jsp").forward(request, response);
+        request.getRequestDispatcher("/public/manager/manager-contract-history.jsp").forward(request, response);
     }
 }

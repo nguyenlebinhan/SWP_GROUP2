@@ -552,3 +552,4 @@ public class DepartmentDAO {
         return null;
     }
 }
+

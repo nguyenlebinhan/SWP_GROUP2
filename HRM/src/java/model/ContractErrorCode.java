@@ -16,3 +16,4 @@ public enum ContractErrorCode {
     CONTRACT_NOT_EDITABLE,
     INVALID_TERMINATION_DATE
 }
+

@@ -112,3 +112,4 @@ public class EmployeeDTO {
         this.avatar = avatar;
     }
 }
+
