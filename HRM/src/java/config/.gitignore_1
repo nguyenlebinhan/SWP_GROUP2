@@ -1,4 +1,0 @@
-# Chặn các file chứa thông tin đăng nhập cá nhân
-*.env
-*.properties
-!*.properties.example

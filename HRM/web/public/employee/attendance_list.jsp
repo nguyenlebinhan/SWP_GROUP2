@@ -102,7 +102,6 @@
                         <th>Giờ ra</th>
                         <th>Số giờ</th>
                         <th>Trạng thái</th>
-                        <th>Kỳ</th>
                         <c:if test="${canEditAttendance}">
                             <th>Thao tác</th>
                         </c:if>
@@ -111,7 +110,7 @@
                 <tbody>
                     <c:choose>
                         <c:when test="${empty attendances}">
-                            <tr><td colspan="${canEditAttendance ? 10 : 9}" class="text-center text-muted py-4">Không có dữ liệu chấm công.</td></tr>
+                            <tr><td colspan="${canEditAttendance ? 9 : 8}" class="text-center text-muted py-4">Không có dữ liệu chấm công.</td></tr>
                         </c:when>
                         <c:otherwise>
                             <c:forEach var="a" items="${attendances}">
@@ -122,19 +121,9 @@
                                     <td>${a.workDate}</td>
                                     <td>${a.timeIn}</td>
                                     <td>${a.timeOut}</td>
-                                    <td><c:out value="${a.hoursWorked}" /></td>
+                                    <td>${a.hoursWorkedLabel}</td>
                                     <td>
                                         <span class="badge-st badge-s${a.attendanceStatus}">${a.statusLabel}</span>
-                                    </td>
-                                    <td>
-                                        <c:choose>
-                                            <c:when test="${a.periodStatus == 1}">
-                                                <span class="badge-st badge-public">Công khai</span>
-                                            </c:when>
-                                            <c:otherwise>
-                                                <span class="badge-st badge-private">Riêng tư</span>
-                                            </c:otherwise>
-                                        </c:choose>
                                     </td>
                                     <c:if test="${canEditAttendance}">
                                         <td class="text-end">
