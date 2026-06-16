@@ -53,10 +53,6 @@
                 Trạng thái hiện tại:
                 <span class="badge-st badge-s${attendance.attendanceStatus}">${attendance.statusLabel}</span>
             </div>
-            <div class="mt-2 text-muted">
-                <i class="fa-solid fa-clock me-1"></i>
-                Kỳ này được chỉnh sửa đến hết ngày <strong>${editDeadline}</strong> (giờ Việt Nam).
-            </div>
         </div>
 
         <form method="post" action="${pageContext.request.contextPath}/v1/employee/attendance-update">
@@ -87,7 +83,7 @@
                 </div>
                 <div class="col-md-6">
                     <label class="form-label">Số giờ làm</label>
-                    <input type="text" class="form-control" value="${attendance.hoursWorked}" disabled>
+                    <input type="text" class="form-control" value="${attendance.hoursWorkedLabel}" disabled>
                     <div class="form-text">Tự tính lại từ giờ vào / giờ ra khi lưu (Vắng mặt, Không phép = 0 giờ).</div>
                 </div>
                 <div class="col-md-12">
