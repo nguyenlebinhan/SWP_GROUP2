@@ -24,7 +24,7 @@ import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 public class ExcelAttendanceParser {
 
     public static final String[] EXPECTED_HEADERS = {
-        "employeeCode", "workDate", "timeIn", "timeOut", "attendanceStatus", "note"
+        "employeeCode", "fullName", "Department", "workDate", "timeIn", "timeOut", "attendanceStatus", "note"
     };
 
     
@@ -46,13 +46,15 @@ public class ExcelAttendanceParser {
                     continue;
                 }
                 AttendanceDataDTO attendanceDTO = new AttendanceDataDTO();
-                attendanceDTO.setRowNumber(i+1); 
-                attendanceDTO.setEmployeeCode( getCellString(row.getCell(0)));
-                attendanceDTO.setWorkDate(getCellString(row.getCell(1)));
-                attendanceDTO.setTimeIn( getCellString(row.getCell(2)));
-                attendanceDTO.setTimeOut( getCellString(row.getCell(3)));
-                attendanceDTO.setAttendanceStatus ( getCellString(row.getCell(4)));
-                attendanceDTO.setNote (getCellString(row.getCell(5)));
+                attendanceDTO.setRowNumber(i+1);
+                attendanceDTO.setEmployeeCode(getCellString(row.getCell(0)));
+                attendanceDTO.setFullName(getCellString(row.getCell(1)));
+                attendanceDTO.setDepartmentName(getCellString(row.getCell(2)));
+                attendanceDTO.setWorkDate(getCellString(row.getCell(3)));
+                attendanceDTO.setTimeIn(getCellString(row.getCell(4)));
+                attendanceDTO.setTimeOut(getCellString(row.getCell(5)));
+                attendanceDTO.setAttendanceStatus(getCellString(row.getCell(6)));
+                attendanceDTO.setNote(getCellString(row.getCell(7)));
                 attendanceDataDTOs.add(attendanceDTO);
             }
         }
@@ -69,7 +71,7 @@ public class ExcelAttendanceParser {
                 throw new InvalidFormatException(
                         "Header cột " + (c + 1) + " phải là \"" + EXPECTED_HEADERS[c]
                         + "\" nhưng đang là \"" + actual + "\". "
-                        + "Thứ tự cột yêu cầu: employeeCode, workDate, timeIn, timeOut, attendanceStatus, note.");
+                        + "Thứ tự cột yêu cầu: employeeCode, fullName, Department, workDate, timeIn, timeOut, attendanceStatus, note.");
             }
         }
     }
