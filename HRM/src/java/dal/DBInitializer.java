@@ -233,12 +233,16 @@ public class DBInitializer {
                 + "employeeId INT NOT NULL,"
                 + "formTypeId INT NOT NULL,"
                 + "reason NVARCHAR(500),"
-                + "status TINYINT DEFAULT 0,"        // 0: Chờ duyệt, 1: Đã duyệt, 2: Từ chối, 3: Đã hủy
+                + "startDate DATE NULL,"
+                + "endDate DATE NULL,"
+                + "totalDays DECIMAL(4,1) NULL,"
+                + "usedDays DECIMAL(4,1) DEFAULT 0,"
+                + "status TINYINT DEFAULT 0,"
                 + "approverId INT,"
                 + "approverNote NVARCHAR(255),"
                 + "approvedAt TIMESTAMP NULL,"
-                + "attachmentUrl VARCHAR(255) NULL,"  // đường dẫn file đính kèm trên server
-                + "attachmentName VARCHAR(255) NULL," // tên file gốc của người dùng
+                + "attachmentUrl VARCHAR(255) NULL,"
+                + "attachmentName VARCHAR(255) NULL,"
                 + "createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,"
                 + "updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,"
                 + "FOREIGN KEY (employeeId) REFERENCES Employees(employeeId),"
@@ -246,27 +250,6 @@ public class DBInitializer {
                 + "FOREIGN KEY (approverId) REFERENCES Employees(employeeId)"
                 + ")";
         execute(conn, SQL, "CREATE FORM_REQUESTS TABLE SUCCESSFULLY");
-    }
-
-    //cache để giúp tính toán số ngày còn lại nhanh hơn
-    public void createTableLeaveForm(Connection conn) {
-        String SQL = "CREATE TABLE Leave_Form("
-                + "leaveId INT PRIMARY KEY AUTO_INCREMENT,"
-                + "employeeId INT NOT NULL,"
-                + "formTypeId INT NOT NULL,"
-                + "formId INT NOT NULL,"
-                + "startDate DATE NOT NULL,"
-                + "endDate DATE NOT NULL,"
-                + "totalDays DECIMAL(4,1) NOT NULL,"
-                + "usedDays DECIMAL(4,1) DEFAULT 0,"
-                + "createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,"
-                + "updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,"
-                + "UNIQUE KEY uq_balance (employeeId, leaveId, formTypeId),"
-                + "FOREIGN KEY (employeeId) REFERENCES Employees(employeeId),"
-                + "FOREIGN KEY (formId) REFERENCES Form_Requests(formId),"
-                + "FOREIGN KEY (formTypeId) REFERENCES Form_Types(formTypeId)"
-                + ")";
-        execute(conn, SQL, "CREATE LEAVE_BALANCE TABLE SUCCESSFULLY");
     }
 
     // ==================== CHẤM CÔNG ====================
@@ -478,7 +461,6 @@ public class DBInitializer {
                 "Attendance",
                 "Uploaded_Files",
                 "Attendance_Periods",
-                "Leave_Form",
                 "Form_Requests",
                 "Form_Types",
                 "Candidates",
@@ -506,7 +488,6 @@ public class DBInitializer {
                 "Candidates",
                 "Form_Types",
                 "Form_Requests",
-                "Leave_Form",
                 "Uploaded_Files",
                 "Attendance_Periods",
                 "Attendance",
@@ -546,9 +527,8 @@ public class DBInitializer {
                         case "Employment_Contracts": createTableEmploymentContracts(conn); break;
                         case "Candidates":        createTableCandidates(conn);        break;
                         case "Attendance_Periods": createTableAttendancePeriods(conn);break;
-                        case "Form_Types":       createTableFormTypes(conn);         break;
-                        case "Form_Requests":    createTableFormRequests(conn);     break;
-                        case "Leave_Form":     createTableLeaveForm(conn);      break;
+                        case "Form_Types":        createTableFormTypes(conn);         break;
+                        case "Form_Requests":     createTableFormRequests(conn);      break;
                         case "Uploaded_Files":    createTableUploadedFiles(conn);     break;
                         case "Attendance":        createTableAttendance(conn);        break;
                         case "Attendance_Import_Rows":        createTableAttendanceImportRows(conn);        break;
@@ -689,10 +669,8 @@ public class DBInitializer {
             }
 
             if (countRows(conn, "Form_Types") == 0) {
-                insertFormType(conn, "LEAVE",    "Nghỉ phép");
-                insertFormType(conn, "OVERTIME", "Tăng ca");
-                insertFormType(conn, "ADVANCE",  "Tạm ứng");
-                insertFormType(conn, "OTHER",    "Khác");
+                insertFormType(conn, "LEAVE",     "Nghỉ phép");
+                insertFormType(conn, "COMPLAINT", "Khiếu nại");
             }
 
             LOGGER.log(Level.INFO,"Seeding completed successfully.");

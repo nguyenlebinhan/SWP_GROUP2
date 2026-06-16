@@ -58,10 +58,10 @@
 </head>
 <body>
 
-<jsp:include page="/public/components/employeeSideBar.jsp" />
+<jsp:include page="/public/components/managerSideBar.jsp" />
 
 <div class="main">
-    <jsp:include page="/public/components/employeeTopBar.jsp">
+    <jsp:include page="/public/components/managerTopBar.jsp">
         <jsp:param name="title" value="Chi tiết Đơn yêu cầu" />
     </jsp:include>
 
@@ -128,7 +128,7 @@
                 <div class="info-label mt-4">Tài liệu đính kèm</div>
                 <div class="info-value">
                     <c:choose>
-                    <c:when test="${not empty form.attachmentName}">
+                        <c:when test="${not empty form.attachmentName}">
                             <a href="${pageContext.request.contextPath}/${form.attachmentUrl}" target="_blank" class="btn btn-sm btn-outline-primary mt-1">
                                 Tải về ${form.attachmentName}
                             </a>
@@ -173,6 +173,21 @@
                             <c:otherwise><span class="text-muted">Không có lời nhắn</span></c:otherwise>
                         </c:choose>
                     </div>
+                </c:if>
+                <c:if test="${form.status == 0}">
+                    <hr class="my-4">
+                    <h5 class="text-primary">Xử lý đơn</h5>
+                    <form method="post">
+                        <input type="hidden" name="formId" value="${form.formId}">
+                        <div class="mb-3 mt-3">
+                            <label class="form-label fw-bold text-muted" style="font-size: 0.85rem; text-transform: uppercase;">Ghi chú của người duyệt</label>
+                            <textarea class="form-control" name="note" rows="3" placeholder="Nhập lý do duyệt hoặc từ chối..."></textarea>
+                        </div>
+                        <div class="d-flex justify-content-end gap-2">
+                            <button type="submit" formaction="${pageContext.request.contextPath}/v1/manager/reject-form" class="btn btn-danger px-4">Từ chối</button>
+                            <button type="submit" formaction="${pageContext.request.contextPath}/v1/manager/approve-form" class="btn btn-success px-4">Duyệt</button>
+                        </div>
+                    </form>
                 </c:if>
             </div>
         </div>
