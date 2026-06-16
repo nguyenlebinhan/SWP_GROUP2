@@ -34,11 +34,13 @@ phụ thuộc ở trên trong thư mục `lib/` và `ooxml-lib/`.
 
 - Sheet **đầu tiên**, **dòng 1 là header**, đúng thứ tự cột:
 
-| employeeCode | workDate   | timeIn | timeOut | attendanceStatus | note |
-|--------------|------------|--------|---------|------------------|------|
-| EMP001       | 2026-06-01 | 08:00  | 17:00   | PRESENT          |      |
-| EMP002       | 2026-06-01 | 08:20  | 17:00   | LATE             |      |
-| EMP003       | 2026-06-01 |        |         | ABSENT           |      |
+| employeeCode | fullName     | Phòng ban       | workDate   | timeIn | timeOut | attendanceStatus | note |
+|--------------|--------------|-----------------|------------|--------|---------|------------------|------|
+| EMP001       | Nguyễn Văn A | Phòng Kỹ thuật  | 2026-06-01 | 08:00  | 17:00   | PRESENT          |      |
+| EMP002       | Trần Thị B   | Phòng Kỹ thuật  | 2026-06-01 | 08:20  | 17:00   | LATE             |      |
+| EMP003       | Lê Văn C     | Phòng Kỹ thuật  | 2026-06-01 |        |         | ABSENT           |      |
+
+- `fullName` và `Phòng ban` được lưu thẳng (snapshot) vào bảng `Attendance` để khi xem danh sách không cần JOIN sang `Users`/`Departments`.
 
 - `workDate`: `yyyy-MM-dd`. `timeIn`/`timeOut`: `HH:mm` (hoặc `HH:mm:ss`).
 - `attendanceStatus` (map sang TINYINT): `PRESENT`→0, `LATE`→1, `ABSENT`→2, `UNEXCUSED`→3.

@@ -301,7 +301,10 @@ public class ManagerController extends HttpServlet {
         } catch (NumberFormatException ignored) {
         }
 
-        List<Attendance> attendances = attendanceDAO.getAttendanceListByUserId(user.getUserId(), month, year);
+        EmployeeDetailDTO me = employeeDAO.getEmployeeByUserId(user.getUserId());
+        List<Attendance> attendances = (me != null)
+                ? attendanceDAO.getAttendanceListByEmployeeId(me.getEmployeeId(), month, year)
+                : new java.util.ArrayList<>();
 
         request.setAttribute("attendances", attendances);
         request.setAttribute("selectedMonth", month);
