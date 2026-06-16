@@ -206,6 +206,10 @@ public class AttendanceImportService {
         Attendance att = new Attendance();
         att.setAttendanceCode(generateAttendanceCode(employeeCode, workDate));
         att.setEmployeeId(employeeId);
+        att.setEmployeeCode(employeeCode);
+        att.setFullName(trimToNull(ad.getFullName()));
+        att.setDepartmentId(departmentId);
+        att.setDepartmentName(trimToNull(ad.getDepartmentName()));
         att.setWorkDate(workDate);
         att.setTimeIn(timeIn);
         att.setTimeOut(timeOut);

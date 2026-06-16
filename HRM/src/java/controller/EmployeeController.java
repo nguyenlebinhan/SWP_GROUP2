@@ -12,7 +12,6 @@ import dao.UploadedFileDAO;
 import dao.UserDAO;
 import dto.AttendanceImportResultDTO;
 import dto.EmployeeDetailDTO;
-import enums.AttendanceStatus;
 import enums.FileStatus;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.MultipartConfig;
@@ -25,7 +24,9 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.io.IOException;
 import java.io.InputStream;
-import java.sql.Time;
+import java.sql.*;
+import java.sql.Date;
+import java.time.LocalDate;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -355,7 +356,10 @@ public class EmployeeController extends HttpServlet {
             // ignore
         }
 
-        List<Attendance> attendances = attendanceDAO.getAttendanceListByUserId(user.getUserId(), month, year);
+        EmployeeDetailDTO me = employeeDAO.getEmployeeByUserId(user.getUserId());
+        List<Attendance> attendances = (me != null)
+                ? attendanceDAO.getAttendanceListByEmployeeId(me.getEmployeeId(), month, year)
+                : new java.util.ArrayList<>();
 
         request.setAttribute("attendances", attendances);
         request.setAttribute("selectedMonth", month);
@@ -483,7 +487,7 @@ public class EmployeeController extends HttpServlet {
         List<Attendance> attendances = attendanceDAO.getAttendanceList(
                 departmentId, month, year, employeeCode, restrictEmployeeId);
         for (Attendance a : attendances) {
-            a.setEditable(true);
+            a.setEditable(!isAttendanceEditLocked(a.getWorkDate()));
         }
         List<Department> activeDepartments = departmentDAO.getAllActiveDepartments();
         request.setAttribute("departments", activeDepartments);
@@ -517,6 +521,7 @@ public class EmployeeController extends HttpServlet {
             return;
         }
         request.setAttribute("attendance", attendance);
+        request.setAttribute("editLocked", isAttendanceEditLocked(attendance.getWorkDate()));
         request.setAttribute("adjustmentHistory", attendanceDAO.getAdjustmentHistory(attendanceId));
         request.setAttribute("backUrl", backUrl);
         request.setAttribute("filterMonth", trimToNull(request.getParameter("month")));
@@ -556,6 +561,13 @@ public class EmployeeController extends HttpServlet {
         Attendance attendance = attendanceDAO.getAttendanceById(attendanceId);
         if (attendance == null) {
             request.getSession().setAttribute("error", "Không tìm thấy bản ghi chấm công.");
+            response.sendRedirect(redirectUrl);
+            return;
+        }
+
+        if (isAttendanceEditLocked(attendance.getWorkDate())) {
+            request.getSession().setAttribute("error",
+                    "Đã quá hạn chỉnh sửa. Chấm công chỉ được sửa đến hết ngày 5 của tháng kế tiếp.");
             response.sendRedirect(redirectUrl);
             return;
         }
@@ -1670,6 +1682,18 @@ public class EmployeeController extends HttpServlet {
 
     private boolean isValidEmployeeStatus(int status) {
         return status == 0 || status == 1 || status == 2;
+    }
+    
+    
+    private boolean isAttendanceEditLocked(Date workDate) {
+        if (workDate == null) {
+            return false;
+        }
+        LocalDate deadline = workDate.toLocalDate()
+                .withDayOfMonth(1)
+                .plusMonths(1)
+                .withDayOfMonth(5);
+        return LocalDate.now().isAfter(deadline);
     }
 
     private boolean isValidContractType(String type) {
