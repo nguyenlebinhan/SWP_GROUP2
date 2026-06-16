@@ -5,7 +5,6 @@
     <head>
         <title>Tất cả đơn yêu cầu - HRM</title>
         <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-        <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
         <style>
             body {
                 background: #f5f6fa;
@@ -63,14 +62,14 @@
 
             <c:if test="${not empty sessionScope.success}">
                 <div class="alert alert-success alert-dismissible fade show">
-                    <i class="fa-solid fa-circle-check me-2"></i>${sessionScope.success}
+                    ${sessionScope.success}
                     <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                 </div>
                 <c:remove var="success" scope="session"/>
             </c:if>
             <c:if test="${not empty sessionScope.error}">
                 <div class="alert alert-danger alert-dismissible fade show">
-                    <i class="fa-solid fa-circle-xmark me-2"></i>${sessionScope.error}
+                    ${sessionScope.error}
                     <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                 </div>
                 <c:remove var="error" scope="session"/>
@@ -78,42 +77,30 @@
             <%-- Filter theo ngày / tháng / năm / phòng ban / mã nhân viên --%>
             <div class="section-card">
                 <form method="get" action="${pageContext.request.contextPath}/v1/employee/all-forms"
-                      class="row g-3 align-items-end">
-                    <div class="col-md-2">
-                        <label class="form-label">Ngày</label>
+                      class="d-flex align-items-center gap-2 flex-wrap">
+                    <div class="input-group" style="max-width: 520px;">
                         <select name="day" class="form-select" id="select-day">
-                            <option value="">Tất cả</option>
+                            <option value="">Tất cả Ngày</option>
                             <c:forEach var="d" begin="1" end="31">
                                 <option value="${d}" ${filterDay == d ? 'selected' : ''}>${d}</option>
                             </c:forEach>
                         </select>
-                    </div>
-                    <div class="col-md-2">
-                        <label class="form-label">Tháng</label>
                         <select name="month" class="form-select" id="select-month">
-                            <option value="">Tất cả</option>
+                            <option value="">Tất cả Tháng</option>
                             <c:forEach var="m" begin="1" end="12">
                                 <option value="${m}" ${filterMonth == m ? 'selected' : ''}>Tháng ${m}</option>
                             </c:forEach>
                         </select>
-                    </div>
-                    <div class="col-md-2">
-                        <label class="form-label">Năm</label>
                         <input type="number" name="year" class="form-control" id="input-year"
-                               min="2000" max="2100" value="${filterYear}">
+                               min="2000" max="2100" value="${filterYear}" placeholder="Năm">
                     </div>
-                    <div class="col-md-5">
-                        <label class="form-label">Từ khóa tìm kiếm</label>
-                        <input type="text" name="searchKeyword" class="form-control" value="${filterKeyword}" placeholder="Nhập tên nhân viên hoặc phòng ban...">
-                        <div class="col-md-1">
-                            <button type="submit" class="btn btn-primary w-100" id="btn-filter-forms">
-                                <i class="fa-solid fa-magnifying-glass"></i>
-                            </button>
-                        </div>
+                    <input type="text" name="keyword" class="form-control" style="max-width: 280px;"
+                           value="${keyword}" placeholder="Tên nhân viên hoặc phòng ban...">
+                    <button type="submit" class="btn btn-primary" id="btn-filter-forms">Lọc</button>
                 </form>
             </div>
             <div class="section-card">
-                <h5 class="mb-3"><i class="fa-solid fa-inbox me-2"></i>Tất cả đơn yêu cầu</h5>
+                <h5 class="mb-3">Tất cả đơn yêu cầu</h5>
 
                 <div class="table-responsive">
                     <table class="table table-hover align-middle">
@@ -131,18 +118,12 @@
                         <tbody>
                             <c:choose>
                                 <c:when test="${empty forms}">
-                                    <tr><td colspan="10" class="text-center text-muted py-4">
-                                            <i class="fa-regular fa-folder-open me-2"></i>Không có đơn nào.
-                                        </td></tr>
+                                    <tr><td colspan="10" class="text-center text-muted py-4">Không có đơn nào.</td></tr>
                                     </c:when>
                                     <c:otherwise>
                                         <c:forEach var="f" items="${forms}">
                                         <tr>
-                                            <td>
-                                                <a href="${pageContext.request.contextPath}/v1/employee/form-detail?id=${f.formId}" class="text-decoration-none fw-bold">
-                                                    ${f.formCode}
-                                                </a>
-                                            </td>
+                                            <td>${f.formCode}</td>
                                             <td><c:out value="${f.fullName}"/><br>
                                                 <small class="text-muted">${f.employeeCode}</small></td>
                                             <td><c:out value="${f.departmentName}"/></td>
@@ -151,9 +132,7 @@
                                             <td>${f.createdAt}</td>
                                             <td>
                                                 <a href="${pageContext.request.contextPath}/v1/employee/form-detail?id=${f.formId}"
-                                                   class="btn btn-sm btn-outline-primary">
-                                                    <i class="fa-solid fa-eye me-1"></i> Xem chi tiết
-                                                </a>
+                                                   class="btn btn-sm btn-outline-primary">Xem chi tiết</a>
                                             </td>
                                         </tr>
                                     </c:forEach>

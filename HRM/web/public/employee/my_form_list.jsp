@@ -5,7 +5,6 @@
 <head>
     <title>Đơn yêu cầu của tôi - HRM</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
     <style>
         body { background: #f5f6fa; font-family: 'Segoe UI', sans-serif; }
         .main { margin-left: 250px; padding: 25px; }
@@ -40,7 +39,7 @@
 
     <c:if test="${not empty sessionScope.success}">
         <div class="alert alert-success alert-dismissible fade show" role="alert">
-            <i class="fa-solid fa-circle-check me-2"></i>${sessionScope.success}
+            ${sessionScope.success}
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
         <c:remove var="success" scope="session"/>
@@ -49,45 +48,32 @@
     <%-- Filter theo ngày / tháng / năm --%>
     <div class="section-card">
         <form method="get" action="${pageContext.request.contextPath}/v1/employee/my-forms"
-              class="row g-3 align-items-end">
-            <div class="col-md-2">
-                <label class="form-label">Ngày</label>
+              class="d-flex align-items-center gap-2 flex-wrap">
+            <div class="input-group" style="max-width: 520px;">
                 <select name="day" class="form-select" id="select-day">
-                    <option value="">Tất cả</option>
+                    <option value="">Tất cả Ngày</option>
                     <c:forEach var="d" begin="1" end="31">
                         <option value="${d}" ${filterDay == d ? 'selected' : ''}>${d}</option>
                     </c:forEach>
                 </select>
-            </div>
-            <div class="col-md-2">
-                <label class="form-label">Tháng</label>
                 <select name="month" class="form-select" id="select-month">
-                    <option value="">Tất cả</option>
+                    <option value="">Tất cả Tháng</option>
                     <c:forEach var="m" begin="1" end="12">
                         <option value="${m}" ${filterMonth == m ? 'selected' : ''}>Tháng ${m}</option>
                     </c:forEach>
                 </select>
-            </div>
-            <div class="col-md-2">
-                <label class="form-label">Năm</label>
                 <input type="number" name="year" class="form-control" id="input-year"
-                       min="1800" max="10000" value="${filterYear}">
-            </div>
-            <div class="col-md-2">
-                <button type="submit" class="btn btn-primary w-100" id="btn-filter-forms">
-                    <i class="fa-solid fa-magnifying-glass me-1"></i> Lọc
-                </button>
+                       min="2000" max="2100" value="${filterYear}" placeholder="Năm">
+                <button type="submit" class="btn btn-primary" id="btn-filter-forms">Lọc</button>
             </div>
         </form>
     </div>
 
     <div class="section-card">
         <div class="d-flex justify-content-between align-items-center mb-3">
-            <h5 class="mb-0"><i class="fa-solid fa-file-lines me-2"></i>Danh sách đơn yêu cầu</h5>
-            <a href="${pageContext.request.contextPath}/v1/employee/submit-form"
-               class="btn btn-primary btn-sm" id="btn-new-form">
-                <i class="fa-solid fa-plus me-1"></i> Gửi đơn mới
-            </a>
+            <h5 class="mb-0">Danh sách đơn yêu cầu</h5>
+            <a href="${pageContext.request.contextPath}/v1/employee/form-dashboard"
+               class="btn btn-primary btn-sm" id="btn-new-form">Gửi đơn mới</a>
         </div>
 
         <div class="table-responsive">
@@ -104,9 +90,7 @@
                 <tbody>
                     <c:choose>
                         <c:when test="${empty forms}">
-                            <tr><td colspan="7" class="text-center text-muted py-4">
-                                <i class="fa-regular fa-folder-open me-2"></i>Bạn chưa có đơn nào.
-                            </td></tr>
+                            <tr><td colspan="7" class="text-center text-muted py-4">Bạn chưa có đơn nào.</td></tr>
                         </c:when>
                         <c:otherwise>
                             <c:forEach var="f" items="${forms}">
@@ -121,9 +105,7 @@
                                     <td>${f.createdAt}</td>
                                     <td>
                                         <a href="${pageContext.request.contextPath}/v1/employee/form-detail?id=${f.formId}"
-                                           class="btn btn-sm btn-outline-primary">
-                                            <i class="fa-solid fa-eye me-1"></i> Xem chi tiết
-                                        </a>
+                                           class="btn btn-sm btn-outline-primary">Xem chi tiết</a>
                                     </td>
                                 </tr>
                             </c:forEach>

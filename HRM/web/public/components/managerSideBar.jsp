@@ -94,19 +94,21 @@
             Đơn nghỉ phép
         </a>
     </c:if>
-        
-    <c:if test="${sessionScope.userPermissions.contains('VIEW_DEPT_FORMS')}">
-        <a href="${pageContext.request.contextPath}/v1/manager/dept-forms">
-            Đơn của phòng ban
-        </a>
-    </c:if>
 
-    <c:if test="${sessionScope.userPermissions.contains('VIEW_ALL_FORMS')}">
-        <a href="${pageContext.request.contextPath}/v1/manager/all-forms">
-            Tất cả đơn
-        </a>
-    </c:if>
-        
+    <c:choose>
+        <c:when test="${sessionScope.userPermissions.contains('VIEW_ALL_FORMS')}">
+            <a href="${pageContext.request.contextPath}/v1/manager/all-forms">
+                Tất cả đơn
+            </a>
+        </c:when>
+        <c:otherwise>
+            <a href="${pageContext.request.contextPath}/v1/manager/dept-forms">
+                Đơn của phòng ban
+            </a>
+        </c:otherwise>
+    </c:choose>
+
+
     <c:if test="${sessionScope.userPermissions.contains('VIEW_LEAVE_BALANCE')}">
         <a href="${pageContext.request.contextPath}/v1/manager/leave-balances">
             Ngày phép

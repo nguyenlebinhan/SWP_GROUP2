@@ -31,6 +31,7 @@ public class FormRequestDTO {
     private String departmentName;
     private int departmentId;
     private String formTypeName;
+    private String formTypeCode;
     private String approverName;
 
     public FormRequestDTO() {
@@ -178,6 +179,14 @@ public class FormRequestDTO {
 
     public void setFormTypeName(String formTypeName) {
         this.formTypeName = formTypeName;
+    }
+
+    public String getFormTypeCode() {
+        return formTypeCode;
+    }
+
+    public void setFormTypeCode(String formTypeCode) {
+        this.formTypeCode = formTypeCode;
     }
 
     public String getApproverName() {

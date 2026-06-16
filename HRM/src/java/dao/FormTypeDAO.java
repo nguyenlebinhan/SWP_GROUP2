@@ -46,5 +46,44 @@ public class FormTypeDAO {
         }
         return formTypes;
     }
-    
+
+    public FormType getById(int id) {
+        String SQL = "SELECT formTypeId, formTypeCode, formTypeName FROM form_types WHERE formTypeId = ?";
+        try (Connection conn = dbContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(SQL)) {
+            ps.setInt(1, id);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    FormType ft = new FormType();
+                    ft.setFormTypeId(rs.getInt("formTypeId"));
+                    ft.setFormTypeCode(rs.getString("formTypeCode"));
+                    ft.setFormTypeName(rs.getString("formTypeName"));
+                    return ft;
+                }
+            }
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Cannot load form type by id=" + id, e);
+        }
+        return null;
+    }
+    public FormType getByCode(String code) {
+        String SQL = "SELECT formTypeId, formTypeCode, formTypeName FROM form_types WHERE formTypeCode = ?";
+        try (Connection conn = dbContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(SQL)) {
+            ps.setString(1, code);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    FormType ft = new FormType();
+                    ft.setFormTypeId(rs.getInt("formTypeId"));
+                    ft.setFormTypeCode(rs.getString("formTypeCode"));
+                    ft.setFormTypeName(rs.getString("formTypeName"));
+                    return ft;
+                }
+            }
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Cannot load form type by code=" + code, e);
+        }
+        return null;
+    }
+
 }
