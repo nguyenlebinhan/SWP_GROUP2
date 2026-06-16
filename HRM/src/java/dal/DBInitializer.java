@@ -303,10 +303,10 @@ public class DBInitializer {
                 + "attendanceId INT PRIMARY KEY AUTO_INCREMENT,"
                 + "attendanceCode VARCHAR(50) NOT NULL UNIQUE,"
                 + "employeeId INT NOT NULL,"
-                + "employeeCode VARCHAR(50),"         // snapshot từ file chấm công, không cần join khi hiển thị
-                + "fullName NVARCHAR(100),"           // snapshot từ file chấm công
-                + "departmentId INT,"                 // phòng ban chọn khi import, dùng để lọc không cần join
-                + "departmentName NVARCHAR(100),"     // snapshot từ file chấm công
+                + "employeeCode VARCHAR(50),"         
+                + "fullName NVARCHAR(100),"           
+                + "departmentId INT,"                
+                + "departmentName NVARCHAR(100),"     
                 + "workDate DATE NOT NULL,"
                 + "timeIn TIME,"
                 + "timeOut TIME,"
