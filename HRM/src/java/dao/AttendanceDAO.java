@@ -7,7 +7,6 @@ package dao;
 import dal.DBContext;
 import java.math.BigDecimal;
 import java.sql.Connection;
-import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -19,7 +18,6 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import model.Attendance;
 import model.AttendanceAdjustment;
-import service.AttendancePeriodService;
 
 /**
  *
@@ -72,11 +70,11 @@ public class AttendanceDAO {
 
     public boolean upsertAttendance(Connection conn, Attendance a) throws SQLException {
         String SQL = "INSERT INTO Attendance "
-                + "(attendanceCode, employeeId, workDate, timeIn, timeOut, hoursWorked, attendanceStatus, fileId, periodId) "
-                + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) "
+                + "(attendanceCode, employeeId, workDate, timeIn, timeOut, hoursWorked, attendanceStatus, fileId) "
+                + "VALUES (?, ?, ?, ?, ?, ?, ?, ?) "
                 + "ON DUPLICATE KEY UPDATE "
                 + "timeIn = VALUES(timeIn), timeOut = VALUES(timeOut), hoursWorked = VALUES(hoursWorked), "
-                + "attendanceStatus = VALUES(attendanceStatus), fileId = VALUES(fileId), periodId = VALUES(periodId)";
+                + "attendanceStatus = VALUES(attendanceStatus), fileId = VALUES(fileId)";
         try (PreparedStatement ps = conn.prepareStatement(SQL)) {
             ps.setString(1, a.getAttendanceCode());
             ps.setInt(2, a.getEmployeeId());
@@ -102,11 +100,6 @@ public class AttendanceDAO {
             } else {
                 ps.setNull(8, Types.INTEGER);
             }
-            if (a.getPeriodId() != null) {
-                ps.setInt(9, a.getPeriodId());
-            } else {
-                ps.setNull(9, Types.INTEGER);
-            }
             return ps.executeUpdate() > 0;
         }
     }
@@ -117,16 +110,12 @@ public class AttendanceDAO {
         List<Attendance> list = new ArrayList<>();
         StringBuilder sql = new StringBuilder(
                 "SELECT a.attendanceId, a.attendanceCode, a.employeeId, a.workDate, a.timeIn, a.timeOut, "
-                + "a.hoursWorked, a.attendanceStatus, a.fileId, a.periodId, "
-                + "e.employeeCode, u.fullName, d.departmentName, "
-                + "COALESCE(p.status, 0) AS periodStatus "
+                + "a.hoursWorked, a.attendanceStatus, a.fileId, "
+                + "e.employeeCode, e.departmentId, u.fullName, d.departmentName "
                 + "FROM Attendance a "
                 + "JOIN Employees e ON e.employeeId = a.employeeId "
                 + "JOIN Users u ON u.userId = e.userId "
                 + "LEFT JOIN Departments d ON d.departmentId = e.departmentId "
-                + "LEFT JOIN Attendance_Periods p ON (a.periodId IS NOT NULL AND p.periodId = a.periodId) "
-                + "OR (a.periodId IS NULL AND p.departmentId = e.departmentId "
-                + "AND p.month = MONTH(a.workDate) AND p.year = YEAR(a.workDate)) "
                 + "WHERE 1=1 ");
 
         List<Object> params = new ArrayList<>();
@@ -173,17 +162,13 @@ public class AttendanceDAO {
         List<Attendance> list = new ArrayList<>();
         StringBuilder sql = new StringBuilder(
                 "SELECT a.attendanceId, a.attendanceCode, a.employeeId, a.workDate, a.timeIn, a.timeOut, "
-                + "a.hoursWorked, a.attendanceStatus, a.fileId, a.periodId, "
-                + "e.employeeCode, u.fullName, d.departmentName, "
-                + "p.status AS periodStatus "
+                + "a.hoursWorked, a.attendanceStatus, a.fileId, "
+                + "e.employeeCode, e.departmentId, u.fullName, d.departmentName "
                 + "FROM Attendance a "
                 + "JOIN Employees e ON e.employeeId = a.employeeId "
                 + "JOIN Users u ON u.userId = e.userId "
                 + "LEFT JOIN Departments d ON d.departmentId = e.departmentId "
-                + "LEFT JOIN Attendance_Periods p ON (a.periodId IS NOT NULL AND p.periodId = a.periodId) "
-                + "OR (a.periodId IS NULL AND p.departmentId = e.departmentId "
-                + "AND p.month = MONTH(a.workDate) AND p.year = YEAR(a.workDate)) "
-                + "WHERE u.userId = ? AND p.status = 1 ");
+                + "WHERE u.userId = ? ");
 
         List<Object> params = new ArrayList<>();
         params.add(userId);
@@ -218,16 +203,12 @@ public class AttendanceDAO {
 
     public Attendance getAttendanceById(int attendanceId) {
         String sql = "SELECT a.attendanceId, a.attendanceCode, a.employeeId, a.workDate, a.timeIn, a.timeOut, "
-                + "a.hoursWorked, a.attendanceStatus, a.fileId, a.periodId, "
-                + "e.employeeCode, u.fullName, d.departmentName, "
-                + "COALESCE(p.status, 0) AS periodStatus "
+                + "a.hoursWorked, a.attendanceStatus, a.fileId, "
+                + "e.employeeCode, e.departmentId, u.fullName, d.departmentName "
                 + "FROM Attendance a "
                 + "JOIN Employees e ON e.employeeId = a.employeeId "
                 + "JOIN Users u ON u.userId = e.userId "
                 + "LEFT JOIN Departments d ON d.departmentId = e.departmentId "
-                +"LEFT JOIN Attendance_Periods p ON (a.periodId IS NOT NULL AND p.periodId = a.periodId) "
-                + "OR (a.periodId IS NULL AND p.departmentId = e.departmentId "
-                + "AND p.month = MONTH(a.workDate) AND p.year = YEAR(a.workDate)) "
                 + "WHERE a.attendanceId = ?";
         try (Connection conn = dbContext.getConnection();
                 PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -245,16 +226,9 @@ public class AttendanceDAO {
 
 
     public String updateAttendanceWithHistory(int attendanceId, Time timeIn, Time timeOut,
-            BigDecimal hoursWorked, int newStatus, String reason,
-            int updatedByUserId, AttendancePeriodService periodService) {
-        String selectSQL = "SELECT a.timeIn, a.timeOut, a.hoursWorked, a.attendanceStatus, a.workDate, "
-                + "p.status AS periodStatus, p.month AS periodMonth, p.year AS periodYear "
-                + "FROM Attendance a "
-                + "JOIN Employees e ON e.employeeId = a.employeeId "
-                +"LEFT JOIN Attendance_Periods p ON (a.periodId IS NOT NULL AND p.periodId = a.periodId) "
-                + "OR (a.periodId IS NULL AND p.departmentId = e.departmentId "
-                + "AND p.month = MONTH(a.workDate) AND p.year = YEAR(a.workDate)) "
-                + "WHERE a.attendanceId = ? FOR UPDATE";
+            BigDecimal hoursWorked, int newStatus, String reason, int updatedByUserId) {
+        String selectSQL = "SELECT timeIn, timeOut, hoursWorked, attendanceStatus "
+                + "FROM Attendance WHERE attendanceId = ? FOR UPDATE";
         try (Connection conn = dbContext.getConnection()) {
             conn.setAutoCommit(false);
             try {
@@ -262,9 +236,6 @@ public class AttendanceDAO {
                 Time oldOut;
                 BigDecimal oldHours;
                 int oldStatus;
-                Integer periodStatus;
-                int month;
-                int year;
                 try (PreparedStatement ps = conn.prepareStatement(selectSQL)) {
                     ps.setInt(1, attendanceId);
                     try (ResultSet rs = ps.executeQuery()) {
@@ -276,23 +247,7 @@ public class AttendanceDAO {
                         oldOut = rs.getTime("timeOut");
                         oldHours = rs.getBigDecimal("hoursWorked");
                         oldStatus = rs.getInt("attendanceStatus");
-                        Date workDate = rs.getDate("workDate");
-                        int pStatus = rs.getInt("periodStatus");
-                        periodStatus = rs.wasNull() ? null : pStatus;
-                        if (periodStatus != null) {
-                            month = rs.getInt("periodMonth");
-                            year = rs.getInt("periodYear");
-                        } else {
-                            month = workDate.toLocalDate().getMonthValue();
-                            year = workDate.toLocalDate().getYear();
-                        }
                     }
-                }
-
-                String err = periodService.checkEdit(periodStatus, month, year);
-                if (err != null) {
-                    conn.rollback();
-                    return err;
                 }
 
                 String updateSQL = "UPDATE Attendance SET timeIn = ?, timeOut = ?, "
@@ -393,12 +348,11 @@ public class AttendanceDAO {
         a.setAttendanceStatus(rs.getInt("attendanceStatus"));
         int fileId = rs.getInt("fileId");
         a.setFileId(rs.wasNull() ? null : fileId);
-        int periodId = rs.getInt("periodId");
-        a.setPeriodId(rs.wasNull() ? null : periodId);
         a.setEmployeeCode(rs.getString("employeeCode"));
+        int departmentId = rs.getInt("departmentId");
+        a.setDepartmentId(rs.wasNull() ? null : departmentId);
         a.setFullName(rs.getNString("fullName"));
         a.setDepartmentName(rs.getNString("departmentName"));
-        a.setPeriodStatus(rs.getInt("periodStatus"));
         return a;
     }
 }

@@ -81,7 +81,7 @@
                                     <c:when test="${empty attendances}">
                                         <tr>
                                             <td colspan="5" class="text-center text-muted py-4">
-                                                Chưa có dữ liệu chấm công được công khai.
+                                                Chưa có dữ liệu chấm công.
                                             </td>
                                         </tr>
                                     </c:when>
@@ -92,7 +92,7 @@
                                                 <td>${a.timeIn}</td>
                                                 <td>${a.timeOut}</td>
                                                 <td>
-                                                    <c:out value="${a.hoursWorked}" />
+                                                    ${a.hoursWorkedLabel}
                                                 </td>
                                                 <td>
                                                     <span
