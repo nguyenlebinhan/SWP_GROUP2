@@ -4,6 +4,7 @@
  */
 package model;
 
+import enums.AttendancePeriodStatus;
 import java.sql.Timestamp;
 
 /**
@@ -18,12 +19,21 @@ public class AttendancePeriod {
     private int status;
     private Integer publishedBy;
     private Timestamp publishedAt;
-    public static final int STATUS_PRIVATE = 0; 
-    public static final int STATUS_PUBLIC = 1; 
+
     
     public AttendancePeriod() {
     }
 
+    public AttendancePeriod(int periodId, int departmentId, int month, int year, int status, Integer publishedBy, Timestamp publishedAt) {
+        this.periodId = periodId;
+        this.departmentId = departmentId;
+        this.month = month;
+        this.year = year;
+        this.status = status;
+        this.publishedBy = publishedBy;
+        this.publishedAt = publishedAt;
+    }
+    
     public int getPeriodId() {
         return periodId;
     }
@@ -81,6 +91,6 @@ public class AttendancePeriod {
     }
 
     public boolean isPublished() {
-        return status == STATUS_PUBLIC;
+        return status == AttendancePeriodStatus.STATUS_PUBLIC.getRelatedNum();
     }
 }
