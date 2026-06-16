@@ -298,22 +298,6 @@ public class DBInitializer {
         execute(conn, SQL, "CREATE UPLOADED_FILES TABLE SUCCESSFULLY");
     }
     
-    public void createTableAttendancePeriods(Connection conn){
-        String SQL = "CREATE TABLE Attendance_Periods("
-                   + "periodId     INT PRIMARY KEY AUTO_INCREMENT, "
-                   + "departmentId INT NOT NULL, "
-                   + "month        TINYINT NOT NULL, "
-                   + "year         INT NOT NULL, "
-                   + "status       TINYINT DEFAULT 0, " 
-                   + "publishedBy  INT NULL, "
-                   + "publishedAt  TIMESTAMP NULL, "
-                   + "UNIQUE KEY uq_period (departmentId, month, year), "
-                   + "FOREIGN KEY (departmentId) REFERENCES Departments(departmentId), "
-                   + "FOREIGN KEY (publishedBy)  REFERENCES Employees(employeeId)"
-                   + ")";
-        execute(conn,SQL,"CREATE ATTENDANCE_PERIODS TABLE SUCCESSFULLY");
-    }
-
     public void createTableAttendance(Connection conn) {
         String SQL = "CREATE TABLE Attendance("
                 + "attendanceId INT PRIMARY KEY AUTO_INCREMENT,"
@@ -327,14 +311,12 @@ public class DBInitializer {
                 + "dayOff DATE,"
                 + "workingDay DATE,"
                 + "penalty DECIMAL(15,2) DEFAULT 0,"
-                + "fileId INT NULL,"                 // file Excel import sinh ra dòng này
-                + "periodId INT NULL,"               // kỳ chấm công snapshot lúc import (không suy từ phòng ban hiện tại)
+                + "fileId INT NULL,"                
                 + "createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,"
                 + "updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,"
                 + "UNIQUE KEY uq_att_emp_date (employeeId, workDate)," // chống trùng employee + ngày
                 + "FOREIGN KEY (employeeId) REFERENCES Employees(employeeId),"
-                + "FOREIGN KEY (fileId) REFERENCES Uploaded_Files(fileId),"
-                + "FOREIGN KEY (periodId) REFERENCES Attendance_Periods(periodId)"
+                + "FOREIGN KEY (fileId) REFERENCES Uploaded_Files(fileId)"
                 + ")";
         execute(conn, SQL, "CREATE ATTENDANCE TABLE SUCCESSFULLY");
     }
@@ -476,7 +458,6 @@ public class DBInitializer {
                 "Attendance_Import_Rows",
                 "Attendance",
                 "Uploaded_Files",
-                "Attendance_Periods",
                 "Leave_Form",
                 "Form_Requests",
                 "Form_Types",
@@ -507,7 +488,6 @@ public class DBInitializer {
                 "Form_Requests",
                 "Leave_Form",
                 "Uploaded_Files",
-                "Attendance_Periods",
                 "Attendance",
                 "Attendance_Import_Rows",
                 "Attendance_Adjustment_History",
@@ -544,7 +524,6 @@ public class DBInitializer {
                         case "Employees":         createTableEmployees(conn);         break;
                         case "Employment_Contracts": createTableEmploymentContracts(conn); break;
                         case "Candidates":        createTableCandidates(conn);        break;
-                        case "Attendance_Periods": createTableAttendancePeriods(conn);break;
                         case "Form_Types":       createTableFormTypes(conn);         break;
                         case "Form_Requests":    createTableFormRequests(conn);     break;
                         case "Leave_Form":     createTableLeaveForm(conn);      break;
