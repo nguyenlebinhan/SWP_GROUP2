@@ -27,9 +27,7 @@ public class ExcelAttendanceParser {
         "employeeCode", "workDate", "timeIn", "timeOut", "attendanceStatus", "note"
     };
 
-
-
-
+    
     public List<AttendanceDataDTO> parse(InputStream in) throws IOException {
         List<AttendanceDataDTO> attendanceDataDTOs = new ArrayList<>();
         try (XSSFWorkbook workbook = new XSSFWorkbook(in)) {

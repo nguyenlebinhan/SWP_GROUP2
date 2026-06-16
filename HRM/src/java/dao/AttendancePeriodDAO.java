@@ -6,6 +6,7 @@ package dao;
 
 import dal.DBContext;
 import dto.AttendancePeriodSummaryDTO;
+import enums.AttendancePeriodStatus;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -31,8 +32,7 @@ public class AttendancePeriodDAO {
     }
 
     public AttendancePeriod getPeriod(int departmentId, int month, int year) {
-        String SQL = "SELECT periodId, departmentId, month, year, status, publishedBy, publishedAt "
-                + "FROM Attendance_Periods WHERE departmentId = ? AND month = ? AND year = ?";
+        String SQL = "SELECT * FROM Attendance_Periods WHERE departmentId = ? AND month = ? AND year = ?";
         try (Connection conn = dbContext.getConnection();
                 PreparedStatement ps = conn.prepareStatement(SQL)) {
             ps.setInt(1, departmentId);
@@ -57,10 +57,17 @@ public class AttendancePeriodDAO {
         }
         return null;
     }
+    
+
 
     public boolean insertPeriod(int departmentId, int month, int year) {
-        try (Connection conn = dbContext.getConnection()) {
-            insertPeriod(conn, departmentId, month, year);
+        String SQL = "INSERT INTO Attendance_Periods(departmentId,month,year) VALUES(?,?,?,1) ON DUPLICATE KEY UPDATE periodId = periodId";        
+        try (Connection conn = dbContext.getConnection();
+            PreparedStatement ps = conn.prepareStatement(SQL)) {
+            ps.setInt(1, departmentId);
+            ps.setInt(2, month);
+            ps.setInt(3, year);
+            ps.executeUpdate();            
             return true;
         } catch (SQLException e) {
             LOGGER.log(Level.SEVERE, "Cannot ensure attendance period", e);
@@ -68,24 +75,9 @@ public class AttendancePeriodDAO {
         return false;
     }
 
- 
-    public void insertPeriod(Connection conn, int departmentId, int month, int year) throws SQLException {
-        String SQL = "INSERT INTO Attendance_Periods (departmentId, month, year, status) "
-                + "VALUES (?, ?, ?, " + AttendancePeriod.STATUS_PRIVATE + ") "
-                + "ON DUPLICATE KEY UPDATE periodId = periodId";
-        try (PreparedStatement ps = conn.prepareStatement(SQL)) {
-            ps.setInt(1, departmentId);
-            ps.setInt(2, month);
-            ps.setInt(3, year);
-            ps.executeUpdate();
-        }
-    }
-
-
     public AttendancePeriod getPeriodForUpdate(Connection conn, int departmentId, int month, int year)
             throws SQLException {
-        String SQL = "SELECT periodId, departmentId, month, year, status, publishedBy, publishedAt "
-                + "FROM Attendance_Periods WHERE departmentId = ? AND month = ? AND year = ? FOR UPDATE";
+        String SQL = "SELECT * FROM Attendance_Periods WHERE departmentId = ? AND month = ? AND year = ? FOR UPDATE";
         try (PreparedStatement ps = conn.prepareStatement(SQL)) {
             ps.setInt(1, departmentId);
             ps.setInt(2, month);
@@ -107,11 +99,8 @@ public class AttendancePeriodDAO {
         }
         return null;
     }
+    
 
-    /**
-     * Đổi trạng thái kỳ một cách atomic: chỉ cập nhật khi trạng thái hiện tại
-     * đúng bằng expectedStatus (chống request song song / double submit).
-     */
     public boolean setStatusConditional(int periodId, int expectedStatus, int newStatus,
             Integer publishedByEmployeeId) {
         String SQL = "UPDATE Attendance_Periods SET status = ?, "
@@ -137,31 +126,40 @@ public class AttendancePeriodDAO {
         return false;
     }
 
-    /**
-     * Tổng quan kỳ chấm công của tất cả phòng ban đang hoạt động trong tháng/năm:
-     * trạng thái kỳ, số file đã upload và số dòng import hợp lệ/lỗi.
-     */
+
     public List<AttendancePeriodSummaryDTO> getPeriodSummaries(int month, int year) {
         List<AttendancePeriodSummaryDTO> list = new ArrayList<>();
-        String SQL = "SELECT d.departmentId, d.departmentName, p.periodId, p.status, p.publishedAt, "
-                + "u.fullName AS publishedByName, "
-                + "(SELECT COUNT(*) FROM Uploaded_Files f WHERE f.departmentId = d.departmentId "
-                + "   AND f.fileType = 'ATTENDANCE' AND f.month = ? AND f.year = ?) AS fileCount, "
-                + "(SELECT COUNT(*) FROM Attendance_Import_Rows r JOIN Uploaded_Files f ON f.fileId = r.fileId "
-                + "   WHERE f.departmentId = d.departmentId AND f.fileType = 'ATTENDANCE' "
-                + "   AND f.month = ? AND f.year = ? AND r.validateStatus = 1) AS importedRows, "
-                + "(SELECT COUNT(*) FROM Attendance_Import_Rows r JOIN Uploaded_Files f ON f.fileId = r.fileId "
-                + "   WHERE f.departmentId = d.departmentId AND f.fileType = 'ATTENDANCE' "
-                + "   AND f.month = ? AND f.year = ? AND r.validateStatus = 0) AS failedRows "
-                + "FROM Departments d "
-                + "LEFT JOIN Attendance_Periods p ON p.departmentId = d.departmentId "
-                + "   AND p.month = ? AND p.year = ? "
-                + "LEFT JOIN Employees pe ON pe.employeeId = p.publishedBy "
-                + "LEFT JOIN Users u ON u.userId = pe.userId "
-                + "WHERE d.status = 1 ORDER BY d.departmentName";
+            String SQL = "SELECT "
+            + "    d.departmentId, "
+            + "    d.departmentName, "
+            + "    p.periodId, "
+            + "    p.status, "
+            + "    p.publishedAt, "
+            + "    u.fullName AS publishedByName, "
+            + "    COALESCE(f_stat.fileCount, 0) AS fileCount, "
+            + "    COALESCE(f_stat.importedRows, 0) AS importedRows, "
+            + "    COALESCE(f_stat.failedRows, 0) AS failedRows "
+            + "FROM Departments d "
+            + "LEFT JOIN Attendance_Periods p ON p.departmentId = d.departmentId "
+            + "    AND p.month = ? AND p.year = ? " // Cặp ? số 1 (Index 1, 2)
+            + "LEFT JOIN Employees pe ON pe.employeeId = p.publishedBy "
+            + "LEFT JOIN Users u ON u.userId = pe.userId "
+            + "LEFT JOIN ("
+            + "    SELECT "
+            + "        f.departmentId, "
+            + "        COUNT(DISTINCT f.fileId) AS fileCount, "
+            + "        COUNT(CASE WHEN r.validateStatus = 1 THEN 1 END) AS importedRows, "
+            + "        COUNT(CASE WHEN r.validateStatus = 0 THEN 1 END) AS failedRows "
+            + "    FROM Uploaded_Files f "
+            + "    LEFT JOIN Attendance_Import_Rows r ON f.fileId = r.fileId "
+            + "    WHERE f.fileType = 'ATTENDANCE' AND f.month = ? AND f.year = ? " // Cặp ? số 2 (Index 3, 4)
+            + "    GROUP BY f.departmentId "
+            + ") f_stat ON f_stat.departmentId = d.departmentId "
+            + "WHERE d.status = 1 "
+            + "ORDER BY d.departmentName";
         try (Connection conn = dbContext.getConnection();
                 PreparedStatement ps = conn.prepareStatement(SQL)) {
-            for (int i = 0; i < 4; i++) {
+            for (int i = 0; i < 2; i++) {
                 ps.setInt(i * 2 + 1, month);
                 ps.setInt(i * 2 + 2, year);
             }
@@ -188,53 +186,7 @@ public class AttendancePeriodDAO {
         return list;
     }
 
-    public boolean setStatus(int departmentId, int month, int year, int status, Integer publishedByEmployeeId) {
-        String SQL = "INSERT INTO Attendance_Periods (departmentId, month, year, status, publishedBy, publishedAt) "
-                + "VALUES (?, ?, ?, ?, ?, CASE WHEN ? = 1 THEN CURRENT_TIMESTAMP ELSE NULL END) "
-                + "ON DUPLICATE KEY UPDATE "
-                + "status = VALUES(status), publishedBy = VALUES(publishedBy), publishedAt = VALUES(publishedAt)";
-        try (Connection conn = dbContext.getConnection();
-                PreparedStatement ps = conn.prepareStatement(SQL)) {
-            ps.setInt(1, departmentId);
-            ps.setInt(2, month);
-            ps.setInt(3, year);
-            ps.setInt(4, status);
-            if (status == AttendancePeriod.STATUS_PUBLIC && publishedByEmployeeId != null) {
-                ps.setInt(5, publishedByEmployeeId);
-            } else {
-                ps.setNull(5, Types.INTEGER);
-            }
-            ps.setInt(6, status);
-            return ps.executeUpdate() > 0;
-        } catch (SQLException e) {
-            LOGGER.log(Level.SEVERE, "Cannot set attendance period status", e);
-        }
-        return false;
-    }
 
-    public boolean setStatusForAllDepartments(int month, int year, int status, Integer publishedByEmployeeId) {
-        String SQL = "INSERT INTO Attendance_Periods (departmentId, month, year, status, publishedBy, publishedAt) "
-                + "SELECT d.departmentId, ?, ?, ?, ?, CASE WHEN ? = 1 THEN CURRENT_TIMESTAMP ELSE NULL END "
-                + "FROM Departments d WHERE d.status = 1 "
-                + "ON DUPLICATE KEY UPDATE "
-                + "status = VALUES(status), publishedBy = VALUES(publishedBy), publishedAt = VALUES(publishedAt)";
-        try (Connection conn = dbContext.getConnection();
-                PreparedStatement ps = conn.prepareStatement(SQL)) {
-            ps.setInt(1, month);
-            ps.setInt(2, year);
-            ps.setInt(3, status);
-            if (status == AttendancePeriod.STATUS_PUBLIC && publishedByEmployeeId != null) {
-                ps.setInt(4, publishedByEmployeeId);
-            } else {
-                ps.setNull(4, Types.INTEGER);
-            }
-            ps.setInt(5, status);
-            return ps.executeUpdate() > 0;
-        } catch (SQLException e) {
-            LOGGER.log(Level.SEVERE, "Cannot set attendance period status for all departments", e);
-        }
-        return false;
-    }
     public int countPublishedDepartments(int month, int year) {
         String SQL = "SELECT COUNT(*) FROM Attendance_Periods WHERE month = ? AND year = ? AND status = 1";
         try (Connection conn = dbContext.getConnection();

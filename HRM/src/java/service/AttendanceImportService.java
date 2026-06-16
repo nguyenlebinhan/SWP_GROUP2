@@ -11,6 +11,8 @@ import dao.AttendancePeriodDAO;
 import dao.UploadedFileDAO;
 import dto.AttendanceDataDTO;
 import dto.AttendanceImportResultDTO;
+import enums.AttendanceStatus;
+import enums.FileStatus;
 import exception.InvalidFormatException;
 import java.io.IOException;
 import java.io.InputStream;
@@ -33,22 +35,13 @@ import utils.ExcelAttendanceParser;
 public class AttendanceImportService {
 
     private static final Logger LOGGER = Logger.getLogger(AttendanceImportService.class.getName());
-
-    // Trạng thái Uploaded_Files
-    public static final int FILE_STATUS_PENDING = 0;
-    public static final int FILE_STATUS_IMPORTED = 1;
-    public static final int FILE_STATUS_FAILED = 2;
-    public static final int FILE_STATUS_PARTIAL = 3;
-
     private static final Map<String, Integer> STATUS_MAP = new HashMap<>();
     static {
-        STATUS_MAP.put("PRESENT", 0);
-        STATUS_MAP.put("LATE", 1);
-        STATUS_MAP.put("ABSENT", 2);
-        STATUS_MAP.put("UNEXCUSED", 3);
+        for (AttendanceStatus s : AttendanceStatus.values()) {
+            STATUS_MAP.put(s.name(), s.getRelatedNum());
+        }
     }
-
-    private final DBContext dbContext;
+        private final DBContext dbContext;
     private final AttendanceDAO attendanceDAO;
     private final AttendancePeriodDAO periodDAO;
     private final AttendanceImportRowDAO importRowDAO;
@@ -76,17 +69,17 @@ public class AttendanceImportService {
         try {
             attendanceDataDTOs = parser.parse(in);
         } catch (InvalidFormatException e) {
-            result.setStatus(FILE_STATUS_FAILED);
+            result.setStatus(FileStatus.FILE_STATUS_FAILED.getRelatedNum());
             result.setNote(e.getMessage());
             result.addError(1, null, e.getMessage());
-            uploadedFileDAO.updateImportResult(fileId, 0, 0, 0, FILE_STATUS_FAILED, result.getNote());
+            uploadedFileDAO.updateImportResult(fileId, 0, 0, 0, result.getStatus(), result.getNote());
             return result;
         } catch (IOException e) {
             LOGGER.log(Level.SEVERE, "Cannot read Excel file", e);
-            result.setStatus(FILE_STATUS_FAILED);
+            result.setStatus(FileStatus.FILE_STATUS_FAILED.getRelatedNum());
             result.setNote("Không thể đọc file Excel. File có thể bị hỏng hoặc không đúng định dạng .xlsx.");
             result.addError(1, null, result.getNote());
-            uploadedFileDAO.updateImportResult(fileId, 0, 0, 0, FILE_STATUS_FAILED, result.getNote());
+            uploadedFileDAO.updateImportResult(fileId, 0, 0, 0, result.getStatus(), result.getNote());
             return result;
         }
 
@@ -99,7 +92,7 @@ public class AttendanceImportService {
                 AttendancePeriod period = periodDAO.getPeriodForUpdate(conn, departmentId, month, year);
                 String periodError = periodService.checkImport(period, month, year);
                 if (periodError == null && period == null) {
-                    periodDAO.insertPeriod(conn, departmentId, month, year);
+                    periodDAO.insertPeriod(departmentId, month, year);
                     period = periodDAO.getPeriodForUpdate(conn, departmentId, month, year);
                     periodError = periodService.checkImport(period, month, year);
                 }
@@ -111,10 +104,10 @@ public class AttendanceImportService {
                     }
                     result.setImportedRows(0);
                     result.setFailedRows(result.getTotalRows());
-                    result.setStatus(FILE_STATUS_FAILED);
+                    result.setStatus(FileStatus.FILE_STATUS_FAILED.getRelatedNum());
                     result.setNote(periodError);
-                    uploadedFileDAO.updateImportResult(conn, fileId, result.getTotalRows(), 0,
-                            result.getTotalRows(), FILE_STATUS_FAILED, periodError);
+                    uploadedFileDAO.updateImportResult(fileId, result.getTotalRows(), 0,
+                            result.getTotalRows(), FileStatus.FILE_STATUS_FAILED.getRelatedNum(), periodError);
                     conn.commit();
                     return result;
                 }
@@ -142,7 +135,7 @@ public class AttendanceImportService {
                 result.setImportedRows(imported);
                 result.setFailedRows(result.getTotalRows() - imported);
                 applyResultStatus(result, imported);
-                uploadedFileDAO.updateImportResult(conn, fileId, result.getTotalRows(),
+                uploadedFileDAO.updateImportResult( fileId, result.getTotalRows(),
                         result.getImportedRows(), result.getFailedRows(), result.getStatus(), result.getNote());
                 conn.commit();
                 return result;
@@ -156,27 +149,27 @@ public class AttendanceImportService {
             LOGGER.log(Level.SEVERE, "Attendance import transaction failed for fileId: " + fileId, e);
             result.setImportedRows(0);
             result.setFailedRows(result.getTotalRows());
-            result.setStatus(FILE_STATUS_FAILED);
+            result.setStatus(FileStatus.FILE_STATUS_FAILED.getRelatedNum());
             result.setNote("Lỗi hệ thống khi import. Toàn bộ thay đổi đã được hoàn tác, dữ liệu cũ không bị mất.");
             result.addError(1, null, result.getNote());
             uploadedFileDAO.updateImportResult(fileId, result.getTotalRows(), 0,
-                    result.getTotalRows(), FILE_STATUS_FAILED, result.getNote());
+                    result.getTotalRows(), FileStatus.FILE_STATUS_FAILED.getRelatedNum(), result.getNote());
             return result;
         }
     }
 
     private void applyResultStatus(AttendanceImportResultDTO result, int imported) {
         if (result.getTotalRows() == 0) {
-            result.setStatus(FILE_STATUS_FAILED);
+            result.setStatus(FileStatus.FILE_STATUS_FAILED.getRelatedNum());
             result.setNote("File không có dòng dữ liệu nào.");
         } else if (result.getFailedRows() == 0) {
-            result.setStatus(FILE_STATUS_IMPORTED);
+            result.setStatus(FileStatus.FILE_STATUS_IMPORTED.getRelatedNum());
             result.setNote("Import thành công toàn bộ " + imported + " dòng.");
         } else if (imported == 0) {
-            result.setStatus(FILE_STATUS_FAILED);
+            result.setStatus(FileStatus.FILE_STATUS_FAILED.getRelatedNum());
             result.setNote("Tất cả " + result.getTotalRows() + " dòng đều lỗi.");
         } else {
-            result.setStatus(FILE_STATUS_PARTIAL);
+            result.setStatus(FileStatus.FILE_STATUS_PARTIAL.getRelatedNum());
             result.setNote("Import thành công " + imported + "/" + result.getTotalRows()
                     + " dòng, " + result.getFailedRows() + " dòng lỗi.");
         }
@@ -214,8 +207,6 @@ public class AttendanceImportService {
                     + " (chỉ chấp nhận PRESENT, LATE, ABSENT, UNEXCUSED).");
         }
         boolean isAbsent = statusCode == 2 || statusCode == 3;
-
-        // timeIn/timeOut: optional khi ABSENT/UNEXCUSED
         Time timeIn = parseTime(ad.getTimeIn(), "timeIn");
         Time timeOut = parseTime(ad.getTimeOut(), "timeOut");
 
@@ -230,7 +221,7 @@ public class AttendanceImportService {
             hoursWorked = new BigDecimal(diffMillis)
                     .divide(new BigDecimal(3600000), 2, RoundingMode.HALF_UP);
         } else {
-            hoursWorked = null; // không đủ dữ liệu để tính giờ
+            hoursWorked = null; 
         }
 
         int employeeId = attendanceDAO.findEmployeeIdByCode(employeeCode);
@@ -270,7 +261,6 @@ public class AttendanceImportService {
         }
     }
 
-    /** Sinh attendanceCode dạng ATT-EMP001-20260601. */
     private String generateAttendanceCode(String employeeCode, Date workDate) {
         String datePart = workDate.toString().replace("-", "");
         return "ATT-" + employeeCode + "-" + datePart;
@@ -284,7 +274,6 @@ public class AttendanceImportService {
         return t.isEmpty() ? null : t;
     }
 
-    /** Lỗi validate ở mức một dòng — không làm hỏng toàn bộ quá trình import. */
     private static class RowValidationException extends Exception {
         RowValidationException(String message) {
             super(message);

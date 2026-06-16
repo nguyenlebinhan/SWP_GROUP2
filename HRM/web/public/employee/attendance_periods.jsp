@@ -124,7 +124,6 @@
                             <td>${p.publishedAt}</td>
                             <c:if test="${canEditAttendance}">
                                 <td class="text-end">
-                                    <%-- Nút chỉ hiển thị khi hợp lệ; backend vẫn kiểm tra lại mọi điều kiện. --%>
                                     <c:if test="${p.status == 0}">
                                         <form method="post" class="d-inline"
                                               action="${pageContext.request.contextPath}/v1/employee/attendance-period-status"

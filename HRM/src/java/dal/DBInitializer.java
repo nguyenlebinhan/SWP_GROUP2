@@ -304,7 +304,7 @@ public class DBInitializer {
                    + "departmentId INT NOT NULL, "
                    + "month        TINYINT NOT NULL, "
                    + "year         INT NOT NULL, "
-                   + "status       TINYINT DEFAULT 0, " // 0: Private (nháp), 1: Public (đã công khai cho nhân viên)
+                   + "status       TINYINT DEFAULT 0, " 
                    + "publishedBy  INT NULL, "
                    + "publishedAt  TIMESTAMP NULL, "
                    + "UNIQUE KEY uq_period (departmentId, month, year), "
@@ -339,8 +339,7 @@ public class DBInitializer {
         execute(conn, SQL, "CREATE ATTENDANCE TABLE SUCCESSFULLY");
     }
 
-    // Lưu staging từng dòng của mọi file import (kể cả dòng lỗi) để giữ lịch sử,
-    // dữ liệu giữ nguyên dạng chuỗi như trong file Excel.
+
     public void createTableAttendanceImportRows(Connection conn) {
         String SQL = "CREATE TABLE Attendance_Import_Rows("
                 + "importRowId INT PRIMARY KEY AUTO_INCREMENT,"

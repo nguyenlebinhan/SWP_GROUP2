@@ -4,6 +4,7 @@
  */
 package service;
 
+import enums.AttendancePeriodStatus;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.time.YearMonth;
@@ -65,7 +66,7 @@ public class AttendancePeriodService {
             return "Kỳ chấm công " + month + "/" + year + " đã khóa từ "
                     + getLockTime(month, year).toLocalDate() + ", không thể chỉnh sửa.";
         }
-        if (periodStatus != null && periodStatus == AttendancePeriod.STATUS_PUBLIC) {
+        if (periodStatus != null && periodStatus == AttendancePeriodStatus.STATUS_PUBLIC.getRelatedNum()) {
             return "Kỳ chấm công " + month + "/" + year
                     + " đang công khai. Hãy chuyển về riêng tư trước khi chỉnh sửa.";
         }
@@ -108,10 +109,10 @@ public class AttendancePeriodService {
 
 
     public String checkTransition(AttendancePeriod period, int targetStatus) {
-        if (targetStatus == AttendancePeriod.STATUS_PUBLIC) {
+        if (targetStatus == AttendancePeriodStatus.STATUS_PUBLIC.getRelatedNum()) {
             return checkPublish(period);
         }
-        if (targetStatus == AttendancePeriod.STATUS_PRIVATE) {
+        if (targetStatus == AttendancePeriodStatus.STATUS_PRIVATE.getRelatedNum()) {
             return checkUnpublish(period);
         }
         return "Trạng thái kỳ chấm công không hợp lệ.";
