@@ -130,6 +130,7 @@ public class EmployeeController extends HttpServlet {
             case "/form-dashboard":
                 displayFormDashboard(request, response, user);
                 break;
+
             case "/forms/leave/new":
                 displayLeaveForm(request, response, user);
                 break;
@@ -192,9 +193,7 @@ public class EmployeeController extends HttpServlet {
             case "/update-employee-detail":
                 handleUpdateEmployeeDetail(request, response, user);
                 break;
-            case "/submit-form":
-                handleSubmitForm(request, response, user);
-                break;
+
             case "/forms/leave/submit":
                 handleLeaveFormSubmit(request, response, user);
                 break;
@@ -1497,6 +1496,24 @@ public class EmployeeController extends HttpServlet {
                 response.sendRedirect(request.getContextPath() + "/v1/employee/my-forms");
                 return;
             }
+            EmployeeDetailDTO me = employeeDAO.getEmployeeByUserId(user.getUserId());
+            if (me == null) {
+                request.getSession().setAttribute("error", "Bạn chưa được gán hồ sơ nhân viên");
+                response.sendRedirect(request.getContextPath() + "/v1/employee/dashboard");
+                return;
+            }
+            EmployeeDetailDTO formOwner = employeeDAO.getEmployeeById(form.getEmployeeId());
+            Department dept = (formOwner != null) ? departmentDAO.getDepartmentById(formOwner.getDepartmentId()) : null;
+
+            boolean isMyForm = (form.getEmployeeId() == me.getEmployeeId());
+            boolean canViewAll = getPermissions(user).contains("VIEW_ALL_FORMS");
+            boolean isDeptManager = (dept != null && dept.getManagerId() != null
+                    && dept.getManagerId() == me.getEmployeeId());
+            if (!isMyForm && !canViewAll && !isDeptManager) {
+                request.getSession().setAttribute("error", "Bạn không có quyền xem đơn này");
+                response.sendRedirect(request.getContextPath() + "/v1/employee/dashboard");
+                return;
+            }
 
             request.setAttribute("form", form);
             request.getRequestDispatcher("/public/employee/form_detail.jsp").forward(request, response);
@@ -1512,6 +1529,7 @@ public class EmployeeController extends HttpServlet {
 
         Set<String> perms = getPermissions(user);
         request.getSession().setAttribute("userPermissions", perms);
+        setPermissionFlags(request, perms);
         request.getRequestDispatcher("/public/employee/form_dashboard.jsp").forward(request, response);
     }
 
@@ -1521,6 +1539,7 @@ public class EmployeeController extends HttpServlet {
 
         Set<String> perms = getPermissions(user);
         request.getSession().setAttribute("userPermissions", perms);
+        setPermissionFlags(request, perms);
         request.getRequestDispatcher("/public/employee/forms/leave_form.jsp").forward(request, response);
     }
 
@@ -1530,44 +1549,23 @@ public class EmployeeController extends HttpServlet {
 
         Set<String> perms = getPermissions(user);
         request.getSession().setAttribute("userPermissions", perms);
+        setPermissionFlags(request, perms);
         request.getRequestDispatcher("/public/employee/forms/complaint_form.jsp").forward(request, response);
     }
 
-    // Dispatcher: đọc formTypeId rồi rẽ nhánh đúng loại đơn
-    private void handleSubmitForm(HttpServletRequest request, HttpServletResponse response, User user)
-            throws ServletException, IOException {
-        String formTypeIdStr = request.getParameter("formTypeId");
-        if (isBlank(formTypeIdStr)) {
-            request.getSession().setAttribute("error", "Vui lòng chọn loại đơn.");
-            response.sendRedirect(request.getContextPath() + "/v1/employee/submit-form");
-            return;
-        }
-        try {
-            int formTypeId = Integer.parseInt(formTypeIdStr.trim());
-            FormType ft = formTypeDAO.getById(formTypeId);
-            if (ft == null) {
-                request.getSession().setAttribute("error", "Loại đơn không tồn tại.");
-                response.sendRedirect(request.getContextPath() + "/v1/employee/submit-form");
-                return;
-            }
-            String code = ft.getFormTypeCode();
-            if ("LEAVE".equalsIgnoreCase(code)) {
-                handleLeaveFormSubmit(request, response, user);
-            } else if ("COMPLAINT".equalsIgnoreCase(code)) {
-                handleComplaintFormSubmit(request, response, user);
-            } else {
-                request.getSession().setAttribute("error", "Loại đơn này chưa được hỗ trợ gửi từ trang này.");
-                response.sendRedirect(request.getContextPath() + "/v1/employee/submit-form");
-            }
-        } catch (NumberFormatException e) {
-            request.getSession().setAttribute("error", "ID loại đơn không hợp lệ.");
-            response.sendRedirect(request.getContextPath() + "/v1/employee/submit-form");
-        }
-    }
+
 
     // Xử lý gửi Đơn Nghỉ Phép
     private void handleLeaveFormSubmit(HttpServletRequest request, HttpServletResponse response, User user)
             throws ServletException, IOException {
+        
+        FormType ft = formTypeDAO.getByCode("LEAVE");
+        if (ft == null) {
+            request.getSession().setAttribute("error", "Loại đơn LEAVE không tồn tại.");
+            response.sendRedirect(request.getContextPath() + "/v1/employee/dashboard");
+            return;
+        }
+        int formTypeId = ft.getFormTypeId();
 
         EmployeeDetailDTO me = employeeDAO.getEmployeeByUserId(user.getUserId());
         if (me == null) {
@@ -1645,18 +1643,10 @@ public class EmployeeController extends HttpServlet {
             }
         }
 
-        // Tìm formTypeId cho LEAVE
-        FormType leaveType = formTypeDAO.getByCode("LEAVE");
-        if (leaveType == null) {
-            request.getSession().setAttribute("error", "Loại đơn Nghỉ phép không tồn tại trong hệ thống.");
-            response.sendRedirect(request.getContextPath() + "/v1/employee/form-dashboard");
-            return;
-        }
-
         LeaveFormRequest fr = new LeaveFormRequest();
         fr.setFormCode("LEAVE-" + me.getEmployeeId() + "-" + System.currentTimeMillis());
         fr.setEmployeeId(me.getEmployeeId());
-        fr.setFormTypeId(leaveType.getFormTypeId());
+        fr.setFormTypeId(formTypeId);
         fr.setReason(isBlank(reason) ? null : reason.trim());
         fr.setStartDate(startDate);
         fr.setEndDate(endDate);
@@ -1677,6 +1667,14 @@ public class EmployeeController extends HttpServlet {
     // Xử lý gửi Đơn Khiếu Nại
     private void handleComplaintFormSubmit(HttpServletRequest request, HttpServletResponse response, User user)
             throws ServletException, IOException {
+
+        FormType ft = formTypeDAO.getByCode("COMPLAINT");
+        if (ft == null) {
+            request.getSession().setAttribute("error", "Loại đơn COMPLAINT không tồn tại.");
+            response.sendRedirect(request.getContextPath() + "/v1/employee/dashboard");
+            return;
+        }
+        int formTypeId = ft.getFormTypeId();
 
         EmployeeDetailDTO me = employeeDAO.getEmployeeByUserId(user.getUserId());
         if (me == null) {
@@ -1710,8 +1708,7 @@ public class EmployeeController extends HttpServlet {
                 }
                 if (!ok) {
                     request.setAttribute("error", "Định dạng file không hợp lệ.");
-                    request.getRequestDispatcher("/public/employee/forms/complaint_form.jsp").forward(request,
-                            response);
+                    request.getRequestDispatcher("/public/employee/forms/complaint_form.jsp").forward(request, response);
                     return;
                 }
                 String uploadDir = "uploads/forms";
@@ -1727,18 +1724,10 @@ public class EmployeeController extends HttpServlet {
             }
         }
 
-        // Tìm formTypeId cho COMPLAINT
-        FormType complaintType = formTypeDAO.getByCode("COMPLAINT");
-        if (complaintType == null) {
-            request.getSession().setAttribute("error", "Loại đơn Khiếu nại không tồn tại trong hệ thống.");
-            response.sendRedirect(request.getContextPath() + "/v1/employee/form-dashboard");
-            return;
-        }
-
         ComplaintFormRequest fr = new ComplaintFormRequest();
         fr.setFormCode("COMPLAINT-" + me.getEmployeeId() + "-" + System.currentTimeMillis());
         fr.setEmployeeId(me.getEmployeeId());
-        fr.setFormTypeId(complaintType.getFormTypeId());
+        fr.setFormTypeId(formTypeId);
         fr.setReason(reason.trim());
         fr.setAttachmentUrl(savedUrl);
         fr.setAttachmentName(savedName);
