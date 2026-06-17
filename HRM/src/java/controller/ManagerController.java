@@ -1179,16 +1179,6 @@ public class ManagerController extends HttpServlet {
                 return;
             }
             
-            EmployeeDetailDTO me = employeeDAO.getEmployeeByUserId(user.getUserId());
-            boolean isApprover = hasPermission(user, "APPROVE_FORM") && (me != null && me.getDepartmentId() == form.getDepartmentId());
-            boolean isHr = hasPermission(user, "VIEW_ALL_FORMS");
-            
-            if (!isApprover && !isHr) {
-                request.getSession().setAttribute("error", "Bạn không có quyền xem chi tiết đơn này.");
-                response.sendRedirect(request.getContextPath() + "/v1/manager/dept-forms");
-                return;
-            }
-            
             request.setAttribute("form", form);
             request.getRequestDispatcher("/public/manager/form_detail.jsp").forward(request, response);
         } catch (NumberFormatException e) {
@@ -1199,11 +1189,7 @@ public class ManagerController extends HttpServlet {
 
     private void displayDeptForms(HttpServletRequest request, HttpServletResponse response, User user)
             throws ServletException, IOException {
-        if (!hasPermission(user, "APPROVE_FORM")) {
-            request.getSession().setAttribute("error", "Bạn không có quyền xem đơn phòng ban.");
-            response.sendRedirect(request.getContextPath() + "/v1/manager/dashboard");
-            return;
-        }
+        
         EmployeeDetailDTO me = employeeDAO.getEmployeeByUserId(user.getUserId());
         if (me == null || me.getDepartmentId() <= 0) {
             request.getSession().setAttribute("error", "Bạn chưa được phân công vào phòng ban nào.");
@@ -1213,20 +1199,18 @@ public class ManagerController extends HttpServlet {
         Integer day = parseIntOrNull(request.getParameter("day"));
         Integer month = parseIntOrNull(request.getParameter("month"));
         Integer year = parseIntOrNull(request.getParameter("year"));
-        request.setAttribute("forms", formRequestDAO.getAllFormRequestsByDepartmentId(me.getDepartmentId(), day, month, year));
+        String name = request.getParameter("empName");
+        request.setAttribute("forms", formRequestDAO.getAllFormRequestsByDepartmentId(me.getDepartmentId(), day, month, year, name));
         request.setAttribute("filterDay", day);
         request.setAttribute("filterMonth", month);
         request.setAttribute("filterYear", year);
+        request.setAttribute("filterName", name);
         request.getRequestDispatcher("/public/manager/dept_form_list.jsp").forward(request, response);
     }
 
     private void handleApproveForm(HttpServletRequest request, HttpServletResponse response, User user)
             throws ServletException, IOException {
-        if (!hasPermission(user, "APPROVE_FORM")) {
-            request.getSession().setAttribute("error", "Bạn không có quyền duyệt đơn.");
-            response.sendRedirect(request.getContextPath() + "/v1/manager/dashboard");
-            return;
-        }
+        
         EmployeeDetailDTO me = employeeDAO.getEmployeeByUserId(user.getUserId());
         if (me == null) {
             response.sendRedirect(request.getContextPath() + "/v1/manager/dashboard");
@@ -1252,11 +1236,7 @@ public class ManagerController extends HttpServlet {
 
     private void handleRejectForm(HttpServletRequest request, HttpServletResponse response, User user)
             throws ServletException, IOException {
-        if (!hasPermission(user, "APPROVE_FORM")) {
-            request.getSession().setAttribute("error", "Bạn không có quyền từ chối đơn.");
-            response.sendRedirect(request.getContextPath() + "/v1/manager/dashboard");
-            return;
-        }
+        
         EmployeeDetailDTO me = employeeDAO.getEmployeeByUserId(user.getUserId());
         if (me == null) {
             response.sendRedirect(request.getContextPath() + "/v1/manager/dashboard");
