@@ -248,6 +248,29 @@ public class DBInitializer {
         execute(conn, SQL, "CREATE FORM_REQUESTS TABLE SUCCESSFULLY");
     }
 
+    public void createTableOvertimeDetails(Connection conn) {
+        String SQL = "CREATE TABLE Overtime_Details("
+                + "formId INT PRIMARY KEY,"
+                + "otDate DATE NOT NULL,"
+                + "startTime TIME NOT NULL,"
+                + "endTime TIME NOT NULL,"
+                + "dayType TINYINT NOT NULL," // 1: Thường, 2: Cuối tuần, 3: Lễ
+                + "FOREIGN KEY (formId) REFERENCES Form_Requests(formId) ON DELETE CASCADE"
+                + ")";
+        execute(conn, SQL, "CREATE OVERTIME_DETAILS TABLE SUCCESSFULLY");
+    }
+
+    public void createTableOvertimeAssignees(Connection conn) {
+        String SQL = "CREATE TABLE Overtime_Assignees("
+                + "formId INT NOT NULL,"
+                + "employeeId INT NOT NULL,"
+                + "PRIMARY KEY(formId, employeeId),"
+                + "FOREIGN KEY (formId) REFERENCES Form_Requests(formId) ON DELETE CASCADE,"
+                + "FOREIGN KEY (employeeId) REFERENCES Employees(employeeId)"
+                + ")";
+        execute(conn, SQL, "CREATE OVERTIME_ASSIGNEES TABLE SUCCESSFULLY");
+    }
+
     //cache để giúp tính toán số ngày còn lại nhanh hơn
     public void createTableLeaveForm(Connection conn) {
         String SQL = "CREATE TABLE Leave_Form("
@@ -311,6 +334,8 @@ public class DBInitializer {
                 + "timeIn TIME,"
                 + "timeOut TIME,"
                 + "hoursWorked DECIMAL(4,2),"
+                + "isOvertime BIT DEFAULT 0,"
+                + "otHoursWorked DECIMAL(4,2) DEFAULT 0,"
                 + "attendanceStatus TINYINT DEFAULT 0," // 0: Đúng giờ, 1: Đi muộn, 2: Vắng mặt, 3: Không phép
                 + "dayOff DATE,"
                 + "workingDay DATE,"
@@ -466,6 +491,8 @@ public class DBInitializer {
                 "Attendance",
                 "Uploaded_Files",
                 "Leave_Form",
+                "Overtime_Assignees",
+                "Overtime_Details",
                 "Form_Requests",
                 "Form_Types",
                 "Candidates",
@@ -493,6 +520,8 @@ public class DBInitializer {
                 "Candidates",
                 "Form_Types",
                 "Form_Requests",
+                "Overtime_Details",
+                "Overtime_Assignees",
                 "Leave_Form",
                 "Uploaded_Files",
                 "Attendance",
@@ -533,6 +562,8 @@ public class DBInitializer {
                         case "Candidates":        createTableCandidates(conn);        break;
                         case "Form_Types":       createTableFormTypes(conn);         break;
                         case "Form_Requests":    createTableFormRequests(conn);     break;
+                        case "Overtime_Details": createTableOvertimeDetails(conn);  break;
+                        case "Overtime_Assignees": createTableOvertimeAssignees(conn); break;
                         case "Leave_Form":     createTableLeaveForm(conn);      break;
                         case "Uploaded_Files":    createTableUploadedFiles(conn);     break;
                         case "Attendance":        createTableAttendance(conn);        break;

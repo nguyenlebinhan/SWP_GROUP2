@@ -113,6 +113,12 @@
                 </a>
             </c:if>
 
+            <div class="nav-section">Quản lý Overtime</div>
+            <a href="${pageContext.request.contextPath}/v1/manager/ot-requests"
+                class="${pageContext.request.servletPath == '/public/manager/ot_requests.jsp' || pageContext.request.servletPath == '/public/manager/ot_create.jsp' ? 'active' : ''}">
+                Overtime
+            </a>
+
             <div class="nav-section">Chấm công</div>
             <a href="${pageContext.request.contextPath}/v1/manager/own-attendance"
                 class="${pageContext.request.servletPath == '/public/manager/own_attendance.jsp' ? 'active' : ''}">
