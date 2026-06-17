@@ -94,7 +94,7 @@
             Đơn nghỉ phép
         </a>
     </c:if>
-        
+
     <c:if test="${sessionScope.userPermissions.contains('VIEW_DEPT_FORMS')}">
         <a href="${pageContext.request.contextPath}/v1/manager/dept-forms">
             Đơn của phòng ban
@@ -106,7 +106,7 @@
             Tất cả đơn
         </a>
     </c:if>
-        
+
     <c:if test="${sessionScope.userPermissions.contains('VIEW_LEAVE_BALANCE')}">
         <a href="${pageContext.request.contextPath}/v1/manager/leave-balances">
             Ngày phép
@@ -125,6 +125,13 @@
                 Xem chấm công
             </a>
         </c:if>
+    </c:if>
+
+    <c:if test="${sessionScope.userPermissions.contains('VIEW_RECRUITMENT')}">
+        <div class="nav-section">Tuyển dụng</div>
+        <a href="${pageContext.request.contextPath}/v1/manager/recruitment-list">
+            <i class="fa-solid fa-users"></i> Danh sách tuyển dụng
+        </a>
     </c:if>
 
 </div>

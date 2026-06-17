@@ -1,6 +1,7 @@
 package controller;
 
 import dao.AttendanceDAO;
+import dao.CandidateDAO;
 import dao.DepartmentDAO;
 import dao.EmployeeDAO;
 import dao.EmploymentContractDAO;
@@ -30,6 +31,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import model.*;
 import service.AttendanceImportService;
+import service.EmailService;
 import utils.ConfigManager;
 
 @MultipartConfig(
@@ -55,6 +57,8 @@ public class EmployeeController extends HttpServlet {
     private final AttendanceImportService importService = new AttendanceImportService();
     private final String UPLOAD_DIR = config.getProperty("UPLOAD_DIR");
     private final String FILE_PART = config.getProperty("FILE_PART");
+    private final CandidateDAO candidateDAO = new CandidateDAO();
+    private final EmailService emailService = new EmailService();
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
@@ -133,6 +137,12 @@ public class EmployeeController extends HttpServlet {
             case "/form-detail":
                 displayFormDetail(request, response, user);
                 break;
+            case "/recruitment-list":
+                displayRecruitmentList(request, response, user);
+                break;
+            case "/recruitment-detail":
+                displayRecruitmentDetail(request, response, user);
+                break;
             default:
                 response.sendRedirect(request.getContextPath() + "/v1/employee/dashboard");
                 break;
@@ -185,6 +195,9 @@ public class EmployeeController extends HttpServlet {
                 break;
             case "/submit-form":
                 handleSubmitForm(request, response, user);
+                break;
+            case "/recruitment-review":
+                handleRecruitmentReview(request, response, user);
                 break;
             default:
                 response.sendRedirect(request.getContextPath() + "/v1/employee/dashboard");
@@ -1665,4 +1678,182 @@ public class EmployeeController extends HttpServlet {
         return base.replaceAll("[\\r\\n]", "");
     }
 
+    // ==================== TUYỂN DỤNG ====================
+    private void displayRecruitmentList(HttpServletRequest request, HttpServletResponse response,
+            User user) throws ServletException, IOException {
+        if (!isHrStaff(user)) {
+            request.getSession().setAttribute("error", "Bạn không phải HR.");
+            response.sendRedirect(request.getContextPath() + "/v1/employee/dashboard");
+            return;
+        }
+        if (!hasPermission(user, "VIEW_RECRUITMENT")) {
+            request.getSession().setAttribute("error", "Bạn không có quyền xem danh sách tuyển dụng.");
+            response.sendRedirect(request.getContextPath() + "/v1/employee/dashboard");
+            return;
+        }
+
+        String stage = request.getParameter("stage");
+        if (isBlank(stage)) {
+            stage = "APPLIED";
+        }
+        String keyword = trimToNull(request.getParameter("keyword"));
+
+        List<Candidate> candidates = (keyword != null)
+                ? candidateDAO.searchByName(stage, keyword)
+                : candidateDAO.getByStage(stage);
+
+        Set<String> perms = getPermissions(user);
+        request.getSession().setAttribute("userPermissions", perms);
+        request.setAttribute("candidates", candidates);
+        request.setAttribute("currentStage", stage);
+        request.setAttribute("keyword", keyword);
+        setPermissionFlags(request, perms);
+        request.getRequestDispatcher("/public/employee/recruitment_list.jsp")
+                .forward(request, response);
+    }
+
+    private void displayRecruitmentDetail(HttpServletRequest request, HttpServletResponse response,
+            User user) throws ServletException, IOException {
+        if (!isHrStaff(user)) {
+            request.getSession().setAttribute("error", "Bạn không phải HR.");
+            response.sendRedirect(request.getContextPath() + "/v1/employee/dashboard");
+            return;
+        }
+        if (!hasPermission(user, "VIEW_RECRUITMENT")) {
+            request.getSession().setAttribute("error", "Bạn không có quyền xem chi tiết ứng viên.");
+            response.sendRedirect(request.getContextPath() + "/v1/employee/dashboard");
+            return;
+        }
+
+        String rawId = request.getParameter("id");
+        if (isBlank(rawId)) {
+            request.getSession().setAttribute("error", "Thiếu mã ứng viên.");
+            response.sendRedirect(request.getContextPath() + "/v1/employee/recruitment-list");
+            return;
+        }
+
+        int candidateId;
+        try {
+            candidateId = Integer.parseInt(rawId);
+        } catch (NumberFormatException e) {
+            request.getSession().setAttribute("error", "Mã ứng viên không hợp lệ.");
+            response.sendRedirect(request.getContextPath() + "/v1/employee/recruitment-list");
+            return;
+        }
+
+        Candidate candidate = candidateDAO.getById(candidateId);
+        if (candidate == null) {
+            request.getSession().setAttribute("error", "Không tìm thấy ứng viên.");
+            response.sendRedirect(request.getContextPath() + "/v1/employee/recruitment-list");
+            return;
+        }
+
+        ApplicationStageLog latestLog = candidateDAO.getLatestLog(candidateId);
+
+        Set<String> perms = getPermissions(user);
+        request.getSession().setAttribute("userPermissions", perms);
+        request.setAttribute("candidate", candidate);
+        request.setAttribute("latestLog", latestLog);
+        setPermissionFlags(request, perms);
+        request.getRequestDispatcher("/public/employee/recruitment_detail.jsp")
+                .forward(request, response);
+    }
+
+    private void handleRecruitmentReview(HttpServletRequest request, HttpServletResponse response,
+            User user) throws ServletException, IOException {
+        if (!isHrStaff(user)) {
+            request.getSession().setAttribute("error", "Bạn không phải HR.");
+            response.sendRedirect(request.getContextPath() + "/v1/employee/dashboard");
+            return;
+        }
+        if (!hasPermission(user, "PROCESS_RECRUITMENT")) {
+            request.getSession().setAttribute("error", "Bạn không có quyền xử lý tuyển dụng.");
+            response.sendRedirect(request.getContextPath() + "/v1/employee/dashboard");
+            return;
+        }
+
+        String rawCandidateId = request.getParameter("candidateId");
+        String result = request.getParameter("result");
+        String note = trimToNull(request.getParameter("note"));
+        String toEmail = trimToNull(request.getParameter("toEmail"));
+        String emailSubject = trimToNull(request.getParameter("emailSubject"));
+        String emailBody = trimToNull(request.getParameter("emailBody"));
+
+        if (isBlank(rawCandidateId) || isBlank(result)
+                || isBlank(toEmail) || isBlank(emailSubject) || isBlank(emailBody)) {
+            request.getSession().setAttribute("error", "Thiếu thông tin xử lý. Vui lòng kiểm tra lại.");
+            response.sendRedirect(request.getContextPath() + "/v1/employee/recruitment-list");
+            return;
+        }
+
+        if (!"PASSED".equals(result) && !"REJECTED".equals(result)) {
+            request.getSession().setAttribute("error", "Kết quả không hợp lệ.");
+            response.sendRedirect(request.getContextPath() + "/v1/employee/recruitment-list");
+            return;
+        }
+
+        int candidateId;
+        try {
+            candidateId = Integer.parseInt(rawCandidateId);
+        } catch (NumberFormatException e) {
+            request.getSession().setAttribute("error", "Mã ứng viên không hợp lệ.");
+            response.sendRedirect(request.getContextPath() + "/v1/employee/recruitment-list");
+            return;
+        }
+
+        Candidate candidate = candidateDAO.getById(candidateId);
+        if (candidate == null) {
+            request.getSession().setAttribute("error", "Không tìm thấy ứng viên.");
+            response.sendRedirect(request.getContextPath() + "/v1/employee/recruitment-list");
+            return;
+        }
+
+        String fromStage = candidate.getStage();
+        String toStage = "PASSED".equals(result) ? "INTERVIEW" : "REJECTED";
+        String emailType = "PASSED".equals(result) ? "INTERVIEW_INVITE" : "REJECTION_CV";
+
+        EmployeeDetailDTO me = employeeDAO.getEmployeeByUserId(user.getUserId());
+        if (me == null) {
+            request.getSession().setAttribute("error", "Không tìm thấy hồ sơ nhân viên của bạn.");
+            response.sendRedirect(request.getContextPath() + "/v1/employee/recruitment-list");
+            return;
+        }
+
+        ApplicationStageLog log = new ApplicationStageLog(
+                candidateId, fromStage, toStage, result,
+                me.getEmployeeId(), note,
+                toEmail, null, emailSubject, emailBody, emailType
+        );
+        int logId = candidateDAO.insertLog(log);
+        if (logId <= 0) {
+            request.getSession().setAttribute("error", "Lưu lịch sử duyệt thất bại. Vui lòng thử lại.");
+            response.sendRedirect(request.getContextPath() + "/v1/employee/recruitment-detail?id=" + candidateId);
+            return;
+        }
+
+        boolean emailSent = "PASSED".equals(result)
+                ? emailService.sendAcceptedCandidateNotify(toEmail, emailSubject, emailBody)
+                : emailService.sendRejectCandidateNotify(toEmail, emailSubject, emailBody);
+
+        if (emailSent) {
+            candidateDAO.updateEmailStatus(logId, "SENT");
+            candidateDAO.updateStage(candidateId, toStage);
+            LOGGER.log(Level.INFO, "Recruitment review: candidateId={0}, result={1}, emailSent=true",
+                    new Object[]{candidateId, result});
+            request.getSession().setAttribute("success",
+                    "PASSED".equals(result)
+                    ? "Hồ sơ đã được duyệt đậu. Email mời phỏng vấn đã gửi thành công."
+                    : "Hồ sơ đã bị loại. Email thông báo đã gửi thành công.");
+        } else {
+            candidateDAO.updateEmailStatus(logId, "FAILED");
+            LOGGER.log(Level.WARNING, "Recruitment review: candidateId={0}, result={1}, emailSent=false",
+                    new Object[]{candidateId, result});
+            request.getSession().setAttribute("error",
+                    "Gửi email thất bại. Kết quả chưa được cập nhật. Vui lòng thử lại.");
+            response.sendRedirect(request.getContextPath() + "/v1/employee/recruitment-detail?id=" + candidateId);
+            return;
+        }
+
+        response.sendRedirect(request.getContextPath() + "/v1/employee/recruitment-list");
+    }
 }

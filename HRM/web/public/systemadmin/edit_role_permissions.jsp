@@ -328,6 +328,24 @@
                                         </c:if>
                                     </c:forEach>
                                 </div>
+                                
+                                <%-- Nhóm: Tuyển Dụng  --%>
+                                <div class="group-title">Tuyển Dụng</div>
+                                <div class="row g-3 mb-2">
+                                    <c:forEach var="p" items="${allPermissions}">
+                                        <c:if test="${p.permissionCode == 'VIEW_RECRUITMENT' || p.permissionCode == 'PROCESS_RECRUITMENT'}">
+                                            <div class="col-md-3">
+                                                <label class="perm-card ${assignedPermissionIds.contains(p.permissionId) ? 'selected' : ''}">
+                                                    <input type="checkbox" name="permissionIds" value="${p.permissionId}" ${assignedPermissionIds.contains(p.permissionId) ? 'checked' : ''}/>
+
+                                                    <div class="perm-name"><c:out value="${p.permissionName}"/></div>
+                                                    <div><span class="perm-code"><c:out value="${p.permissionCode}"/></span></div>
+                                                    <div class="perm-desc"><c:out value="${empty p.description ? '—' : p.description}"/></div>
+                                                </label>
+                                            </div>
+                                        </c:if>
+                                    </c:forEach>
+                                </div>
 
                                 <%-- Nhóm: Khác --%>
                                 <div class="group-title">Khác</div>

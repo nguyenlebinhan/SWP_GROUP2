@@ -192,25 +192,56 @@ public class DBInitializer {
         execute(conn, SQL, "CREATE EMPLOYMENT_CONTRACTS TABLE SUCCESSFULLY");
     }
 
+    //tuyển dụng
     public void createTableCandidates(Connection conn) {
         String SQL = "CREATE TABLE Candidates("
                 + "candidateId INT PRIMARY KEY AUTO_INCREMENT,"
                 + "candidateCode VARCHAR(50) NOT NULL UNIQUE,"
-                + "userId INT NOT NULL,"
-                + "departmentId INT NOT NULL,"
+                + "fullName NVARCHAR(150) NOT NULL,"
+                + "email VARCHAR(100) NOT NULL,"
                 + "phoneNumber VARCHAR(20),"
-                + "skills NVARCHAR(255),"
-                + "experience NVARCHAR(255),"
+                + "dateOfBirth DATE,"
+                + "gender VARCHAR(20),"
+                + "address NVARCHAR(255),"
+                + "skills NVARCHAR(500),"
+                + "experience NVARCHAR(500),"
+                + "certificates NVARCHAR(255),"
                 + "degree NVARCHAR(100),"
+                + "cvFileUrl VARCHAR(500),"
+                + "departmentId INT NOT NULL,"
                 + "positionId INT NOT NULL,"
-                + "status TINYINT DEFAULT 0,"        // 0: Đang xét, 1: Phỏng vấn, 2: Thử việc, 3: Đậu, 4: Trượt
+                + "importFileId INT,"
+                + "stage VARCHAR(20) DEFAULT 'APPLIED',"
                 + "createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,"
                 + "updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,"
-                + "FOREIGN KEY (userId) REFERENCES Users(userId),"
                 + "FOREIGN KEY (departmentId) REFERENCES Departments(departmentId),"
-                + "FOREIGN KEY (positionId) REFERENCES Positions(positionId)"
+                + "FOREIGN KEY (positionId) REFERENCES Positions(positionId),"
+                + "FOREIGN KEY (importFileId) REFERENCES Uploaded_Files(fileId)"
                 + ")";
         execute(conn, SQL, "CREATE CANDIDATES TABLE SUCCESSFULLY");
+    }
+
+    public void createTableApplicationStageLogs(Connection conn) {
+        String SQL = "CREATE TABLE Application_Stage_Logs("
+                + "logId INT PRIMARY KEY AUTO_INCREMENT,"
+                + "candidateId INT NOT NULL,"
+                + "fromStage VARCHAR(20),"
+                + "toStage VARCHAR(20) NOT NULL,"
+                + "result VARCHAR(20) NOT NULL,"
+                + "reviewedBy INT NOT NULL,"
+                + "reviewedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,"
+                + "note NVARCHAR(500),"
+                + "toEmail VARCHAR(100) NOT NULL,"
+                + "ccEmails VARCHAR(500),"
+                + "emailSubject NVARCHAR(200),"
+                + "emailBody NVARCHAR(3000),"
+                + "emailType VARCHAR(30),"
+                + "emailStatus VARCHAR(20) DEFAULT 'PENDING',"
+                + "sentAt TIMESTAMP NULL,"
+                + "FOREIGN KEY (candidateId) REFERENCES Candidates(candidateId),"
+                + "FOREIGN KEY (reviewedBy) REFERENCES Employees(employeeId)"
+                + ")";
+        execute(conn, SQL, "CREATE APPLICATION_STAGE_LOGS TABLE SUCCESSFULLY");
     }
 
     // ==================== NGHỈ PHÉP ====================
@@ -433,11 +464,12 @@ public class DBInitializer {
                 "Performance",
                 "Payroll",
                 "Attendance",
-                "Uploaded_Files",
                 "Leave_Form",
                 "Form_Requests",
                 "Form_Types",
+                "Application_Stage_Logs",
                 "Candidates",
+                "Uploaded_Files",
                 "Employees",
                 "Users",
                 "Department_Roles",
@@ -459,11 +491,12 @@ public class DBInitializer {
                 "Department_Roles",
                 "Users",
                 "Employees",
+                "Uploaded_Files",
                 "Candidates",
+                "Application_Stage_Logs",
                 "Form_Types",
                 "Form_Requests",
                 "Leave_Form",
-                "Uploaded_Files",
                 "Attendance",
                 "Payroll",
                 "Performance",
@@ -498,6 +531,7 @@ public class DBInitializer {
                         case "Employees":         createTableEmployees(conn);         break;
                         case "Employment_Contracts": createTableEmploymentContracts(conn); break;
                         case "Candidates":        createTableCandidates(conn);        break;
+                        case "Application_Stage_Logs": createTableApplicationStageLogs(conn); break;
                         case "Form_Types":       createTableFormTypes(conn);         break;
                         case "Form_Requests":    createTableFormRequests(conn);     break;
                         case "Leave_Form":     createTableLeaveForm(conn);      break;
@@ -562,6 +596,8 @@ public class DBInitializer {
                 insertPermission(conn,"VIEW_MY_FORM", "Xem đơn nhân viên", "Quyền xem toàn bộ đơn yêu cầu của một nhân viên");
                 insertPermission(conn,"VIEW_DEPT_FORMS", "Xem đơn phòng ban", "Quyền xem toàn bộ đơn yêu cầu của một phòng ban");
                 insertPermission(conn,"APPROVE_FORM","Duyệt đơn yêu cầu","Quyền duyệt hoặc từ chối đơn yêu cầu của nhân viên trong phòng");
+                insertPermission(conn, "VIEW_RECRUITMENT", "Xem danh sách tuyển dụng", "Quyền xem các thí sinh đăng kí tuyển dụng");
+                insertPermission(conn, "PROCESS_RECRUITMENT", "Xử lý tuyển dụng", "Quyền chấp nhận, từ chối đơn tuyển dụng và gửi thông báo kết quả");
                 insertPermission(conn,"VIEW_ALL_FORMS","Xem tất cả đơn","Quyền xem toàn bộ đơn yêu cầu của mọi phòng ban (chỉ HR)");
                 insertPermission(conn, "VIEW_UPLOADED_FILES", "Xem tất cả file tải lên", "Quyền xem toàn bộ, tải xuống file đã được tải lên hệ thống");
 
@@ -643,6 +679,22 @@ public class DBInitializer {
                 insertFormType(conn, "OVERTIME", "Tăng ca");
                 insertFormType(conn, "ADVANCE",  "Tạm ứng");
                 insertFormType(conn, "OTHER",    "Khác");
+            }
+            
+            if (countRows(conn, "Email_Templates") == 0) {
+                insertEmailTemplate(conn,
+                        "INTERVIEW_INVITE",
+                        "Thư mời phỏng vấn - [vị trí]",
+                        "Chào [tên ứng viên],\n\nChúng tôi trân trọng mời bạn tham gia phỏng vấn cho vị trí [vị trí].\n"
+                        + "Thời gian: [thời gian]\nĐịa điểm: [địa điểm]\n\nTrân trọng."
+                );
+                insertEmailTemplate(conn,
+                        "REJECTION_CV",
+                        "Thông báo kết quả hồ sơ - [vị trí]",
+                        "Chào [tên ứng viên],\n\nCảm ơn bạn đã quan tâm đến vị trí [vị trí].\n"
+                        + "Sau xem xét, chúng tôi nhận thấy bạn chưa phù hợp với vị trí này.\n"
+                        + "Chúc bạn thành công."
+                );
             }
 
             LOGGER.log(Level.INFO,"Seeding completed successfully.");
@@ -741,7 +793,17 @@ public class DBInitializer {
         }
     }
 
-
+    private void insertEmailTemplate(Connection conn, String code, String subject, String body) throws SQLException {
+        String sql = "INSERT INTO Email_Templates (templateCode, subject, body) VALUES (?, ?, ?)";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, code);
+            ps.setNString(2, subject);
+            ps.setNString(3, body);
+            ps.executeUpdate();
+        }
+    }
+    
+    
 
     private void execute(Connection conn, String sql, String label) {
         try (Statement stmt = conn.createStatement()) {
