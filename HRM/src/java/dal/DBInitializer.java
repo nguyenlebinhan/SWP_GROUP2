@@ -252,6 +252,49 @@ public class DBInitializer {
         execute(conn, SQL, "CREATE FORM_REQUESTS TABLE SUCCESSFULLY");
     }
 
+    public void createTableOvertimeDetails(Connection conn) {
+        String SQL = "CREATE TABLE Overtime_Details("
+                + "formId INT PRIMARY KEY,"
+                + "otDate DATE NOT NULL,"
+                + "startTime TIME NOT NULL,"
+                + "endTime TIME NOT NULL,"
+                + "dayType TINYINT NOT NULL," // 1: Thường, 2: Cuối tuần, 3: Lễ
+                + "FOREIGN KEY (formId) REFERENCES Form_Requests(formId) ON DELETE CASCADE"
+                + ")";
+        execute(conn, SQL, "CREATE OVERTIME_DETAILS TABLE SUCCESSFULLY");
+    }
+
+    public void createTableOvertimeAssignees(Connection conn) {
+        String SQL = "CREATE TABLE Overtime_Assignees("
+                + "formId INT NOT NULL,"
+                + "employeeId INT NOT NULL,"
+                + "PRIMARY KEY(formId, employeeId),"
+                + "FOREIGN KEY (formId) REFERENCES Form_Requests(formId) ON DELETE CASCADE,"
+                + "FOREIGN KEY (employeeId) REFERENCES Employees(employeeId)"
+                + ")";
+        execute(conn, SQL, "CREATE OVERTIME_ASSIGNEES TABLE SUCCESSFULLY");
+    }
+
+    //cache để giúp tính toán số ngày còn lại nhanh hơn
+    public void createTableLeaveForm(Connection conn) {
+        String SQL = "CREATE TABLE Leave_Form("
+                + "leaveId INT PRIMARY KEY AUTO_INCREMENT,"
+                + "employeeId INT NOT NULL,"
+                + "formTypeId INT NOT NULL,"
+                + "formId INT NOT NULL,"
+                + "startDate DATE NOT NULL,"
+                + "endDate DATE NOT NULL,"
+                + "totalDays DECIMAL(4,1) NOT NULL,"
+                + "usedDays DECIMAL(4,1) DEFAULT 0,"
+                + "createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,"
+                + "updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,"
+                + "UNIQUE KEY uq_balance (employeeId, leaveId, formTypeId),"
+                + "FOREIGN KEY (employeeId) REFERENCES Employees(employeeId),"
+                + "FOREIGN KEY (formId) REFERENCES Form_Requests(formId),"
+                + "FOREIGN KEY (formTypeId) REFERENCES Form_Types(formTypeId)"
+                + ")";
+        execute(conn, SQL, "CREATE LEAVE_BALANCE TABLE SUCCESSFULLY");
+    }
     // ==================== CHẤM CÔNG ====================
 
     public void createTableUploadedFiles(Connection conn) {
@@ -281,55 +324,45 @@ public class DBInitializer {
         execute(conn, SQL, "CREATE UPLOADED_FILES TABLE SUCCESSFULLY");
     }
     
-    public void createTableAttendancePeriods(Connection conn){
-        String SQL = "CREATE TABLE Attendance_Periods("
-                   + "periodId     INT PRIMARY KEY AUTO_INCREMENT, "
-                   + "departmentId INT NOT NULL, "
-                   + "month        TINYINT NOT NULL, "
-                   + "year         INT NOT NULL, "
-                   + "status       TINYINT DEFAULT 0, " // 0: Private (nháp), 1: Public (đã công khai cho nhân viên)
-                   + "publishedBy  INT NULL, "
-                   + "publishedAt  TIMESTAMP NULL, "
-                   + "UNIQUE KEY uq_period (departmentId, month, year), "
-                   + "FOREIGN KEY (departmentId) REFERENCES Departments(departmentId), "
-                   + "FOREIGN KEY (publishedBy)  REFERENCES Employees(employeeId)"
-                   + ")";
-        execute(conn,SQL,"CREATE ATTENDANCE_PERIODS TABLE SUCCESSFULLY");
-    }
-
     public void createTableAttendance(Connection conn) {
         String SQL = "CREATE TABLE Attendance("
                 + "attendanceId INT PRIMARY KEY AUTO_INCREMENT,"
                 + "attendanceCode VARCHAR(50) NOT NULL UNIQUE,"
                 + "employeeId INT NOT NULL,"
+                + "employeeCode VARCHAR(50),"         
+                + "fullName NVARCHAR(100),"           
+                + "departmentId INT,"                
+                + "departmentName NVARCHAR(100),"     
                 + "workDate DATE NOT NULL,"
                 + "timeIn TIME,"
                 + "timeOut TIME,"
                 + "hoursWorked DECIMAL(4,2),"
+                + "isOvertime BIT DEFAULT 0,"
+                + "otHoursWorked DECIMAL(4,2) DEFAULT 0,"
                 + "attendanceStatus TINYINT DEFAULT 0," // 0: Đúng giờ, 1: Đi muộn, 2: Vắng mặt, 3: Không phép
                 + "dayOff DATE,"
                 + "workingDay DATE,"
                 + "penalty DECIMAL(15,2) DEFAULT 0,"
-                + "fileId INT NULL,"                 // file Excel import sinh ra dòng này
-                + "periodId INT NULL,"               // kỳ chấm công snapshot lúc import (không suy từ phòng ban hiện tại)
+                + "fileId INT NULL,"
                 + "createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,"
                 + "updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,"
                 + "UNIQUE KEY uq_att_emp_date (employeeId, workDate)," // chống trùng employee + ngày
                 + "FOREIGN KEY (employeeId) REFERENCES Employees(employeeId),"
-                + "FOREIGN KEY (fileId) REFERENCES Uploaded_Files(fileId),"
-                + "FOREIGN KEY (periodId) REFERENCES Attendance_Periods(periodId)"
+                + "FOREIGN KEY (departmentId) REFERENCES Departments(departmentId),"
+                + "FOREIGN KEY (fileId) REFERENCES Uploaded_Files(fileId)"
                 + ")";
         execute(conn, SQL, "CREATE ATTENDANCE TABLE SUCCESSFULLY");
     }
 
-    // Lưu staging từng dòng của mọi file import (kể cả dòng lỗi) để giữ lịch sử,
-    // dữ liệu giữ nguyên dạng chuỗi như trong file Excel.
+
     public void createTableAttendanceImportRows(Connection conn) {
         String SQL = "CREATE TABLE Attendance_Import_Rows("
                 + "importRowId INT PRIMARY KEY AUTO_INCREMENT,"
                 + "fileId INT NOT NULL,"
                 + "rowNumber INT NOT NULL,"
                 + "employeeCode VARCHAR(50),"
+                + "fullName NVARCHAR(100),"
+                + "departmentName NVARCHAR(100),"
                 + "workDate VARCHAR(50),"
                 + "timeIn VARCHAR(20),"
                 + "timeOut VARCHAR(20),"
@@ -460,7 +493,9 @@ public class DBInitializer {
                 "Attendance_Import_Rows",
                 "Attendance",
                 "Uploaded_Files",
-                "Attendance_Periods",
+                "Leave_Form",
+                "Overtime_Assignees",
+                "Overtime_Details",
                 "Form_Requests",
                 "Form_Types",
                 "Candidates",
@@ -488,8 +523,10 @@ public class DBInitializer {
                 "Candidates",
                 "Form_Types",
                 "Form_Requests",
+                "Overtime_Details",
+                "Overtime_Assignees",
+                "Leave_Form",
                 "Uploaded_Files",
-                "Attendance_Periods",
                 "Attendance",
                 "Attendance_Import_Rows",
                 "Attendance_Adjustment_History",
@@ -526,9 +563,11 @@ public class DBInitializer {
                         case "Employees":         createTableEmployees(conn);         break;
                         case "Employment_Contracts": createTableEmploymentContracts(conn); break;
                         case "Candidates":        createTableCandidates(conn);        break;
-                        case "Attendance_Periods": createTableAttendancePeriods(conn);break;
-                        case "Form_Types":        createTableFormTypes(conn);         break;
-                        case "Form_Requests":     createTableFormRequests(conn);      break;
+                        case "Form_Types":       createTableFormTypes(conn);         break;
+                        case "Form_Requests":    createTableFormRequests(conn);     break;
+                        case "Overtime_Details": createTableOvertimeDetails(conn);  break;
+                        case "Overtime_Assignees": createTableOvertimeAssignees(conn); break;
+                        case "Leave_Form":     createTableLeaveForm(conn);      break;
                         case "Uploaded_Files":    createTableUploadedFiles(conn);     break;
                         case "Attendance":        createTableAttendance(conn);        break;
                         case "Attendance_Import_Rows":        createTableAttendanceImportRows(conn);        break;

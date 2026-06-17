@@ -28,6 +28,25 @@ public class UploadedFile {
     public UploadedFile() {
     }
 
+    public UploadedFile(int fileId, String fileCode, String fileType, int departmentId, Integer employeeId, String fileUrl, String fileName, int month, int year, int totalRows, int importedRows, int failedRows, int status, String note) {
+        this.fileId = fileId;
+        this.fileCode = fileCode;
+        this.fileType = fileType;
+        this.departmentId = departmentId;
+        this.employeeId = employeeId;
+        this.fileUrl = fileUrl;
+        this.fileName = fileName;
+        this.month = month;
+        this.year = year;
+        this.totalRows = totalRows;
+        this.importedRows = importedRows;
+        this.failedRows = failedRows;
+        this.status = status;
+        this.note = note;
+    }
+    
+    
+
     public int getFileId() {
         return fileId;
     }
