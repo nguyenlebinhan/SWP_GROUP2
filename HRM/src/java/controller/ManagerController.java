@@ -167,7 +167,7 @@ public class ManagerController extends HttpServlet {
                 handleUpdateMyProfile(request, response, user);
                 break;
             case "/update-employee-detail":
-                handleUpdateEmployeeDetail(request, response, user);
+                handleUpdateEmployeeDetail(request, response);
                 break;
             case "/approve-form":
                 handleApproveForm(request, response, user);
@@ -1178,8 +1178,14 @@ public class ManagerController extends HttpServlet {
                 response.sendRedirect(request.getContextPath() + "/v1/manager/dept-forms");
                 return;
             }
+
+            
+            EmployeeDetailDTO employee = employeeDAO.getEmployeeByUserId(user.getUserId());
+            boolean canApprove = employee != null && employee.getDepartmentId() > 0
+                    && form.getDepartmentId() == employee.getDepartmentId();
             
             request.setAttribute("form", form);
+            request.setAttribute("canApprove", canApprove);
             request.getRequestDispatcher("/public/manager/form_detail.jsp").forward(request, response);
         } catch (NumberFormatException e) {
             request.getSession().setAttribute("error", "Mã đơn không hợp lệ.");
@@ -1225,6 +1231,11 @@ public class ManagerController extends HttpServlet {
         }
         try {
             int formId = Integer.parseInt(rawId);
+            if (!isDepartmentManager(me, formId)) {
+                request.getSession().setAttribute("error", "Bạn không có quyền xử lý đơn này.");
+                response.sendRedirect(request.getContextPath() + "/v1/manager/dept-forms");
+                return;
+            }
             boolean ok = formRequestDAO.approveFormRequest(formId, me.getEmployeeId(), note);
             request.getSession().setAttribute(ok ? "success" : "error",
                     ok ? "Duyệt đơn thành công." : "Duyệt đơn thất bại.");
@@ -1251,6 +1262,11 @@ public class ManagerController extends HttpServlet {
         }
         try {
             int formId = Integer.parseInt(rawId);
+            if (!isDepartmentManager(me, formId)) {
+                request.getSession().setAttribute("error", "Bạn không có quyền xử lý đơn này.");
+                response.sendRedirect(request.getContextPath() + "/v1/manager/dept-forms");
+                return;
+            }
             boolean ok = formRequestDAO.rejectFormRequest(formId, me.getEmployeeId(), note);
             request.getSession().setAttribute(ok ? "success" : "error",
                     ok ? "Từ chối đơn thành công." : "Từ chối đơn thất bại.");
@@ -1259,56 +1275,6 @@ public class ManagerController extends HttpServlet {
         }
         response.sendRedirect(request.getContextPath() + "/v1/manager/dept-forms");
     }
-
-    private Integer parseIntOrNull(String v) {
-        if (isBlank(v)) {
-            return null;
-        }
-        try {
-            return Integer.parseInt(v.trim());
-        } catch (NumberFormatException e) {
-            return null;
-        }
-    }
-
-    @SuppressWarnings("unchecked")
-    private Set<String> getPermissions(User user) {
-        Set<String> hs = permissionDAO.getPermissionCodeByUserId(user.getUserId());
-        return hs;
-    }
-
-    private boolean hasPermission(User user, String code) {
-        return getPermissions(user).contains(code);
-    }
-
-    private boolean isValidEmployeeStatus(int status) {
-        return status == 0 || status == 1 || status == 2;
-    }
-
-    private boolean isValidContractType(String type) {
-        return "Probation".equals(type)
-                || "Full-time".equals(type)
-                || "Part-time".equals(type)
-                || "Fixed-term".equals(type);
-    }
-
-    private boolean isHrStaff(User user) {
-        String role = roleDAO.getRoleByUserId(user.getUserId());
-        return role.contains("HR");
-    }
-
-    private void setPermissionFlags(HttpServletRequest request, Set<String> perms) {
-        request.setAttribute("canViewEmployees", perms.contains("VIEW_EMPLOYEES"));
-        request.setAttribute("canAddEmployee", perms.contains("ADD_EMPLOYEE"));
-        request.setAttribute("canAddEmploymentContract", perms.contains("ADD_EMPLOYMENT_CONTRACT"));
-        request.setAttribute("canEditEmployee", perms.contains("EDIT_EMPLOYEE"));
-        request.setAttribute("canDeleteEmployee", perms.contains("DELETE_EMPLOYEE"));
-        request.setAttribute("canViewDepartments", perms.contains("VIEW_DEPARTMENTS"));
-        request.setAttribute("canEditDepts", perms.contains("EDIT_DEPARTMENTS"));
-        request.setAttribute("canAssignDept", perms.contains("ASSIGN_DEPARTMENT"));
-        request.setAttribute("canReassignDept", perms.contains("REASSIGN_DEPARTMENT"));
-    }
-
     private void handleUpdateMyProfile(HttpServletRequest request, HttpServletResponse response,
             User user) throws ServletException, IOException {
         String phoneNumber = request.getParameter("phoneNumber");
@@ -1338,20 +1304,9 @@ public class ManagerController extends HttpServlet {
         }
         response.sendRedirect(request.getContextPath() + "/v1/manager/my-profile");
     }
-
-    private boolean isBlank(String v) {
-        return v == null || v.trim().isEmpty();
-    }
-
-    private void preventBackCache(HttpServletResponse response) {
-        response.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
-        response.setHeader("Pragma", "no-cache");
-        response.setDateHeader("Expires", 0);
-
-    }
-
-    private void handleUpdateEmployeeDetail(HttpServletRequest request, HttpServletResponse response,
-            User user) throws ServletException, IOException {
+    
+    
+    private void handleUpdateEmployeeDetail(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
         String rawEmployeeId = request.getParameter("employeeId");
         String rawStatus = request.getParameter("status");
         String phoneNumber = request.getParameter("phoneNumber");
@@ -1404,31 +1359,8 @@ public class ManagerController extends HttpServlet {
             response.sendRedirect(request.getContextPath() + "/v1/manager/employee-detail?id=" + employeeId);
         }
     }
-
-    private List<Integer> parseRoleIds(String[] raw) {
-        List<Integer> ids = new ArrayList<>();
-        if (raw != null) {
-            for (String r : raw) {
-                try {
-                    ids.add(Integer.parseInt(r));
-                } catch (NumberFormatException ignored) {
-                }
-            }
-        }
-        return ids;
-    }
-
-    private void reloadReassignFormWithError(HttpServletRequest request, HttpServletResponse response,
-            User user, String message) throws ServletException, IOException {
-        request.setAttribute("error", message);
-        request.setAttribute("assignedEmployees", employeeDAO.getAssignedEmployees(user.getUserId()));
-        request.setAttribute("departments", departmentDAO.getAllActiveDepartments());
-        request.setAttribute("positions", departmentDAO.getAllPositions());
-        setPermissionFlags(request, getPermissions(user));
-        request.getRequestDispatcher("/public/manager/reassign_department.jsp").forward(request, response);
-    }
-
-    private void displayCreateOTForm(HttpServletRequest request, HttpServletResponse response, User user)
+    
+   private void displayCreateOTForm(HttpServletRequest request, HttpServletResponse response, User user)
             throws ServletException, IOException {
         Set<String> perms = getPermissions(user);
         request.getSession().setAttribute("userPermissions", perms);
@@ -1538,5 +1470,97 @@ public class ManagerController extends HttpServlet {
             request.getSession().setAttribute("error", "Lỗi hệ thống: " + e.getMessage());
             response.sendRedirect(request.getContextPath() + "/v1/manager/create-ot");
         }
+    }
+    
+    private boolean isDepartmentManager(EmployeeDetailDTO me, int formId) {
+        if (me == null || me.getDepartmentId() <= 0) {
+            return false;
+        }
+        dto.FormRequestDTO form = formRequestDAO.getFormRequestById(formId);
+        return form != null && form.getStatus() == 0
+                && form.getDepartmentId() == me.getDepartmentId();
+    }
+
+    private Integer parseIntOrNull(String v) {
+        if (isBlank(v)) {
+            return null;
+        }
+        try {
+            return Integer.parseInt(v.trim());
+        } catch (NumberFormatException e) {
+            return null;
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private Set<String> getPermissions(User user) {
+        Set<String> hs = permissionDAO.getPermissionCodeByUserId(user.getUserId());
+        return hs;
+    }
+
+    private boolean hasPermission(User user, String code) {
+        return getPermissions(user).contains(code);
+    }
+
+    private boolean isValidEmployeeStatus(int status) {
+        return status == 0 || status == 1 || status == 2;
+    }
+
+    private boolean isValidContractType(String type) {
+        return "Probation".equals(type)
+                || "Full-time".equals(type)
+                || "Part-time".equals(type)
+                || "Fixed-term".equals(type);
+    }
+
+    private boolean isHrStaff(User user) {
+        String role = roleDAO.getRoleByUserId(user.getUserId());
+        return role.contains("HR");
+    }
+
+    private void setPermissionFlags(HttpServletRequest request, Set<String> perms) {
+        request.setAttribute("canViewEmployees", perms.contains("VIEW_EMPLOYEES"));
+        request.setAttribute("canAddEmployee", perms.contains("ADD_EMPLOYEE"));
+        request.setAttribute("canAddEmploymentContract", perms.contains("ADD_EMPLOYMENT_CONTRACT"));
+        request.setAttribute("canEditEmployee", perms.contains("EDIT_EMPLOYEE"));
+        request.setAttribute("canDeleteEmployee", perms.contains("DELETE_EMPLOYEE"));
+        request.setAttribute("canViewDepartments", perms.contains("VIEW_DEPARTMENTS"));
+        request.setAttribute("canEditDepts", perms.contains("EDIT_DEPARTMENTS"));
+        request.setAttribute("canAssignDept", perms.contains("ASSIGN_DEPARTMENT"));
+        request.setAttribute("canReassignDept", perms.contains("REASSIGN_DEPARTMENT"));
+    }
+
+    private boolean isBlank(String v) {
+        return v == null || v.trim().isEmpty();
+    }
+
+    private void preventBackCache(HttpServletResponse response) {
+        response.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+        response.setHeader("Pragma", "no-cache");
+        response.setDateHeader("Expires", 0);
+
+    }
+
+    private List<Integer> parseRoleIds(String[] raw) {
+        List<Integer> ids = new ArrayList<>();
+        if (raw != null) {
+            for (String r : raw) {
+                try {
+                    ids.add(Integer.parseInt(r));
+                } catch (NumberFormatException ignored) {
+                }
+            }
+        }
+        return ids;
+    }
+
+    private void reloadReassignFormWithError(HttpServletRequest request, HttpServletResponse response,
+            User user, String message) throws ServletException, IOException {
+        request.setAttribute("error", message);
+        request.setAttribute("assignedEmployees", employeeDAO.getAssignedEmployees(user.getUserId()));
+        request.setAttribute("departments", departmentDAO.getAllActiveDepartments());
+        request.setAttribute("positions", departmentDAO.getAllPositions());
+        setPermissionFlags(request, getPermissions(user));
+        request.getRequestDispatcher("/public/manager/reassign_department.jsp").forward(request, response);
     }
 }

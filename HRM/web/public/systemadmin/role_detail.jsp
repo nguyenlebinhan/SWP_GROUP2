@@ -395,7 +395,30 @@
                                         </div>
                                     </c:if>
                                 </c:forEach>
-                            </div>                            
+                            </div>    
+                            <div class="row g-2 mb-1">
+                                <c:forEach var="p" items="${allPermissions}">
+                                    <c:if test="${p.permissionCode == 'VIEW_ALL_FORMS' || p.permissionCode == 'VIEW_ALL_DEPT_FORMS'}">
+                                        <div class="col-md-3">
+                                            <div class="perm-tile ${assignedPermissionIds.contains(p.permissionId) ? 'assigned' : ''}">
+                                                <div class="perm-tile-name">
+                                                    <c:choose>
+                                                        <c:when test="${assignedPermissionIds.contains(p.permissionId)}">
+                                                            <i class="fa fa-circle-check perm-check"></i>
+                                                        </c:when>
+                                                        <c:otherwise>
+                                                            <i class="fa fa-circle perm-uncheck"></i>
+                                                        </c:otherwise>
+                                                    </c:choose>
+                                                    <c:out value="${p.permissionName}"/>
+                                                </div>
+                                                <span class="perm-tile-code"><c:out value="${p.permissionCode}"/></span>
+                                                <div class="perm-tile-desc"><c:out value="${empty p.description ? '—' : p.description}"/></div>
+                                            </div>
+                                        </div>
+                                    </c:if>
+                                </c:forEach>
+                            </div>                              
                         </div>
 
                         <div class="section-block">

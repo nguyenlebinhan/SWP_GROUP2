@@ -76,6 +76,11 @@
             <h5 class="fw-bold mb-1">Phòng ban</h5>
             <span class="text-muted small">${departments.size()} phòng ban</span>
         </div>
+        <c:if test="${sessionScope.userPermissions.contains('EDIT_DEPARTMENTS')}">
+            <a href="${pageContext.request.contextPath}/v1/employee/add-department" class="btn btn-primary">
+                <i class="fa-solid fa-plus me-1"></i> Thêm phòng ban
+            </a>
+        </c:if>
     </div>
 
     <c:choose>
