@@ -6,6 +6,7 @@
 <head>
     <title>Chi tiết Đơn yêu cầu - HRM</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
     <style>
         body { background: #f5f6fa; font-family: 'Segoe UI', sans-serif; }
         .main { margin-left: 250px; padding: 25px; }
@@ -63,22 +64,36 @@
 <div class="main">
     <jsp:include page="/public/components/managerTopBar.jsp">
         <jsp:param name="title" value="Chi tiết Đơn yêu cầu" />
+        <jsp:param name="backUrl" value="/v1/manager/dept-forms" />
     </jsp:include>
+
+    <c:if test="${not empty sessionScope.success}">
+        <div class="alert alert-success alert-dismissible fade show">
+            <i class="fa-solid fa-circle-check me-2"></i>${sessionScope.success}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        <c:remove var="success" scope="session"/>
+    </c:if>
+    <c:if test="${not empty sessionScope.error}">
+        <div class="alert alert-danger alert-dismissible fade show">
+            <i class="fa-solid fa-circle-xmark me-2"></i>${sessionScope.error}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        <c:remove var="error" scope="session"/>
+    </c:if>
 
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
-            <h4 class="mb-1">Chi tiết Đơn #${form.formCode}</h4>
+            <h4 class="mb-1"><i class="fa-solid fa-file-invoice me-2"></i>Chi tiết Đơn #${form.formCode}</h4>
             <p class="text-muted mb-0">Loại đơn: <strong>${form.formTypeName}</strong></p>
         </div>
-        <button type="button" class="btn btn-outline-secondary" onclick="history.back()">Quay lại</button>
     </div>
 
     <div class="row">
-        <!-- Thông tin nhân viên & trạng thái -->
         <div class="col-md-4">
             <div class="section-card h-100">
                 <h5 class="border-bottom pb-2 mb-3">Thông tin người gửi</h5>
-                
+
                 <div class="info-label">Nhân viên</div>
                 <div class="info-value">
                     <strong>${form.fullName}</strong> (${form.employeeCode})
@@ -108,7 +123,7 @@
         <div class="col-md-8">
             <div class="section-card h-100">
                 <h5 class="border-bottom pb-2 mb-3">Nội dung chi tiết</h5>
-                
+
                 <div class="info-label">Lý do / Nội dung đơn</div>
                 <div class="info-value reason-box mt-2">${form.reason}</div>
 
@@ -130,7 +145,7 @@
                     <c:choose>
                         <c:when test="${not empty form.attachmentName}">
                             <a href="${pageContext.request.contextPath}/${form.attachmentUrl}" target="_blank" class="btn btn-sm btn-outline-primary mt-1">
-                                Tải về ${form.attachmentName}
+                                <i class="fa-solid fa-paperclip me-1"></i> Tải về ${form.attachmentName}
                             </a>
                         </c:when>
                         <c:otherwise>
@@ -141,8 +156,8 @@
 
                 <c:if test="${form.status == 1 || form.status == 2}">
                     <hr class="my-4">
-                    <h5 class="text-success">Kết quả xử lý</h5>
-                    
+                    <h5 class="text-success"><i class="fa-solid fa-clipboard-check me-2"></i>Kết quả xử lý</h5>
+
                     <div class="row mt-3">
                         <div class="col-md-6">
                             <div class="info-label">Người duyệt</div>
@@ -165,7 +180,7 @@
                             </div>
                         </div>
                     </div>
-                    
+
                     <div class="info-label">Ghi chú của người duyệt</div>
                     <div class="info-value approver-box mt-2">
                         <c:choose>
@@ -174,18 +189,25 @@
                         </c:choose>
                     </div>
                 </c:if>
-                <c:if test="${form.status == 0}">
+
+                <%-- Khu vực duyệt/từ chối: chỉ trưởng phòng của phòng ban này, đơn đang chờ duyệt --%>
+                <c:if test="${form.status == 0 and canApprove}">
                     <hr class="my-4">
-                    <h5 class="text-primary">Xử lý đơn</h5>
+                    <h5 class="mb-3"><i class="fa-solid fa-gavel me-2"></i>Xử lý đơn</h5>
                     <form method="post">
                         <input type="hidden" name="formId" value="${form.formId}">
                         <div class="mb-3 mt-3">
-                            <label class="form-label fw-bold text-muted" style="font-size: 0.85rem; text-transform: uppercase;">Ghi chú của người duyệt</label>
-                            <textarea class="form-control" name="note" rows="3" placeholder="Nhập lý do duyệt hoặc từ chối..."></textarea>
+                            <label for="note" class="form-label">Ghi chú (tuỳ chọn)</label>
+                            <textarea id="note" name="note" class="form-control" rows="3"
+                                      placeholder="Nhập lý do duyệt hoặc từ chối..."></textarea>
                         </div>
                         <div class="d-flex justify-content-end gap-2">
-                            <button type="submit" formaction="${pageContext.request.contextPath}/v1/manager/reject-form" class="btn btn-danger px-4">Từ chối</button>
-                            <button type="submit" formaction="${pageContext.request.contextPath}/v1/manager/approve-form" class="btn btn-success px-4">Duyệt</button>
+                            <button type="submit" formaction="${pageContext.request.contextPath}/v1/manager/reject-form" class="btn btn-danger px-4">
+                                <i class="fa-solid fa-xmark me-1"></i> Từ chối
+                            </button>
+                            <button type="submit" formaction="${pageContext.request.contextPath}/v1/manager/approve-form" class="btn btn-success px-4">
+                                <i class="fa-solid fa-check me-1"></i> Duyệt đơn
+                            </button>
                         </div>
                     </form>
                 </c:if>

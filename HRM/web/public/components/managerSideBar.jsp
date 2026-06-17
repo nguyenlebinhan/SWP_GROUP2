@@ -95,11 +95,11 @@
                 </a>
             </c:if>
 
-            <c:if test="${sessionScope.userPermissions.contains('VIEW_DEPT_FORMS')}">
-                <a href="${pageContext.request.contextPath}/v1/manager/dept-forms">
-                    Đơn của phòng ban
-                </a>
-            </c:if>
+            
+            <a href="${pageContext.request.contextPath}/v1/manager/dept-forms">
+                Đơn của phòng ban
+            </a>
+
 
             <c:if test="${sessionScope.userPermissions.contains('VIEW_ALL_FORMS')}">
                 <a href="${pageContext.request.contextPath}/v1/manager/all-forms">
