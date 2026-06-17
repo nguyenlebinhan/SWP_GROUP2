@@ -68,6 +68,7 @@
                 Dashboard
             </a>
 
+
             <c:if test="${sessionScope.userPermissions.contains('VIEW_EMPLOYEES')}">
                 <div class="nav-section">Nhân viên</div>
                 <a href="${pageContext.request.contextPath}/v1/employee/employee-list">
