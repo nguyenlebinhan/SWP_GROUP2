@@ -102,14 +102,16 @@
                         <input type="number" name="year" class="form-control" id="input-year"
                                min="2000" max="2100" value="${filterYear}">
                     </div>
-                    <div class="col-md-5">
+                    <div class="col-md-3">
                         <label class="form-label">Từ khóa tìm kiếm</label>
-                        <input type="text" name="searchKeyword" class="form-control" value="${filterKeyword}" placeholder="Nhập tên nhân viên hoặc phòng ban...">
-                        <div class="col-md-1">
-                            <button type="submit" class="btn btn-primary w-100" id="btn-filter-forms">
-                                <i class="fa-solid fa-magnifying-glass"></i>
-                            </button>
-                        </div>
+                        <input type="text" name="keyword" class="form-control" value="${keyword}" placeholder="Nhập tên nhân viên hoặc phòng ban...">
+                    </div>
+                    <div class="col-md-1">
+                        <button type="submit" class="btn btn-primary w-100" id="btn-filter-forms">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                        </button>
+                    </div>
+
                 </form>
             </div>
             <div class="section-card">
