@@ -6,6 +6,7 @@
 <head>
     <title>Chi tiết Đơn yêu cầu - HRM</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
     <style>
         body { background: #f5f6fa; font-family: 'Segoe UI', sans-serif; }
         .main { margin-left: 250px; padding: 25px; }
@@ -63,6 +64,7 @@
 <div class="main">
     <jsp:include page="/public/components/employeeTopBar.jsp">
         <jsp:param name="title" value="Chi tiết Đơn yêu cầu" />
+        <jsp:param name="backUrl" value="/v1/employee/all-forms" />
     </jsp:include>
 
     <div class="d-flex justify-content-between align-items-center mb-4">
@@ -70,7 +72,6 @@
             <h4 class="mb-1">Chi tiết Đơn #${form.formCode}</h4>
             <p class="text-muted mb-0">Loại đơn: <strong>${form.formTypeName}</strong></p>
         </div>
-        <button type="button" class="btn btn-outline-secondary" onclick="history.back()">Quay lại</button>
     </div>
 
     <div class="row">

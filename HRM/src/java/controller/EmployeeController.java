@@ -130,7 +130,6 @@ public class EmployeeController extends HttpServlet {
             case "/form-dashboard":
                 displayFormDashboard(request, response, user);
                 break;
-
             case "/forms/leave/new":
                 displayLeaveForm(request, response, user);
                 break;
@@ -1522,8 +1521,6 @@ public class EmployeeController extends HttpServlet {
             response.sendRedirect(request.getContextPath() + "/v1/employee/my-forms");
         }
     }
-
-    // Hiển thị trang chẩn đơn (Form Dashboard)
     private void displayFormDashboard(HttpServletRequest request, HttpServletResponse response, User user)
             throws ServletException, IOException {
 
@@ -1533,7 +1530,6 @@ public class EmployeeController extends HttpServlet {
         request.getRequestDispatcher("/public/employee/form_dashboard.jsp").forward(request, response);
     }
 
-    // Hiển thị trang Đơn Nghỉ Phép
     private void displayLeaveForm(HttpServletRequest request, HttpServletResponse response, User user)
             throws ServletException, IOException {
 

@@ -137,10 +137,6 @@
                                             <td>
                                                 <a href="${pageContext.request.contextPath}/v1/manager/form-detail?id=${f.formId}"
                                                    class="btn btn-sm btn-outline-primary mb-1">Xem chi tiết</a>
-                                                <c:if test="${f.status == 0}">
-                                                    <a href="${pageContext.request.contextPath}/v1/manager/form-detail?id=${f.formId}"
-                                                       class="btn btn-sm btn-outline-success">Xử lý</a>
-                                                </c:if>
                                             </td>
                                         </tr>
                                     </c:forEach>
