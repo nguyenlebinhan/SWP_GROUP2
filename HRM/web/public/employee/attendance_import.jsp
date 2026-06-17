@@ -69,7 +69,7 @@
                     <label class="form-label">File Excel (.xlsx) <span class="text-danger">*</span></label>
                     <input type="file" name="attendanceFile" class="form-control" accept=".xlsx" required>
                     <small class="text-muted">
-                        Cột yêu cầu (dòng 1 là header): employeeCode, workDate, timeIn, timeOut, attendanceStatus, note.
+                        Cột yêu cầu (dòng 1 là header): employeeCode, fullName, Phòng ban, workDate, timeIn, timeOut, attendanceStatus, note.
                         Trạng thái: PRESENT / LATE / ABSENT / UNEXCUSED. Tối đa 10MB.
                     </small>
                 </div>
