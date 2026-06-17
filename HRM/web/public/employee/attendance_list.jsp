@@ -49,6 +49,15 @@
         <c:remove var="error" scope="session"/>
     </c:if>
 
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h5 class="fw-bold mb-0">Dữ liệu chấm công</h5>
+        <c:if test="${sessionScope.userPermissions.contains('IMPORT_ATTENDANCE')}">
+            <a href="${pageContext.request.contextPath}/v1/employee/attendance-import" class="btn btn-primary">
+                <i class="fa-solid fa-file-import me-1"></i> Import chấm công
+            </a>
+        </c:if>
+    </div>
+
     <div class="section-card">
         <form method="get" action="${pageContext.request.contextPath}/v1/employee/attendance-list" class="row g-3">
             <div class="col-md-2">

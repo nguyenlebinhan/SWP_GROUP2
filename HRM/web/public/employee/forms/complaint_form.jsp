@@ -5,6 +5,7 @@
 <head>
     <title>Đơn Khiếu Nại - HRM</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
     <style>
         body { background: #f5f6fa; font-family: 'Segoe UI', sans-serif; }
         .main { margin-left: 250px; padding: 25px; }
@@ -16,6 +17,16 @@
             margin-bottom: 24px;
         }
         .section-card h5 { font-weight: 700; color: #0f172a; }
+        .form-type-tabs .nav-link {
+            color: #475569;
+            font-weight: 600;
+            border-radius: 10px;
+            padding: 10px 20px;
+        }
+        .form-type-tabs .nav-link.active {
+            background: #0d6efd;
+            color: #fff;
+        }
     </style>
 </head>
 <body>
@@ -24,7 +35,11 @@
 
 <div class="main">
     <jsp:include page="/public/components/employeeTopBar.jsp">
-        <jsp:param name="title" value="Đơn Khiếu Nại" />
+        <jsp:param name="title" value="Tạo đơn yêu cầu" />
+    </jsp:include>
+
+    <jsp:include page="/public/employee/forms/form_tabs.jsp">
+        <jsp:param name="active" value="complaint" />
     </jsp:include>
 
     <c:if test="${not empty sessionScope.success}">
@@ -63,7 +78,7 @@
             </div>
             <div class="mt-4 d-flex gap-2">
                 <button type="submit" class="btn btn-primary" id="submitBtn">Gửi đơn</button>
-                <a href="${pageContext.request.contextPath}/v1/employee/form-dashboard"
+                <a href="${pageContext.request.contextPath}/v1/employee/my-forms"
                    class="btn btn-outline-secondary">Quay lại</a>
             </div>
         </form>

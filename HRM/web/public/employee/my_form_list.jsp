@@ -72,7 +72,7 @@
     <div class="section-card">
         <div class="d-flex justify-content-between align-items-center mb-3">
             <h5 class="mb-0">Danh sách đơn yêu cầu</h5>
-            <a href="${pageContext.request.contextPath}/v1/employee/form-dashboard"
+            <a href="${pageContext.request.contextPath}/v1/employee/forms/leave/new"
                class="btn btn-primary btn-sm" id="btn-new-form">Gửi đơn mới</a>
         </div>
 
