@@ -18,6 +18,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.logging.*;
 import model.Attendance;
+import dto.OvertimeRequestDTO;
 import model.Department;
 import model.Employee;
 import model.EmploymentContract;
@@ -41,6 +42,8 @@ public class ManagerController extends HttpServlet {
     private static final EmploymentContractDAO contractDAO = new EmploymentContractDAO();
     private static final FormRequestDAO formRequestDAO = new FormRequestDAO();
     private static final AttendanceDAO attendanceDAO = new AttendanceDAO();
+    private static final dao.OvertimeDAO overtimeDAO = new dao.OvertimeDAO();
+    private static final dao.FormTypeDAO formTypeDAO = new dao.FormTypeDAO();
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
@@ -112,6 +115,12 @@ public class ManagerController extends HttpServlet {
             case "/own-attendance":
                 displayOwnAttendance(request, response, user);
                 break;
+            case "/ot-requests":
+                displayOTRequests(request, response, user);
+                break;
+            case "/create-ot":
+                displayCreateOTForm(request, response, user);
+                break;
             default:
                 response.sendRedirect(request.getContextPath() + "/v1/manager/dashboard");
                 break;
@@ -165,6 +174,9 @@ public class ManagerController extends HttpServlet {
                 break;
             case "/reject-form":
                 handleRejectForm(request, response, user);
+                break;
+            case "/create-ot":
+                handleCreateOT(request, response, user);
                 break;
             default:
                 response.sendRedirect(request.getContextPath() + "/v1/manager/dashboard");
@@ -1434,5 +1446,117 @@ public class ManagerController extends HttpServlet {
         request.setAttribute("positions", departmentDAO.getAllPositions());
         setPermissionFlags(request, getPermissions(user));
         request.getRequestDispatcher("/public/manager/reassign_department.jsp").forward(request, response);
+    }
+
+    private void displayCreateOTForm(HttpServletRequest request, HttpServletResponse response, User user)
+            throws ServletException, IOException {
+        Set<String> perms = getPermissions(user);
+        request.getSession().setAttribute("userPermissions", perms);
+        
+        EmployeeDetailDTO manager = employeeDAO.getEmployeeByUserId(user.getUserId());
+        if (manager == null || manager.getDepartmentId() <= 0) {
+            request.getSession().setAttribute("error", "Bạn chưa được phân công vào phòng ban nào nên không thể tạo đơn OT.");
+            response.sendRedirect(request.getContextPath() + "/v1/manager/dashboard");
+            return;
+        }
+
+        List<EmployeeDetailDTO> departmentEmployees = employeeDAO.getEmployeesFiltered(null, manager.getDepartmentId(), "", null, "", 0, 1000);
+        
+        request.setAttribute("department", departmentDAO.getDepartmentById(manager.getDepartmentId()));
+        request.setAttribute("departmentEmployees", departmentEmployees);
+        setPermissionFlags(request, perms);
+        request.getRequestDispatcher("/public/manager/ot_create.jsp").forward(request, response);
+    }
+
+    private void displayOTRequests(HttpServletRequest request, HttpServletResponse response, User user)
+            throws ServletException, IOException {
+        Set<String> perms = getPermissions(user);
+        request.getSession().setAttribute("userPermissions", perms);
+        
+        EmployeeDetailDTO manager = employeeDAO.getEmployeeByUserId(user.getUserId());
+        if (manager != null) {
+            String statusFilter = request.getParameter("status");
+            String dateFilter = request.getParameter("otDate");
+
+            List<OvertimeRequestDTO> requests = overtimeDAO.getOvertimeRequestsByManager(manager.getEmployeeId(), statusFilter, dateFilter);
+            request.setAttribute("otRequests", requests);
+            request.setAttribute("statusFilter", statusFilter);
+            request.setAttribute("dateFilter", dateFilter);
+        }
+        
+        setPermissionFlags(request, perms);
+        request.getRequestDispatcher("/public/manager/ot_requests.jsp").forward(request, response);
+    }
+
+    private void handleCreateOT(HttpServletRequest request, HttpServletResponse response, User user)
+            throws ServletException, IOException {
+        try {
+            EmployeeDetailDTO manager = employeeDAO.getEmployeeByUserId(user.getUserId());
+            if (manager == null || manager.getDepartmentId() <= 0) {
+                request.getSession().setAttribute("error", "Bạn chưa được phân công vào phòng ban nào.");
+                response.sendRedirect(request.getContextPath() + "/v1/manager/dashboard");
+                return;
+            }
+
+            String otDate = request.getParameter("otDate");
+            String startTime = request.getParameter("startTime");
+            String endTime = request.getParameter("endTime");
+            String dayTypeStr = request.getParameter("dayType");
+            String reason = request.getParameter("reason");
+            String[] assigneeIds = request.getParameterValues("assignees");
+
+            if (otDate == null || otDate.isEmpty() || startTime == null || startTime.isEmpty() ||
+                endTime == null || endTime.isEmpty() || dayTypeStr == null || assigneeIds == null || assigneeIds.length == 0) {
+                request.getSession().setAttribute("error", "Vui lòng điền đầy đủ thông tin và chọn ít nhất 1 nhân viên.");
+                response.sendRedirect(request.getContextPath() + "/v1/manager/create-ot");
+                return;
+            }
+
+            int dayType = Integer.parseInt(dayTypeStr);
+            
+            // Tìm formTypeId của OVERTIME
+            int formTypeId = -1;
+            List<model.FormType> types = formTypeDAO.getAll();
+            for (model.FormType type : types) {
+                if ("OVERTIME".equalsIgnoreCase(type.getFormTypeCode())) {
+                    formTypeId = type.getFormTypeId();
+                    break;
+                }
+            }
+            if (formTypeId == -1) {
+                request.getSession().setAttribute("error", "Loại đơn OVERTIME chưa được cấu hình trong hệ thống.");
+                response.sendRedirect(request.getContextPath() + "/v1/manager/create-ot");
+                return;
+            }
+
+            // Tạo mã đơn ngẫu nhiên
+            String formCode = "OT-" + new java.text.SimpleDateFormat("yyyyMMddHHmmss").format(new java.util.Date());
+
+            model.FormRequest fr = new model.FormRequest();
+            fr.setFormCode(formCode);
+            fr.setEmployeeId(manager.getEmployeeId());
+            fr.setFormTypeId(formTypeId);
+            fr.setReason(reason);
+            fr.setStatus(0); // Pending
+
+            int newFormId = formRequestDAO.addFormRequest(fr);
+            if (newFormId > 0) {
+                boolean detailAdded = overtimeDAO.addOvertimeDetails(newFormId, otDate, startTime, endTime, dayType);
+                boolean assigneesAdded = overtimeDAO.addOvertimeAssignees(newFormId, assigneeIds);
+                if (detailAdded && assigneesAdded) {
+                    request.getSession().setAttribute("success", "Đã tạo đơn Overtime thành công (Mã đơn: " + formCode + ") và gửi chờ duyệt.");
+                    response.sendRedirect(request.getContextPath() + "/v1/manager/ot-requests");
+                    return;
+                }
+            }
+            
+            request.getSession().setAttribute("error", "Đã xảy ra lỗi trong quá trình tạo đơn OT.");
+            response.sendRedirect(request.getContextPath() + "/v1/manager/create-ot");
+            
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Lỗi khi tạo đơn OT", e);
+            request.getSession().setAttribute("error", "Lỗi hệ thống: " + e.getMessage());
+            response.sendRedirect(request.getContextPath() + "/v1/manager/create-ot");
+        }
     }
 }
