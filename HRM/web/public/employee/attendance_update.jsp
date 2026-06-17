@@ -53,11 +53,14 @@
                 Trạng thái hiện tại:
                 <span class="badge-st badge-s${attendance.attendanceStatus}">${attendance.statusLabel}</span>
             </div>
-            <div class="mt-2 text-muted">
-                <i class="fa-solid fa-clock me-1"></i>
-                Kỳ này được chỉnh sửa đến hết ngày <strong>${editDeadline}</strong> (giờ Việt Nam).
-            </div>
         </div>
+
+        <c:if test="${editLocked}">
+            <div class="alert alert-warning">
+                <i class="fa-solid fa-lock me-2"></i>
+                Đã quá hạn chỉnh sửa. Chấm công chỉ được sửa đến hết ngày 5 của tháng kế tiếp tháng chấm công.
+            </div>
+        </c:if>
 
         <form method="post" action="${pageContext.request.contextPath}/v1/employee/attendance-update">
             <input type="hidden" name="attendanceId" value="${attendance.attendanceId}">
@@ -70,15 +73,15 @@
             <div class="row g-3">
                 <div class="col-md-6">
                     <label class="form-label">Giờ vào</label>
-                    <input type="time" name="timeIn" class="form-control" value="${attendance.timeIn}">
+                    <input type="time" name="timeIn" class="form-control" value="${attendance.timeIn}" ${editLocked ? 'disabled' : ''}>
                 </div>
                 <div class="col-md-6">
                     <label class="form-label">Giờ ra</label>
-                    <input type="time" name="timeOut" class="form-control" value="${attendance.timeOut}">
+                    <input type="time" name="timeOut" class="form-control" value="${attendance.timeOut}" ${editLocked ? 'disabled' : ''}>
                 </div>
                 <div class="col-md-6">
                     <label class="form-label">Trạng thái</label>
-                    <select name="attendanceStatus" class="form-select">
+                    <select name="attendanceStatus" class="form-select" ${editLocked ? 'disabled' : ''}>
                         <option value="0" ${attendance.attendanceStatus == 0 ? 'selected' : ''}>Đúng giờ</option>
                         <option value="1" ${attendance.attendanceStatus == 1 ? 'selected' : ''}>Đi muộn</option>
                         <option value="2" ${attendance.attendanceStatus == 2 ? 'selected' : ''}>Vắng mặt</option>
@@ -87,20 +90,22 @@
                 </div>
                 <div class="col-md-6">
                     <label class="form-label">Số giờ làm</label>
-                    <input type="text" class="form-control" value="${attendance.hoursWorked}" disabled>
+                    <input type="text" class="form-control" value="${attendance.hoursWorkedLabel}" disabled>
                     <div class="form-text">Tự tính lại từ giờ vào / giờ ra khi lưu (Vắng mặt, Không phép = 0 giờ).</div>
                 </div>
                 <div class="col-md-12">
                     <label class="form-label">Lý do chỉnh sửa <span class="text-danger">*</span></label>
-                    <textarea name="reason" class="form-control" rows="2" required
+                    <textarea name="reason" class="form-control" rows="2" ${editLocked ? 'disabled' : 'required'}
                               placeholder="VD: máy chấm công lỗi..."></textarea>
                 </div>
             </div>
 
             <div class="mt-4 d-flex gap-2">
-                <button type="submit" class="btn btn-primary">
-                    <i class="fa-solid fa-floppy-disk me-1"></i> Lưu thay đổi
-                </button>
+                <c:if test="${not editLocked}">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fa-solid fa-floppy-disk me-1"></i> Lưu thay đổi
+                    </button>
+                </c:if>
                 <a href="${backUrl}" class="btn btn-secondary">
                     <i class="fa-solid fa-arrow-left me-1"></i> Quay lại danh sách
                 </a>
