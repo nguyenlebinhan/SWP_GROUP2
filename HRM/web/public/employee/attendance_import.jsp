@@ -26,6 +26,7 @@
 <div class="main">
     <jsp:include page="${empty topbarPage ? '/public/components/employeeTopBar.jsp' : topbarPage}">
         <jsp:param name="title" value="Import chấm công" />
+        <jsp:param name="backUrl" value="/v1/employee/attendance-list"/>
     </jsp:include>
 
     <c:if test="${not empty error}">
