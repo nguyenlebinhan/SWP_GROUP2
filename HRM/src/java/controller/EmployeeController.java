@@ -88,47 +88,44 @@ public class EmployeeController extends HttpServlet {
             case "/update-employee":
                 displayUpdateEmployeeForm(request, response, user);
                 break;
-            case "/add-contract":
+            case "/contract/add":
                 displayAddContractForm(request, response, user);
                 break;
-            case "/contract-preview":
+            case "/contract/preview":
                 displayContractPreview(request, response, user);
                 break;
-            case "/department-detail":
+            case "/department/detail":
                 displayEmployeeDepartmentDetail(request, response, user);
                 break;
-            case "/assign-department":
+            case "/department/assign":
                 displayAssignDepartmentForm(request, response, user);
                 break;
-            case "/department-list":
+            case "/department/list":
                 displayDepartmentList(request, response, user);
                 break;
-            case "/add-department":
+            case "/department/add":
                 displayAddDepartmentForm(request, response, user);
                 break;
-            case "/update-department":
+            case "/department/update":
                 displayUpdateDepartmentForm(request, response, user);
                 break;
             case "/my-profile":
                 displayMyProfile(request, response, user);
                 break;
-            case "/attendance-import":
+            case "/attendance/import":
                 displayImportForm(request, response, user);
                 break;
-            case "/attendance-list":
+            case "/attendance/list":
                 displayAttendanceList(request, response, user);
                 break;
-            case "/attendance-update":
+            case "/attendance/update":
                 displayUpdateAttendanceForm(request, response, user);
                 break;
-            case "/own-attendance":
+            case "/attendance/own-attendance":
                 displayOwnAttendanceList(request, response, user);
                 break;
-            case "/my-forms":
+            case "/forms/my-forms":
                 displayMyForms(request, response, user);
-                break;
-            case "/form-dashboard":
-                displayFormDashboard(request, response, user);
                 break;
             case "/forms/leave/new":
                 displayLeaveForm(request, response, user);
@@ -136,10 +133,10 @@ public class EmployeeController extends HttpServlet {
             case "/forms/complaint/new":
                 displayComplaintForm(request, response, user);
                 break;
-            case "/all-forms":
+            case "/forms/all":
                 displayAllForms(request, response, user);
                 break;
-            case "/form-detail":
+            case "/forms/detail":
                 displayFormDetail(request, response, user);
                 break;
             default:
@@ -162,41 +159,40 @@ public class EmployeeController extends HttpServlet {
             return;
         }
         switch (action) {
-            case "/assign-department":
+            case "/department/assign":
                 handleAssignDepartment(request, response, user);
                 break;
             case "/update-employee":
                 handleUpdateEmployee(request, response, user);
                 break;
-            case "/add-contract":
+            case "/contract/add":
                 handleAddContract(request, response, user);
                 break;
-            case "/unassign-department":
+            case "/department/unassign":
                 handleUnassignDepartment(request, response, user);
                 break;
-            case "/add-department":
+            case "/department/add":
                 handleAddDepartment(request, response, user);
                 break;
-            case "/update-department":
+            case "/department/update":
                 handleUpdateDepartment(request, response, user);
                 break;
-            case "/update-my-profile":
+            case "/my-profile/update":
                 handleUpdateMyProfile(request, response, user);
                 break;
-            case "/attendance-import":
+            case "/attendance/import":
                 handleImportAttendance(request, response, user);
                 break;
-            case "/attendance-update":
+            case "/attendance/update":
                 handleUpdateAttendance(request, response, user);
                 break;
             case "/update-employee-detail":
                 handleUpdateEmployeeDetail(request, response, user);
                 break;
-
-            case "/forms/leave/submit":
+            case "/form/leave/submit":
                 handleLeaveFormSubmit(request, response, user);
                 break;
-            case "/forms/complaint/submit":
+            case "/form/complaint/submit":
                 handleComplaintFormSubmit(request, response, user);
                 break;
             default:
@@ -235,7 +231,7 @@ public class EmployeeController extends HttpServlet {
         List<EmployeeDetailDTO> employees = employeeDAO.getAllEmployees(user.getUserId());
         request.setAttribute("employees", employees);
         setPermissionFlags(request, perms);
-        request.getRequestDispatcher("/public/employee/employee_list.jsp").forward(request, response);
+        request.getRequestDispatcher("/public/employee/employee_info/employee_list.jsp").forward(request, response);
     }
 
     private void displayEmployeeDetail(HttpServletRequest request, HttpServletResponse response,
@@ -262,7 +258,7 @@ public class EmployeeController extends HttpServlet {
         request.getSession().setAttribute("userPermissions", perms);
         request.setAttribute("employee", employee);
         setPermissionFlags(request, perms);
-        request.getRequestDispatcher("/public/employee/employee_detail.jsp").forward(request, response);
+        request.getRequestDispatcher("/public/employee/employee_info/employee_detail.jsp").forward(request, response);
     }
 
     private void displayUpdateEmployeeForm(HttpServletRequest request, HttpServletResponse response,
@@ -288,7 +284,7 @@ public class EmployeeController extends HttpServlet {
         request.getSession().setAttribute("userPermissions", perms);
         request.setAttribute("employee", employee);
         setPermissionFlags(request, perms);
-        request.getRequestDispatcher("/public/employee/update_employee.jsp").forward(request, response);
+        request.getRequestDispatcher("/public/employee/employee_info/update_employee.jsp").forward(request, response);
     }
 
     private void displayAddContractForm(HttpServletRequest request, HttpServletResponse response,
@@ -308,7 +304,7 @@ public class EmployeeController extends HttpServlet {
         request.getSession().setAttribute("userPermissions", perms);
         request.setAttribute("employees", employeeDAO.getAllEmployees(user.getUserId()));
         setPermissionFlags(request, perms);
-        request.getRequestDispatcher("/public/employee/add_contract.jsp").forward(request, response);
+        request.getRequestDispatcher("/public/employee/contract/add_contract.jsp").forward(request, response);
     }
 
     private void displayContractPreview(HttpServletRequest request, HttpServletResponse response,
@@ -342,7 +338,7 @@ public class EmployeeController extends HttpServlet {
         request.setAttribute("contract", contract);
         request.setAttribute("employee", employee);
         setPermissionFlags(request, perms);
-        request.getRequestDispatcher("/public/employee/contract_preview.jsp").forward(request, response);
+        request.getRequestDispatcher("/public/employee/contract/contract_preview.jsp").forward(request, response);
     }
 
     private void displayOwnAttendanceList(HttpServletRequest request, HttpServletResponse response,
@@ -374,7 +370,7 @@ public class EmployeeController extends HttpServlet {
         request.setAttribute("attendances", attendances);
         request.setAttribute("selectedMonth", month);
         request.setAttribute("selectedYear", year);
-        request.getRequestDispatcher("/public/employee/own_attendance_list.jsp").forward(request, response);
+        request.getRequestDispatcher("/public/employee/attendance/own_attendance_list.jsp").forward(request, response);
     }
 
     private void displayEmployeeDepartmentDetail(HttpServletRequest request, HttpServletResponse response,
@@ -389,7 +385,7 @@ public class EmployeeController extends HttpServlet {
         String rawDepartmentId = request.getParameter("id");
         if (isBlank(rawDepartmentId)) {
             request.getSession().setAttribute("error", "Thiếu mã phòng ban.");
-            response.sendRedirect(request.getContextPath() + "/v1/employee/department-list");
+            response.sendRedirect(request.getContextPath() + "/v1/employee/department/list");
             return;
         }
 
@@ -398,14 +394,14 @@ public class EmployeeController extends HttpServlet {
             departmentId = Integer.parseInt(rawDepartmentId);
         } catch (NumberFormatException e) {
             request.getSession().setAttribute("error", "Mã phòng ban không hợp lệ.");
-            response.sendRedirect(request.getContextPath() + "/v1/employee/department-list");
+            response.sendRedirect(request.getContextPath() + "/v1/employee/department/list");
             return;
         }
 
         Department department = departmentDAO.getDepartmentById(departmentId);
         if (department == null) {
             request.getSession().setAttribute("error", "Không tìm thấy phòng ban.");
-            response.sendRedirect(request.getContextPath() + "/v1/employee/department-list");
+            response.sendRedirect(request.getContextPath() + "/v1/employee/department/list");
             return;
         }
 
@@ -415,7 +411,7 @@ public class EmployeeController extends HttpServlet {
         request.setAttribute("department", department);
         request.setAttribute("employees", employees);
         setPermissionFlags(request, perms);
-        request.getRequestDispatcher("/public/employee/department_employee_detail.jsp").forward(request, response);
+        request.getRequestDispatcher("/public/employee/employee_info/department_employee_detail.jsp").forward(request, response);
     }
 
     private void displayAssignDepartmentForm(HttpServletRequest request, HttpServletResponse response,
@@ -437,7 +433,7 @@ public class EmployeeController extends HttpServlet {
         request.setAttribute("departments", departments);
         request.setAttribute("positions", positions);
         setPermissionFlags(request, perms);
-        request.getRequestDispatcher("/public/employee/assign_department.jsp").forward(request, response);
+        request.getRequestDispatcher("/public/employee/department/assign_department.jsp").forward(request, response);
     }
 
     private void displayDepartmentList(HttpServletRequest request, HttpServletResponse response,
@@ -454,7 +450,7 @@ public class EmployeeController extends HttpServlet {
         request.setAttribute("departments", departments);
         request.setAttribute("empCounts", empCounts);
         setPermissionFlags(request, perms);
-        request.getRequestDispatcher("/public/employee/department_list.jsp").forward(request, response);
+        request.getRequestDispatcher("/public/employee/department/department_list.jsp").forward(request, response);
     }
 
     private void displayMyProfile(HttpServletRequest request, HttpServletResponse response,
@@ -463,7 +459,7 @@ public class EmployeeController extends HttpServlet {
         request.setAttribute("currentUser", currentUser);
         EmployeeDetailDTO myEmployee = employeeDAO.getEmployeeByUserId(sessionUser.getUserId());
         request.setAttribute("myEmployee", myEmployee);
-        request.getRequestDispatcher("/public/employee/my_profile.jsp").forward(request, response);
+        request.getRequestDispatcher("/public/employee/employee_info/my_profile.jsp").forward(request, response);
     }
 
     private void displayImportForm(HttpServletRequest request, HttpServletResponse response,
@@ -476,7 +472,7 @@ public class EmployeeController extends HttpServlet {
         Set<String> perms = getPermissions(user);
         request.getSession().setAttribute("userPermissions", perms);
         request.setAttribute("departments", departmentDAO.getAllActiveDepartments());
-        request.getRequestDispatcher("/public/employee/attendance_import.jsp").forward(request, response);
+        request.getRequestDispatcher("/public/employee/attendance/attendance_import.jsp").forward(request, response);
     }
 
     private void displayAttendanceList(HttpServletRequest request, HttpServletResponse response, User user)
@@ -508,7 +504,7 @@ public class EmployeeController extends HttpServlet {
         request.setAttribute("filterDepartmentId", departmentId);
         request.setAttribute("filterEmployeeCode", employeeCode);
         request.setAttribute("canFilterDepartment", isHrStaff(user));
-        request.getRequestDispatcher("/public/employee/attendance_list.jsp").forward(request, response);
+        request.getRequestDispatcher("/public/employee/attendance/attendance_list.jsp").forward(request, response);
     }
 
     private void displayUpdateAttendanceForm(HttpServletRequest request, HttpServletResponse response,
@@ -521,7 +517,7 @@ public class EmployeeController extends HttpServlet {
         Set<String> perms = getPermissions(user);
         request.getSession().setAttribute("userPermissions", perms);
 
-        String backUrl = request.getContextPath() + "/v1/employee/attendance-list"
+        String backUrl = request.getContextPath() + "/v1/employee/attendance/list"
                 + buildAttendanceFilterQuery(request);
 
         Integer attendanceId = parseIntOrNull(request.getParameter("id"));
@@ -539,7 +535,7 @@ public class EmployeeController extends HttpServlet {
         request.setAttribute("filterYear", trimToNull(request.getParameter("year")));
         request.setAttribute("filterDepartmentId", trimToNull(request.getParameter("departmentId")));
         request.setAttribute("filterEmployeeCode", trimToNull(request.getParameter("employeeCode")));
-        request.getRequestDispatcher("/public/employee/attendance_update.jsp").forward(request, response);
+        request.getRequestDispatcher("/public/employee/attendance/attendance_update.jsp").forward(request, response);
     }
 
     private void handleUpdateAttendance(HttpServletRequest request, HttpServletResponse response,
@@ -550,7 +546,7 @@ public class EmployeeController extends HttpServlet {
             return;
         }
 
-        String redirectUrl = request.getContextPath() + "/v1/employee/attendance-list"
+        String redirectUrl = request.getContextPath() + "/v1/employee/attendance/list"
                 + buildAttendanceFilterQuery(request);
 
         Integer attendanceId = parseIntOrNull(request.getParameter("attendanceId"));
@@ -637,7 +633,7 @@ public class EmployeeController extends HttpServlet {
             departmentId = Integer.parseInt(request.getParameter("departmentId").trim());
         } catch (NumberFormatException e) {
             request.getSession().setAttribute("error", "Hệ thống bị lỗi. Vui lòng nhập lại");
-            response.sendRedirect(request.getContextPath() + "/v1/employee/attendance-import");
+            response.sendRedirect(request.getContextPath() + "/v1/employee/attendance/import");
             return;
         }
 
@@ -645,13 +641,13 @@ public class EmployeeController extends HttpServlet {
             request.setAttribute("error", "Vui lòng chọn tháng hợp lệ (1-12).");
             List<Department> activeDepartments = departmentDAO.getAllActiveDepartments();
             request.setAttribute("departments", activeDepartments);
-            request.getRequestDispatcher("/public/employee/attendance_import.jsp").forward(request, response);
+            request.getRequestDispatcher("/public/employee/attendance/attendance_import.jsp").forward(request, response);
         }
         if (year < 2000 || year > 2100) {
             request.setAttribute("error", "Vui lòng chọn năm hợp lệ");
             List<Department> activeDepartments = departmentDAO.getAllActiveDepartments();
             request.setAttribute("departments", activeDepartments);
-            request.getRequestDispatcher("/public/employee/attendance_import.jsp").forward(request, response);
+            request.getRequestDispatcher("/public/employee/attendance/attendance_import.jsp").forward(request, response);
             return;
         }
 
@@ -660,7 +656,7 @@ public class EmployeeController extends HttpServlet {
             request.setAttribute("error", "Vui lòng chọn file Excel .xlsx để import.");
             List<Department> activeDepartments = departmentDAO.getAllActiveDepartments();
             request.setAttribute("departments", activeDepartments);
-            request.getRequestDispatcher("/public/employee/attendance_import.jsp").forward(request, response);
+            request.getRequestDispatcher("/public/employee/attendance/attendance_import.jsp").forward(request, response);
             return;
         }
 
@@ -669,7 +665,7 @@ public class EmployeeController extends HttpServlet {
             request.setAttribute("error", "File phải có định dạng .xlsx");
             List<Department> activeDepartments = departmentDAO.getAllActiveDepartments();
             request.setAttribute("departments", activeDepartments);
-            request.getRequestDispatcher("/public/employee/attendance_import.jsp").forward(request, response);
+            request.getRequestDispatcher("/public/employee/attendance/attendance_import.jsp").forward(request, response);
             return;
         }
 
@@ -678,14 +674,14 @@ public class EmployeeController extends HttpServlet {
             request.setAttribute("error", "Loại file không hợp lệ. Yeaua cầu file excel .xlsx ");
             List<Department> activeDepartments = departmentDAO.getAllActiveDepartments();
             request.setAttribute("departments", activeDepartments);
-            request.getRequestDispatcher("/public/employee/attendance_import.jsp").forward(request, response);
+            request.getRequestDispatcher("/public/employee/attendance/attendance_import.jsp").forward(request, response);
             return;
         }
         if (departmentId <= 0) {
             request.setAttribute("error", "Vui lòng chọn phòng ban hợp lệ.");
             List<Department> activeDepartments = departmentDAO.getAllActiveDepartments();
             request.setAttribute("departments", activeDepartments);
-            request.getRequestDispatcher("/public/employee/attendance_import.jsp").forward(request, response);
+            request.getRequestDispatcher("/public/employee/attendance/attendance_import.jsp").forward(request, response);
             return;
         }
 
@@ -708,7 +704,7 @@ public class EmployeeController extends HttpServlet {
             List<Department> activeDepartments = departmentDAO.getAllActiveDepartments();
             request.setAttribute("departments", activeDepartments);
             request.setAttribute("error", "Không thể lưu file lên máy chủ. Vui lòng thử lại.");
-            request.getRequestDispatcher("/public/employee/attendance_import.jsp").forward(request, response);
+            request.getRequestDispatcher("/public/employee/attendance/attendance_import.jsp").forward(request, response);
             return;
         }
 
@@ -726,7 +722,7 @@ public class EmployeeController extends HttpServlet {
             request.setAttribute("error", "Không thể tạo bản ghi file. Vui lòng thử lại.");
             List<Department> activeDepartments = departmentDAO.getAllActiveDepartments();
             request.setAttribute("departments", activeDepartments);
-            request.getRequestDispatcher("/public/employee/attendance_import.jsp").forward(request, response);
+            request.getRequestDispatcher("/public/employee/attendance/attendance_import.jsp").forward(request, response);
             return;
         }
 
@@ -740,7 +736,7 @@ public class EmployeeController extends HttpServlet {
             request.setAttribute("error", "Không thể đọc file đã lưu để import.");
             List<Department> activeDepartments = departmentDAO.getAllActiveDepartments();
             request.setAttribute("departments", activeDepartments);
-            request.getRequestDispatcher("/public/employee/attendance_import.jsp").forward(request, response);
+            request.getRequestDispatcher("/public/employee/attendance/attendance_import.jsp").forward(request, response);
             return;
         }
         result.setFileName(uf.getFileName());
@@ -755,7 +751,7 @@ public class EmployeeController extends HttpServlet {
         request.setAttribute("selectedMonth", month);
         request.setAttribute("selectedYear", year);
         request.setAttribute("selectedDepartmentId", departmentId);
-        request.getRequestDispatcher("/public/employee/attendance_import.jsp").forward(request, response);
+        request.getRequestDispatcher("/public/employee/attendance/attendance_import.jsp").forward(request, response);
     }
 
     private void handleAssignDepartment(HttpServletRequest request, HttpServletResponse response,
@@ -786,7 +782,7 @@ public class EmployeeController extends HttpServlet {
             request.setAttribute("departments", departmentDAO.getAllActiveDepartments());
             request.setAttribute("positions", departmentDAO.getAllPositions());
             setPermissionFlags(request, getPermissions(user));
-            request.getRequestDispatcher("/public/employee/assign_department.jsp").forward(request, response);
+            request.getRequestDispatcher("/public/employee/department/assign_department.jsp").forward(request, response);
             return;
         }
 
@@ -801,7 +797,7 @@ public class EmployeeController extends HttpServlet {
             request.setAttribute("departments", departmentDAO.getAllActiveDepartments());
             request.setAttribute("positions", departmentDAO.getAllPositions());
             setPermissionFlags(request, getPermissions(user));
-            request.getRequestDispatcher("/public/employee/assign_department.jsp").forward(request, response);
+            request.getRequestDispatcher("/public/employee/department/assign_department.jsp").forward(request, response);
             return;
         }
 
@@ -811,7 +807,7 @@ public class EmployeeController extends HttpServlet {
             request.setAttribute("departments", departmentDAO.getAllActiveDepartments());
             request.setAttribute("positions", departmentDAO.getAllPositions());
             setPermissionFlags(request, getPermissions(user));
-            request.getRequestDispatcher("/public/employee/assign_department.jsp").forward(request, response);
+            request.getRequestDispatcher("/public/employee/department/assign_department.jsp").forward(request, response);
             return;
         }
 
@@ -828,7 +824,7 @@ public class EmployeeController extends HttpServlet {
             request.setAttribute("departments", departmentDAO.getAllActiveDepartments());
             request.setAttribute("positions", departmentDAO.getAllPositions());
             setPermissionFlags(request, getPermissions(user));
-            request.getRequestDispatcher("/public/employee/assign_department.jsp").forward(request, response);
+            request.getRequestDispatcher("/public/employee/department/assign_department.jsp").forward(request, response);
             return;
         }
 
@@ -845,7 +841,7 @@ public class EmployeeController extends HttpServlet {
             request.setAttribute("departments", departmentDAO.getAllActiveDepartments());
             request.setAttribute("positions", departmentDAO.getAllPositions());
             setPermissionFlags(request, getPermissions(user));
-            request.getRequestDispatcher("/public/employee/assign_department.jsp").forward(request, response);
+            request.getRequestDispatcher("/public/employee/department/assign_department.jsp").forward(request, response);
             return;
         }
 
@@ -935,7 +931,7 @@ public class EmployeeController extends HttpServlet {
         request.getSession().setAttribute("userPermissions", perms);
         request.setAttribute("roles", roleDAO.getAllActiveRoles());
         setPermissionFlags(request, perms);
-        request.getRequestDispatcher("/public/employee/add_department.jsp").forward(request, response);
+        request.getRequestDispatcher("/public/employee/department/add_department.jsp").forward(request, response);
     }
 
     private void handleAddDepartment(HttpServletRequest request, HttpServletResponse response,
@@ -963,7 +959,7 @@ public class EmployeeController extends HttpServlet {
             request.setAttribute("roles", roleDAO.getAllActiveRoles());
             request.setAttribute("selectedRoleIds", roleIds);
             setPermissionFlags(request, getPermissions((User) request.getSession().getAttribute("user")));
-            request.getRequestDispatcher("/public/employee/add_department.jsp").forward(request, response);
+            request.getRequestDispatcher("/public/employee/department/add_department.jsp").forward(request, response);
             return;
         }
 
@@ -981,7 +977,7 @@ public class EmployeeController extends HttpServlet {
             request.setAttribute("roles", roleDAO.getAllActiveRoles());
             request.setAttribute("selectedRoleIds", roleIds);
             setPermissionFlags(request, getPermissions((User) request.getSession().getAttribute("user")));
-            request.getRequestDispatcher("/public/employee/add_department.jsp").forward(request, response);
+            request.getRequestDispatcher("/public/employee/department/add_department.jsp").forward(request, response);
             return;
         }
 
@@ -1010,19 +1006,19 @@ public class EmployeeController extends HttpServlet {
         }
         String idParam = request.getParameter("id");
         if (isBlank(idParam)) {
-            response.sendRedirect(request.getContextPath() + "/v1/employee/department-list");
+            response.sendRedirect(request.getContextPath() + "/v1/employee/department/list");
             return;
         }
         int deptId;
         try {
             deptId = Integer.parseInt(idParam);
         } catch (NumberFormatException e) {
-            response.sendRedirect(request.getContextPath() + "/v1/employee/department-list");
+            response.sendRedirect(request.getContextPath() + "/v1/employee/department/list");
             return;
         }
         Department dept = departmentDAO.getDepartmentById(deptId);
         if (dept == null) {
-            response.sendRedirect(request.getContextPath() + "/v1/employee/department-list");
+            response.sendRedirect(request.getContextPath() + "/v1/employee/department/list");
             return;
         }
 
@@ -1042,7 +1038,7 @@ public class EmployeeController extends HttpServlet {
         request.setAttribute("selectedRoleIds", selectedRoleIds);
 
         setPermissionFlags(request, perms);
-        request.getRequestDispatcher("/public/employee/update_department.jsp").forward(request, response);
+        request.getRequestDispatcher("/public/employee/department/update_department.jsp").forward(request, response);
     }
 
     private void handleUpdateDepartment(HttpServletRequest request, HttpServletResponse response,
@@ -1066,7 +1062,7 @@ public class EmployeeController extends HttpServlet {
         if (isBlank(idParam) || isBlank(name)) {
             request.getSession().setAttribute("error", "Tên phòng ban là bắt buộc.");
             response.sendRedirect(
-                    request.getContextPath() + "/v1/employee/update-department?id=" + (idParam != null ? idParam : ""));
+                    request.getContextPath() + "/v1/employee/department/update?id=" + (idParam != null ? idParam : ""));
             return;
         }
 
@@ -1074,13 +1070,13 @@ public class EmployeeController extends HttpServlet {
         try {
             deptId = Integer.parseInt(idParam);
         } catch (NumberFormatException e) {
-            response.sendRedirect(request.getContextPath() + "/v1/employee/department-list");
+            response.sendRedirect(request.getContextPath() + "/v1/employee/department/list");
             return;
         }
 
         Department dept = departmentDAO.getDepartmentById(deptId);
         if (dept == null) {
-            response.sendRedirect(request.getContextPath() + "/v1/employee/department-list");
+            response.sendRedirect(request.getContextPath() + "/v1/employee/department/list");
             return;
         }
 
@@ -1099,10 +1095,10 @@ public class EmployeeController extends HttpServlet {
         if (success) {
             departmentDAO.replaceDepartmentRoles(deptId, roleIds);
             request.getSession().setAttribute("success", "Cập nhật phòng ban thành công.");
-            response.sendRedirect(request.getContextPath() + "/v1/employee/department-list");
+            response.sendRedirect(request.getContextPath() + "/v1/employee/department/list");
         } else {
             request.getSession().setAttribute("error", "Cập nhật thất bại. Vui lòng thử lại.");
-            response.sendRedirect(request.getContextPath() + "/v1/employee/update-department?id=" + deptId);
+            response.sendRedirect(request.getContextPath() + "/v1/employee/department/update?id=" + deptId);
         }
     }
 
@@ -1201,7 +1197,7 @@ public class EmployeeController extends HttpServlet {
                     "Vui lòng nhập đầy đủ mã hợp đồng, nhân viên, loại hợp đồng, ngày bắt đầu và lương.");
             request.setAttribute("employees", employeeDAO.getAllEmployees(user.getUserId()));
             setPermissionFlags(request, getPermissions(user));
-            request.getRequestDispatcher("/public/employee/add_contract.jsp").forward(request, response);
+            request.getRequestDispatcher("/public/employee/contract/add_contract.jsp").forward(request, response);
             return;
         }
 
@@ -1215,7 +1211,7 @@ public class EmployeeController extends HttpServlet {
             request.setAttribute("error", "Dữ liệu hợp đồng không hợp lệ.");
             request.setAttribute("employees", employeeDAO.getAllEmployees(user.getUserId()));
             setPermissionFlags(request, getPermissions(user));
-            request.getRequestDispatcher("/public/employee/add_contract.jsp").forward(request, response);
+            request.getRequestDispatcher("/public/employee/contract/add_contract.jsp").forward(request, response);
             return;
         }
 
@@ -1223,7 +1219,7 @@ public class EmployeeController extends HttpServlet {
             request.setAttribute("error", "Loại hợp đồng hoặc lương không hợp lệ.");
             request.setAttribute("employees", employeeDAO.getAllEmployees(user.getUserId()));
             setPermissionFlags(request, getPermissions(user));
-            request.getRequestDispatcher("/public/employee/add_contract.jsp").forward(request, response);
+            request.getRequestDispatcher("/public/employee/contract/add_contract.jsp").forward(request, response);
             return;
         }
 
@@ -1231,7 +1227,7 @@ public class EmployeeController extends HttpServlet {
             request.setAttribute("error", "Nhân viên được chọn không tồn tại.");
             request.setAttribute("employees", employeeDAO.getAllEmployees(user.getUserId()));
             setPermissionFlags(request, getPermissions(user));
-            request.getRequestDispatcher("/public/employee/add_contract.jsp").forward(request, response);
+            request.getRequestDispatcher("/public/employee/contract/add_contract.jsp").forward(request, response);
             return;
         }
 
@@ -1239,7 +1235,7 @@ public class EmployeeController extends HttpServlet {
             request.setAttribute("error", "Hợp đồng của nhân viên vẫn còn hiệu lực");
             request.setAttribute("employees", employeeDAO.getAllEmployees(user.getUserId()));
             setPermissionFlags(request, getPermissions(user));
-            request.getRequestDispatcher("/public/employee/add_contract.jsp").forward(request, response);
+            request.getRequestDispatcher("/public/employee/contract/add_contract.jsp").forward(request, response);
             return;
         }
 
@@ -1247,7 +1243,7 @@ public class EmployeeController extends HttpServlet {
             request.setAttribute("error", "Ngày kết thúc không được trước ngày bắt đầu.");
             request.setAttribute("employees", employeeDAO.getAllEmployees(user.getUserId()));
             setPermissionFlags(request, getPermissions(user));
-            request.getRequestDispatcher("/public/employee/add_contract.jsp").forward(request, response);
+            request.getRequestDispatcher("/public/employee/contract/add_contract.jsp").forward(request, response);
             return;
         }
 
@@ -1261,12 +1257,12 @@ public class EmployeeController extends HttpServlet {
         if (success) {
             request.getSession().setAttribute("success", "Thêm hợp đồng lao động thành công.");
             response.sendRedirect(
-                    request.getContextPath() + "/v1/employee/contract-preview?employeeId=" + contract.getEmployeeId());
+                    request.getContextPath() + "/v1/employee/contract/preview?employeeId=" + contract.getEmployeeId());
         } else {
             request.setAttribute("error", "Thêm hợp đồng thất bại. Mã hợp đồng có thể đã tồn tại.");
             request.setAttribute("employees", employeeDAO.getAllEmployees(user.getUserId()));
             setPermissionFlags(request, getPermissions(user));
-            request.getRequestDispatcher("/public/employee/add_contract.jsp").forward(request, response);
+            request.getRequestDispatcher("/public/employee/contract/add_contract.jsp").forward(request, response);
         }
     }
 
@@ -1378,7 +1374,7 @@ public class EmployeeController extends HttpServlet {
 
         if (isBlank(rawEmployeeId) || isBlank(rawStatus)) {
             request.getSession().setAttribute("error", "Dữ liệu không hợp lệ.");
-            response.sendRedirect(request.getContextPath() + "/v1/employee/department-list");
+            response.sendRedirect(request.getContextPath() + "/v1/employee/department/list");
             return;
         }
 
@@ -1389,14 +1385,14 @@ public class EmployeeController extends HttpServlet {
             status = Integer.parseInt(rawStatus);
         } catch (NumberFormatException e) {
             request.getSession().setAttribute("error", "Dữ liệu không hợp lệ.");
-            response.sendRedirect(request.getContextPath() + "/v1/employee/department-list");
+            response.sendRedirect(request.getContextPath() + "/v1/employee/department/list");
             return;
         }
 
         EmployeeDetailDTO employeeDetail = employeeDAO.getEmployeeById(employeeId);
         if (employeeDetail == null) {
             request.getSession().setAttribute("error", "Không tìm thấy nhân viên.");
-            response.sendRedirect(request.getContextPath() + "/v1/employee/department-list");
+            response.sendRedirect(request.getContextPath() + "/v1/employee/department/list");
             return;
         }
 
@@ -1416,7 +1412,7 @@ public class EmployeeController extends HttpServlet {
 
         if (employeeDetail.getDepartmentId() > 0) {
             response.sendRedirect(
-                    request.getContextPath() + "/v1/employee/department-detail?id=" + employeeDetail.getDepartmentId());
+                    request.getContextPath() + "/v1/employee/department/detail?id=" + employeeDetail.getDepartmentId());
         } else {
             response.sendRedirect(request.getContextPath() + "/v1/employee/employee-detail?id=" + employeeId);
         }
@@ -1440,7 +1436,7 @@ public class EmployeeController extends HttpServlet {
         request.setAttribute("filterYear", year);
         request.setAttribute("forms",
                 formRequestDAO.getAllFormRequestsByEmployeeId(em.getEmployeeId(), day, month, year));
-        request.getRequestDispatcher("/public/employee/my_form_list.jsp").forward(request, response);
+        request.getRequestDispatcher("/public/employee/forms/my_form_list.jsp").forward(request, response);
     }
 
     private void displayAllForms(HttpServletRequest request, HttpServletResponse response, User user)
@@ -1463,21 +1459,9 @@ public class EmployeeController extends HttpServlet {
         request.setAttribute("filterMonth", month);
         request.setAttribute("filterYear", year);
         request.setAttribute("keyword", keyword);
-        request.getRequestDispatcher("/public/employee/all_form_list.jsp").forward(request, response);
+        request.getRequestDispatcher("/public/employee/forms/all_form_list.jsp").forward(request, response);
     }
 
-    private void displaySubmitForm(HttpServletRequest request, HttpServletResponse response, User user)
-            throws ServletException, IOException {
-
-        EmployeeDetailDTO em = employeeDAO.getEmployeeByUserId(user.getUserId());
-        if (em == null) {
-            request.getSession().setAttribute("error", "Bạn chưa được gán hồ sơ nhân viên");
-            response.sendRedirect(request.getContextPath() + "/v1/employee/dashboard");
-            return;
-        }
-        request.setAttribute("formTypes", formTypeDAO.getAll());
-        request.getRequestDispatcher("/public/employee/submit_form.jsp").forward(request, response);
-    }
 
     private void displayFormDetail(HttpServletRequest request, HttpServletResponse response, User user)
             throws ServletException, IOException {
@@ -1492,7 +1476,7 @@ public class EmployeeController extends HttpServlet {
             FormRequestDTO form = formRequestDAO.getFormRequestById(id);
             if (form == null) {
                 request.getSession().setAttribute("error", "Không tìm thấy đơn yêu cầu");
-                response.sendRedirect(request.getContextPath() + "/v1/employee/my-forms");
+                response.sendRedirect(request.getContextPath() + "/v1/employee/forms/my-forms");
                 return;
             }
             EmployeeDetailDTO me = employeeDAO.getEmployeeByUserId(user.getUserId());
@@ -1515,19 +1499,11 @@ public class EmployeeController extends HttpServlet {
             }
 
             request.setAttribute("form", form);
-            request.getRequestDispatcher("/public/employee/form_detail.jsp").forward(request, response);
+            request.getRequestDispatcher("/public/employee/forms/form_detail.jsp").forward(request, response);
         } catch (NumberFormatException e) {
             request.getSession().setAttribute("error", "Mã đơn không hợp lệ");
-            response.sendRedirect(request.getContextPath() + "/v1/employee/my-forms");
+            response.sendRedirect(request.getContextPath() + "/v1/employee/forms/my-forms");
         }
-    }
-    private void displayFormDashboard(HttpServletRequest request, HttpServletResponse response, User user)
-            throws ServletException, IOException {
-
-        Set<String> perms = getPermissions(user);
-        request.getSession().setAttribute("userPermissions", perms);
-        setPermissionFlags(request, perms);
-        request.getRequestDispatcher("/public/employee/form_dashboard.jsp").forward(request, response);
     }
 
     private void displayLeaveForm(HttpServletRequest request, HttpServletResponse response, User user)
@@ -1551,7 +1527,6 @@ public class EmployeeController extends HttpServlet {
 
 
 
-    // Xử lý gửi Đơn Nghỉ Phép
     private void handleLeaveFormSubmit(HttpServletRequest request, HttpServletResponse response, User user)
             throws ServletException, IOException {
         
@@ -1657,7 +1632,7 @@ public class EmployeeController extends HttpServlet {
             return;
         }
         request.getSession().setAttribute("success", "Đã gửi đơn nghỉ phép thành công.");
-        response.sendRedirect(request.getContextPath() + "/v1/employee/my-forms");
+        response.sendRedirect(request.getContextPath() + "/v1/employee/forms/my-forms");
     }
 
     // Xử lý gửi Đơn Khiếu Nại
@@ -1737,7 +1712,7 @@ public class EmployeeController extends HttpServlet {
             return;
         }
         request.getSession().setAttribute("success", "Đã gửi đơn khiếu nại thành công.");
-        response.sendRedirect(request.getContextPath() + "/v1/employee/my-forms");
+        response.sendRedirect(request.getContextPath() + "/v1/employee/forms/my-forms");
     }
 
     private List<Integer> parseRoleIds(String[] raw) {
