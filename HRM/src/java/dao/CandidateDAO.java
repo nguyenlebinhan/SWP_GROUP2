@@ -232,7 +232,7 @@ public class CandidateDAO {
     public int insertLog(ApplicationStageLog log) {
         String sql = "INSERT INTO Application_Stage_Logs " +
                      "(candidateId, fromStage, toStage, result, reviewedBy, note, " +
-                     "toEmail, ccEmails, emailSubject, emailBody, emailType, emailStatus) " +
+                     "toEmail, emailSubject, emailBody, emailType, emailStatus) " +
                      "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'PENDING')";
         try (Connection conn = dbContext.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
@@ -246,6 +246,7 @@ public class CandidateDAO {
             ps.setNString(8, log.getEmailSubject());
             ps.setNString(9, log.getEmailBody());
             ps.setString(10, log.getEmailType());
+            
             ps.executeUpdate();
             try (ResultSet rs = ps.getGeneratedKeys()) {
                 return rs.next() ? rs.getInt(1) : 0;

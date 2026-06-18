@@ -1,6 +1,7 @@
 package controller;
 
 import dao.*;
+import dto.CandidateImportResultDTO;
 import dto.EmployeeDTO;
 import dto.EmployeeDetailDTO;
 import jakarta.servlet.ServletException;
@@ -9,13 +10,20 @@ import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
+import jakarta.servlet.http.Part;
 import java.io.IOException;
+import java.io.InputStream;
 import java.math.BigDecimal;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.logging.*;
 import model.ApplicationStageLog;
 import model.Candidate;
@@ -24,13 +32,16 @@ import model.Employee;
 import model.EmploymentContract;
 import model.Position;
 import model.Role;
+import model.UploadedFile;
 import model.User;
+import service.CandidateImportService;
 import service.EmailService;
+import utils.ConfigManager;
 
 @MultipartConfig(
         fileSizeThreshold = 1024 * 1024, // 1MB ghi ra đĩa
         maxFileSize = 10L * 1024 * 1024, // 10MB / file
-        maxRequestSize = 11L * 1024 * 1024 // 11MB / request
+        maxRequestSize = 20L * 1024 * 1024 // 20MB / request — tăng đệm, tránh sát ngưỡng
 )
 public class ManagerController extends HttpServlet {
 
@@ -44,6 +55,11 @@ public class ManagerController extends HttpServlet {
     private static final FormRequestDAO formRequestDAO = new FormRequestDAO();
     private final CandidateDAO candidateDAO = new CandidateDAO();
     private final EmailService emailService = new EmailService();
+    private final ConfigManager config = ConfigManager.getInstance();
+    private final UploadedFileDAO uploadedFileDAO = new UploadedFileDAO();
+    private final String UPLOAD_DIR = config.getProperty("UPLOAD_DIR");
+    private final String FILE_PART = config.getProperty("FILE_PART");
+    private final CandidateImportService candidateImportService = new CandidateImportService();
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
@@ -115,6 +131,9 @@ public class ManagerController extends HttpServlet {
             case "/recruitment-detail":
                 displayRecruitmentDetail(request, response, user);
                 break;
+            case "/recruitment-import":
+                displayRecruitmentImport(request, response, user);
+                break;
             default:
                 response.sendRedirect(request.getContextPath() + "/v1/manager/dashboard");
                 break;
@@ -171,6 +190,9 @@ public class ManagerController extends HttpServlet {
                 break;
             case "/recruitment-review":
                 handleRecruitmentReview(request, response, user);
+                break;
+            case "/recruitment-import":
+                handleImportCandidates(request, response, user);
                 break;
             default:
                 response.sendRedirect(request.getContextPath() + "/v1/manager/dashboard");
@@ -1370,6 +1392,15 @@ public class ManagerController extends HttpServlet {
         setPermissionFlags(request, getPermissions(user));
         request.getRequestDispatcher("/public/manager/reassign_department.jsp").forward(request, response);
     }
+
+    private String sanitizeFileName(String name) {
+        if (name == null) {
+            return "attendance.xlsx";
+        }
+
+        String base = Paths.get(name).getFileName().toString();
+        return base.replaceAll("[\\r\\n]", "");
+    }
     // ==================== TUYỂN DỤNG ====================
 
     private void displayRecruitmentList(HttpServletRequest request, HttpServletResponse response,
@@ -1403,7 +1434,7 @@ public class ManagerController extends HttpServlet {
         setPermissionFlags(request, perms);
         request.getRequestDispatcher("/public/manager/recruitment_list.jsp")
                 .forward(request, response);
-        
+
     }
 
     private void displayRecruitmentDetail(HttpServletRequest request, HttpServletResponse response,
@@ -1516,7 +1547,7 @@ public class ManagerController extends HttpServlet {
         ApplicationStageLog log = new ApplicationStageLog(
                 candidateId, fromStage, toStage, result,
                 me.getEmployeeId(), note,
-                toEmail, null, emailSubject, emailBody, emailType
+                toEmail, emailSubject, emailBody, emailType
         );
         int logId = candidateDAO.insertLog(log);
         if (logId <= 0) {
@@ -1549,5 +1580,142 @@ public class ManagerController extends HttpServlet {
         }
 
         response.sendRedirect(request.getContextPath() + "/v1/manager/recruitment-list");
+    }
+
+    private void displayRecruitmentImport(HttpServletRequest request, HttpServletResponse response,
+            User user) throws ServletException, IOException {
+        if (!isHrStaff(user) || !hasPermission(user, "PROCESS_RECRUITMENT")) {
+            request.getSession().setAttribute("error", "Bạn không có quyền import ứng viên.");
+            response.sendRedirect(request.getContextPath() + "/v1/manager/dashboard");
+            return;
+        }
+        Set<String> perms = getPermissions(user);
+        request.getSession().setAttribute("userPermissions", perms);
+        setPermissionFlags(request, perms);
+        request.getRequestDispatcher("/public/manager/recruitment_import.jsp")
+                .forward(request, response);
+    }
+
+    private void handleImportCandidates(HttpServletRequest request, HttpServletResponse response,
+            User user) throws ServletException, IOException {
+
+        // Kiểm tra Content-Length sớm để tránh Tomcat tự ném lỗi khó hiểu khi parse multipart
+        long contentLength = request.getContentLengthLong();
+        if (contentLength > 19L * 1024 * 1024) { // để dư hơn maxRequestSize (20MB) một chút
+            request.getSession().setAttribute("error", "File quá lớn. Vui lòng chọn file Excel dưới 10MB.");
+            response.sendRedirect(request.getContextPath() + "/v1/manager/recruitment-import");
+            return;
+        }
+
+        if (!isHrStaff(user) || !hasPermission(user, "PROCESS_RECRUITMENT")) {
+            request.getSession().setAttribute("error", "Bạn không có quyền import ứng viên.");
+            response.sendRedirect(request.getContextPath() + "/v1/manager/dashboard");
+            return;
+        }
+
+        // Lấy danh sách Part DUY NHẤT 1 LẦN, tránh gọi getParts() nhiều lần trên request lỗi
+        Collection<Part> parts;
+        try {
+            parts = request.getParts();
+        } catch (IllegalStateException e) {
+            // Trường hợp file vượt maxFileSize hoặc tổng request vượt maxRequestSize
+            LOGGER.log(Level.WARNING, "File vượt giới hạn dung lượng cho phép", e);
+            request.getSession().setAttribute("error",
+                    "File quá lớn hoặc dữ liệu request vượt giới hạn cho phép. Vui lòng chọn file nhỏ hơn 10MB.");
+            response.sendRedirect(request.getContextPath() + "/v1/manager/recruitment-import");
+            return;
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Cannot get file part", e);
+            request.getSession().setAttribute("error", "Không thể đọc file. Vui lòng thử lại.");
+            response.sendRedirect(request.getContextPath() + "/v1/manager/recruitment-import");
+            return;
+        }
+
+        Part filePart = null;
+        for (Part p : parts) {
+            if (p.getName() != null && "file".equals(p.getName())) {
+                filePart = p;
+                break;
+            }
+        }
+
+        if (filePart == null || filePart.getSize() == 0) {
+            request.getSession().setAttribute("error", "Vui lòng chọn file Excel.");
+            response.sendRedirect(request.getContextPath() + "/v1/manager/recruitment-import");
+            return;
+        }
+
+        String submittedName = filePart.getSubmittedFileName();
+        if (submittedName == null || !submittedName.toLowerCase().endsWith(".xlsx")) {
+            request.getSession().setAttribute("error", "File phải có định dạng .xlsx.");
+            response.sendRedirect(request.getContextPath() + "/v1/manager/recruitment-import");
+            return;
+        }
+
+        String uploadPath = getServletContext().getRealPath("/" + UPLOAD_DIR);
+        String serverFileName = "CAND_" + System.currentTimeMillis() + "_"
+                + UUID.randomUUID().toString().substring(0, 8) + ".xlsx";
+        Path savedPath;
+        try {
+            Path dir = Paths.get(uploadPath);
+            Files.createDirectories(dir);
+            savedPath = dir.resolve(serverFileName);
+            try (InputStream is = filePart.getInputStream()) {
+                Files.copy(is, savedPath);
+            }
+        } catch (IOException e) {
+            LOGGER.log(Level.SEVERE, "Cannot save candidate import file", e);
+            request.getSession().setAttribute("error", "Không thể lưu file. Vui lòng thử lại.");
+            response.sendRedirect(request.getContextPath() + "/v1/manager/recruitment-import");
+            return;
+        }
+
+        EmployeeDetailDTO me = employeeDAO.getEmployeeByUserId(user.getUserId());
+        if (me == null || me.getDepartmentId() <= 0) {
+            request.getSession().setAttribute("error", "Không tìm thấy thông tin phòng ban của bạn.");
+            response.sendRedirect(request.getContextPath() + "/v1/manager/recruitment-import");
+            return;
+        }
+
+        UploadedFile uf = new UploadedFile();
+        uf.setFileCode("CAND-" + System.currentTimeMillis());
+        uf.setFileType("CANDIDATE");
+        uf.setDepartmentId(me.getDepartmentId());
+        uf.setEmployeeId(me.getEmployeeId());
+        uf.setFileUrl(UPLOAD_DIR + "/" + serverFileName);
+        uf.setFileName(sanitizeFileName(submittedName));
+        uf.setMonth(0);
+        uf.setYear(0);
+        uf.setStatus(CandidateImportService.FILE_STATUS_PENDING);
+        int fileId = uploadedFileDAO.createUploadedFile(uf);
+        if (fileId <= 0) {
+            request.getSession().setAttribute("error", "Không thể tạo bản ghi file.");
+            response.sendRedirect(request.getContextPath() + "/v1/manager/recruitment-import");
+            return;
+        }
+
+        CandidateImportResultDTO result;
+        try (InputStream is = Files.newInputStream(savedPath)) {
+            result = candidateImportService.importCandidates(is, fileId);
+        } catch (IOException e) {
+            LOGGER.log(Level.SEVERE, "Cannot read saved candidate file", e);
+            uploadedFileDAO.updateImportResult(fileId, 0, 0, 0,
+                    CandidateImportService.FILE_STATUS_FAILED, "Không thể đọc lại file.");
+            request.getSession().setAttribute("error", "Không thể đọc file đã lưu.");
+            response.sendRedirect(request.getContextPath() + "/v1/manager/recruitment-import");
+            return;
+        }
+        result.setFileName(uf.getFileName());
+
+        uploadedFileDAO.updateImportResult(fileId, result.getTotalRows(), result.getImportedRows(),
+                result.getFailedRows(), result.getStatus(), result.getNote());
+
+        LOGGER.log(Level.INFO, "Candidate import by userId={0}: total={1}, imported={2}, failed={3}",
+                new Object[]{user.getUserId(), result.getTotalRows(),
+                    result.getImportedRows(), result.getFailedRows()});
+
+        request.setAttribute("importResult", result);
+        request.getRequestDispatcher("/public/manager/recruitment_import.jsp")
+                .forward(request, response);
     }
 }

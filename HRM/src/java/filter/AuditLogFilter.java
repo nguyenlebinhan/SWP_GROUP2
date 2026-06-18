@@ -17,7 +17,7 @@ import model.User;
 import service.AuditLogService;
 
 /**
-
+ *
  *
  * @author admin
  */
@@ -33,9 +33,12 @@ public class AuditLogFilter implements Filter {
         HttpServletRequest request = (HttpServletRequest) req;
         HttpServletResponse response = (HttpServletResponse) res;
 
-       
+        String contentType = request.getContentType();
+        boolean isMultipart = contentType != null
+                && contentType.toLowerCase().startsWith("multipart/");
+
         Integer userId = currentUserId(request);
-        Integer recordId = extractRecordId(request);
+        Integer recordId = isMultipart ? null : extractRecordId(request); // không đọc params nếu multipart
         String action = deriveAction(request.getMethod(), request.getPathInfo(), request.getServletPath());
         String endpoint = truncate(safe(request.getServletPath()) + safe(request.getPathInfo()), 50);
         String detail = truncate(request.getMethod() + " " + request.getRequestURI()
@@ -97,7 +100,7 @@ public class AuditLogFilter implements Filter {
         if ("GET".equalsIgnoreCase(method)) {
             return "VIEW";
         }
-        
+
         if (p.contains("add") || p.contains("create") || p.contains("assign")) {
             return "CREATE";
         }

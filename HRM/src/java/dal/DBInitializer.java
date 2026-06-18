@@ -232,7 +232,6 @@ public class DBInitializer {
                 + "reviewedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,"
                 + "note NVARCHAR(500),"
                 + "toEmail VARCHAR(100) NOT NULL,"
-                + "ccEmails VARCHAR(500),"
                 + "emailSubject NVARCHAR(200),"
                 + "emailBody NVARCHAR(3000),"
                 + "emailType VARCHAR(30),"
@@ -313,6 +312,7 @@ public class DBInitializer {
                 + "fileName VARCHAR(255) NOT NULL,"
                 + "month TINYINT NOT NULL,"
                 + "year INT NOT NULL,"
+                + "status INT NOT NULL DEFAULT 0,"
                 + "totalRows INT DEFAULT 0,"
                 + "importedRows INT DEFAULT 0,"
                 + "failedRows INT DEFAULT 0,"
@@ -605,7 +605,7 @@ public class DBInitializer {
 
             if (countRows(conn, "Positions") == 0) {
                 insertPosition(conn, "Thực tập sinh",          1, "Sinh viên thực tập tại công ty");
-                insertPosition(conn, "Nhân viên chính thức",   2, "Hỗ trợ công việc hành chính");
+                insertPosition(conn, "Nhân viên",   2, "Hỗ trợ công việc hành chính");
                 insertPosition(conn, "Trưởng phòng ",   3, "Quản lý toàn bộ hoạt động của phòng ban");
             }
 

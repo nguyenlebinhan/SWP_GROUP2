@@ -56,8 +56,7 @@
                 <c:remove var="error" scope="session"/>
             </c:if>
 
-            <h4 class="fw-bold mb-0">${candidate.fullName}</h4>
-            <p class="text-muted mb-4">Ứng viên ${candidate.positionName}</p>
+            <h4 class="fw-bold mb-0">${candidate.fullName}</h4><br>
 
             <div class="row g-4">
                 <%-- Cột trái: thông tin --%>
@@ -70,7 +69,7 @@
                             </tr>
                             <tr>
                                 <td class="info-label">Vị trí ứng tuyển</td>
-                                <td class="info-value">${candidate.positionName}</td>
+                                <td class="info-value">${candidate.positionName} của ${candidate.departmentName}</td>
                             </tr>
                             <tr>
                                 <td class="info-label">Ngày sinh</td>

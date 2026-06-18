@@ -82,6 +82,17 @@
                 <c:remove var="error" scope="session"/>
             </c:if>
 
+            <%-- Toolbar --%>
+            <div class="d-flex justify-content-between align-items-center mb-3">
+
+                <c:if test="${sessionScope.userPermissions.contains('PROCESS_RECRUITMENT')}">
+                    <a href="${pageContext.request.contextPath}/v1/manager/recruitment-import"
+                       class="btn btn-primary">
+                        <i class="fa-solid fa-file-arrow-up"></i> Upload hồ sơ từ Excel
+                    </a>
+                </c:if>
+            </div>
+
             <%-- Stage Tabs --%>
             <div class="stage-tabs">
                 <a class="stage-tab ${currentStage == 'APPLIED'   ? 'active' : ''}"

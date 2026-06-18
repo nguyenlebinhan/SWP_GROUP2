@@ -23,7 +23,7 @@ public class ApplicationStageLog {
 
     public ApplicationStageLog(int candidateId, String fromStage, String toStage,
                                 String result, int reviewedBy, String note,
-                                String toEmail, String ccEmails, String emailSubject,
+                                String toEmail, String emailSubject,
                                 String emailBody, String emailType) {
         this.candidateId = candidateId;
         this.fromStage = fromStage;
