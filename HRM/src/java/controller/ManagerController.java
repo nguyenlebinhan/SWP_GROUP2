@@ -1306,6 +1306,35 @@ public class ManagerController extends HttpServlet {
                 return;
             }
 
+            try {
+                java.time.LocalTime start = java.time.LocalTime.parse(startTime);
+                java.time.LocalTime end = java.time.LocalTime.parse(endTime);
+                
+                if (!start.isBefore(end)) {
+                    request.getSession().setAttribute("error", "Thời gian kết thúc phải lớn hơn thời gian bắt đầu.");
+                    response.sendRedirect(request.getContextPath() + "/v1/manager/forms/create-ot");
+                    return;
+                }
+
+                java.time.LocalDate date = java.time.LocalDate.parse(otDate);
+                java.time.DayOfWeek dow = date.getDayOfWeek();
+                boolean isWeekend = (dow == java.time.DayOfWeek.SATURDAY || dow == java.time.DayOfWeek.SUNDAY);
+
+                if (!isWeekend) {
+                    java.time.LocalTime minTime = java.time.LocalTime.of(17, 0);
+                    java.time.LocalTime maxTime = java.time.LocalTime.of(19, 0);
+                    if (start.isBefore(minTime) || end.isAfter(maxTime)) {
+                        request.getSession().setAttribute("error", "Đối với ngày thường (Thứ 2 - Thứ 6), nhân viên chỉ được phép OT trong khung giờ 17:00 đến 19:00.");
+                        response.sendRedirect(request.getContextPath() + "/v1/manager/forms/create-ot");
+                        return;
+                    }
+                }
+            } catch (Exception e) {
+                request.getSession().setAttribute("error", "Định dạng ngày/giờ không hợp lệ.");
+                response.sendRedirect(request.getContextPath() + "/v1/manager/forms/create-ot");
+                return;
+            }
+
             int dayType = Integer.parseInt(dayTypeStr);
             
             // Tìm formTypeId của OVERTIME
@@ -1447,143 +1476,4 @@ public class ManagerController extends HttpServlet {
     }
 
     private void displayCreateOTForm(HttpServletRequest request, HttpServletResponse response, User user)
-            throws ServletException, IOException {
-        Set<String> perms = getPermissions(user);
-        request.getSession().setAttribute("userPermissions", perms);
-        
-        EmployeeDetailDTO manager = employeeDAO.getEmployeeByUserId(user.getUserId());
-        if (manager == null || manager.getDepartmentId() <= 0) {
-            request.getSession().setAttribute("error", "Bạn chưa được phân công vào phòng ban nào nên không thể tạo đơn OT.");
-            response.sendRedirect(request.getContextPath() + "/v1/manager/dashboard");
-            return;
-        }
-
-        List<EmployeeDetailDTO> departmentEmployees = employeeDAO.getEmployeesFiltered(null, manager.getDepartmentId(), "", null, "", 0, 1000);
-        
-        request.setAttribute("department", departmentDAO.getDepartmentById(manager.getDepartmentId()));
-        request.setAttribute("departmentEmployees", departmentEmployees);
-        setPermissionFlags(request, perms);
-        request.getRequestDispatcher("/public/manager/ot_create.jsp").forward(request, response);
-    }
-
-    private void displayOTRequests(HttpServletRequest request, HttpServletResponse response, User user)
-            throws ServletException, IOException {
-        Set<String> perms = getPermissions(user);
-        request.getSession().setAttribute("userPermissions", perms);
-        
-        EmployeeDetailDTO manager = employeeDAO.getEmployeeByUserId(user.getUserId());
-        if (manager != null) {
-            String statusFilter = request.getParameter("status");
-            String dateFilter = request.getParameter("otDate");
-
-            List<OvertimeRequestDTO> requests = overtimeDAO.getOvertimeRequestsByManager(manager.getEmployeeId(), statusFilter, dateFilter);
-            request.setAttribute("otRequests", requests);
-            request.setAttribute("statusFilter", statusFilter);
-            request.setAttribute("dateFilter", dateFilter);
-        }
-        
-        setPermissionFlags(request, perms);
-        request.getRequestDispatcher("/public/manager/ot_requests.jsp").forward(request, response);
-    }
-
-    private void handleCreateOT(HttpServletRequest request, HttpServletResponse response, User user)
-            throws ServletException, IOException {
-        try {
-            EmployeeDetailDTO manager = employeeDAO.getEmployeeByUserId(user.getUserId());
-            if (manager == null || manager.getDepartmentId() <= 0) {
-                request.getSession().setAttribute("error", "Bạn chưa được phân công vào phòng ban nào.");
-                response.sendRedirect(request.getContextPath() + "/v1/manager/dashboard");
-                return;
-            }
-
-            String otDate = request.getParameter("otDate");
-            String startTime = request.getParameter("startTime");
-            String endTime = request.getParameter("endTime");
-            String dayTypeStr = request.getParameter("dayType");
-            String reason = request.getParameter("reason");
-            String[] assigneeIds = request.getParameterValues("assignees");
-
-            if (otDate == null || otDate.isEmpty() || startTime == null || startTime.isEmpty() ||
-                endTime == null || endTime.isEmpty() || dayTypeStr == null || assigneeIds == null || assigneeIds.length == 0) {
-                request.getSession().setAttribute("error", "Vui lòng điền đầy đủ thông tin và chọn ít nhất 1 nhân viên.");
-                response.sendRedirect(request.getContextPath() + "/v1/manager/create-ot");
-                return;
-            }
-
-            try {
-                java.time.LocalTime start = java.time.LocalTime.parse(startTime);
-                java.time.LocalTime end = java.time.LocalTime.parse(endTime);
-                
-                if (!start.isBefore(end)) {
-                    request.getSession().setAttribute("error", "Thời gian kết thúc phải lớn hơn thời gian bắt đầu.");
-                    response.sendRedirect(request.getContextPath() + "/v1/manager/create-ot");
-                    return;
-                }
-
-                java.time.LocalDate date = java.time.LocalDate.parse(otDate);
-                java.time.DayOfWeek dow = date.getDayOfWeek();
-                boolean isWeekend = (dow == java.time.DayOfWeek.SATURDAY || dow == java.time.DayOfWeek.SUNDAY);
-
-                if (!isWeekend) {
-                    java.time.LocalTime minTime = java.time.LocalTime.of(17, 0);
-                    java.time.LocalTime maxTime = java.time.LocalTime.of(19, 0);
-                    if (start.isBefore(minTime) || end.isAfter(maxTime)) {
-                        request.getSession().setAttribute("error", "Đối với ngày thường (Thứ 2 - Thứ 6), nhân viên chỉ được phép OT trong khung giờ 17:00 đến 19:00.");
-                        response.sendRedirect(request.getContextPath() + "/v1/manager/create-ot");
-                        return;
-                    }
-                }
-            } catch (Exception e) {
-                request.getSession().setAttribute("error", "Định dạng ngày/giờ không hợp lệ.");
-                response.sendRedirect(request.getContextPath() + "/v1/manager/create-ot");
-                return;
-            }
-
-            int dayType = Integer.parseInt(dayTypeStr);
-            
-            // Tìm formTypeId của OVERTIME
-            int formTypeId = -1;
-            List<model.FormType> types = formTypeDAO.getAll();
-            for (model.FormType type : types) {
-                if ("OVERTIME".equalsIgnoreCase(type.getFormTypeCode())) {
-                    formTypeId = type.getFormTypeId();
-                    break;
-                }
-            }
-            if (formTypeId == -1) {
-                request.getSession().setAttribute("error", "Loại đơn OVERTIME chưa được cấu hình trong hệ thống.");
-                response.sendRedirect(request.getContextPath() + "/v1/manager/create-ot");
-                return;
-            }
-
-            // Tạo mã đơn ngẫu nhiên
-            String formCode = "OT-" + new java.text.SimpleDateFormat("yyyyMMddHHmmss").format(new java.util.Date());
-
-            model.FormRequest fr = new model.FormRequest();
-            fr.setFormCode(formCode);
-            fr.setEmployeeId(manager.getEmployeeId());
-            fr.setFormTypeId(formTypeId);
-            fr.setReason(reason);
-            fr.setStatus(0); // Pending
-
-            int newFormId = formRequestDAO.addFormRequest(fr);
-            if (newFormId > 0) {
-                boolean detailAdded = overtimeDAO.addOvertimeDetails(newFormId, otDate, startTime, endTime, dayType);
-                boolean assigneesAdded = overtimeDAO.addOvertimeAssignees(newFormId, assigneeIds);
-                if (detailAdded && assigneesAdded) {
-                    request.getSession().setAttribute("success", "Đã tạo đơn Overtime thành công (Mã đơn: " + formCode + ") và gửi chờ duyệt.");
-                    response.sendRedirect(request.getContextPath() + "/v1/manager/ot-requests");
-                    return;
-                }
-            }
-            
-            request.getSession().setAttribute("error", "Đã xảy ra lỗi trong quá trình tạo đơn OT.");
-            response.sendRedirect(request.getContextPath() + "/v1/manager/create-ot");
-            
-        } catch (Exception e) {
-            LOGGER.log(Level.SEVERE, "Lỗi khi tạo đơn OT", e);
-            request.getSession().setAttribute("error", "Lỗi hệ thống: " + e.getMessage());
-            response.sendRedirect(request.getContextPath() + "/v1/manager/create-ot");
-        }
-    }
 }
