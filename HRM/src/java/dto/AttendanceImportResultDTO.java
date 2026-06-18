@@ -8,9 +8,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Kết quả import chấm công từ một file Excel.
- * status: 0 Pending, 1 Imported (toàn bộ thành công), 2 Failed (toàn bộ lỗi),
- *         3 Partial (thành công một phần).
  *
  * @author admin
  */
