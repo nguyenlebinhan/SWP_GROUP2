@@ -107,6 +107,10 @@ public class FormRequestDAO {
 
     //Lấy tất cả đơn theo phòng ban (có filter theo thời gian)
     public List<FormRequestDTO> getAllFormRequestsByDepartmentId(int departmentId, Integer day, Integer month, Integer year) {
+        return getAllFormRequestsByDepartmentId(departmentId, day, month, year, null);
+    }
+
+    public List<FormRequestDTO> getAllFormRequestsByDepartmentId(int departmentId, Integer day, Integer month, Integer year, String keyword) {
         List<FormRequestDTO> list = new ArrayList<>();
         StringBuilder SQL = new StringBuilder(MANAGER_FORM_QUERY).append(" WHERE d.departmentId = ?");
         List<Object> param = new ArrayList<>();
@@ -123,6 +127,14 @@ public class FormRequestDAO {
         if (year != null) {
             SQL.append(" AND YEAR(fr.createdAt) = ?");
             param.add(year);
+        }
+        if (keyword != null && !keyword.trim().isEmpty()) {
+            SQL.append(" AND (u.fullName LIKE ? OR e.employeeCode LIKE ? OR ft.formTypeName LIKE ? OR fr.formCode LIKE ?)");
+            String kw = "%" + keyword.trim() + "%";
+            param.add(kw);
+            param.add(kw);
+            param.add(kw);
+            param.add(kw);
         }
         SQL.append(" ORDER BY fr.createdAt DESC");
 

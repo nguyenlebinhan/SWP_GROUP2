@@ -156,7 +156,7 @@
                                                     <i class="fa-solid fa-eye me-1"></i> Xem chi tiết
                                                 </a>
                                                 <br>
-                                                <c:if test="${f.status == 0}">
+                                                <c:if test="${f.status == 0 && canApproveForm}">
                                                     <form method="post"
                                                           action="${pageContext.request.contextPath}/v1/manager/approve-form"
                                                           class="d-inline">

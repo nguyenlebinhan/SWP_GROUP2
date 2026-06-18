@@ -606,7 +606,7 @@ public class DBInitializer {
             if (countRows(conn, "Positions") == 0) {
                 insertPosition(conn, "Thực tập sinh",          1, "Sinh viên thực tập tại công ty");
                 insertPosition(conn, "Nhân viên",   2, "Hỗ trợ công việc hành chính");
-                insertPosition(conn, "Trưởng phòng ",   3, "Quản lý toàn bộ hoạt động của phòng ban");
+                insertPosition(conn, "Trưởng phòng",   3, "Quản lý toàn bộ hoạt động của phòng ban");
             }
 
 

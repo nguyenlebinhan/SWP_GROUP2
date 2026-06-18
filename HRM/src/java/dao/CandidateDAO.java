@@ -19,7 +19,6 @@ public class CandidateDAO {
     }
 
     // ==================== MAPPING ====================
-
     private Candidate mapCandidate(ResultSet rs) throws SQLException {
         Candidate c = new Candidate();
         c.setCandidateId(rs.getInt("candidateId"));
@@ -67,22 +66,22 @@ public class CandidateDAO {
         return log;
     }
 
-    private static final String BASE_SELECT =
-        "SELECT c.*, d.departmentName, p.positionName " +
-        "FROM Candidates c " +
-        "JOIN Departments d ON c.departmentId = d.departmentId " +
-        "JOIN Positions p ON c.positionId = p.positionId ";
+    private static final String BASE_SELECT
+            = "SELECT c.*, d.departmentName, p.positionName "
+            + "FROM Candidates c "
+            + "JOIN Departments d ON c.departmentId = d.departmentId "
+            + "JOIN Positions p ON c.positionId = p.positionId ";
 
     // ==================== CANDIDATE READ ====================
-
     public List<Candidate> getByStage(String stage) {
         List<Candidate> list = new ArrayList<>();
         String sql = BASE_SELECT + "WHERE c.stage = ? ORDER BY c.createdAt DESC";
-        try (Connection conn = dbContext.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+        try (Connection conn = dbContext.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, stage);
             try (ResultSet rs = ps.executeQuery()) {
-                while (rs.next()) list.add(mapCandidate(rs));
+                while (rs.next()) {
+                    list.add(mapCandidate(rs));
+                }
             }
         } catch (SQLException e) {
             LOGGER.log(Level.SEVERE, "Cannot get candidates by stage: " + stage, e);
@@ -92,11 +91,12 @@ public class CandidateDAO {
 
     public Candidate getById(int candidateId) {
         String sql = BASE_SELECT + "WHERE c.candidateId = ?";
-        try (Connection conn = dbContext.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+        try (Connection conn = dbContext.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, candidateId);
             try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) return mapCandidate(rs);
+                if (rs.next()) {
+                    return mapCandidate(rs);
+                }
             }
         } catch (SQLException e) {
             LOGGER.log(Level.SEVERE, "Cannot get candidate by id: " + candidateId, e);
@@ -106,15 +106,16 @@ public class CandidateDAO {
 
     public List<Candidate> searchByName(String stage, String keyword) {
         List<Candidate> list = new ArrayList<>();
-        String sql = BASE_SELECT +
-                     "WHERE c.stage = ? AND c.fullName LIKE ? " +
-                     "ORDER BY c.createdAt DESC";
-        try (Connection conn = dbContext.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+        String sql = BASE_SELECT
+                + "WHERE c.stage = ? AND c.fullName LIKE ? "
+                + "ORDER BY c.createdAt DESC";
+        try (Connection conn = dbContext.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, stage);
             ps.setString(2, "%" + keyword + "%");
             try (ResultSet rs = ps.executeQuery()) {
-                while (rs.next()) list.add(mapCandidate(rs));
+                while (rs.next()) {
+                    list.add(mapCandidate(rs));
+                }
             }
         } catch (SQLException e) {
             LOGGER.log(Level.SEVERE, "Cannot search candidates by name: " + keyword, e);
@@ -123,15 +124,13 @@ public class CandidateDAO {
     }
 
     // ==================== CANDIDATE WRITE ====================
-
     public int insert(Candidate c) {
-        String sql = "INSERT INTO Candidates " +
-                     "(candidateCode, fullName, email, phoneNumber, dateOfBirth, gender, " +
-                     "address, skills, experience, certificates, degree, cvFileUrl, " +
-                     "departmentId, positionId, importFileId, stage) " +
-                     "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'APPLIED')";
-        try (Connection conn = dbContext.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+        String sql = "INSERT INTO Candidates "
+                + "(candidateCode, fullName, email, phoneNumber, dateOfBirth, gender, "
+                + "address, skills, experience, certificates, degree, cvFileUrl, "
+                + "departmentId, positionId, importFileId, stage) "
+                + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'APPLIED')";
+        try (Connection conn = dbContext.getConnection(); PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             ps.setString(1, c.getCandidateCode());
             ps.setNString(2, c.getFullName());
             ps.setString(3, c.getEmail());
@@ -147,8 +146,11 @@ public class CandidateDAO {
             ps.setString(12, c.getCvFileUrl());
             ps.setInt(13, c.getDepartmentId());
             ps.setInt(14, c.getPositionId());
-            if (c.getImportFileId() != null) ps.setInt(15, c.getImportFileId());
-            else ps.setNull(15, Types.INTEGER);
+            if (c.getImportFileId() != null) {
+                ps.setInt(15, c.getImportFileId());
+            } else {
+                ps.setNull(15, Types.INTEGER);
+            }
             ps.executeUpdate();
             try (ResultSet rs = ps.getGeneratedKeys()) {
                 return rs.next() ? rs.getInt(1) : 0;
@@ -162,8 +164,7 @@ public class CandidateDAO {
     // Chỉ gọi SAU KHI email gửi thành công
     public boolean updateStage(int candidateId, String newStage) {
         String sql = "UPDATE Candidates SET stage = ? WHERE candidateId = ?";
-        try (Connection conn = dbContext.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+        try (Connection conn = dbContext.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, newStage);
             ps.setInt(2, candidateId);
             return ps.executeUpdate() > 0;
@@ -175,9 +176,7 @@ public class CandidateDAO {
 
     public String generateCode() {
         String sql = "SELECT COUNT(*) FROM Candidates";
-        try (Connection conn = dbContext.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql);
-             ResultSet rs = ps.executeQuery()) {
+        try (Connection conn = dbContext.getConnection(); PreparedStatement ps = conn.prepareStatement(sql); ResultSet rs = ps.executeQuery()) {
             int count = rs.next() ? rs.getInt(1) : 0;
             return String.format("CAN-%05d", count + 1);
         } catch (SQLException e) {
@@ -187,20 +186,20 @@ public class CandidateDAO {
     }
 
     // ==================== STAGE LOG READ ====================
-
     public List<ApplicationStageLog> getLogsByCandidateId(int candidateId) {
         List<ApplicationStageLog> list = new ArrayList<>();
-        String sql = "SELECT asl.*, u.fullName as reviewedByName " +
-                     "FROM Application_Stage_Logs asl " +
-                     "JOIN Employees e ON asl.reviewedBy = e.employeeId " +
-                     "JOIN Users u ON e.userId = u.userId " +
-                     "WHERE asl.candidateId = ? " +
-                     "ORDER BY asl.reviewedAt DESC";
-        try (Connection conn = dbContext.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+        String sql = "SELECT asl.*, u.fullName as reviewedByName "
+                + "FROM Application_Stage_Logs asl "
+                + "JOIN Employees e ON asl.reviewedBy = e.employeeId "
+                + "JOIN Users u ON e.userId = u.userId "
+                + "WHERE asl.candidateId = ? "
+                + "ORDER BY asl.reviewedAt DESC";
+        try (Connection conn = dbContext.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, candidateId);
             try (ResultSet rs = ps.executeQuery()) {
-                while (rs.next()) list.add(mapLog(rs));
+                while (rs.next()) {
+                    list.add(mapLog(rs));
+                }
             }
         } catch (SQLException e) {
             LOGGER.log(Level.SEVERE, "Cannot get logs for candidateId: " + candidateId, e);
@@ -209,17 +208,18 @@ public class CandidateDAO {
     }
 
     public ApplicationStageLog getLatestLog(int candidateId) {
-        String sql = "SELECT asl.*, u.fullName as reviewedByName " +
-                     "FROM Application_Stage_Logs asl " +
-                     "JOIN Employees e ON asl.reviewedBy = e.employeeId " +
-                     "JOIN Users u ON e.userId = u.userId " +
-                     "WHERE asl.candidateId = ? " +
-                     "ORDER BY asl.reviewedAt DESC LIMIT 1";
-        try (Connection conn = dbContext.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+        String sql = "SELECT asl.*, u.fullName as reviewedByName "
+                + "FROM Application_Stage_Logs asl "
+                + "JOIN Employees e ON asl.reviewedBy = e.employeeId "
+                + "JOIN Users u ON e.userId = u.userId "
+                + "WHERE asl.candidateId = ? "
+                + "ORDER BY asl.reviewedAt DESC LIMIT 1";
+        try (Connection conn = dbContext.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, candidateId);
             try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) return mapLog(rs);
+                if (rs.next()) {
+                    return mapLog(rs);
+                }
             }
         } catch (SQLException e) {
             LOGGER.log(Level.SEVERE, "Cannot get latest log for candidateId: " + candidateId, e);
@@ -228,14 +228,12 @@ public class CandidateDAO {
     }
 
     // ==================== STAGE LOG WRITE ====================
-
     public int insertLog(ApplicationStageLog log) {
-        String sql = "INSERT INTO Application_Stage_Logs " +
-                     "(candidateId, fromStage, toStage, result, reviewedBy, note, " +
-                     "toEmail, emailSubject, emailBody, emailType, emailStatus) " +
-                     "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'PENDING')";
-        try (Connection conn = dbContext.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+        String sql = "INSERT INTO Application_Stage_Logs "
+                + "(candidateId, fromStage, toStage, result, reviewedBy, note, "
+                + "toEmail, emailSubject, emailBody, emailType, emailStatus) "
+                + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'PENDING')";
+        try (Connection conn = dbContext.getConnection(); PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             ps.setInt(1, log.getCandidateId());
             ps.setString(2, log.getFromStage());
             ps.setString(3, log.getToStage());
@@ -246,7 +244,7 @@ public class CandidateDAO {
             ps.setNString(8, log.getEmailSubject());
             ps.setNString(9, log.getEmailBody());
             ps.setString(10, log.getEmailType());
-            
+
             ps.executeUpdate();
             try (ResultSet rs = ps.getGeneratedKeys()) {
                 return rs.next() ? rs.getInt(1) : 0;
@@ -260,10 +258,9 @@ public class CandidateDAO {
     // SENT → gọi tiếp updateStage()
     // FAILED → báo lỗi cho HR, không đổi stage
     public boolean updateEmailStatus(int logId, String status) {
-        String sql = "UPDATE Application_Stage_Logs " +
-                     "SET emailStatus = ?, sentAt = ? WHERE logId = ?";
-        try (Connection conn = dbContext.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+        String sql = "UPDATE Application_Stage_Logs "
+                + "SET emailStatus = ?, sentAt = ? WHERE logId = ?";
+        try (Connection conn = dbContext.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, status);
             ps.setTimestamp(2, "SENT".equals(status)
                     ? new Timestamp(System.currentTimeMillis()) : null);
@@ -273,5 +270,34 @@ public class CandidateDAO {
             LOGGER.log(Level.SEVERE, "Cannot update email status for logId: " + logId, e);
         }
         return false;
+    }
+
+    public List<Candidate> getAll() {
+        List<Candidate> list = new ArrayList<>();
+        String sql = BASE_SELECT + "ORDER BY c.createdAt DESC";
+        try (Connection conn = dbContext.getConnection(); PreparedStatement ps = conn.prepareStatement(sql); ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) {
+                list.add(mapCandidate(rs));
+            }
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Cannot get all candidates", e);
+        }
+        return list;
+    }
+
+    public List<Candidate> searchAllByName(String keyword) {
+        List<Candidate> list = new ArrayList<>();
+        String sql = BASE_SELECT + "WHERE c.fullName LIKE ? ORDER BY c.createdAt DESC";
+        try (Connection conn = dbContext.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, "%" + keyword + "%");
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    list.add(mapCandidate(rs));
+                }
+            }
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Cannot search all candidates by name", e);
+        }
+        return list;
     }
 }

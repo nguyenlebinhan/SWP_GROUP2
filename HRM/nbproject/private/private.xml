@@ -29,7 +29,6 @@
             <file>file:/C:/Users/PC/Documents/SWP_GROUP2/HRM/web/public/components/systemAdminSideBar.jsp</file>
             <file>file:/C:/Users/PC/Documents/SWP_GROUP2/HRM/web/public/employee/recruitment_detail.jsp</file>
             <file>file:/C:/Users/PC/Documents/SWP_GROUP2/HRM/src/java/dto/CandidateDataDTO.java</file>
-            <file>file:/C:/Users/PC/Documents/SWP_GROUP2/HRM/src/java/dal/DBContext.java</file>
             <file>file:/C:/Users/PC/Documents/SWP_GROUP2/HRM/src/java/filter/CharacterEncodingFilter.java</file>
             <file>file:/C:/Users/PC/Documents/SWP_GROUP2/HRM/web/public/components/businessAdminSideBar.jsp</file>
             <file>file:/C:/Users/PC/Documents/SWP_GROUP2/HRM/src/java/filter/AuditLogFilter.java</file>
@@ -38,7 +37,6 @@
             <file>file:/C:/Users/PC/Documents/SWP_GROUP2/HRM/src/java/dao/UserDAO.java</file>
             <file>file:/C:/Users/PC/Documents/SWP_GROUP2/HRM/web/public/manager/all_form_list.jsp</file>
             <file>file:/C:/Users/PC/Documents/SWP_GROUP2/HRM/src/java/dto/CandidateImportResultDTO.java</file>
-            <file>file:/C:/Users/PC/Documents/SWP_GROUP2/HRM/src/java/model/ApplicationStageLog.java</file>
             <file>file:/C:/Users/PC/Documents/SWP_GROUP2/HRM/src/java/dao/CandidateDAO.java</file>
             <file>file:/C:/Users/PC/Documents/SWP_GROUP2/HRM/web/public/systemadmin/edit_role_permissions.jsp</file>
             <file>file:/C:/Users/PC/Documents/SWP_GROUP2/HRM/src/java/dao/DepartmentDAO.java</file>

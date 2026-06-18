@@ -77,7 +77,7 @@
             </c:if>
             <%-- Filter theo ngày / tháng / năm / phòng ban / mã nhân viên --%>
             <div class="section-card">
-                <form method="get" action="${pageContext.request.contextPath}/v1/employee/all-forms"
+                <form method="get" action="${pageContext.request.contextPath}/v1/manager/all-forms"
                       class="row g-3 align-items-end">
                     <div class="col-md-2">
                         <label class="form-label">Ngày</label>
@@ -104,7 +104,7 @@
                     </div>
                     <div class="col-md-5">
                         <label class="form-label">Từ khóa tìm kiếm</label>
-                        <input type="text" name="searchKeyword" class="form-control" value="${filterKeyword}" placeholder="Nhập tên nhân viên hoặc phòng ban...">
+                        <input type="text" name="keyword" class="form-control" value="${keyword}" placeholder="Nhập tên nhân viên hoặc phòng ban...">
                         <div class="col-md-1">
                             <button type="submit" class="btn btn-primary w-100" id="btn-filter-forms">
                                 <i class="fa-solid fa-magnifying-glass"></i>
@@ -139,7 +139,7 @@
                                         <c:forEach var="f" items="${forms}">
                                         <tr>
                                             <td>
-                                                <a href="${pageContext.request.contextPath}/v1/employee/form-detail?id=${f.formId}" class="text-decoration-none fw-bold">
+                                                <a href="${pageContext.request.contextPath}/v1/manager/form-detail?id=${f.formId}" class="text-decoration-none fw-bold">
                                                     ${f.formCode}
                                                 </a>
                                             </td>
@@ -150,7 +150,7 @@
                                             <td><span class="badge-status status-${f.status}">${f.statusLabel}</span></td>
                                             <td>${f.createdAt}</td>
                                             <td>
-                                                <a href="${pageContext.request.contextPath}/v1/employee/form-detail?id=${f.formId}"
+                                                <a href="${pageContext.request.contextPath}/v1/manager/form-detail?id=${f.formId}"
                                                    class="btn btn-sm btn-outline-primary">
                                                     <i class="fa-solid fa-eye me-1"></i> Xem chi tiết
                                                 </a>
