@@ -155,6 +155,7 @@
                             </ol>
                             <hr/>
                             <a href="${pageContext.request.contextPath}/downloads/candidate_import_template.xlsx"
+                               download="candidate_import_template.xlsx"
                                class="btn btn-outline-success w-100">
                                 <i class="fa-solid fa-download"></i> Tải file mẫu
                             </a>

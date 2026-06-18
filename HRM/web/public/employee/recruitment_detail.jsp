@@ -40,9 +40,9 @@
             <jsp:include page="/public/components/employeeTopBar.jsp">
                 <jsp:param name="title" value="Tuyển Dụng" />
             </jsp:include>
-            
+
             <%-- Back --%>
-            <a href="${pageContext.request.contextPath}/v1/employee/recruitment-list?stage=${candidate.stage == 'APPLIED' ? 'APPLIED' : candidate.stage}"
+            <a href="javascript:history.back()"
                class="text-decoration-none text-secondary mb-3 d-inline-block">
                 <i class="fa fa-arrow-left"></i> Quay lại
             </a>
@@ -110,7 +110,7 @@
                         </table>
 
                         <%-- Nút Đậu / Loại — chỉ hiện khi có PROCESS_RECRUITMENT và stage là APPLIED --%>
-                        <c:if test="${sessionScope.userPermissions.contains('PROCESS_RECRUITMENT') && candidate.stage == 'APPLIED'}">
+                        <c:if test="${sessionScope.userPermissions.contains('PROCESS_RECRUITMENT') && (candidate.stage == 'APPLIED' || candidate.stage == 'INTERVIEW')}">
                             <div class="d-flex gap-3 mt-4">
                                 <button class="btn btn-success px-4"
                                         onclick="openEmailModal('PASSED')">
@@ -124,9 +124,14 @@
                         </c:if>
 
                         <%-- Hiển thị trạng thái nếu đã duyệt --%>
-                        <c:if test="${candidate.stage == 'INTERVIEW'}">
+                        <c:if test="${candidate.stage == 'INTERVIEW' && !sessionScope.userPermissions.contains('PROCESS_RECRUITMENT')}">
                             <div class="alert alert-success mt-4 mb-0">
                                 <i class="fa fa-check-circle"></i> Hồ sơ đã được duyệt đậu — chuyển sang phỏng vấn.
+                            </div>
+                        </c:if>
+                        <c:if test="${candidate.stage == 'PROBATION'}">
+                            <div class="alert alert-success mt-4 mb-0">
+                                <i class="fa fa-check-circle"></i> Ung vien da dau phong van va chuyen sang thu viec.
                             </div>
                         </c:if>
                         <c:if test="${candidate.stage == 'REJECTED'}">
@@ -158,7 +163,7 @@
         </div>
 
         <%-- Modal gửi email — chỉ render khi có quyền PROCESS_RECRUITMENT --%>
-        <c:if test="${sessionScope.userPermissions.contains('PROCESS_RECRUITMENT') && candidate.stage == 'APPLIED'}">
+        <c:if test="${sessionScope.userPermissions.contains('PROCESS_RECRUITMENT') && (candidate.stage == 'APPLIED' || candidate.stage == 'INTERVIEW')}">
             <div class="modal fade" id="emailModal" tabindex="-1">
                 <div class="modal-dialog modal-lg">
                     <div class="modal-content">
@@ -186,9 +191,9 @@
                                     <textarea name="emailBody" id="emailBody" class="form-control" rows="7" required></textarea>
                                 </div>
                                 <div class="mb-3">
-                                    <label class="form-label fw-semibold">Ghi chú (nội bộ)</label>
-                                    <input type="text" name="note" class="form-control"
-                                           placeholder="Ghi chú không gửi đến ứng viên"/>
+                                    <label class="form-label fw-semibold" id="noteLabel">Ghi chu (noi bo)</label>
+                                    <textarea name="note" id="noteInput" class="form-control" rows="3"
+                                              placeholder="Ghi chu khong gui den ung vien"></textarea>
                                 </div>
                             </div>
                             <div class="modal-footer">
@@ -221,26 +226,43 @@
             </div>
 
             <script>
-                // Template mặc định theo result
+                const currentStage = '${candidate.stage}';
                 const templates = {
-                    PASSED: {
-                        subject: "Thư mời phỏng vấn - ${candidate.positionName}",
-                        body: "Chào ${candidate.fullName},\n\nChúng tôi trân trọng mời bạn tham gia phỏng vấn cho vị trí ${candidate.positionName}.\n\nThời gian: [thời gian]\nĐịa điểm: [địa điểm]\n\nTrân trọng."
+                    APPLIED: {
+                        PASSED: {
+                            subject: "Thu moi phong van - ${candidate.positionName}",
+                            body: "Chao ${candidate.fullName},\n\nChung toi tran trong moi ban tham gia phong van cho vi tri ${candidate.positionName}.\n\nThoi gian: [thoi gian]\nDia diem: [dia diem]\n\nTran trong."
+                        },
+                        REJECTED: {
+                            subject: "Thong bao ket qua ho so - ${candidate.positionName}",
+                            body: "Chao ${candidate.fullName},\n\nCam on ban da quan tam den vi tri ${candidate.positionName}. Sau xem xet, chung toi nhan thay ban chua phu hop voi vi tri nay.\n\nChuc ban thanh cong."
+                        }
                     },
-                    REJECTED: {
-                        subject: "Thông báo kết quả hồ sơ - ${candidate.positionName}",
-                        body: "Chào ${candidate.fullName},\n\nCảm ơn bạn đã quan tâm đến vị trí ${candidate.positionName}.\nSau xem xét, chúng tôi nhận thấy bạn chưa phù hợp với vị trí này.\n\nChúc bạn thành công."
+                    INTERVIEW: {
+                        PASSED: {
+                            subject: "Thong bao ket qua phong van - ${candidate.positionName}",
+                            body: "Chao ${candidate.fullName},\n\nChuc mung ban da vuot qua vong phong van cho vi tri ${candidate.positionName}. Chung toi se lien he voi ban ve cac buoc thu viec tiep theo.\n\nTran trong."
+                        },
+                        REJECTED: {
+                            subject: "Thong bao ket qua phong van - ${candidate.positionName}",
+                            body: "Chao ${candidate.fullName},\n\nCam on ban da tham gia phong van cho vi tri ${candidate.positionName}. Sau khi danh gia, chung toi rat tiec chua the tiep tuc voi ban o vi tri nay.\nLy do:\n\nChuc ban thanh cong."
+                        }
                     }
                 };
 
                 function openEmailModal(result) {
                     document.getElementById('resultInput').value = result;
-                    document.getElementById('emailSubject').value = templates[result].subject;
-                    document.getElementById('emailBody').value = templates[result].body;
+                    document.getElementById('emailSubject').value = templates[currentStage][result].subject;
+                    document.getElementById('emailBody').value = templates[currentStage][result].body;
+                    document.getElementById('noteLabel').innerText =
+                            currentStage === 'INTERVIEW' ? 'Nhan xet danh gia buoi phong van *' : 'Ghi chu (noi bo)';
+                    document.getElementById('noteInput').required = currentStage === 'INTERVIEW';
                     document.getElementById('confirmBox').classList.add('d-none');
                     document.getElementById('sendBtnBox').classList.remove('d-none');
                     document.getElementById('emailModalTitle').innerText =
-                            result === 'PASSED' ? 'Gửi thư mời phỏng vấn' : 'Gửi thông báo từ chối';
+                            result === 'PASSED'
+                            ? (currentStage === 'INTERVIEW' ? 'Gui thong bao thu viec' : 'Gui thu moi phong van')
+                            : 'Gui thong bao tu choi';
                     new bootstrap.Modal(document.getElementById('emailModal')).show();
                 }
 
@@ -248,7 +270,11 @@
                     const subject = document.getElementById('emailSubject').value.trim();
                     const body = document.getElementById('emailBody').value.trim();
                     if (!subject || !body) {
-                        alert('Vui lòng nhập tiêu đề và nội dung email.');
+                        alert('Vui long nhap tieu de va noi dung email.');
+                        return;
+                    }
+                    if (currentStage === 'INTERVIEW' && !document.getElementById('noteInput').value.trim()) {
+                        alert('Vui long nhap nhan xet danh gia buoi phong van.');
                         return;
                     }
                     document.getElementById('sendBtnBox').classList.add('d-none');

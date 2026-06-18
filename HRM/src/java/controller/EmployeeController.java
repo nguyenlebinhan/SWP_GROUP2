@@ -1723,15 +1723,51 @@ public class EmployeeController extends HttpServlet {
         }
         String keyword = trimToNull(request.getParameter("keyword"));
 
-        List<Candidate> candidates = (keyword != null)
-                ? candidateDAO.searchByName(stage, keyword)
-                : candidateDAO.getByStage(stage);
+        List<Candidate> candidates;
+        if ("APPLIED".equals(stage)) {
+            candidates = (keyword != null)
+                    ? candidateDAO.searchAllByName(keyword)
+                    : candidateDAO.getAll();
+        } else {
+            candidates = (keyword != null)
+                    ? candidateDAO.searchByName(stage, keyword)
+                    : candidateDAO.getByStage(stage);
+        }
+
+        int pageSize = 7;
+        int totalCandidates = candidates.size();
+        int totalPages = (int) Math.ceil((double) totalCandidates / pageSize);
+        if (totalPages < 1) {
+            totalPages = 1;
+        }
+
+        int currentPage = 1;
+        String rawPage = request.getParameter("page");
+        if (!isBlank(rawPage)) {
+            try {
+                currentPage = Integer.parseInt(rawPage);
+            } catch (NumberFormatException ignored) {
+                currentPage = 1;
+            }
+        }
+        if (currentPage < 1) {
+            currentPage = 1;
+        } else if (currentPage > totalPages) {
+            currentPage = totalPages;
+        }
+
+        int fromIndex = Math.min((currentPage - 1) * pageSize, totalCandidates);
+        int toIndex = Math.min(fromIndex + pageSize, totalCandidates);
+        List<Candidate> pagedCandidates = candidates.subList(fromIndex, toIndex);
 
         Set<String> perms = getPermissions(user);
         request.getSession().setAttribute("userPermissions", perms);
-        request.setAttribute("candidates", candidates);
+        request.setAttribute("candidates", pagedCandidates);
         request.setAttribute("currentStage", stage);
         request.setAttribute("keyword", keyword);
+        request.setAttribute("currentPage", currentPage);
+        request.setAttribute("totalPages", totalPages);
+        request.setAttribute("totalCandidates", totalCandidates);
         setPermissionFlags(request, perms);
         request.getRequestDispatcher("/public/employee/recruitment_list.jsp")
                 .forward(request, response);
@@ -1834,8 +1870,26 @@ public class EmployeeController extends HttpServlet {
         }
 
         String fromStage = candidate.getStage();
-        String toStage = "PASSED".equals(result) ? "INTERVIEW" : "REJECTED";
-        String emailType = "PASSED".equals(result) ? "INTERVIEW_INVITE" : "REJECTION_CV";
+        if (!"APPLIED".equals(fromStage) && !"INTERVIEW".equals(fromStage)) {
+            request.getSession().setAttribute("error", "Ho so nay khong o trang thai cho duyet.");
+            response.sendRedirect(request.getContextPath() + "/v1/employee/recruitment-detail?id=" + candidateId);
+            return;
+        }
+        if ("INTERVIEW".equals(fromStage) && isBlank(note)) {
+            request.getSession().setAttribute("error", "Vui long nhap nhan xet danh gia buoi phong van.");
+            response.sendRedirect(request.getContextPath() + "/v1/employee/recruitment-detail?id=" + candidateId);
+            return;
+        }
+
+        String toStage;
+        String emailType;
+        if ("PASSED".equals(result)) {
+            toStage = "INTERVIEW".equals(fromStage) ? "PROBATION" : "INTERVIEW";
+            emailType = "INTERVIEW".equals(fromStage) ? "PROBATION_INVITE" : "INTERVIEW_INVITE";
+        } else {
+            toStage = "REJECTED";
+            emailType = "INTERVIEW".equals(fromStage) ? "REJECTION_INTERVIEW" : "REJECTION_CV";
+        }
 
         EmployeeDetailDTO me = employeeDAO.getEmployeeByUserId(user.getUserId());
         if (me == null) {
@@ -1887,7 +1941,10 @@ public class EmployeeController extends HttpServlet {
             return;
         }
 
-        response.sendRedirect(request.getContextPath() + "/v1/employee/recruitment-list");
+        String redirectStage = "INTERVIEW".equals(fromStage)
+                ? ("PASSED".equals(result) ? "PROBATION" : "INTERVIEW")
+                : ("PASSED".equals(result) ? "INTERVIEW" : "APPLIED");
+        response.sendRedirect(request.getContextPath() + "/v1/employee/recruitment-list?stage=" + redirectStage);
     }
 
     private void displayRecruitmentImport(HttpServletRequest request, HttpServletResponse response,

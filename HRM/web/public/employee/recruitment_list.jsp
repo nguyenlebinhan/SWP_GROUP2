@@ -40,7 +40,7 @@
                 color: #1565C0;
             }
             .badge-interview {
-                background: #fff8e1;
+                background: #2e7d32;
                 color: #f57f17;
             }
             .badge-probation {
@@ -48,12 +48,28 @@
                 color: #2e7d32;
             }
             .badge-rejected  {
-                background: #fce4ec;
+                background: #c62828;
                 color: #c62828;
             }
             .result-btn {
                 min-width: 110px;
                 font-size: 13px;
+            }
+
+            .badge a:link {
+                color: #ffffff;
+            }
+
+            .badge a:visited {
+                color: #ffffff;
+            }
+
+            .badge a:hover {
+                color: #ffff66;
+            }
+            .pagination-wrap {
+                padding: 14px 18px;
+                border-top: 1px solid #eef0f4;
             }
         </style>
     </head>
@@ -85,7 +101,7 @@
             <%-- Toolbar --%>
             <div class="d-flex justify-content-between align-items-center mb-3">
 
-                <c:if test="${sessionScope.userPermissions.contains('PROCESS_RECRUITMENT')}">
+                <c:if test="${currentStage == 'APPLIED' && sessionScope.userPermissions.contains('PROCESS_RECRUITMENT')}">
                     <a href="${pageContext.request.contextPath}/v1/employee/recruitment-import"
                        class="btn btn-primary">
                         <i class="fa-solid fa-file-arrow-up"></i> Upload hồ sơ từ Excel
@@ -153,11 +169,32 @@
                                             <td class="text-end">
                                                 <c:choose>
                                                     <%-- Đã có kết quả --%>
+                                                    <c:when test="${currentStage == 'INTERVIEW' && c.stage == 'INTERVIEW'}">
+                                                        <c:choose>
+                                                            <c:when test="${sessionScope.userPermissions.contains('PROCESS_RECRUITMENT')}">
+                                                                <a href="${pageContext.request.contextPath}/v1/employee/recruitment-detail?id=${c.candidateId}"
+                                                                   class="btn btn-sm btn-outline-primary result-btn">
+                                                                    Ấn vào để duyệt
+                                                                </a>
+                                                            </c:when>
+                                                            <c:otherwise>
+                                                                <a href="${pageContext.request.contextPath}/v1/employee/recruitment-detail?id=${c.candidateId}"
+                                                                   class="btn btn-sm btn-outline-secondary result-btn">
+                                                                    Xem chi tiết
+                                                                </a>
+                                                            </c:otherwise>
+                                                        </c:choose>
+                                                    </c:when>
                                                     <c:when test="${c.stage == 'INTERVIEW'}">
-                                                        <span class="badge badge-interview px-3 py-2">Hồ sơ đậu</span>
+                                                        <span class="badge badge-interview px-3 py-2"><a href="${pageContext.request.contextPath}/v1/employee/recruitment-detail?id=${c.candidateId}">Hồ sơ đậu</a></span>
+                                                    </c:when>
+                                                    <c:when test="${c.stage == 'PROBATION'}">
+                                                        <span class="badge badge-probation px-3 py-2">
+                                                            <a href="${pageContext.request.contextPath}/v1/employee/recruitment-detail?id=${c.candidateId}">Thử việc</a>
+                                                        </span>
                                                     </c:when>
                                                     <c:when test="${c.stage == 'REJECTED'}">
-                                                        <span class="badge badge-rejected px-3 py-2">Hồ sơ rớt</span>
+                                                        <span class="badge badge-rejected px-3 py-2"><a href="${pageContext.request.contextPath}/v1/employee/recruitment-detail?id=${c.candidateId}">Hồ sơ rớt</a></span>
                                                     </c:when>
                                                     <%-- Chưa duyệt --%>
                                                     <c:otherwise>
@@ -186,6 +223,49 @@
                             </c:choose>
                         </tbody>
                     </table>
+                    <c:if test="${totalPages > 1}">
+                        <div class="pagination-wrap d-flex justify-content-between align-items-center">
+                            <span class="text-muted small">
+                                Trang ${currentPage}/${totalPages} - ${totalCandidates} hồ sơ
+                            </span>
+                            <ul class="pagination mb-0">
+                                <c:url var="prevPageUrl" value="/v1/employee/recruitment-list">
+                                    <c:param name="stage" value="${currentStage}"/>
+                                    <c:if test="${not empty keyword}">
+                                        <c:param name="keyword" value="${keyword}"/>
+                                    </c:if>
+                                    <c:param name="page" value="${currentPage - 1}"/>
+                                </c:url>
+                                <li class="page-item <c:if test='${currentPage <= 1}'>disabled</c:if>">
+                                    <a class="page-link" href="${prevPageUrl}">&laquo;</a>
+                                </li>
+
+                                <c:forEach begin="1" end="${totalPages}" var="i">
+                                    <c:url var="pageUrl" value="/v1/employee/recruitment-list">
+                                        <c:param name="stage" value="${currentStage}"/>
+                                        <c:if test="${not empty keyword}">
+                                            <c:param name="keyword" value="${keyword}"/>
+                                        </c:if>
+                                        <c:param name="page" value="${i}"/>
+                                    </c:url>
+                                    <li class="page-item <c:if test='${i == currentPage}'>active</c:if>">
+                                        <a class="page-link" href="${pageUrl}">${i}</a>
+                                    </li>
+                                </c:forEach>
+
+                                <c:url var="nextPageUrl" value="/v1/employee/recruitment-list">
+                                    <c:param name="stage" value="${currentStage}"/>
+                                    <c:if test="${not empty keyword}">
+                                        <c:param name="keyword" value="${keyword}"/>
+                                    </c:if>
+                                    <c:param name="page" value="${currentPage + 1}"/>
+                                </c:url>
+                                <li class="page-item <c:if test='${currentPage >= totalPages}'>disabled</c:if>">
+                                    <a class="page-link" href="${nextPageUrl}">&raquo;</a>
+                                </li>
+                            </ul>
+                        </div>
+                    </c:if>
                 </div>
             </div>
         </div>
