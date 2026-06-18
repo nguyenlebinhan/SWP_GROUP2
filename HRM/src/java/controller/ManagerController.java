@@ -1509,6 +1509,35 @@ public class ManagerController extends HttpServlet {
                 return;
             }
 
+            try {
+                java.time.LocalTime start = java.time.LocalTime.parse(startTime);
+                java.time.LocalTime end = java.time.LocalTime.parse(endTime);
+                
+                if (!start.isBefore(end)) {
+                    request.getSession().setAttribute("error", "Thời gian kết thúc phải lớn hơn thời gian bắt đầu.");
+                    response.sendRedirect(request.getContextPath() + "/v1/manager/create-ot");
+                    return;
+                }
+
+                java.time.LocalDate date = java.time.LocalDate.parse(otDate);
+                java.time.DayOfWeek dow = date.getDayOfWeek();
+                boolean isWeekend = (dow == java.time.DayOfWeek.SATURDAY || dow == java.time.DayOfWeek.SUNDAY);
+
+                if (!isWeekend) {
+                    java.time.LocalTime minTime = java.time.LocalTime.of(17, 0);
+                    java.time.LocalTime maxTime = java.time.LocalTime.of(19, 0);
+                    if (start.isBefore(minTime) || end.isAfter(maxTime)) {
+                        request.getSession().setAttribute("error", "Đối với ngày thường (Thứ 2 - Thứ 6), nhân viên chỉ được phép OT trong khung giờ 17:00 đến 19:00.");
+                        response.sendRedirect(request.getContextPath() + "/v1/manager/create-ot");
+                        return;
+                    }
+                }
+            } catch (Exception e) {
+                request.getSession().setAttribute("error", "Định dạng ngày/giờ không hợp lệ.");
+                response.sendRedirect(request.getContextPath() + "/v1/manager/create-ot");
+                return;
+            }
+
             int dayType = Integer.parseInt(dayTypeStr);
             
             // Tìm formTypeId của OVERTIME
