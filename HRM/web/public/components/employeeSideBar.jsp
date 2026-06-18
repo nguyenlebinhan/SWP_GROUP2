@@ -79,27 +79,27 @@
 
             <div class="nav-section">Phòng ban</div>
 
-            <a href="${pageContext.request.contextPath}/v1/employee/department-list">
+            <a href="${pageContext.request.contextPath}/v1/employee/department/list">
                 Danh sách phòng ban
             </a>
 
             <div class="nav-section">Đơn từ</div>                
                 <c:if test="${sessionScope.userPermissions.contains('VIEW_ALL_FORMS')}">
-                    <a href="${pageContext.request.contextPath}/v1/employee/all-forms">
+                    <a href="${pageContext.request.contextPath}/v1/employee/forms/all">
                         Tất cả đơn 
                     </a>
                 </c:if>        
-                <a href="${pageContext.request.contextPath}/v1/employee/my-forms">
+                <a href="${pageContext.request.contextPath}/v1/employee/forms/my-forms">
                     Đơn của tôi
                 </a>
 
             <div class="nav-section">Chấm công</div>                    
             <c:if test="${sessionScope.userPermissions.contains('VIEW_ATTENDANCE')}">
-                <a href="${pageContext.request.contextPath}/v1/employee/attendance-list">
+                <a href="${pageContext.request.contextPath}/v1/employee/attendance/list">
                     Xem chấm công
                 </a>
             </c:if>
-            <a href="${pageContext.request.contextPath}/v1/employee/own-attendance">
+            <a href="${pageContext.request.contextPath}/v1/employee/attendance/own-attendance">
                 Chấm công của tôi
             </a>
 
