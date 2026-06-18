@@ -14,6 +14,7 @@ import dao.UserDAO;
 import dto.AttendanceImportResultDTO;
 import dto.CandidateImportResultDTO;
 import dto.EmployeeDetailDTO;
+import enums.FileStatus;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.MultipartConfig;
 import jakarta.servlet.http.HttpServlet;
@@ -356,7 +357,10 @@ public class EmployeeController extends HttpServlet {
             User user) throws ServletException, IOException {
         Set<String> perms = getPermissions(user);
         request.getSession().setAttribute("userPermissions", perms);
-        List<Attendance> attendances = attendanceDAO.getAttendanceListByUserId(user.getUserId());
+        EmployeeDetailDTO me = employeeDAO.getEmployeeByUserId(user.getUserId());
+        List<Attendance> attendances = (me == null)
+                ? Collections.emptyList()
+                : attendanceDAO.getAttendanceListByEmployeeId(me.getEmployeeId(), null, null);
 
         request.setAttribute("attendances", attendances);
         request.getRequestDispatcher("/public/employee/own_attendance_list.jsp").forward(request, response);
@@ -600,7 +604,7 @@ public class EmployeeController extends HttpServlet {
         uf.setFileName(sanitizeFileName(submittedName));
         uf.setMonth(month);
         uf.setYear(year);
-        uf.setStatus(AttendanceImportService.FILE_STATUS_PENDING);
+        uf.setStatus(FileStatus.FILE_STATUS_PENDING.getRelatedNum());
         int fileId = uploadedFileDAO.createUploadedFile(uf);
         if (fileId <= 0) {
             request.setAttribute("error", "Không thể tạo bản ghi file. Vui lòng thử lại.");
@@ -611,11 +615,11 @@ public class EmployeeController extends HttpServlet {
         // 3. Đọc & import từng dòng.
         AttendanceImportResultDTO result;
         try (InputStream is = Files.newInputStream(savedPath)) {
-            result = importService.importAttendance(is, departmentId, fileId);
+            result = importService.importAttendance(is, departmentId, month, year, fileId);
         } catch (IOException e) {
             LOGGER.log(Level.SEVERE, "Cannot read saved attendance file", e);
             uploadedFileDAO.updateImportResult(fileId, 0, 0, 0,
-                    AttendanceImportService.FILE_STATUS_FAILED, "Không thể đọc lại file đã lưu.");
+                    FileStatus.FILE_STATUS_FAILED.getRelatedNum(), "Không thể đọc lại file đã lưu.");
             request.setAttribute("error", "Không thể đọc file đã lưu để import.");
             request.getRequestDispatcher("/public/employee/attendance_import.jsp").forward(request, response);
             return;
