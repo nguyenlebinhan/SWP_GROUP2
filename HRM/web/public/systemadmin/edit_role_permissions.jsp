@@ -284,7 +284,7 @@
                         <div class="group-title">Đơn yêu cầu</div>
                         <div class="row g-3 mb-2">
                             <c:forEach var="p" items="${allPermissions}">
-                                <c:if test="${p.permissionCode == 'SUBMIT_FORM' || p.permissionCode == 'APPROVE_FORM' || p.permissionCode == 'VIEW_ALL_FORMS' || p.permissionCode == 'VIEW_MY_FORM' || p.permissionCode == 'VIEW_DEPT_FORMS'}">
+                                <c:if test="${p.permissionCode == 'VIEW_ALL_FORMS' || p.permissionCode == 'VIEW_ALL_DEPT_FORMS'}">
                                     <div class="col-md-3">
                                         <label class="perm-card ${assignedPermissionIds.contains(p.permissionId) ? 'selected' : ''}">
                                             <input type="checkbox" name="permissionIds" value="${p.permissionId}" ${assignedPermissionIds.contains(p.permissionId) ? 'checked' : ''}/>
