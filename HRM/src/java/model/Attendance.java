@@ -20,12 +20,13 @@ public class Attendance {
     private Time timeIn;
     private Time timeOut;
     private BigDecimal hoursWorked;
-    private int attendanceStatus;   // 0: Đúng giờ, 1: Đi muộn, 2: Vắng mặt, 3: Không phép
+    private int attendanceStatus;   
     private Integer fileId;
-
     private String employeeCode;
     private String fullName;
+    private Integer departmentId;
     private String departmentName;
+    private boolean editable;
 
     public Attendance() {
     }
@@ -118,12 +119,55 @@ public class Attendance {
         this.fullName = fullName;
     }
 
+    public Integer getDepartmentId() {
+        return departmentId;
+    }
+
+    public void setDepartmentId(Integer departmentId) {
+        this.departmentId = departmentId;
+    }
+
+    public boolean isAssignedToDepartment() {
+        return departmentId != null;
+    }
+
     public String getDepartmentName() {
         return departmentName;
     }
 
     public void setDepartmentName(String departmentName) {
         this.departmentName = departmentName;
+    }
+
+    public boolean isEditable() {
+        return editable;
+    }
+
+    public void setEditable(boolean editable) {
+        this.editable = editable;
+    }
+
+    /**
+     * Hiển thị số giờ làm dạng "8h50m". Ưu tiên tính trực tiếp từ giờ vào/giờ ra cho
+     * chính xác (không phụ thuộc làm tròn của cột DECIMAL hoursWorked); nếu thiếu giờ
+     * vào/ra thì suy từ hoursWorked đã lưu.
+     */
+    public String getHoursWorkedLabel() {
+        long minutes;
+        if (timeIn != null && timeOut != null) {
+            minutes = (timeOut.getTime() - timeIn.getTime()) / 60000L;
+        } else if (hoursWorked != null) {
+            minutes = hoursWorked.multiply(BigDecimal.valueOf(60))
+                    .setScale(0, java.math.RoundingMode.HALF_UP).longValue();
+        } else {
+            return "";
+        }
+        if (minutes < 0) {
+            minutes = 0;
+        }
+        long h = minutes / 60;
+        long m = minutes % 60;
+        return h + "h" + String.format("%02d", m) + "m";
     }
 
     public String getStatusLabel() {

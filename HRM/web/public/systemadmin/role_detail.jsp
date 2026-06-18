@@ -375,7 +375,7 @@
                             <div class="perm-group-title"><i class="fa fa-shield-halved"></i> Nhân viên &amp; Phân quyền</div>
                             <div class="row g-2 mb-1">
                                 <c:forEach var="p" items="${allPermissions}">
-                                    <c:if test="${p.permissionCode == 'VIEW_EMPLOYEES' || p.permissionCode == 'ADD_EMPLOYEE' || p.permissionCode == 'EDIT_EMPLOYEE' || p.permissionCode == 'ADD_EMPLOYMENT_CONTRACT' || p.permissionCode == 'VIEW_DEPARTMENTS' || p.permissionCode == 'EDIT_DEPARTMENTS' || p.permissionCode == 'ASSIGN_DEPARTMENT' || p.permissionCode == 'VIEW_DEPARTMENT_EMPLOYEES_DETAIL' || p.permissionCode == 'REASSIGN_DEPARTMENT'|| p.permissionCode == 'VIEW_ATTENDANCE' || p.permissionCode == 'IMPORT_ATTENDANCE'}">
+                                    <c:if test="${p.permissionCode == 'VIEW_EMPLOYEES' || p.permissionCode == 'ADD_EMPLOYEE' || p.permissionCode == 'EDIT_EMPLOYEE' || p.permissionCode == 'ADD_EMPLOYMENT_CONTRACT' || p.permissionCode == 'VIEW_DEPARTMENTS' || p.permissionCode == 'EDIT_DEPARTMENTS' || p.permissionCode == 'ASSIGN_DEPARTMENT' || p.permissionCode == 'VIEW_DEPARTMENT_EMPLOYEES_DETAIL' || p.permissionCode == 'UNASSIGN_DEPARTMENT'|| p.permissionCode == 'VIEW_ATTENDANCE' || p.permissionCode == 'IMPORT_ATTENDANCE' || p.permissionCode =='EDIT_ATTENDANCE'}">
                                         <div class="col-md-3">
                                             <div class="perm-tile ${assignedPermissionIds.contains(p.permissionId) ? 'assigned' : ''}">
                                                 <div class="perm-tile-name">
@@ -395,7 +395,30 @@
                                         </div>
                                     </c:if>
                                 </c:forEach>
-                            </div>                            
+                            </div>    
+                            <div class="row g-2 mb-1">
+                                <c:forEach var="p" items="${allPermissions}">
+                                    <c:if test="${p.permissionCode == 'VIEW_ALL_FORMS' || p.permissionCode == 'VIEW_ALL_DEPT_FORMS'}">
+                                        <div class="col-md-3">
+                                            <div class="perm-tile ${assignedPermissionIds.contains(p.permissionId) ? 'assigned' : ''}">
+                                                <div class="perm-tile-name">
+                                                    <c:choose>
+                                                        <c:when test="${assignedPermissionIds.contains(p.permissionId)}">
+                                                            <i class="fa fa-circle-check perm-check"></i>
+                                                        </c:when>
+                                                        <c:otherwise>
+                                                            <i class="fa fa-circle perm-uncheck"></i>
+                                                        </c:otherwise>
+                                                    </c:choose>
+                                                    <c:out value="${p.permissionName}"/>
+                                                </div>
+                                                <span class="perm-tile-code"><c:out value="${p.permissionCode}"/></span>
+                                                <div class="perm-tile-desc"><c:out value="${empty p.description ? '—' : p.description}"/></div>
+                                            </div>
+                                        </div>
+                                    </c:if>
+                                </c:forEach>
+                            </div>                              
                         </div>
 
                         <div class="section-block">

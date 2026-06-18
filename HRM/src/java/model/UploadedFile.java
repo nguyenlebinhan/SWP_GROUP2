@@ -18,15 +18,34 @@ public class UploadedFile {
     private String fileUrl;
     private String fileName;
     private int month;
-    private int year;
-    private int status;            
+    private int year;            
     private int totalRows;
     private int importedRows;
     private int failedRows;
+    private int status;             // 0: Pending, 1: Imported, 2: Failed, 3: Partial
     private String note;
 
     public UploadedFile() {
     }
+
+    public UploadedFile(int fileId, String fileCode, String fileType, int departmentId, Integer employeeId, String fileUrl, String fileName, int month, int year, int totalRows, int importedRows, int failedRows, int status, String note) {
+        this.fileId = fileId;
+        this.fileCode = fileCode;
+        this.fileType = fileType;
+        this.departmentId = departmentId;
+        this.employeeId = employeeId;
+        this.fileUrl = fileUrl;
+        this.fileName = fileName;
+        this.month = month;
+        this.year = year;
+        this.totalRows = totalRows;
+        this.importedRows = importedRows;
+        this.failedRows = failedRows;
+        this.status = status;
+        this.note = note;
+    }
+    
+    
 
     public int getFileId() {
         return fileId;
@@ -100,14 +119,6 @@ public class UploadedFile {
         this.year = year;
     }
 
-    public int getStatus() {
-        return status;
-    }
-
-    public void setStatus(int status) {
-        this.status = status;
-    }
-
     public int getTotalRows() {
         return totalRows;
     }
@@ -130,6 +141,14 @@ public class UploadedFile {
 
     public void setFailedRows(int failedRows) {
         this.failedRows = failedRows;
+    }
+
+    public int getStatus() {
+        return status;
+    }
+
+    public void setStatus(int status) {
+        this.status = status;
     }
 
     public String getNote() {
