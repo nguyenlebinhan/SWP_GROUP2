@@ -97,7 +97,7 @@
             </div>
             <div class="mt-4 d-flex gap-2">
                 <button type="submit" class="btn btn-primary" id="submitBtn">Gửi đơn</button>
-                <a href="${pageContext.request.contextPath}/v1/employee/my-forms"
+                <a href="${pageContext.request.contextPath}/v1/employee/forms/my-forms"
                    class="btn btn-outline-secondary">Quay lại</a>
             </div>
         </form>
