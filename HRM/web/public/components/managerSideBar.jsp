@@ -69,13 +69,13 @@
             </a>
 
             <div class="nav-section">Nhân viên</div>
-            <a href="${pageContext.request.contextPath}/v1/manager/my-department-list"
+            <a href="${pageContext.request.contextPath}/v1/manager/department/my-department-list"
                 class="${pageContext.request.servletPath == '/public/manager/employee_list.jsp' ? 'active' : ''}">
                 Nhân viên phòng ban của tôi
             </a>
 
             <c:if test="${sessionScope.userPermissions.contains('VIEW_EMPLOYEES')}">
-                <a href="${pageContext.request.contextPath}/v1/manager/employee-list"
+                <a href="${pageContext.request.contextPath}/v1/manager/employee/list"
                     class="${pageContext.request.servletPath == '/public/manager/employee_list.jsp' ? 'active' : ''}">
                     Danh sách nhân viên
                 </a>
@@ -83,7 +83,7 @@
 
             <c:if test="${sessionScope.userPermissions.contains('VIEW_DEPARTMENTS')}">
                 <div class="nav-section">Phòng ban</div>
-                <a href="${pageContext.request.contextPath}/v1/manager/department-list"
+                <a href="${pageContext.request.contextPath}/v1/manager/department/list"
                     class="${pageContext.request.servletPath == '/public/manager/department_list.jsp' ? 'active' : ''}">
                     Danh sách phòng ban
                 </a>
@@ -95,14 +95,14 @@
                 </a>
             </c:if>
 
-            <c:if test="${sessionScope.userPermissions.contains('VIEW_DEPT_FORMS')}">
-                <a href="${pageContext.request.contextPath}/v1/manager/dept-forms">
-                    Đơn của phòng ban
-                </a>
-            </c:if>
+            
+            <a href="${pageContext.request.contextPath}/v1/manager/forms/dept-forms">
+                Đơn của phòng ban
+            </a>
+
 
             <c:if test="${sessionScope.userPermissions.contains('VIEW_ALL_FORMS')}">
-                <a href="${pageContext.request.contextPath}/v1/manager/all-forms">
+                <a href="${pageContext.request.contextPath}/v1/manager/forms/all">
                     Tất cả đơn
                 </a>
             </c:if>
@@ -114,28 +114,28 @@
             </c:if>
 
             <div class="nav-section">Quản lý Overtime</div>
-            <a href="${pageContext.request.contextPath}/v1/manager/ot-requests"
-                class="${pageContext.request.servletPath == '/public/manager/ot_requests.jsp' || pageContext.request.servletPath == '/public/manager/ot_create.jsp' ? 'active' : ''}">
+            <a href="${pageContext.request.contextPath}/v1/manager/forms/ot-requests"
+                class="${pageContext.request.servletPath == '/public/manager/forms/ot_requests.jsp' || pageContext.request.servletPath == '/public/manager/forms/ot_create.jsp' ? 'active' : ''}">
                 Overtime
             </a>
 
             <div class="nav-section">Chấm công</div>
-            <a href="${pageContext.request.contextPath}/v1/manager/own-attendance"
+            <a href="${pageContext.request.contextPath}/v1/manager/attendance/own-attendance"
                 class="${pageContext.request.servletPath == '/public/manager/own_attendance.jsp' ? 'active' : ''}">
                 Chấm công của tôi
             </a>
-            <a href="${pageContext.request.contextPath}/v1/manager/department-attendance"
+            <a href="${pageContext.request.contextPath}/v1/manager/attendance/my-department-attendance"
                 class="${pageContext.request.servletPath == '/public/manager/department_attendance.jsp' ? 'active' : ''}">
                 Chấm công phòng ban
             </a>
 
             <c:if test="${sessionScope.userPermissions.contains('IMPORT_ATTENDANCE')}">
-                <a href="${pageContext.request.contextPath}/v1/employee/attendance-import">
+                <a href="${pageContext.request.contextPath}/v1/employee/attendance/import">
                     Import chấm công
                 </a>
             </c:if>
             <c:if test="${sessionScope.userPermissions.contains('VIEW_ATTENDANCE')}">
-                <a href="${pageContext.request.contextPath}/v1/employee/attendance-list">
+                <a href="${pageContext.request.contextPath}/v1/employee/attendance/list">
                     Xem chấm công toàn công ty
                 </a>
             </c:if>

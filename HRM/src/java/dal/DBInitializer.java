@@ -233,12 +233,16 @@ public class DBInitializer {
                 + "employeeId INT NOT NULL,"
                 + "formTypeId INT NOT NULL,"
                 + "reason NVARCHAR(500),"
-                + "status TINYINT DEFAULT 0,"        // 0: Chờ duyệt, 1: Đã duyệt, 2: Từ chối, 3: Đã hủy
+                + "startDate DATE NULL,"
+                + "endDate DATE NULL,"
+                + "totalDays DECIMAL(4,1) NULL,"
+                + "usedDays DECIMAL(4,1) DEFAULT 0,"
+                + "status TINYINT DEFAULT 0,"
                 + "approverId INT,"
                 + "approverNote NVARCHAR(255),"
                 + "approvedAt TIMESTAMP NULL,"
-                + "attachmentUrl VARCHAR(255) NULL,"  // đường dẫn file đính kèm trên server
-                + "attachmentName VARCHAR(255) NULL," // tên file gốc của người dùng
+                + "attachmentUrl VARCHAR(255) NULL,"
+                + "attachmentName VARCHAR(255) NULL,"
                 + "createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,"
                 + "updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,"
                 + "FOREIGN KEY (employeeId) REFERENCES Employees(employeeId),"
@@ -291,7 +295,6 @@ public class DBInitializer {
                 + ")";
         execute(conn, SQL, "CREATE LEAVE_BALANCE TABLE SUCCESSFULLY");
     }
-
     // ==================== CHẤM CÔNG ====================
 
     public void createTableUploadedFiles(Connection conn) {
@@ -625,12 +628,11 @@ public class DBInitializer {
                 insertPermission(conn,"ADD_DEPARTMENT","Thêm phòng ban","Quyền thêm phòng ban");
                 insertPermission(conn,"VIEW_ATTENDANCE","Xem chấm công","Quyền xem dữ liệu chấm công (Manager: theo phòng mình; Employee: của bản thân)");
                 insertPermission(conn,"IMPORT_ATTENDANCE","Import chấm công","Quyền import dữ liệu chấm công từ file Excel");
-                insertPermission(conn,"EDIT_ATTENDANCE","Chỉnh sửa chấm công","Quyền chỉnh sửa trạng thái chấm công khi kỳ chấm công chưa công khai");                insertPermission(conn,"VIEW_DEPARTMENT_EMPLOYEES_DETAIL","Xem danh sách nhân viên của phòng ban khác","Quyền xem dữ liệu nhân viên của phòng ban khác");
-                insertPermission(conn,"SUBMIT_FORM","Gửi đơn yêu cầu","Quyền gửi đơn yêu cầu (nghỉ phép, tăng ca, tạm ứng,...)");
-                insertPermission(conn,"VIEW_MY_FORM", "Xem đơn nhân viên", "Quyền xem toàn bộ đơn yêu cầu của một nhân viên");
-                insertPermission(conn,"VIEW_DEPT_FORMS", "Xem đơn phòng ban", "Quyền xem toàn bộ đơn yêu cầu của một phòng ban");
-                insertPermission(conn,"APPROVE_FORM","Duyệt đơn yêu cầu","Quyền duyệt hoặc từ chối đơn yêu cầu của nhân viên trong phòng");
+                insertPermission(conn,"EDIT_ATTENDANCE","Chỉnh sửa chấm công","Quyền chỉnh sửa trạng thái chấm công khi kỳ chấm công chưa công khai");                
+                insertPermission(conn,"VIEW_DEPARTMENT_EMPLOYEES_DETAIL","Xem danh sách nhân viên của phòng ban khác","Quyền xem dữ liệu nhân viên của phòng ban khác");
                 insertPermission(conn,"VIEW_ALL_FORMS","Xem tất cả đơn","Quyền xem toàn bộ đơn yêu cầu của mọi phòng ban (chỉ HR)");
+                insertPermission(conn,"VIEW_ALL_DEPT_FORMS","Xem tất cả đơn của phòng ban","Quyền xem toàn bộ đơn yêu cầu của một phòng ban cụ thể");
+                
             }
 
             if (countRows(conn, "Positions") == 0) {
@@ -705,10 +707,8 @@ public class DBInitializer {
             }
 
             if (countRows(conn, "Form_Types") == 0) {
-                insertFormType(conn, "LEAVE",    "Nghỉ phép");
-                insertFormType(conn, "OVERTIME", "Tăng ca");
-                insertFormType(conn, "ADVANCE",  "Tạm ứng");
-                insertFormType(conn, "OTHER",    "Khác");
+                insertFormType(conn, "LEAVE",     "Nghỉ phép");
+                insertFormType(conn, "COMPLAINT", "Khiếu nại");
             }
 
             LOGGER.log(Level.INFO,"Seeding completed successfully.");
