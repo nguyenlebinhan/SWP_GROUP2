@@ -332,10 +332,41 @@ public class AttendanceDAO {
     }
 
     private String formatAdjustmentValue(Time timeIn, Time timeOut, BigDecimal hours, int status) {
-        return "timeIn=" + (timeIn != null ? timeIn : "-")
-                + "; timeOut=" + (timeOut != null ? timeOut : "-")
-                + "; hoursWorked=" + (hours != null ? hours : "-")
-                + "; status=" + status;
+        return "Giờ vào=" + (timeIn != null ? timeIn : "-")
+                + "; Giờ ra=" + (timeOut != null ? timeOut : "-")
+                + "; Giờ làm=" + formatHoursLabel(timeIn, timeOut, hours)
+                + "; Trạng thái=" + statusLabelOf(status);
+    }
+
+    /** Nhãn giờ làm dạng "8h30m" (ưu tiên tính từ giờ vào/ra, nếu thiếu thì suy từ hoursWorked). */
+    private String formatHoursLabel(Time timeIn, Time timeOut, BigDecimal hours) {
+        long minutes;
+        if (timeIn != null && timeOut != null) {
+            minutes = (timeOut.getTime() - timeIn.getTime()) / 60000L;
+        } else if (hours != null) {
+            minutes = hours.multiply(BigDecimal.valueOf(60))
+                    .setScale(0, java.math.RoundingMode.HALF_UP).longValue();
+        } else {
+            return "-";
+        }
+        if (minutes < 0) {
+            minutes = 0;
+        }
+        return (minutes / 60) + "h" + String.format("%02d", minutes % 60) + "m";
+    }
+
+    /** Nhãn trạng thái tiếng Việt cho lịch sử chỉnh sửa. */
+    private String statusLabelOf(int status) {
+        switch (status) {
+            case 0: return "Đúng giờ";
+            case 1: return "Đi muộn";
+            case 2: return "Vắng mặt";
+            case 3: return "Không phép";
+            case 4: return "Nghỉ phép";
+            case 5: return "Nghỉ lễ";
+            case 6: return "Cuối tuần";
+            default: return "Không xác định";
+        }
     }
 
     private Attendance mapAttendance(ResultSet rs) throws SQLException {

@@ -1,6 +1,7 @@
 package controller;
 
 import dao.AttendanceDAO;
+import dao.CandidateDAO;
 import dao.DepartmentDAO;
 import dao.EmployeeDAO;
 import dao.EmploymentContractDAO;
@@ -11,6 +12,7 @@ import dao.RoleDAO;
 import dao.UploadedFileDAO;
 import dao.UserDAO;
 import dto.AttendanceImportResultDTO;
+import dto.CandidateImportResultDTO;
 import dto.EmployeeDetailDTO;
 import dto.FormRequestDTO;
 import enums.FileStatus;
@@ -37,6 +39,8 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import model.*;
 import service.AttendanceImportService;
+import service.CandidateImportService;
+import service.EmailService;
 import utils.ConfigManager;
 
 @MultipartConfig(fileSizeThreshold = 1024 * 1024, // 1MB ghi ra đĩa
@@ -61,6 +65,9 @@ public class EmployeeController extends HttpServlet {
     private final AttendanceImportService importService = new AttendanceImportService();
     private final String UPLOAD_DIR = config.getProperty("UPLOAD_DIR");
     private final String FILE_PART = config.getProperty("FILE_PART");
+    private final CandidateDAO candidateDAO = new CandidateDAO();
+    private final EmailService emailService = new EmailService();
+    private final CandidateImportService candidateImportService = new CandidateImportService();
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
@@ -139,6 +146,15 @@ public class EmployeeController extends HttpServlet {
             case "/forms/detail":
                 displayFormDetail(request, response, user);
                 break;
+            case "/recruitment-list":
+                displayRecruitmentList(request, response, user);
+                break;
+            case "/recruitment-detail":
+                displayRecruitmentDetail(request, response, user);
+                break;
+            case "/recruitment-import":
+                displayRecruitmentImport(request, response, user);
+                break;
             default:
                 response.sendRedirect(request.getContextPath() + "/v1/employee/dashboard");
                 break;
@@ -189,11 +205,17 @@ public class EmployeeController extends HttpServlet {
             case "/update-employee-detail":
                 handleUpdateEmployeeDetail(request, response, user);
                 break;
-            case "/form/leave/submit":
+            case "/forms/leave/submit":
                 handleLeaveFormSubmit(request, response, user);
                 break;
-            case "/form/complaint/submit":
+            case "/forms/complaint/submit":
                 handleComplaintFormSubmit(request, response, user);
+                break;
+            case "/recruitment-review":
+                handleRecruitmentReview(request, response, user);
+                break;
+            case "/recruitment-import":
+                handleImportCandidates(request, response, user);
                 break;
             default:
                 response.sendRedirect(request.getContextPath() + "/v1/employee/dashboard");
@@ -550,8 +572,7 @@ public class EmployeeController extends HttpServlet {
                 + buildAttendanceFilterQuery(request);
 
         Integer attendanceId = parseIntOrNull(request.getParameter("attendanceId"));
-        Integer status = parseIntOrNull(request.getParameter("attendanceStatus"));
-        if (attendanceId == null || status == null || status < 0 || status > 3) {
+        if (attendanceId == null) {
             request.getSession().setAttribute("error", "Dữ liệu chỉnh sửa chấm công không hợp lệ.");
             response.sendRedirect(redirectUrl);
             return;
@@ -590,21 +611,33 @@ public class EmployeeController extends HttpServlet {
             return;
         }
 
-        boolean isAbsent = (status == 2 || status == 3);
+        // Kiểm tra thứ tự giờ trước khi suy trạng thái.
+        if (timeIn != null && timeOut != null && timeOut.before(timeIn)) {
+            request.getSession().setAttribute("error", "Giờ ra phải sau giờ vào.");
+            response.sendRedirect(redirectUrl);
+            return;
+        }
+
+        // Trạng thái KHÔNG còn do người dùng chọn: tự suy lại từ giờ vào/ra theo đúng
+        // logic import (PRESENT/LATE/ABSENT + ưu tiên HOLIDAY/WEEKEND/LEAVE).
+        int status;
+        try {
+            status = importService.resolveStatus(attendance.getEmployeeId(),
+                    attendance.getWorkDate(), timeIn, timeOut).getRelatedNum();
+        } catch (SQLException e) {
+            request.getSession().setAttribute("error", "Lỗi hệ thống khi xác định trạng thái chấm công.");
+            response.sendRedirect(redirectUrl);
+            return;
+        }
+
+        // Chỉ PRESENT(0) và LATE(1) có giờ làm; còn lại = 0 giờ.
         BigDecimal hoursWorked;
-        if (isAbsent) {
-            hoursWorked = BigDecimal.ZERO;
-        } else if (timeIn != null && timeOut != null) {
+        if (timeIn != null && timeOut != null && (status == 0 || status == 1)) {
             long diffMillis = timeOut.getTime() - timeIn.getTime();
-            if (diffMillis < 0) {
-                request.getSession().setAttribute("error", "Giờ ra phải sau giờ vào.");
-                response.sendRedirect(redirectUrl);
-                return;
-            }
             hoursWorked = new BigDecimal(diffMillis)
                     .divide(new BigDecimal(3600000), 2, RoundingMode.HALF_UP);
         } else {
-            hoursWorked = null;
+            hoursWorked = BigDecimal.ZERO;
         }
 
         String updateError = attendanceDAO.updateAttendanceWithHistory(attendanceId, timeIn, timeOut,
@@ -1726,6 +1759,225 @@ public class EmployeeController extends HttpServlet {
             }
         }
         return ids;
+    }
+
+    private void displayRecruitmentList(HttpServletRequest request, HttpServletResponse response,
+            User user) throws ServletException, IOException {
+        if (!isHrStaff(user)) {
+            request.getSession().setAttribute("error", "Ban khong co quyen xem tuyen dung.");
+            response.sendRedirect(request.getContextPath() + "/v1/employee/dashboard");
+            return;
+        }
+
+        String stage = trimToNull(request.getParameter("stage"));
+        if (stage == null) {
+            stage = "APPLIED";
+        }
+        String keyword = trimToNull(request.getParameter("keyword"));
+
+        List<Candidate> candidates = keyword == null
+                ? candidateDAO.getByStage(stage)
+                : candidateDAO.searchByName(stage, keyword);
+
+        int pageSize = 7;
+        int currentPage = parseIntOrNull(request.getParameter("page")) == null
+                ? 1 : Math.max(1, parseIntOrNull(request.getParameter("page")));
+        int totalCandidates = candidates.size();
+        int totalPages = Math.max(1, (int) Math.ceil(totalCandidates / (double) pageSize));
+        if (currentPage > totalPages) {
+            currentPage = totalPages;
+        }
+        int from = Math.min((currentPage - 1) * pageSize, totalCandidates);
+        int to = Math.min(from + pageSize, totalCandidates);
+
+        Set<String> perms = getPermissions(user);
+        request.getSession().setAttribute("userPermissions", perms);
+        request.setAttribute("candidates", candidates.subList(from, to));
+        request.setAttribute("currentStage", stage);
+        request.setAttribute("keyword", keyword);
+        request.setAttribute("currentPage", currentPage);
+        request.setAttribute("totalPages", totalPages);
+        request.setAttribute("pageSize", pageSize);
+        request.setAttribute("totalCandidates", totalCandidates);
+        setPermissionFlags(request, perms);
+        request.getRequestDispatcher("/public/employee/recruitment/recruitment_list.jsp").forward(request, response);
+    }
+
+    private void displayRecruitmentDetail(HttpServletRequest request, HttpServletResponse response,
+            User user) throws ServletException, IOException {
+        if (!isHrStaff(user)) {
+            request.getSession().setAttribute("error", "Ban khong co quyen xem tuyen dung.");
+            response.sendRedirect(request.getContextPath() + "/v1/employee/dashboard");
+            return;
+        }
+        Integer candidateId = parseIntOrNull(request.getParameter("id"));
+        if (candidateId == null) {
+            response.sendRedirect(request.getContextPath() + "/v1/employee/recruitment-list");
+            return;
+        }
+        Candidate candidate = candidateDAO.getById(candidateId);
+        if (candidate == null) {
+            request.getSession().setAttribute("error", "Khong tim thay ung vien.");
+            response.sendRedirect(request.getContextPath() + "/v1/employee/recruitment-list");
+            return;
+        }
+        Set<String> perms = getPermissions(user);
+        request.getSession().setAttribute("userPermissions", perms);
+        request.setAttribute("candidate", candidate);
+        request.setAttribute("latestLog", candidateDAO.getLatestLog(candidateId));
+        request.setAttribute("logs", candidateDAO.getLogsByCandidateId(candidateId));
+        setPermissionFlags(request, perms);
+        request.getRequestDispatcher("/public/employee/recruitment/recruitment_detail.jsp").forward(request, response);
+    }
+
+    private void handleRecruitmentReview(HttpServletRequest request, HttpServletResponse response,
+            User user) throws ServletException, IOException {
+        if (!isHrStaff(user) || !hasPermission(user, "PROCESS_RECRUITMENT")) {
+            request.getSession().setAttribute("error", "Ban khong co quyen xu ly tuyen dung.");
+            response.sendRedirect(request.getContextPath() + "/v1/employee/dashboard");
+            return;
+        }
+
+        Integer candidateId = parseIntOrNull(request.getParameter("candidateId"));
+        String result = trimToNull(request.getParameter("result"));
+        String note = trimToNull(request.getParameter("note"));
+        String toEmail = trimToNull(request.getParameter("toEmail"));
+        String emailSubject = trimToNull(request.getParameter("emailSubject"));
+        String emailBody = trimToNull(request.getParameter("emailBody"));
+        if (candidateId == null || isBlank(result) || isBlank(toEmail)
+                || isBlank(emailSubject) || isBlank(emailBody)) {
+            request.getSession().setAttribute("error", "Thieu thong tin xu ly tuyen dung.");
+            response.sendRedirect(request.getContextPath() + "/v1/employee/recruitment-list");
+            return;
+        }
+
+        Candidate candidate = candidateDAO.getById(candidateId);
+        EmployeeDetailDTO reviewer = employeeDAO.getEmployeeByUserId(user.getUserId());
+        if (candidate == null || reviewer == null) {
+            request.getSession().setAttribute("error", "Khong tim thay du lieu ung vien hoac nguoi xu ly.");
+            response.sendRedirect(request.getContextPath() + "/v1/employee/recruitment-list");
+            return;
+        }
+
+        String fromStage = candidate.getStage();
+        String toStage;
+        if ("PASSED".equals(result)) {
+            toStage = "APPLIED".equals(fromStage) ? "INTERVIEW" : "PROBATION";
+        } else {
+            toStage = "REJECTED";
+        }
+
+        ApplicationStageLog log = new ApplicationStageLog();
+        log.setCandidateId(candidateId);
+        log.setFromStage(fromStage);
+        log.setToStage(toStage);
+        log.setResult(result);
+        log.setReviewedBy(reviewer.getEmployeeId());
+        log.setNote(note);
+        log.setToEmail(toEmail);
+        log.setEmailSubject(emailSubject);
+        log.setEmailBody(emailBody);
+        log.setEmailType("PASSED".equals(result) ? "ACCEPTED" : "REJECTED");
+
+        int logId = candidateDAO.insertLog(log);
+        if (logId <= 0) {
+            request.getSession().setAttribute("error", "Khong the luu lich su xu ly ung vien.");
+            response.sendRedirect(request.getContextPath() + "/v1/employee/recruitment-detail?id=" + candidateId);
+            return;
+        }
+
+        boolean sent = "PASSED".equals(result)
+                ? emailService.sendAcceptedCandidateNotify(toEmail, emailSubject, emailBody)
+                : emailService.sendRejectCandidateNotify(toEmail, emailSubject, emailBody);
+        candidateDAO.updateEmailStatus(logId, sent ? "SENT" : "FAILED");
+        if (!sent) {
+            request.getSession().setAttribute("error", "Gui email that bai, trang thai ung vien chua duoc cap nhat.");
+            response.sendRedirect(request.getContextPath() + "/v1/employee/recruitment-detail?id=" + candidateId);
+            return;
+        }
+
+        candidateDAO.updateStage(candidateId, toStage);
+        request.getSession().setAttribute("success", "Da xu ly ung vien va gui email thanh cong.");
+        response.sendRedirect(request.getContextPath() + "/v1/employee/recruitment-list?stage=" + toStage);
+    }
+
+    private void displayRecruitmentImport(HttpServletRequest request, HttpServletResponse response,
+            User user) throws ServletException, IOException {
+        if (!isHrStaff(user) || !hasPermission(user, "PROCESS_RECRUITMENT")) {
+            request.getSession().setAttribute("error", "Ban khong co quyen import ung vien.");
+            response.sendRedirect(request.getContextPath() + "/v1/employee/dashboard");
+            return;
+        }
+        Set<String> perms = getPermissions(user);
+        request.getSession().setAttribute("userPermissions", perms);
+        setPermissionFlags(request, perms);
+        request.getRequestDispatcher("/public/employee/recruitment/recruitment_import.jsp").forward(request, response);
+    }
+
+    private void handleImportCandidates(HttpServletRequest request, HttpServletResponse response,
+            User user) throws ServletException, IOException {
+        if (!isHrStaff(user) || !hasPermission(user, "PROCESS_RECRUITMENT")) {
+            request.getSession().setAttribute("error", "Ban khong co quyen import ung vien.");
+            response.sendRedirect(request.getContextPath() + "/v1/employee/dashboard");
+            return;
+        }
+
+        Part filePart = request.getPart("file");
+        if (filePart == null || filePart.getSize() == 0) {
+            request.getSession().setAttribute("error", "Vui long chon file Excel.");
+            response.sendRedirect(request.getContextPath() + "/v1/employee/recruitment-import");
+            return;
+        }
+        String submittedName = filePart.getSubmittedFileName();
+        if (submittedName == null || !submittedName.toLowerCase(Locale.ROOT).endsWith(".xlsx")) {
+            request.getSession().setAttribute("error", "File phai co dinh dang .xlsx.");
+            response.sendRedirect(request.getContextPath() + "/v1/employee/recruitment-import");
+            return;
+        }
+
+        Path dir = Paths.get(getServletContext().getRealPath("/" + UPLOAD_DIR));
+        Files.createDirectories(dir);
+        String serverFileName = "CAND_" + System.currentTimeMillis() + "_"
+                + UUID.randomUUID().toString().substring(0, 8) + ".xlsx";
+        Path savedPath = dir.resolve(serverFileName);
+        try (InputStream is = filePart.getInputStream()) {
+            Files.copy(is, savedPath);
+        }
+
+        EmployeeDetailDTO me = employeeDAO.getEmployeeByUserId(user.getUserId());
+        if (me == null || me.getDepartmentId() <= 0) {
+            request.getSession().setAttribute("error", "Khong tim thay phong ban cua ban.");
+            response.sendRedirect(request.getContextPath() + "/v1/employee/recruitment-import");
+            return;
+        }
+
+        UploadedFile uf = new UploadedFile();
+        uf.setFileCode("CAND-" + System.currentTimeMillis());
+        uf.setFileType("CANDIDATE");
+        uf.setDepartmentId(me.getDepartmentId());
+        uf.setEmployeeId(me.getEmployeeId());
+        uf.setFileUrl(UPLOAD_DIR + "/" + serverFileName);
+        uf.setFileName(sanitizeFileName(submittedName));
+        uf.setMonth(0);
+        uf.setYear(0);
+        uf.setStatus(CandidateImportService.FILE_STATUS_PENDING);
+        int fileId = uploadedFileDAO.createUploadedFile(uf);
+        if (fileId <= 0) {
+            request.getSession().setAttribute("error", "Khong the tao ban ghi file import.");
+            response.sendRedirect(request.getContextPath() + "/v1/employee/recruitment-import");
+            return;
+        }
+
+        CandidateImportResultDTO result;
+        try (InputStream is = Files.newInputStream(savedPath)) {
+            result = candidateImportService.importCandidates(is, fileId);
+        }
+        result.setFileName(uf.getFileName());
+        uploadedFileDAO.updateImportResult(fileId, result.getTotalRows(), result.getImportedRows(),
+                result.getFailedRows(), result.getStatus(), result.getNote());
+
+        request.setAttribute("importResult", result);
+        request.getRequestDispatcher("/public/employee/recruitment/recruitment_import.jsp").forward(request, response);
     }
 
     private boolean isAcceptableXlsxContentType(String contentType) {

@@ -36,6 +36,7 @@ public class DBInitializer {
                 + "description TEXT NULL,"
                 + "isActive BIT DEFAULT 1,"
                 + "isDeleted BIT DEFAULT 0,"
+                + "stage VARCHAR(20) DEFAULT 'APPLIED',"
                 + "createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,"
                 + "updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"
                 + ")";
@@ -196,24 +197,53 @@ public class DBInitializer {
         String SQL = "CREATE TABLE Candidates("
                 + "candidateId INT PRIMARY KEY AUTO_INCREMENT,"
                 + "candidateCode VARCHAR(50) NOT NULL UNIQUE,"
-                + "userId INT NOT NULL,"
-                + "departmentId INT NOT NULL,"
+                + "fullName NVARCHAR(150) NOT NULL,"
+                + "email VARCHAR(100) NOT NULL,"
                 + "phoneNumber VARCHAR(20),"
-                + "skills NVARCHAR(255),"
-                + "experience NVARCHAR(255),"
+                + "dateOfBirth DATE,"
+                + "gender VARCHAR(20),"
+                + "address NVARCHAR(255),"
+                + "skills NVARCHAR(500),"
+                + "experience NVARCHAR(500),"
+                + "certificates NVARCHAR(255),"
                 + "degree NVARCHAR(100),"
+                + "cvFileUrl VARCHAR(500),"
+                + "departmentId INT NOT NULL,"
                 + "positionId INT NOT NULL,"
+                + "importFileId INT,"
                 + "status TINYINT DEFAULT 0,"        // 0: Đang xét, 1: Phỏng vấn, 2: Thử việc, 3: Đậu, 4: Trượt
                 + "createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,"
                 + "updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,"
-                + "FOREIGN KEY (userId) REFERENCES Users(userId),"
                 + "FOREIGN KEY (departmentId) REFERENCES Departments(departmentId),"
-                + "FOREIGN KEY (positionId) REFERENCES Positions(positionId)"
+                + "FOREIGN KEY (positionId) REFERENCES Positions(positionId),"
+                + "FOREIGN KEY (importFileId) REFERENCES Uploaded_Files(fileId)"
                 + ")";
         execute(conn, SQL, "CREATE CANDIDATES TABLE SUCCESSFULLY");
     }
 
     // ==================== NGHỈ PHÉP ====================
+
+    public void createTableApplicationStageLogs(Connection conn) {
+        String SQL = "CREATE TABLE Application_Stage_Logs("
+                + "logId INT PRIMARY KEY AUTO_INCREMENT,"
+                + "candidateId INT NOT NULL,"
+                + "fromStage VARCHAR(20),"
+                + "toStage VARCHAR(20) NOT NULL,"
+                + "result VARCHAR(20) NOT NULL,"
+                + "reviewedBy INT NOT NULL,"
+                + "reviewedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,"
+                + "note NVARCHAR(500),"
+                + "toEmail VARCHAR(100) NOT NULL,"
+                + "emailSubject NVARCHAR(200),"
+                + "emailBody NVARCHAR(3000),"
+                + "emailType VARCHAR(30),"
+                + "emailStatus VARCHAR(20) DEFAULT 'PENDING',"
+                + "sentAt TIMESTAMP NULL,"
+                + "FOREIGN KEY (candidateId) REFERENCES Candidates(candidateId),"
+                + "FOREIGN KEY (reviewedBy) REFERENCES Employees(employeeId)"
+                + ")";
+        execute(conn, SQL, "CREATE APPLICATION_STAGE_LOGS TABLE SUCCESSFULLY");
+    }
 
     public void createTableFormTypes(Connection conn) {
         String SQL = "CREATE TABLE Form_Types("
@@ -392,6 +422,19 @@ public class DBInitializer {
         execute(conn, SQL, "CREATE ATTENDANCE_ADJUSTMENT_HISTORY TABLE SUCCESSFULLY");
     }
 
+    // Ngày lễ cấu hình động: một dòng = một khoảng lễ (startDate..endDate).
+    public void createTableHoliday(Connection conn) {
+        String SQL = "CREATE TABLE Holiday("
+                + "holidayId INT PRIMARY KEY AUTO_INCREMENT,"
+                + "holidayName NVARCHAR(255) NOT NULL,"
+                + "startDate DATE NOT NULL,"
+                + "endDate DATE NOT NULL,"
+                + "isActive TINYINT(1) NOT NULL DEFAULT 1,"
+                + "INDEX idx_holiday_range (startDate, endDate)"
+                + ")";
+        execute(conn, SQL, "CREATE HOLIDAY TABLE SUCCESSFULLY");
+    }
+
     // ==================== LƯƠNG & ĐÁNH GIÁ ====================
 
     public void createTablePayroll(Connection conn) {
@@ -492,13 +535,15 @@ public class DBInitializer {
                 "Attendance_Adjustment_History",
                 "Attendance_Import_Rows",
                 "Attendance",
+                "Holiday",
+                "Application_Stage_Logs",
+                "Candidates",
                 "Uploaded_Files",
                 "Leave_Form",
                 "Overtime_Assignees",
                 "Overtime_Details",
                 "Form_Requests",
                 "Form_Types",
-                "Candidates",
                 "Employees",
                 "Users",
                 "Department_Roles",
@@ -520,16 +565,18 @@ public class DBInitializer {
                 "Department_Roles",
                 "Users",
                 "Employees",
+                "Uploaded_Files",
                 "Candidates",
+                "Application_Stage_Logs",
                 "Form_Types",
                 "Form_Requests",
                 "Overtime_Details",
                 "Overtime_Assignees",
                 "Leave_Form",
-                "Uploaded_Files",
                 "Attendance",
                 "Attendance_Import_Rows",
                 "Attendance_Adjustment_History",
+                "Holiday",
                 "Payroll",
                 "Performance",
                 "Notifications",
@@ -562,16 +609,18 @@ public class DBInitializer {
                         case "Users":             createTableUsers(conn);             break;
                         case "Employees":         createTableEmployees(conn);         break;
                         case "Employment_Contracts": createTableEmploymentContracts(conn); break;
+                        case "Uploaded_Files":    createTableUploadedFiles(conn);     break;
                         case "Candidates":        createTableCandidates(conn);        break;
+                        case "Application_Stage_Logs": createTableApplicationStageLogs(conn); break;
                         case "Form_Types":       createTableFormTypes(conn);         break;
                         case "Form_Requests":    createTableFormRequests(conn);     break;
                         case "Overtime_Details": createTableOvertimeDetails(conn);  break;
                         case "Overtime_Assignees": createTableOvertimeAssignees(conn); break;
                         case "Leave_Form":     createTableLeaveForm(conn);      break;
-                        case "Uploaded_Files":    createTableUploadedFiles(conn);     break;
                         case "Attendance":        createTableAttendance(conn);        break;
                         case "Attendance_Import_Rows":        createTableAttendanceImportRows(conn);        break;
                         case "Attendance_Adjustment_History": createTableAttendanceAdjustmentHistory(conn); break;
+                        case "Holiday":           createTableHoliday(conn);           break;
                         case "Payroll":           createTablePayroll(conn);           break;
                         case "Performance":       createTablePerformance(conn);       break;
                         case "Notifications":     createTableNotifications(conn);     break;
@@ -632,6 +681,7 @@ public class DBInitializer {
                 insertPermission(conn,"VIEW_DEPARTMENT_EMPLOYEES_DETAIL","Xem danh sách nhân viên của phòng ban khác","Quyền xem dữ liệu nhân viên của phòng ban khác");
                 insertPermission(conn,"VIEW_ALL_FORMS","Xem tất cả đơn","Quyền xem toàn bộ đơn yêu cầu của mọi phòng ban (chỉ HR)");
                 insertPermission(conn,"VIEW_ALL_DEPT_FORMS","Xem tất cả đơn của phòng ban","Quyền xem toàn bộ đơn yêu cầu của một phòng ban cụ thể");
+                insertPermission(conn,"PROCESS_RECRUITMENT","Xử lý tuyển dụng","Quyền import, duyệt và gửi thông báo kết quả tuyển dụng");
                 
             }
 

@@ -1,6 +1,7 @@
 package controller;
 
 import dao.*;
+import dto.CandidateImportResultDTO;
 import dto.EmployeeDTO;
 import dto.EmployeeDetailDTO;
 import jakarta.servlet.ServletException;
@@ -9,22 +10,34 @@ import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
+import jakarta.servlet.http.Part;
 import java.io.IOException;
+import java.io.InputStream;
 import java.math.BigDecimal;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.logging.*;
+import model.ApplicationStageLog;
 import model.Attendance;
+import model.Candidate;
 import dto.OvertimeRequestDTO;
 import model.Department;
 import model.Employee;
 import model.EmploymentContract;
 import model.Position;
 import model.Role;
+import model.UploadedFile;
 import model.User;
+import service.CandidateImportService;
+import service.EmailService;
 
 @MultipartConfig(
         fileSizeThreshold = 1024 * 1024, // 1MB ghi ra đĩa
@@ -44,6 +57,11 @@ public class ManagerController extends HttpServlet {
     private static final AttendanceDAO attendanceDAO = new AttendanceDAO();
     private static final dao.OvertimeDAO overtimeDAO = new dao.OvertimeDAO();
     private static final dao.FormTypeDAO formTypeDAO = new dao.FormTypeDAO();
+    private static final CandidateDAO candidateDAO = new CandidateDAO();
+    private static final UploadedFileDAO uploadedFileDAO = new UploadedFileDAO();
+    private static final CandidateImportService candidateImportService = new CandidateImportService();
+    private static final EmailService emailService = new EmailService();
+    private static final String UPLOAD_DIR = "uploads";
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
@@ -118,6 +136,15 @@ public class ManagerController extends HttpServlet {
             case "/forms/create-ot":
                 displayCreateOTForm(request, response, user);
                 break;
+            case "/recruitment/list":
+                displayRecruitmentList(request, response, user);
+                break;
+            case "/recruitment/detail":
+                displayRecruitmentDetail(request, response, user);
+                break;
+            case "/recruitment/import":
+                displayRecruitmentImport(request, response, user);
+                break;
             default:
                 response.sendRedirect(request.getContextPath() + "/v1/manager/dashboard");
                 break;
@@ -171,6 +198,12 @@ public class ManagerController extends HttpServlet {
                 break;
             case "/forms/create-ot":
                 handleCreateOT(request, response, user);
+                break;
+            case "/recruitment/review":
+                handleRecruitmentReview(request, response, user);
+                break;
+            case "/recruitment/import":
+                handleImportCandidates(request, response, user);
                 break;
             default:
                 response.sendRedirect(request.getContextPath() + "/v1/manager/dashboard");
@@ -1023,6 +1056,14 @@ public class ManagerController extends HttpServlet {
         return isBlank(value) ? null : value.trim();
     }
 
+    private String sanitizeFileName(String name) {
+        if (name == null) {
+            return "candidates.xlsx";
+        }
+        String base = Paths.get(name).getFileName().toString();
+        return base.replaceAll("[\\r\\n]", "");
+    }
+
     private void displayAllForms(HttpServletRequest request, HttpServletResponse response, User user) throws ServletException, IOException {
         if (!hasPermission(user, "VIEW_ALL_FORMS")) {
             request.getSession().setAttribute("error", "Bạn không có quyền xem tất cả đơn");
@@ -1381,6 +1422,221 @@ public class ManagerController extends HttpServlet {
             request.getSession().setAttribute("error", "Lỗi hệ thống: " + e.getMessage());
             response.sendRedirect(request.getContextPath() + "/v1/manager/forms/create-ot");
         }
+    }
+
+    private void displayRecruitmentList(HttpServletRequest request, HttpServletResponse response,
+            User user) throws ServletException, IOException {
+        if (!isHrStaff(user)) {
+            request.getSession().setAttribute("error", "Ban khong co quyen xem tuyen dung.");
+            response.sendRedirect(request.getContextPath() + "/v1/manager/dashboard");
+            return;
+        }
+
+        String stage = trimToNull(request.getParameter("stage"));
+        if (stage == null) {
+            stage = "APPLIED";
+        }
+        String keyword = trimToNull(request.getParameter("keyword"));
+        List<Candidate> candidates = keyword == null
+                ? candidateDAO.getByStage(stage)
+                : candidateDAO.searchByName(stage, keyword);
+
+        int pageSize = 7;
+        Integer requestedPage = parseIntOrNull(request.getParameter("page"));
+        int currentPage = requestedPage == null ? 1 : Math.max(1, requestedPage);
+        int totalCandidates = candidates.size();
+        int totalPages = Math.max(1, (int) Math.ceil(totalCandidates / (double) pageSize));
+        if (currentPage > totalPages) {
+            currentPage = totalPages;
+        }
+        int from = Math.min((currentPage - 1) * pageSize, totalCandidates);
+        int to = Math.min(from + pageSize, totalCandidates);
+
+        Set<String> perms = getPermissions(user);
+        request.getSession().setAttribute("userPermissions", perms);
+        request.setAttribute("candidates", candidates.subList(from, to));
+        request.setAttribute("currentStage", stage);
+        request.setAttribute("keyword", keyword);
+        request.setAttribute("currentPage", currentPage);
+        request.setAttribute("totalPages", totalPages);
+        request.setAttribute("pageSize", pageSize);
+        request.setAttribute("totalCandidates", totalCandidates);
+        setPermissionFlags(request, perms);
+        request.getRequestDispatcher("/public/manager/recruitment/recruitment_list.jsp").forward(request, response);
+    }
+
+    private void displayRecruitmentDetail(HttpServletRequest request, HttpServletResponse response,
+            User user) throws ServletException, IOException {
+        if (!isHrStaff(user)) {
+            request.getSession().setAttribute("error", "Ban khong co quyen xem tuyen dung.");
+            response.sendRedirect(request.getContextPath() + "/v1/manager/dashboard");
+            return;
+        }
+        Integer candidateId = parseIntOrNull(request.getParameter("id"));
+        if (candidateId == null) {
+            response.sendRedirect(request.getContextPath() + "/v1/manager/recruitment-list");
+            return;
+        }
+        Candidate candidate = candidateDAO.getById(candidateId);
+        if (candidate == null) {
+            request.getSession().setAttribute("error", "Khong tim thay ung vien.");
+            response.sendRedirect(request.getContextPath() + "/v1/manager/recruitment-list");
+            return;
+        }
+        Set<String> perms = getPermissions(user);
+        request.getSession().setAttribute("userPermissions", perms);
+        request.setAttribute("candidate", candidate);
+        request.setAttribute("latestLog", candidateDAO.getLatestLog(candidateId));
+        request.setAttribute("logs", candidateDAO.getLogsByCandidateId(candidateId));
+        setPermissionFlags(request, perms);
+        request.getRequestDispatcher("/public/manager/recruitment/recruitment_detail.jsp").forward(request, response);
+    }
+
+    private void handleRecruitmentReview(HttpServletRequest request, HttpServletResponse response,
+            User user) throws ServletException, IOException {
+        if (!isHrStaff(user) || !hasPermission(user, "PROCESS_RECRUITMENT")) {
+            request.getSession().setAttribute("error", "Ban khong co quyen xu ly tuyen dung.");
+            response.sendRedirect(request.getContextPath() + "/v1/manager/dashboard");
+            return;
+        }
+
+        Integer candidateId = parseIntOrNull(request.getParameter("candidateId"));
+        String result = trimToNull(request.getParameter("result"));
+        String note = trimToNull(request.getParameter("note"));
+        String toEmail = trimToNull(request.getParameter("toEmail"));
+        String emailSubject = trimToNull(request.getParameter("emailSubject"));
+        String emailBody = trimToNull(request.getParameter("emailBody"));
+        if (candidateId == null || isBlank(result) || isBlank(toEmail)
+                || isBlank(emailSubject) || isBlank(emailBody)) {
+            request.getSession().setAttribute("error", "Thieu thong tin xu ly tuyen dung.");
+            response.sendRedirect(request.getContextPath() + "/v1/manager/recruitment-list");
+            return;
+        }
+
+        Candidate candidate = candidateDAO.getById(candidateId);
+        EmployeeDetailDTO reviewer = employeeDAO.getEmployeeByUserId(user.getUserId());
+        if (candidate == null || reviewer == null) {
+            request.getSession().setAttribute("error", "Khong tim thay du lieu ung vien hoac nguoi xu ly.");
+            response.sendRedirect(request.getContextPath() + "/v1/manager/recruitment-list");
+            return;
+        }
+
+        String fromStage = candidate.getStage();
+        String toStage = "PASSED".equals(result)
+                ? ("APPLIED".equals(fromStage) ? "INTERVIEW" : "PROBATION")
+                : "REJECTED";
+
+        ApplicationStageLog log = new ApplicationStageLog();
+        log.setCandidateId(candidateId);
+        log.setFromStage(fromStage);
+        log.setToStage(toStage);
+        log.setResult(result);
+        log.setReviewedBy(reviewer.getEmployeeId());
+        log.setNote(note);
+        log.setToEmail(toEmail);
+        log.setEmailSubject(emailSubject);
+        log.setEmailBody(emailBody);
+        log.setEmailType("PASSED".equals(result) ? "ACCEPTED" : "REJECTED");
+
+        int logId = candidateDAO.insertLog(log);
+        if (logId <= 0) {
+            request.getSession().setAttribute("error", "Khong the luu lich su xu ly ung vien.");
+            response.sendRedirect(request.getContextPath() + "/v1/manager/recruitment-detail?id=" + candidateId);
+            return;
+        }
+
+        boolean sent = "PASSED".equals(result)
+                ? emailService.sendAcceptedCandidateNotify(toEmail, emailSubject, emailBody)
+                : emailService.sendRejectCandidateNotify(toEmail, emailSubject, emailBody);
+        candidateDAO.updateEmailStatus(logId, sent ? "SENT" : "FAILED");
+        if (!sent) {
+            request.getSession().setAttribute("error", "Gui email that bai, trang thai ung vien chua duoc cap nhat.");
+            response.sendRedirect(request.getContextPath() + "/v1/manager/recruitment-detail?id=" + candidateId);
+            return;
+        }
+
+        candidateDAO.updateStage(candidateId, toStage);
+        request.getSession().setAttribute("success", "Da xu ly ung vien va gui email thanh cong.");
+        response.sendRedirect(request.getContextPath() + "/v1/manager/recruitment-list?stage=" + toStage);
+    }
+
+    private void displayRecruitmentImport(HttpServletRequest request, HttpServletResponse response,
+            User user) throws ServletException, IOException {
+        if (!isHrStaff(user) || !hasPermission(user, "PROCESS_RECRUITMENT")) {
+            request.getSession().setAttribute("error", "Ban khong co quyen import ung vien.");
+            response.sendRedirect(request.getContextPath() + "/v1/manager/dashboard");
+            return;
+        }
+        Set<String> perms = getPermissions(user);
+        request.getSession().setAttribute("userPermissions", perms);
+        setPermissionFlags(request, perms);
+        request.getRequestDispatcher("/public/manager/recruitment/recruitment_import.jsp").forward(request, response);
+    }
+
+    private void handleImportCandidates(HttpServletRequest request, HttpServletResponse response,
+            User user) throws ServletException, IOException {
+        if (!isHrStaff(user) || !hasPermission(user, "PROCESS_RECRUITMENT")) {
+            request.getSession().setAttribute("error", "Ban khong co quyen import ung vien.");
+            response.sendRedirect(request.getContextPath() + "/v1/manager/dashboard");
+            return;
+        }
+
+        Part filePart = request.getPart("file");
+        if (filePart == null || filePart.getSize() == 0) {
+            request.getSession().setAttribute("error", "Vui long chon file Excel.");
+            response.sendRedirect(request.getContextPath() + "/v1/manager/recruitment-import");
+            return;
+        }
+        String submittedName = filePart.getSubmittedFileName();
+        if (submittedName == null || !submittedName.toLowerCase(Locale.ROOT).endsWith(".xlsx")) {
+            request.getSession().setAttribute("error", "File phai co dinh dang .xlsx.");
+            response.sendRedirect(request.getContextPath() + "/v1/manager/recruitment-import");
+            return;
+        }
+
+        Path dir = Paths.get(getServletContext().getRealPath("/" + UPLOAD_DIR));
+        Files.createDirectories(dir);
+        String serverFileName = "CAND_" + System.currentTimeMillis() + "_"
+                + UUID.randomUUID().toString().substring(0, 8) + ".xlsx";
+        Path savedPath = dir.resolve(serverFileName);
+        try (InputStream is = filePart.getInputStream()) {
+            Files.copy(is, savedPath);
+        }
+
+        EmployeeDetailDTO me = employeeDAO.getEmployeeByUserId(user.getUserId());
+        if (me == null || me.getDepartmentId() <= 0) {
+            request.getSession().setAttribute("error", "Khong tim thay phong ban cua ban.");
+            response.sendRedirect(request.getContextPath() + "/v1/manager/recruitment-import");
+            return;
+        }
+
+        UploadedFile uf = new UploadedFile();
+        uf.setFileCode("CAND-" + System.currentTimeMillis());
+        uf.setFileType("CANDIDATE");
+        uf.setDepartmentId(me.getDepartmentId());
+        uf.setEmployeeId(me.getEmployeeId());
+        uf.setFileUrl(UPLOAD_DIR + "/" + serverFileName);
+        uf.setFileName(sanitizeFileName(submittedName));
+        uf.setMonth(0);
+        uf.setYear(0);
+        uf.setStatus(CandidateImportService.FILE_STATUS_PENDING);
+        int fileId = uploadedFileDAO.createUploadedFile(uf);
+        if (fileId <= 0) {
+            request.getSession().setAttribute("error", "Khong the tao ban ghi file import.");
+            response.sendRedirect(request.getContextPath() + "/v1/manager/recruitment-import");
+            return;
+        }
+
+        CandidateImportResultDTO result;
+        try (InputStream is = Files.newInputStream(savedPath)) {
+            result = candidateImportService.importCandidates(is, fileId);
+        }
+        result.setFileName(uf.getFileName());
+        uploadedFileDAO.updateImportResult(fileId, result.getTotalRows(), result.getImportedRows(),
+                result.getFailedRows(), result.getStatus(), result.getNote());
+
+        request.setAttribute("importResult", result);
+        request.getRequestDispatcher("/public/manager/recruitment/recruitment_import.jsp").forward(request, response);
     }
     
     private boolean isDepartmentManager(EmployeeDetailDTO me, int formId) {

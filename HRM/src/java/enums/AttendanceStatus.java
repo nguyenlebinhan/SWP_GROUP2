@@ -12,9 +12,12 @@ public enum AttendanceStatus {
     PRESENT(0),
     LATE(1),
     ABSENT(2),
-    UNEXCUSED(3);
+    UNEXCUSED(3),   // giữ lại cho dữ liệu cũ, không còn được tạo khi import
+    LEAVE(4),
+    HOLIDAY(5),
+    WEEKEND(6);
 
-    private int relatedNum;
+    private final int relatedNum;
 
     private AttendanceStatus(int relatedNum) {
         this.relatedNum = relatedNum;
@@ -24,8 +27,13 @@ public enum AttendanceStatus {
         return relatedNum;
     }
 
-    public void setRelatedNum(int relatedNum) {
-        this.relatedNum = relatedNum;
+    public static AttendanceStatus fromCode(int code) {
+        for (AttendanceStatus s : values()) {
+            if (s.relatedNum == code) {
+                return s;
+            }
+        }
+        throw new IllegalArgumentException("Mã trạng thái chấm công không hợp lệ: " + code);
     }
 
 }
