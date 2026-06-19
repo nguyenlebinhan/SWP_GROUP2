@@ -290,7 +290,11 @@ public class FormRequestDAO {
 
         try (Connection conn = dbContext.getConnection(); PreparedStatement ps = conn.prepareStatement(SQL)) {
             ps.setInt(1, status);
-            ps.setInt(2, approverId);
+            if (approverId > 0) {
+                ps.setInt(2, approverId);
+            } else {
+                ps.setNull(2, java.sql.Types.INTEGER);
+            }
             ps.setString(3, note);
             ps.setInt(4, formId);
             
