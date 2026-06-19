@@ -72,7 +72,7 @@
 
         <div class="d-flex justify-content-between align-items-center mb-4">
             <h4 class="mb-0"><i class="fa-solid fa-file-invoice me-2 text-primary"></i>Chi tiết đơn OT: <span class="fw-bold">${otRequest.formCode}</span></h4>
-            <a href="${pageContext.request.contextPath}/v1/businessadmin/form-requests" class="btn btn-outline-secondary">
+            <a href="${pageContext.request.contextPath}/v1/businessadmin/forms" class="btn btn-outline-secondary">
                 <i class="fa-solid fa-arrow-left me-1"></i> Quay lại
             </a>
         </div>
@@ -174,10 +174,10 @@
                                         <textarea class="form-control" name="note" rows="3" placeholder="Nhập ghi chú hoặc lý do..."></textarea>
                                     </div>
                                     <div class="d-flex gap-2">
-                                        <button type="submit" class="btn btn-success flex-fill fw-semibold" onclick="document.getElementById('processForm').action='${pageContext.request.contextPath}/v1/businessadmin/form-requests/approve';">
+                                        <button type="submit" class="btn btn-success flex-fill fw-semibold" onclick="document.getElementById('processForm').action='${pageContext.request.contextPath}/v1/businessadmin/forms/approve';">
                                             <i class="fa-solid fa-check me-1"></i> Duyệt
                                         </button>
-                                        <button type="submit" class="btn btn-danger flex-fill fw-semibold" onclick="document.getElementById('processForm').action='${pageContext.request.contextPath}/v1/businessadmin/form-requests/reject';">
+                                        <button type="submit" class="btn btn-danger flex-fill fw-semibold" onclick="document.getElementById('processForm').action='${pageContext.request.contextPath}/v1/businessadmin/forms/reject';">
                                             <i class="fa-solid fa-xmark me-1"></i> Từ chối
                                         </button>
                                     </div>

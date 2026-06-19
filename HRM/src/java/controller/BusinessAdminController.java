@@ -95,10 +95,10 @@ public class BusinessAdminController extends HttpServlet {
             case "/holiday/edit":
                 displayHolidayForm(request, response, true);
                 break;
-            case "/form-requests":
+            case "/forms":
                 displayFormRequests(request, response);
                 break;
-            case "/form-requests/ot-detail":
+            case "/forms/ot-detail":
                 displayOTDetail(request, response);
                 break;
             default:
@@ -147,10 +147,10 @@ public class BusinessAdminController extends HttpServlet {
             case "/holiday/delete":
                 handleDeleteHoliday(request, response);
                 break;
-            case "/form-requests/approve":
+            case "/forms/approve":
                 handleApproveForm(request, response, user);
                 break;
-            case "/form-requests/reject":
+            case "/forms/reject":
                 handleRejectForm(request, response, user);
                 break;
             default:
@@ -191,7 +191,7 @@ public class BusinessAdminController extends HttpServlet {
         }
         User currentUser = userDAO.getUserById(sessionUser.getUserId());
         request.setAttribute("currentUser", currentUser);
-        request.getRequestDispatcher("/public/businessadmin/my_profile.jsp").forward(request, response);
+        request.getRequestDispatcher("/public/businessadmin/employee/my_profile.jsp").forward(request, response);
     }
 
     private void handleUpdateMyProfile(HttpServletRequest request, HttpServletResponse response, User sessionUser)
@@ -204,7 +204,7 @@ public class BusinessAdminController extends HttpServlet {
         if (isBlank(username) || isBlank(fullName)) {
             request.setAttribute("error", "Vui lòng nhập đầy đủ tên đăng nhập và họ tên");
             request.setAttribute("currentUser", userDAO.getUserById(sessionUser.getUserId()));
-            request.getRequestDispatcher("/public/businessadmin/my_profile.jsp").forward(request, response);
+            request.getRequestDispatcher("/public/businessadmin/employee/my_profile.jsp").forward(request, response);
             return;
         }
 
@@ -216,7 +216,7 @@ public class BusinessAdminController extends HttpServlet {
         if (userDAO.isUsernameExists(username, sessionUser.getUserId())) {
             request.setAttribute("error", "Tên đăng nhập đã tồn tại");
             request.setAttribute("currentUser", userDAO.getUserById(sessionUser.getUserId()));
-            request.getRequestDispatcher("/public/businessadmin/my_profile.jsp").forward(request, response);
+            request.getRequestDispatcher("/public/businessadmin/employee/my_profile.jsp").forward(request, response);
             return;
         }
 
@@ -224,7 +224,7 @@ public class BusinessAdminController extends HttpServlet {
         if (!updated) {
             request.setAttribute("error", "Cập nhật hồ sơ thất bại. Vui lòng thử lại");
             request.setAttribute("currentUser", userDAO.getUserById(sessionUser.getUserId()));
-            request.getRequestDispatcher("/public/businessadmin/my_profile.jsp").forward(request, response);
+            request.getRequestDispatcher("/public/businessadmin/employee/my_profile.jsp").forward(request, response);
             return;
         }
 
@@ -267,7 +267,7 @@ public class BusinessAdminController extends HttpServlet {
             }
         }
 
-        request.getRequestDispatcher("/public/businessadmin/department_list.jsp").forward(request, response);
+        request.getRequestDispatcher("/public/businessadmin/department/department_list.jsp").forward(request, response);
     }
 
     private void displayAssignPage(HttpServletRequest request, HttpServletResponse response, User ba)
@@ -299,7 +299,7 @@ public class BusinessAdminController extends HttpServlet {
         request.setAttribute("currentManager", currentManager);
         request.setAttribute("candidates", candidates);
 
-        request.getRequestDispatcher("/public/businessadmin/department_assign.jsp").forward(request, response);
+        request.getRequestDispatcher("/public/businessadmin/department/department_assign.jsp").forward(request, response);
     }
 
     private void handleAssignManager(HttpServletRequest request, HttpServletResponse response, User ba)
@@ -389,7 +389,7 @@ public class BusinessAdminController extends HttpServlet {
             throws ServletException, IOException {
         List<EmployeeDetailDTO> employees = employeeDAO.getAllEmployees(user.getUserId());
         request.setAttribute("employees", employees);
-        request.getRequestDispatcher("/public/businessadmin/employee_list.jsp").forward(request, response);
+        request.getRequestDispatcher("/public/businessadmin/employee/employee_list.jsp").forward(request, response);
     }
 
     private void displayEmployeeDetail(HttpServletRequest request, HttpServletResponse response)
@@ -413,7 +413,7 @@ public class BusinessAdminController extends HttpServlet {
             return;
         }
         request.setAttribute("employee", employee);
-        request.getRequestDispatcher("/public/businessadmin/employee_detail.jsp").forward(request, response);
+        request.getRequestDispatcher("/public/businessadmin/employee/employee_detail.jsp").forward(request, response);
     }
 
     private void displayDepartmentEmployees(HttpServletRequest request, HttpServletResponse response)
@@ -439,7 +439,7 @@ public class BusinessAdminController extends HttpServlet {
         List<EmployeeDetailDTO> employees = employeeDAO.getEmployeesByDepartmentId(departmentId);
         request.setAttribute("department", department);
         request.setAttribute("employees", employees);
-        request.getRequestDispatcher("/public/businessadmin/department_employees.jsp").forward(request, response);
+        request.getRequestDispatcher("/public/businessadmin/department/department_employees.jsp").forward(request, response);
     }
 
     private void displayAssignDepartmentForm(HttpServletRequest request, HttpServletResponse response, User user)
@@ -447,7 +447,7 @@ public class BusinessAdminController extends HttpServlet {
         request.setAttribute("availableEmployees", employeeDAO.getEmployees(user.getUserId()));
         request.setAttribute("departments", departmentDAO.getAllActiveDepartments());
         request.setAttribute("positions", departmentDAO.getAllPositions());
-        request.getRequestDispatcher("/public/businessadmin/assign_department.jsp").forward(request, response);
+        request.getRequestDispatcher("/public/businessadmin/department/assign_department.jsp").forward(request, response);
     }
 
     private void handleAssignDepartment(HttpServletRequest request, HttpServletResponse response, User user)
@@ -531,7 +531,7 @@ public class BusinessAdminController extends HttpServlet {
         request.setAttribute("availableEmployees", employeeDAO.getEmployees(user.getUserId()));
         request.setAttribute("departments", departmentDAO.getAllActiveDepartments());
         request.setAttribute("positions", departmentDAO.getAllPositions());
-        request.getRequestDispatcher("/public/businessadmin/assign_department.jsp").forward(request, response);
+        request.getRequestDispatcher("/public/businessadmin/department/assign_department.jsp").forward(request, response);
     }
 
     // =========================================================
@@ -541,7 +541,7 @@ public class BusinessAdminController extends HttpServlet {
     private void displayAddDepartmentForm(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         request.setAttribute("roles", roleDAO.getAllActiveRoles());
-        request.getRequestDispatcher("/public/businessadmin/add_department.jsp").forward(request, response);
+        request.getRequestDispatcher("/public/businessadmin/department/add_department.jsp").forward(request, response);
     }
 
     private void handleAddDepartment(HttpServletRequest request, HttpServletResponse response, User user)
@@ -558,7 +558,7 @@ public class BusinessAdminController extends HttpServlet {
             request.setAttribute("input_description", description);
             request.setAttribute("roles", roleDAO.getAllActiveRoles());
             request.setAttribute("selectedRoleIds", roleIds);
-            request.getRequestDispatcher("/public/businessadmin/add_department.jsp").forward(request, response);
+            request.getRequestDispatcher("/public/businessadmin/department/add_department.jsp").forward(request, response);
             return;
         }
 
@@ -575,7 +575,7 @@ public class BusinessAdminController extends HttpServlet {
             request.setAttribute("input_description", description);
             request.setAttribute("roles", roleDAO.getAllActiveRoles());
             request.setAttribute("selectedRoleIds", roleIds);
-            request.getRequestDispatcher("/public/businessadmin/add_department.jsp").forward(request, response);
+            request.getRequestDispatcher("/public/businessadmin/department/add_department.jsp").forward(request, response);
             return;
         }
 
@@ -618,7 +618,7 @@ public class BusinessAdminController extends HttpServlet {
             }
         }
         request.setAttribute("selectedRoleIds", selectedRoleIds);
-        request.getRequestDispatcher("/public/businessadmin/update_department.jsp").forward(request, response);
+        request.getRequestDispatcher("/public/businessadmin/department/update_department.jsp").forward(request, response);
     }
 
     private void handleUpdateDepartment(HttpServletRequest request, HttpServletResponse response)
@@ -697,7 +697,7 @@ public class BusinessAdminController extends HttpServlet {
                 session.removeAttribute("holidayError");
             }
         }
-        request.getRequestDispatcher("/public/businessadmin/holiday_list.jsp").forward(request, response);
+        request.getRequestDispatcher("/public/businessadmin/holiday/holiday_list.jsp").forward(request, response);
     }
 
     private void displayHolidayForm(HttpServletRequest request, HttpServletResponse response, boolean editMode)
@@ -713,7 +713,7 @@ public class BusinessAdminController extends HttpServlet {
             request.setAttribute("holiday", holiday);
         }
         request.setAttribute("editMode", editMode);
-        request.getRequestDispatcher("/public/businessadmin/holiday_form.jsp").forward(request, response);
+        request.getRequestDispatcher("/public/businessadmin/holiday/holiday_form.jsp").forward(request, response);
     }
 
     private void handleAddHoliday(HttpServletRequest request, HttpServletResponse response)
@@ -724,7 +724,7 @@ public class BusinessAdminController extends HttpServlet {
             request.setAttribute("error", error);
             request.setAttribute("editMode", false);
             request.setAttribute("holiday", holiday);
-            request.getRequestDispatcher("/public/businessadmin/holiday_form.jsp").forward(request, response);
+            request.getRequestDispatcher("/public/businessadmin/holiday/holiday_form.jsp").forward(request, response);
             return;
         }
 
@@ -754,7 +754,7 @@ public class BusinessAdminController extends HttpServlet {
             request.setAttribute("error", error);
             request.setAttribute("editMode", true);
             request.setAttribute("holiday", holiday);
-            request.getRequestDispatcher("/public/businessadmin/holiday_form.jsp").forward(request, response);
+            request.getRequestDispatcher("/public/businessadmin/holiday/holiday_form.jsp").forward(request, response);
             return;
         }
 
@@ -848,14 +848,14 @@ public class BusinessAdminController extends HttpServlet {
         request.setAttribute("filterYear", year);
         request.setAttribute("keyword", keyword);
         
-        request.getRequestDispatcher("/public/businessadmin/form_requests.jsp").forward(request, response);
+        request.getRequestDispatcher("/public/businessadmin/overtime/form_requests.jsp").forward(request, response);
     }
 
     private void displayOTDetail(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         String idParam = request.getParameter("id");
         if (idParam == null || idParam.trim().isEmpty()) {
-            response.sendRedirect(request.getContextPath() + "/v1/businessadmin/form-requests");
+            response.sendRedirect(request.getContextPath() + "/v1/businessadmin/forms");
             return;
         }
         try {
@@ -863,7 +863,7 @@ public class BusinessAdminController extends HttpServlet {
             OvertimeRequestDTO otRequest = overtimeDAO.getOvertimeRequestById(formId);
             if (otRequest == null) {
                 request.getSession().setAttribute("error", "Không tìm thấy đơn OT.");
-                response.sendRedirect(request.getContextPath() + "/v1/businessadmin/form-requests");
+                response.sendRedirect(request.getContextPath() + "/v1/businessadmin/forms");
                 return;
             }
 
@@ -871,10 +871,10 @@ public class BusinessAdminController extends HttpServlet {
             request.setAttribute("otRequest", otRequest);
             request.setAttribute("assignees", assignees);
             
-            request.getRequestDispatcher("/public/businessadmin/ot_detail.jsp").forward(request, response);
+            request.getRequestDispatcher("/public/businessadmin/overtime/ot_detail.jsp").forward(request, response);
             
         } catch (NumberFormatException e) {
-            response.sendRedirect(request.getContextPath() + "/v1/businessadmin/form-requests");
+            response.sendRedirect(request.getContextPath() + "/v1/businessadmin/forms");
         }
     }
 
@@ -885,7 +885,7 @@ public class BusinessAdminController extends HttpServlet {
             String note = request.getParameter("note");
             if (formId == null) {
                 request.getSession().setAttribute("error", "Không tìm thấy mã đơn.");
-                response.sendRedirect(request.getContextPath() + "/v1/businessadmin/form-requests");
+                response.sendRedirect(request.getContextPath() + "/v1/businessadmin/forms");
                 return;
             }
             
@@ -902,7 +902,7 @@ public class BusinessAdminController extends HttpServlet {
             LOGGER.log(java.util.logging.Level.SEVERE, "Error approving form", e);
             request.getSession().setAttribute("error", "Lỗi hệ thống khi duyệt đơn.");
         }
-        response.sendRedirect(request.getContextPath() + "/v1/businessadmin/form-requests");
+        response.sendRedirect(request.getContextPath() + "/v1/businessadmin/forms");
     }
 
     private void handleRejectForm(HttpServletRequest request, HttpServletResponse response, User user)
@@ -912,7 +912,7 @@ public class BusinessAdminController extends HttpServlet {
             String note = request.getParameter("note");
             if (formId == null) {
                 request.getSession().setAttribute("error", "Không tìm thấy mã đơn.");
-                response.sendRedirect(request.getContextPath() + "/v1/businessadmin/form-requests");
+                response.sendRedirect(request.getContextPath() + "/v1/businessadmin/forms");
                 return;
             }
             
@@ -929,7 +929,7 @@ public class BusinessAdminController extends HttpServlet {
             LOGGER.log(java.util.logging.Level.SEVERE, "Error rejecting form", e);
             request.getSession().setAttribute("error", "Lỗi hệ thống khi từ chối đơn.");
         }
-        response.sendRedirect(request.getContextPath() + "/v1/businessadmin/form-requests");
+        response.sendRedirect(request.getContextPath() + "/v1/businessadmin/forms");
     }
 
 }

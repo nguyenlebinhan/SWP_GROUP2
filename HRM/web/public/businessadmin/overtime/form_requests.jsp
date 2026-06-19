@@ -74,7 +74,7 @@
 
     <!-- Bộ lọc -->
     <div class="dept-card p-4">
-        <form action="${pageContext.request.contextPath}/v1/businessadmin/form-requests" method="GET" class="row g-3 align-items-end">
+        <form action="${pageContext.request.contextPath}/v1/businessadmin/forms" method="GET" class="row g-3 align-items-end">
             <div class="col-md-2">
                 <label class="form-label">Ngày tạo</label>
                 <input type="number" name="day" class="form-control" placeholder="DD" min="1" max="31" value="${filterDay}">
@@ -141,7 +141,7 @@
                                         </td>
                                         <td class="text-center">
                                             <c:if test="${f.formTypeCode == 'OVERTIME'}">
-                                                <a href="${pageContext.request.contextPath}/v1/businessadmin/form-requests/ot-detail?id=${f.formId}" class="btn btn-primary btn-sm" title="Xem chi tiết">
+                                                <a href="${pageContext.request.contextPath}/v1/businessadmin/forms/ot-detail?id=${f.formId}" class="btn btn-primary btn-sm" title="Xem chi tiết">
                                                     <i class="fa-solid fa-eye"></i> Xem chi tiết
                                                 </a>
                                             </c:if>
@@ -203,12 +203,12 @@
         var btn = document.getElementById('modalSubmitBtn');
         
         if (action === 'approve') {
-            form.action = '${pageContext.request.contextPath}/v1/businessadmin/form-requests/approve';
+            form.action = '${pageContext.request.contextPath}/v1/businessadmin/forms/approve';
             title.textContent = 'Duyệt đơn: ' + formCode;
             btn.textContent = 'Duyệt đơn';
             btn.className = 'btn btn-success px-4 fw-semibold';
         } else {
-            form.action = '${pageContext.request.contextPath}/v1/businessadmin/form-requests/reject';
+            form.action = '${pageContext.request.contextPath}/v1/businessadmin/forms/reject';
             title.textContent = 'Từ chối đơn: ' + formCode;
             btn.textContent = 'Từ chối đơn';
             btn.className = 'btn btn-danger px-4 fw-semibold';
