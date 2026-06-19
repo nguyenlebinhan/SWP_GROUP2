@@ -190,7 +190,6 @@ public class SystemAdminController extends HttpServlet {
 
         int offset = (currentPage - 1) * PAGE_SIZE;
 
-        // countUsers chỉ chạy COUNT(*) — rất nhẹ dù có nghìn người
         int totalUsers = userDAO.countUsers(keyword, role);
         int totalPages = (int) Math.ceil((double) totalUsers / PAGE_SIZE);
         if (totalPages < 1) {
@@ -217,7 +216,7 @@ public class SystemAdminController extends HttpServlet {
     private void displayDashboard(HttpServletRequest request,
             HttpServletResponse response)
             throws ServletException, IOException {
-        // Thay vì getAllUsers() rồi .size(), chỉ đếm trực tiếp
+        
         int userSize = userDAO.countUsers("", "");
         request.setAttribute("userSize", userSize);
         request.getRequestDispatcher("/public/systemadmin/dashboard.jsp")
@@ -275,8 +274,6 @@ public class SystemAdminController extends HttpServlet {
         String address = request.getParameter("address");
         int roleId = Integer.parseInt(request.getParameter("role_selection"));
 
-        // Chặn chiều ngược (đối xứng với assign-department): nếu user đã là nhân viên
-        // thuộc một phòng ban, vai trò mới phải hợp lệ với phòng ban đó.
         EmployeeDetailDTO emp = employeeDAO.getEmployeeByUserId(userId);
         if (emp != null && !departmentDAO.isRoleAllowedForDepartment(emp.getDepartmentId(), roleId)) {
             List<String> allowed = departmentDAO.getAllowedRoleNames(emp.getDepartmentId());
