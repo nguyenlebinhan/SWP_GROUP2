@@ -94,6 +94,26 @@ public class EmailService {
             sendEmail(toEmail, subject, body);
         });
     }
+
+    public boolean sendAcceptedCandidateNotify(String toEmail, String subject, String body) {
+        if (isBlank(toEmail) || isBlank(subject) || isBlank(body)) {
+            LOGGER.warning("sendAcceptedCandidateNotify aborted: missing required fields");
+            return false;
+        }
+        return sendEmail(toEmail, subject, body);
+    }
+
+    public boolean sendRejectCandidateNotify(String toEmail, String subject, String body) {
+        if (isBlank(toEmail) || isBlank(subject) || isBlank(body)) {
+            LOGGER.warning("sendRejectCandidateNotify aborted: missing required fields");
+            return false;
+        }
+        return sendEmail(toEmail, subject, body);
+    }
+
+    private boolean isBlank(String value) {
+        return value == null || value.trim().isEmpty();
+    }
    
     
     public void shutdown(){
