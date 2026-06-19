@@ -96,6 +96,19 @@ public class DepartmentDAO {
         return null;
     }
 
+    public int getDepartmentIdByCode(String departmentCode) {
+        String SQL = "SELECT departmentId FROM Departments WHERE departmentCode = ?";
+        try (Connection conn = dbContext.getConnection(); PreparedStatement ps = conn.prepareStatement(SQL)) {
+            ps.setString(1, departmentCode);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next() ? rs.getInt("departmentId") : -1;
+            }
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Cannot get departmentId for code: " + departmentCode, e);
+        }
+        return -1;
+    }
+
     public int addDepartment(Department dept) {
         LOGGER.log(Level.INFO, "Adding new department with code: {0}", dept.getDepartmentCode());
         String SQL = "INSERT INTO departments(departmentCode, departmentName, description,status) VALUES (?, ?, ?, 1)";
