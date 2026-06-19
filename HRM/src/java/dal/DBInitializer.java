@@ -192,25 +192,55 @@ public class DBInitializer {
         execute(conn, SQL, "CREATE EMPLOYMENT_CONTRACTS TABLE SUCCESSFULLY");
     }
 
+    //tuyển dụng
     public void createTableCandidates(Connection conn) {
         String SQL = "CREATE TABLE Candidates("
                 + "candidateId INT PRIMARY KEY AUTO_INCREMENT,"
                 + "candidateCode VARCHAR(50) NOT NULL UNIQUE,"
-                + "userId INT NOT NULL,"
-                + "departmentId INT NOT NULL,"
+                + "fullName NVARCHAR(150) NOT NULL,"
+                + "email VARCHAR(100) NOT NULL,"
                 + "phoneNumber VARCHAR(20),"
-                + "skills NVARCHAR(255),"
-                + "experience NVARCHAR(255),"
+                + "dateOfBirth DATE,"
+                + "gender VARCHAR(20),"
+                + "address NVARCHAR(255),"
+                + "skills NVARCHAR(500),"
+                + "experience NVARCHAR(500),"
+                + "certificates NVARCHAR(255),"
                 + "degree NVARCHAR(100),"
+                + "cvFileUrl VARCHAR(500),"
+                + "departmentId INT NOT NULL,"
                 + "positionId INT NOT NULL,"
-                + "status TINYINT DEFAULT 0,"        // 0: Đang xét, 1: Phỏng vấn, 2: Thử việc, 3: Đậu, 4: Trượt
+                + "importFileId INT,"
+                + "stage VARCHAR(20) DEFAULT 'APPLIED',"
                 + "createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,"
                 + "updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,"
-                + "FOREIGN KEY (userId) REFERENCES Users(userId),"
                 + "FOREIGN KEY (departmentId) REFERENCES Departments(departmentId),"
-                + "FOREIGN KEY (positionId) REFERENCES Positions(positionId)"
+                + "FOREIGN KEY (positionId) REFERENCES Positions(positionId),"
+                + "FOREIGN KEY (importFileId) REFERENCES Uploaded_Files(fileId)"
                 + ")";
         execute(conn, SQL, "CREATE CANDIDATES TABLE SUCCESSFULLY");
+    }
+
+    public void createTableApplicationStageLogs(Connection conn) {
+        String SQL = "CREATE TABLE Application_Stage_Logs("
+                + "logId INT PRIMARY KEY AUTO_INCREMENT,"
+                + "candidateId INT NOT NULL,"
+                + "fromStage VARCHAR(20),"
+                + "toStage VARCHAR(20) NOT NULL,"
+                + "result VARCHAR(20) NOT NULL,"
+                + "reviewedBy INT NOT NULL,"
+                + "reviewedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,"
+                + "note NVARCHAR(500),"
+                + "toEmail VARCHAR(100) NOT NULL,"
+                + "emailSubject NVARCHAR(200),"
+                + "emailBody NVARCHAR(3000),"
+                + "emailType VARCHAR(30),"
+                + "emailStatus VARCHAR(20) DEFAULT 'PENDING',"
+                + "sentAt TIMESTAMP NULL,"
+                + "FOREIGN KEY (candidateId) REFERENCES Candidates(candidateId),"
+                + "FOREIGN KEY (reviewedBy) REFERENCES Employees(employeeId)"
+                + ")";
+        execute(conn, SQL, "CREATE APPLICATION_STAGE_LOGS TABLE SUCCESSFULLY");
     }
 
     // ==================== NGHỈ PHÉP ====================
@@ -233,16 +263,12 @@ public class DBInitializer {
                 + "employeeId INT NOT NULL,"
                 + "formTypeId INT NOT NULL,"
                 + "reason NVARCHAR(500),"
-                + "startDate DATE NULL,"
-                + "endDate DATE NULL,"
-                + "totalDays DECIMAL(4,1) NULL,"
-                + "usedDays DECIMAL(4,1) DEFAULT 0,"
-                + "status TINYINT DEFAULT 0,"
+                + "status TINYINT DEFAULT 0,"        // 0: Chờ duyệt, 1: Đã duyệt, 2: Từ chối, 3: Đã hủy
                 + "approverId INT,"
                 + "approverNote NVARCHAR(255),"
                 + "approvedAt TIMESTAMP NULL,"
-                + "attachmentUrl VARCHAR(255) NULL,"
-                + "attachmentName VARCHAR(255) NULL,"
+                + "attachmentUrl VARCHAR(255) NULL,"  // đường dẫn file đính kèm trên server
+                + "attachmentName VARCHAR(255) NULL," // tên file gốc của người dùng
                 + "createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,"
                 + "updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,"
                 + "FOREIGN KEY (employeeId) REFERENCES Employees(employeeId),"
@@ -250,29 +276,6 @@ public class DBInitializer {
                 + "FOREIGN KEY (approverId) REFERENCES Employees(employeeId)"
                 + ")";
         execute(conn, SQL, "CREATE FORM_REQUESTS TABLE SUCCESSFULLY");
-    }
-
-    public void createTableOvertimeDetails(Connection conn) {
-        String SQL = "CREATE TABLE Overtime_Details("
-                + "formId INT PRIMARY KEY,"
-                + "otDate DATE NOT NULL,"
-                + "startTime TIME NOT NULL,"
-                + "endTime TIME NOT NULL,"
-                + "dayType TINYINT NOT NULL," // 1: Thường, 2: Cuối tuần, 3: Lễ
-                + "FOREIGN KEY (formId) REFERENCES Form_Requests(formId) ON DELETE CASCADE"
-                + ")";
-        execute(conn, SQL, "CREATE OVERTIME_DETAILS TABLE SUCCESSFULLY");
-    }
-
-    public void createTableOvertimeAssignees(Connection conn) {
-        String SQL = "CREATE TABLE Overtime_Assignees("
-                + "formId INT NOT NULL,"
-                + "employeeId INT NOT NULL,"
-                + "PRIMARY KEY(formId, employeeId),"
-                + "FOREIGN KEY (formId) REFERENCES Form_Requests(formId) ON DELETE CASCADE,"
-                + "FOREIGN KEY (employeeId) REFERENCES Employees(employeeId)"
-                + ")";
-        execute(conn, SQL, "CREATE OVERTIME_ASSIGNEES TABLE SUCCESSFULLY");
     }
 
     //cache để giúp tính toán số ngày còn lại nhanh hơn
@@ -295,6 +298,7 @@ public class DBInitializer {
                 + ")";
         execute(conn, SQL, "CREATE LEAVE_BALANCE TABLE SUCCESSFULLY");
     }
+
     // ==================== CHẤM CÔNG ====================
 
     public void createTableUploadedFiles(Connection conn) {
@@ -308,11 +312,11 @@ public class DBInitializer {
                 + "fileName VARCHAR(255) NOT NULL,"
                 + "month TINYINT NOT NULL,"
                 + "year INT NOT NULL,"
+                + "status INT NOT NULL DEFAULT 0,"
                 + "totalRows INT DEFAULT 0,"
                 + "importedRows INT DEFAULT 0,"
                 + "failedRows INT DEFAULT 0,"
                 + "errorFileUrl VARCHAR(255),"
-                + "status TINYINT DEFAULT 0,"        // 0: Pending, 1: Imported, 2: Failed, 3: Partial
                 + "submittedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,"
                 + "reviewedBy INT,"
                 + "reviewedAt TIMESTAMP NULL,"
@@ -324,72 +328,42 @@ public class DBInitializer {
         execute(conn, SQL, "CREATE UPLOADED_FILES TABLE SUCCESSFULLY");
     }
     
+    public void createTableAttendancePeriods(Connection conn){
+        String SQL = "CREATE TABLE Attendance_Periods("
+                   + "periodId     INT PRIMARY KEY AUTO_INCREMENT, "
+                   + "departmentId INT NOT NULL UNIQUE, "
+                   + "month        TINYINT NOT NULL UNIQUE, "
+                   + "year         INT NOT NULL UNIQUE, "
+                   + "status       TINYINT DEFAULT 0, "
+                   + "publishedBy  INT NULL, "
+                   + "publishedAt  TIMESTAMP NULL, "
+                   + "FOREIGN KEY (departmentId) REFERENCES Departments(departmentId), "
+                   + "FOREIGN KEY (publishedBy)  REFERENCES Employees(employeeId)"
+                   + ")";
+        execute(conn,SQL,"CREATE ATTENDANCE_PERIODS TABLE SUCCESSFULLY");
+    }
+
     public void createTableAttendance(Connection conn) {
         String SQL = "CREATE TABLE Attendance("
                 + "attendanceId INT PRIMARY KEY AUTO_INCREMENT,"
                 + "attendanceCode VARCHAR(50) NOT NULL UNIQUE,"
                 + "employeeId INT NOT NULL,"
-                + "employeeCode VARCHAR(50),"         
-                + "fullName NVARCHAR(100),"           
-                + "departmentId INT,"                
-                + "departmentName NVARCHAR(100),"     
                 + "workDate DATE NOT NULL,"
                 + "timeIn TIME,"
                 + "timeOut TIME,"
                 + "hoursWorked DECIMAL(4,2),"
-                + "isOvertime BIT DEFAULT 0,"
-                + "otHoursWorked DECIMAL(4,2) DEFAULT 0,"
                 + "attendanceStatus TINYINT DEFAULT 0," // 0: Đúng giờ, 1: Đi muộn, 2: Vắng mặt, 3: Không phép
                 + "dayOff DATE,"
                 + "workingDay DATE,"
                 + "penalty DECIMAL(15,2) DEFAULT 0,"
-                + "fileId INT NULL,"
+                + "fileId INT NULL,"                 // file Excel import sinh ra dòng này
                 + "createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,"
                 + "updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,"
                 + "UNIQUE KEY uq_att_emp_date (employeeId, workDate)," // chống trùng employee + ngày
                 + "FOREIGN KEY (employeeId) REFERENCES Employees(employeeId),"
-                + "FOREIGN KEY (departmentId) REFERENCES Departments(departmentId),"
                 + "FOREIGN KEY (fileId) REFERENCES Uploaded_Files(fileId)"
                 + ")";
         execute(conn, SQL, "CREATE ATTENDANCE TABLE SUCCESSFULLY");
-    }
-
-
-    public void createTableAttendanceImportRows(Connection conn) {
-        String SQL = "CREATE TABLE Attendance_Import_Rows("
-                + "importRowId INT PRIMARY KEY AUTO_INCREMENT,"
-                + "fileId INT NOT NULL,"
-                + "rowNumber INT NOT NULL,"
-                + "employeeCode VARCHAR(50),"
-                + "fullName NVARCHAR(100),"
-                + "departmentName NVARCHAR(100),"
-                + "workDate VARCHAR(50),"
-                + "timeIn VARCHAR(20),"
-                + "timeOut VARCHAR(20),"
-                + "attendanceStatus VARCHAR(30),"
-                + "note NVARCHAR(255),"
-                + "validateStatus TINYINT DEFAULT 0," // 0: lỗi/bị từ chối, 1: hợp lệ đã merge vào Attendance
-                + "errorMessage NVARCHAR(500),"
-                + "createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,"
-                + "FOREIGN KEY (fileId) REFERENCES Uploaded_Files(fileId)"
-                + ")";
-        execute(conn, SQL, "CREATE ATTENDANCE_IMPORT_ROWS TABLE SUCCESSFULLY");
-    }
-
-    // Lịch sử chỉnh sửa chấm công: ai sửa, sửa gì, lý do.
-    public void createTableAttendanceAdjustmentHistory(Connection conn) {
-        String SQL = "CREATE TABLE Attendance_Adjustment_History("
-                + "adjustmentId INT PRIMARY KEY AUTO_INCREMENT,"
-                + "attendanceId INT NOT NULL,"
-                + "oldValue NVARCHAR(500),"
-                + "newValue NVARCHAR(500),"
-                + "reason NVARCHAR(500) NOT NULL,"
-                + "updatedBy INT NOT NULL,"          // userId người sửa
-                + "updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,"
-                + "FOREIGN KEY (attendanceId) REFERENCES Attendance(attendanceId),"
-                + "FOREIGN KEY (updatedBy) REFERENCES Users(userId)"
-                + ")";
-        execute(conn, SQL, "CREATE ATTENDANCE_ADJUSTMENT_HISTORY TABLE SUCCESSFULLY");
     }
 
     // ==================== LƯƠNG & ĐÁNH GIÁ ====================
@@ -489,16 +463,13 @@ public class DBInitializer {
                 "Notifications",
                 "Performance",
                 "Payroll",
-                "Attendance_Adjustment_History",
-                "Attendance_Import_Rows",
                 "Attendance",
-                "Uploaded_Files",
                 "Leave_Form",
-                "Overtime_Assignees",
-                "Overtime_Details",
                 "Form_Requests",
                 "Form_Types",
+                "Application_Stage_Logs",
                 "Candidates",
+                "Uploaded_Files",
                 "Employees",
                 "Users",
                 "Department_Roles",
@@ -520,16 +491,13 @@ public class DBInitializer {
                 "Department_Roles",
                 "Users",
                 "Employees",
+                "Uploaded_Files",
                 "Candidates",
+                "Application_Stage_Logs",
                 "Form_Types",
                 "Form_Requests",
-                "Overtime_Details",
-                "Overtime_Assignees",
                 "Leave_Form",
-                "Uploaded_Files",
                 "Attendance",
-                "Attendance_Import_Rows",
-                "Attendance_Adjustment_History",
                 "Payroll",
                 "Performance",
                 "Notifications",
@@ -563,15 +531,12 @@ public class DBInitializer {
                         case "Employees":         createTableEmployees(conn);         break;
                         case "Employment_Contracts": createTableEmploymentContracts(conn); break;
                         case "Candidates":        createTableCandidates(conn);        break;
+                        case "Application_Stage_Logs": createTableApplicationStageLogs(conn); break;
                         case "Form_Types":       createTableFormTypes(conn);         break;
                         case "Form_Requests":    createTableFormRequests(conn);     break;
-                        case "Overtime_Details": createTableOvertimeDetails(conn);  break;
-                        case "Overtime_Assignees": createTableOvertimeAssignees(conn); break;
                         case "Leave_Form":     createTableLeaveForm(conn);      break;
                         case "Uploaded_Files":    createTableUploadedFiles(conn);     break;
                         case "Attendance":        createTableAttendance(conn);        break;
-                        case "Attendance_Import_Rows":        createTableAttendanceImportRows(conn);        break;
-                        case "Attendance_Adjustment_History": createTableAttendanceAdjustmentHistory(conn); break;
                         case "Payroll":           createTablePayroll(conn);           break;
                         case "Performance":       createTablePerformance(conn);       break;
                         case "Notifications":     createTableNotifications(conn);     break;
@@ -583,7 +548,7 @@ public class DBInitializer {
 
             execute(conn, "SET FOREIGN_KEY_CHECKS=1", "ENABLE FK CHECKS AFTER CREATE");
             LOGGER.log(Level.INFO, "Đã kích hoạt lại toàn bộ kiểm tra khóa ngoại hệ thống.");
-
+            
             insertInitialData(conn);
             LOGGER.log(Level.INFO,"Database initialized successfully!");
 
@@ -591,8 +556,6 @@ public class DBInitializer {
             LOGGER.log(Level.SEVERE,"Database initialization failed: {0} ", e.getMessage());
         }
     }
-
-
 
     private void insertInitialData(Connection conn) {
         try {
@@ -624,21 +587,26 @@ public class DBInitializer {
                 insertPermission(conn, "ADD_EMPLOYMENT_CONTRACT", "Thêm hợp đồng lao động", "Quyền thêm hợp đồng lao động cho nhân viên");
                 insertPermission(conn, "EDIT_DEPARTMENTS","Chỉnh sửa phòng ban",     "Quyền chỉnh sửa phòng ban ");
                 insertPermission(conn, "ASSIGN_DEPARTMENT","Gán nhân viên vào phòng ban",     "Quyền gán nhân viên vào phòng ban");
-                insertPermission(conn, "UNASSIGN_DEPARTMENT","Xóa gán phòng ban nhân viên",     "Quyền xóa gán nhân viên sang phòng ban khác");
+                insertPermission(conn, "REASSIGN_DEPARTMENT","Chuyển phòng ban nhân viên",     "Quyền chuyển nhân viên sang phòng ban khác");
                 insertPermission(conn,"ADD_DEPARTMENT","Thêm phòng ban","Quyền thêm phòng ban");
                 insertPermission(conn,"VIEW_ATTENDANCE","Xem chấm công","Quyền xem dữ liệu chấm công (Manager: theo phòng mình; Employee: của bản thân)");
                 insertPermission(conn,"IMPORT_ATTENDANCE","Import chấm công","Quyền import dữ liệu chấm công từ file Excel");
-                insertPermission(conn,"EDIT_ATTENDANCE","Chỉnh sửa chấm công","Quyền chỉnh sửa trạng thái chấm công khi kỳ chấm công chưa công khai");                
                 insertPermission(conn,"VIEW_DEPARTMENT_EMPLOYEES_DETAIL","Xem danh sách nhân viên của phòng ban khác","Quyền xem dữ liệu nhân viên của phòng ban khác");
+                insertPermission(conn,"SUBMIT_FORM","Gửi đơn yêu cầu","Quyền gửi đơn yêu cầu (nghỉ phép, tăng ca, tạm ứng,...)");
+                insertPermission(conn,"VIEW_MY_FORM", "Xem đơn nhân viên", "Quyền xem toàn bộ đơn yêu cầu của một nhân viên");
+                insertPermission(conn,"VIEW_DEPT_FORMS", "Xem đơn phòng ban", "Quyền xem toàn bộ đơn yêu cầu của một phòng ban");
+                insertPermission(conn,"APPROVE_FORM","Duyệt đơn yêu cầu","Quyền duyệt hoặc từ chối đơn yêu cầu của nhân viên trong phòng");
+                insertPermission(conn, "VIEW_RECRUITMENT", "Xem danh sách tuyển dụng", "Quyền xem các thí sinh đăng kí tuyển dụng");
+                insertPermission(conn, "PROCESS_RECRUITMENT", "Xử lý tuyển dụng", "Quyền chấp nhận, từ chối đơn tuyển dụng và gửi thông báo kết quả");
                 insertPermission(conn,"VIEW_ALL_FORMS","Xem tất cả đơn","Quyền xem toàn bộ đơn yêu cầu của mọi phòng ban (chỉ HR)");
-                insertPermission(conn,"VIEW_ALL_DEPT_FORMS","Xem tất cả đơn của phòng ban","Quyền xem toàn bộ đơn yêu cầu của một phòng ban cụ thể");
-                
+                insertPermission(conn, "VIEW_UPLOADED_FILES", "Xem tất cả file tải lên", "Quyền xem toàn bộ, tải xuống file đã được tải lên hệ thống");
+
             }
 
             if (countRows(conn, "Positions") == 0) {
                 insertPosition(conn, "Thực tập sinh",          1, "Sinh viên thực tập tại công ty");
-                insertPosition(conn, "Nhân viên chính thức",   2, "Hỗ trợ công việc hành chính");
-                insertPosition(conn, "Trưởng phòng ",   3, "Quản lý toàn bộ hoạt động của phòng ban");
+                insertPosition(conn, "Nhân viên",   2, "Hỗ trợ công việc hành chính");
+                insertPosition(conn, "Trưởng phòng",   3, "Quản lý toàn bộ hoạt động của phòng ban");
             }
 
 
@@ -679,15 +647,15 @@ public class DBInitializer {
             if (countRows(conn, "Employees") == 0) {
                 // departmentId: 1=IT, 2=HR, 3=FI | positionId: 1=Thực tập sinh, 2=Nhân viên, 3=Trưởng phòng
                 // IT — userId 6,7,8
-                insertEmployee(conn, "EMP001", 6,  1, 3, "0901000001", "Java, SQL, Spring Boot", "5 năm phát triển web",    "Kỹ sư CNTT");
-                insertEmployee(conn, "EMP002", 7,  1, 2, "0901000002", "React, TypeScript",      "2 năm frontend",          "Cử nhân CNTT");
-                insertEmployee(conn, "EMP003", 8,  1, 1, "0901000003", "DevOps, Docker",         "1 năm vận hành",          "Cử nhân CNTT");
-                // HR — userId 9,10
-                insertEmployee(conn, "EMP004", 9,  2, 3, "0901000004", "Tuyển dụng, HRIS",       "6 năm nhân sự",           "Cử nhân Quản trị nhân lực");
-                insertEmployee(conn, "EMP005", 10, 2, 2, "0901000005", "Đào tạo, C&B",           "3 năm C&B",               "Cử nhân Kinh tế");
-                // FI — userId 11,12
-                insertEmployee(conn, "EMP006", 11, 3, 3, "0901000006", "Kế toán, MISA, Excel",   "8 năm kế toán tài chính", "Cử nhân Kế toán");
-                insertEmployee(conn, "EMP007", 12, 3, 2, "0901000007", "Thuế, kiểm toán",        "2 năm tài chính",         "Cử nhân Tài chính");
+                insertEmployee(conn, "EMP001", 6,  1, 3, "0901000001", "Java, SQL, Spring Boot", "5 năm phát triển web",    "Kỹ sư CNTT",              "2020-03-01");
+                insertEmployee(conn, "EMP002", 7,  1, 2, "0901000002", "React, TypeScript",      "2 năm frontend",          "Cử nhân CNTT",            "2022-06-15");
+                insertEmployee(conn, "EMP003", 8,  1, 1, "0901000003", "DevOps, Docker",         "1 năm vận hành",          "Cử nhân CNTT",            "2023-09-01");
+                // HR
+                insertEmployee(conn, "EMP004", 9,  2, 3, "0901000004", "Tuyển dụng, HRIS",       "6 năm nhân sự",           "Cử nhân Quản trị nhân lực","2018-01-10");
+                insertEmployee(conn, "EMP005", 10, 2, 2, "0901000005", "Đào tạo, C&B",           "3 năm C&B",               "Cử nhân Kinh tế",         "2021-04-20");
+                // FI
+                insertEmployee(conn, "EMP006", 11, 3, 3, "0901000006", "Kế toán, MISA, Excel",   "8 năm kế toán tài chính", "Cử nhân Kế toán",         "2016-07-05");
+                insertEmployee(conn, "EMP007", 12, 3, 2, "0901000007", "Thuế, kiểm toán",        "2 năm tài chính",         "Cử nhân Tài chính",       "2022-11-01");
             }
 
             if (countRows(conn, "Department_Roles") == 0) {
@@ -707,8 +675,26 @@ public class DBInitializer {
             }
 
             if (countRows(conn, "Form_Types") == 0) {
-                insertFormType(conn, "LEAVE",     "Nghỉ phép");
-                insertFormType(conn, "COMPLAINT", "Khiếu nại");
+                insertFormType(conn, "LEAVE",    "Nghỉ phép");
+                insertFormType(conn, "OVERTIME", "Tăng ca");
+                insertFormType(conn, "ADVANCE",  "Tạm ứng");
+                insertFormType(conn, "OTHER",    "Khác");
+            }
+            
+            if (countRows(conn, "Email_Templates") == 0) {
+                insertEmailTemplate(conn,
+                        "INTERVIEW_INVITE",
+                        "Thư mời phỏng vấn - [vị trí]",
+                        "Chào [tên ứng viên],\n\nChúng tôi trân trọng mời bạn tham gia phỏng vấn cho vị trí [vị trí].\n"
+                        + "Thời gian: [thời gian]\nĐịa điểm: [địa điểm]\n\nTrân trọng."
+                );
+                insertEmailTemplate(conn,
+                        "REJECTION_CV",
+                        "Thông báo kết quả hồ sơ - [vị trí]",
+                        "Chào [tên ứng viên],\n\nCảm ơn bạn đã quan tâm đến vị trí [vị trí].\n"
+                        + "Sau xem xét, chúng tôi nhận thấy bạn chưa phù hợp với vị trí này.\n"
+                        + "Chúc bạn thành công."
+                );
             }
 
             LOGGER.log(Level.INFO,"Seeding completed successfully.");
@@ -787,9 +773,9 @@ public class DBInitializer {
     }
 
     private int insertEmployee(Connection conn, String code, int userId, int deptId, int posId,
-                                String phone, String skills, String experience, String degree) throws SQLException {
-        String sql = "INSERT INTO Employees (employeeCode, userId, departmentId, positionId, phoneNumber, skills, experience, degree) "
-                   + "VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+                            String phone, String skills, String experience, String degree, String startDate) throws SQLException {
+        String sql = "INSERT INTO Employees (employeeCode, userId, departmentId, positionId, phoneNumber, skills, experience, degree, startDate) "
+           + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
         try (PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             ps.setString(1, code);
             ps.setInt(2, userId);
@@ -799,6 +785,7 @@ public class DBInitializer {
             ps.setNString(6, skills);
             ps.setNString(7, experience);
             ps.setNString(8, degree);
+            ps.setDate(9, java.sql.Date.valueOf(startDate));
             ps.executeUpdate();
             try (ResultSet rs = ps.getGeneratedKeys()) {
                 return rs.next() ? rs.getInt(1) : 0;
@@ -806,7 +793,17 @@ public class DBInitializer {
         }
     }
 
-
+    private void insertEmailTemplate(Connection conn, String code, String subject, String body) throws SQLException {
+        String sql = "INSERT INTO Email_Templates (templateCode, subject, body) VALUES (?, ?, ?)";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, code);
+            ps.setNString(2, subject);
+            ps.setNString(3, body);
+            ps.executeUpdate();
+        }
+    }
+    
+    
 
     private void execute(Connection conn, String sql, String label) {
         try (Statement stmt = conn.createStatement()) {

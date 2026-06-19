@@ -25,12 +25,15 @@ import java.util.concurrent.Executors;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.*;
+import static org.apache.tomcat.jakartaee.commons.lang3.StringUtils.isBlank;
 import utils.ConfigManager;
+
 /**
  *
  * @author ADMIN
  */
 public class EmailService {
+
     private static final Logger LOGGER = Logger.getLogger(EmailService.class.getName());
     private final ConfigManager config = ConfigManager.getInstance();
 
@@ -39,7 +42,6 @@ public class EmailService {
     private final String FROM_EMAIL = config.getProperty("EMAIL_FROM");
     private final String APP_PASSWORD = config.getProperty("EMAIL_APP_PASSWORD");
     private static final ExecutorService EMAIL_EXECUTOR = Executors.newFixedThreadPool(10);
-    
 
     public boolean sendEmail(String to, String subject, String body) {
         if (FROM_EMAIL == null || FROM_EMAIL.isBlank() || APP_PASSWORD == null || APP_PASSWORD.isBlank()) {
@@ -68,7 +70,7 @@ public class EmailService {
             message.setRecipients(Message.RecipientType.TO, InternetAddress.parse(to));
             message.setSubject(subject, "UTF-8");
             message.setDataHandler(new DataHandler(
-                new ByteArrayDataSource(body.getBytes(StandardCharsets.UTF_8), "text/html; charset=UTF-8")));
+                    new ByteArrayDataSource(body.getBytes(StandardCharsets.UTF_8), "text/html; charset=UTF-8")));
             message.setHeader("Content-Type", "text/html; charset=UTF-8");
             Transport.send(message);
             return true;
@@ -76,27 +78,40 @@ public class EmailService {
             LOGGER.log(Level.SEVERE, "sendEmail failed to " + to, e);
             return false;
         }
-    }    
-
-
+    }
 
     public void sendResetPasswordEmailAsync(String toEmail, String password) {
         EMAIL_EXECUTOR.submit(() -> {
             String subject = "Password Reset Request - Thesis Management System";
-            
-            String body = "<html><head><meta charset='UTF-8'></head><body>" +
-                          "<p>You have requested to reset your password.</p>" +
-                          "<p>Your password has been updated into the DB:</p>" +
-                          "<p>Here is your password: '" + password + "'</p>" +
-                          "<p>If you did not request this, please ignore this email.</p>" +
-                          "</body></html>";
-            
+
+            String body = "<html><head><meta charset='UTF-8'></head><body>"
+                    + "<p>You have requested to reset your password.</p>"
+                    + "<p>Your password has been updated into the DB:</p>"
+                    + "<p>Here is your password: '" + password + "'</p>"
+                    + "<p>If you did not request this, please ignore this email.</p>"
+                    + "</body></html>";
+
             sendEmail(toEmail, subject, body);
         });
     }
-   
-    
-    public void shutdown(){
+
+    public boolean sendAcceptedCandidateNotify(String toEmail, String subject, String body) {
+        if (isBlank(toEmail) || isBlank(subject) || isBlank(body)) {
+            LOGGER.warning("sendAcceptedCandidateNotify aborted: missing required fields");
+            return false;
+        }
+        return sendEmail(toEmail, subject, body);
+    }
+
+    public boolean sendRejectCandidateNotify(String toEmail, String subject, String body) {
+        if (isBlank(toEmail) || isBlank(subject) || isBlank(body)) {
+            LOGGER.warning("sendRejectCandidateNotify aborted: missing required fields");
+            return false;
+        }
+        return sendEmail(toEmail, subject, body);
+    }
+
+    public void shutdown() {
         EMAIL_EXECUTOR.shutdown();
     }
 }

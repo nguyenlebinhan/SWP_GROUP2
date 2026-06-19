@@ -74,7 +74,7 @@ public class EmployeeDAO {
     public List<EmployeeDetailDTO> getAllEmployees(int userId) {
         List<EmployeeDetailDTO> list = new ArrayList<>();
         String SQL = "SELECT e.employeeId, e.employeeCode, e.userId, e.departmentId, e.positionId, "
-                + "e.phoneNumber, e.skills, e.experience, e.degree, e.status, e.managerId, "
+                + "e.phoneNumber, e.skills, e.experience, e.degree, e.status, e.managerId, e.startDate,"
                 + "u.fullName, u.email, u.username, "
                 + "d.departmentName, p.positionName, r.roleName "
                 + "FROM Employees e "
@@ -101,7 +101,7 @@ public class EmployeeDAO {
     public List<EmployeeDetailDTO> getAllEmployeesByDepartmentId(int departmentId) {
         List<EmployeeDetailDTO> list = new ArrayList<>();
         String SQL = "SELECT e.employeeId, e.employeeCode, e.userId, e.departmentId, e.positionId, "
-                + "e.phoneNumber, e.skills, e.experience, e.degree, e.status, e.managerId, "
+                + "e.phoneNumber, e.skills, e.experience, e.degree, e.status, e.managerId, e.startDate,"
                 + "u.fullName, u.email, u.username, "
                 + "d.departmentName, p.positionName, r.roleName "
                 + "FROM Employees e "
@@ -127,7 +127,7 @@ public class EmployeeDAO {
 
     public EmployeeDetailDTO getEmployeeById(int employeeId) {
         String SQL = "SELECT e.employeeId, e.employeeCode, e.userId, e.departmentId, e.positionId, "
-                + "e.phoneNumber, e.skills, e.experience, e.degree, e.status, e.managerId, "
+                + "e.phoneNumber, e.skills, e.experience, e.degree, e.status, e.managerId, e.startDate,"
                 + "u.fullName, u.email, u.username, "
                 + "d.departmentName, p.positionName, r.roleName "
                 + "FROM Employees e "
@@ -151,7 +151,7 @@ public class EmployeeDAO {
 
     public EmployeeDetailDTO getEmployeeByUserId(int userId) {
         String SQL = "SELECT e.employeeId, e.employeeCode, e.userId, e.departmentId, e.positionId, "
-                + "e.phoneNumber, e.skills, e.experience, e.degree, e.status, e.managerId, "
+                + "e.phoneNumber, e.skills, e.experience, e.degree, e.status, e.managerId, e.startDate,"
                 + "u.fullName, u.email, u.username, "
                 + "d.departmentName, p.positionName, r.roleName "
                 + "FROM Employees e "
@@ -176,7 +176,7 @@ public class EmployeeDAO {
     public List<EmployeeDetailDTO> getEmployeesByDepartmentId(int departmentId) {
         List<EmployeeDetailDTO> list = new ArrayList<>();
         String SQL = "SELECT e.employeeId, e.employeeCode, e.userId, e.departmentId, e.positionId, "
-                + "e.phoneNumber, e.skills, e.experience, e.degree, e.status, e.managerId, "
+                + "e.phoneNumber, e.skills, e.experience, e.degree, e.status, e.managerId, e.startDate,"
                 + "u.fullName, u.email, u.username, "
                 + "d.departmentName, p.positionName, r.roleName "
                 + "FROM Employees e "
@@ -252,7 +252,7 @@ public class EmployeeDAO {
         List<EmployeeDetailDTO> list = new ArrayList<>();
         StringBuilder sql = new StringBuilder(
                 "SELECT e.employeeId, e.employeeCode, e.userId, e.departmentId, e.positionId, "
-                + "e.phoneNumber, e.skills, e.experience, e.degree, e.status, e.managerId, "
+                + "e.phoneNumber, e.skills, e.experience, e.degree, e.status, e.managerId, e.startDate,"
                 + "u.fullName, u.email, u.username, "
                 + "d.departmentName, p.positionName, r.roleName "
                 + "FROM Employees e "
@@ -331,11 +331,11 @@ public class EmployeeDAO {
     public boolean addEmployee(Employee emp) {
         LOGGER.log(Level.INFO, "Adding new employee with code: {0}", emp.getEmployeeCode());
         String SQL = """
-                INSERT INTO employees
-                (employeeCode, userId, departmentId, positionId, phoneNumber, skills,
-                 experience, degree, status, managerId)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, ? )
-                """;
+                        INSERT INTO employees
+                        (employeeCode, userId, departmentId, positionId, phoneNumber, skills,
+                         experience, degree, status, managerId, startDate)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)
+                        """;
         try (Connection conn = dbContext.getConnection(); PreparedStatement ps = conn.prepareStatement(SQL)) {
             ps.setString(1, generateNextEmployeeCode(conn));
             ps.setInt(2, emp.getUserId());
@@ -346,6 +346,7 @@ public class EmployeeDAO {
             ps.setString(7, emp.getExperience());
             ps.setString(8, emp.getDegree());
             ps.setInt(9, emp.getManagerId());
+            ps.setDate(10, emp.getStartDate());
             int rowsAffected = ps.executeUpdate();
             if (rowsAffected > 0) {
                 LOGGER.log(Level.INFO, "Employee added successfully with code: {0}", emp.getEmployeeCode());
@@ -549,7 +550,7 @@ public class EmployeeDAO {
     public List<EmployeeDetailDTO> getAssignedEmployees(int userId) {
         List<EmployeeDetailDTO> list = new ArrayList<>();
         String SQL = "SELECT e.employeeId, e.employeeCode, e.userId, e.departmentId, e.positionId, "
-                + "e.phoneNumber, e.skills, e.experience, e.degree, e.status, e.managerId, "
+                + "e.phoneNumber, e.skills, e.experience, e.degree, e.status, e.managerId, e.startDate,"
                 + "u.fullName, u.email, u.username, "
                 + "d.departmentName, p.positionName, r.roleName "
                 + "FROM Employees e "
@@ -762,6 +763,7 @@ public class EmployeeDAO {
         e.setStatus(rs.getInt("status"));
         int mgr = rs.getInt("managerId");
         e.setManagerId(rs.wasNull() ? null : mgr);
+        e.setStartDate(rs.getDate("startDate"));
         e.setFullName(rs.getNString("fullName"));
         e.setEmail(rs.getString("email"));
         e.setUsername(rs.getString("username"));

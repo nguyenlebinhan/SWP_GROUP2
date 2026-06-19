@@ -186,6 +186,7 @@
                                     <span class="info-label">Số điện thoại</span>
                                     <span class="info-value"><c:out value="${empty employee.phoneNumber ? '-' : employee.phoneNumber}"/></span>
                                 </div>
+                                
                             </div>
                         </div>
 
@@ -209,10 +210,14 @@
                                     <span class="info-value"><c:out value="${empty employee.positionName ? '-' : employee.positionName}"/></span>
                                 </div>
                                 <div class="info-item">
+                                    <span class="info-label">Ngày bắt đầu</span>
+                                    <span class="info-value"><c:out value="${empty employee.startDate ? '-' : employee.startDate}"/></span>
+                                </div>
+                                <div class="info-item">
                                     <span class="info-label">Trạng thái</span>
                                     <span class="info-value"><c:out value="${employee.statusLabel}"/></span>
                                 </div>
-                                <div class="info-item">
+                                <div class="info-item wide">
                                     <span class="info-label">Bằng cấp</span>
                                     <span class="info-value"><c:out value="${empty employee.degree ? '-' : employee.degree}"/></span>
                                 </div>
@@ -224,6 +229,7 @@
                                     <span class="info-label">Kinh nghiệm</span>
                                     <span class="info-value"><c:out value="${empty employee.experience ? '-' : employee.experience}"/></span>
                                 </div>
+                                
                             </div>
                         </div>
                     </div>

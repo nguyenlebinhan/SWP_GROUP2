@@ -215,8 +215,7 @@ public class DepartmentDAO {
     public boolean updateDepartmentInfo(Department dept) {
         LOGGER.log(Level.INFO, "Updating department info with departmentId: {0}", dept.getDepartmentId());
         String SQL = "UPDATE departments SET departmentName = ?, description = ?, status = ? WHERE departmentId = ?";
-        try (Connection conn = dbContext.getConnection();
-             PreparedStatement ps = conn.prepareStatement(SQL)) {
+        try (Connection conn = dbContext.getConnection(); PreparedStatement ps = conn.prepareStatement(SQL)) {
             ps.setString(1, dept.getDepartmentName());
             ps.setString(2, dept.getDescription());
             ps.setInt(3, dept.getStatus());
@@ -376,31 +375,31 @@ public class DepartmentDAO {
     public List<dto.EmployeeDetailDTO> getAssignableManagerDTOs(int baUserId, int departmentId) {
         List<dto.EmployeeDetailDTO> list = new java.util.ArrayList<>();
         String SQL
-            = "SELECT e.employeeId, e.employeeCode, e.userId, e.departmentId, e.positionId, "
-            + "       e.phoneNumber, e.skills, e.experience, e.degree, e.status, e.managerId, "
-            + "       u.fullName, u.email, u.username, "
-            + "       COALESCE(d.departmentName, N'Chưa phân công') AS departmentName, "
-            + "       COALESCE(p.positionName, N'') AS positionName, "
-            + "       r.roleName "
-            + "FROM Employees e "
-            + "JOIN Users u ON u.userId = e.userId "
-            + "JOIN Roles r ON r.roleId = u.roleId "
-            + "LEFT JOIN Departments d ON d.departmentId = e.departmentId "
-            + "LEFT JOIN Positions p ON p.positionId = e.positionId "
-            + "WHERE u.isActive = 1 "
-            + "  AND e.status = 1 "
-            + "  AND r.roleName LIKE '%Manager' "
-            + "  AND r.roleId > (SELECT u2.roleId FROM Users u2 WHERE u2.userId = ?) "
-            + "  AND e.employeeId NOT IN ( "
-            + "      SELECT d2.managerId FROM Departments d2 "
-            + "      WHERE d2.managerId IS NOT NULL AND d2.status = 1 "
-            + "  ) "
-            + "  AND EXISTS ( "
-            + "      SELECT 1 FROM Departments dept2 "
-            + "      WHERE dept2.departmentId = ? "
-            + "        AND r.roleName LIKE CONCAT(dept2.departmentCode, '%') "
-            + "  ) "
-            + "ORDER BY u.fullName";
+                = "SELECT e.employeeId, e.employeeCode, e.userId, e.departmentId, e.positionId, "
+                + "       e.phoneNumber, e.skills, e.experience, e.degree, e.status, e.managerId, "
+                + "       u.fullName, u.email, u.username, "
+                + "       COALESCE(d.departmentName, N'Chưa phân công') AS departmentName, "
+                + "       COALESCE(p.positionName, N'') AS positionName, "
+                + "       r.roleName "
+                + "FROM Employees e "
+                + "JOIN Users u ON u.userId = e.userId "
+                + "JOIN Roles r ON r.roleId = u.roleId "
+                + "LEFT JOIN Departments d ON d.departmentId = e.departmentId "
+                + "LEFT JOIN Positions p ON p.positionId = e.positionId "
+                + "WHERE u.isActive = 1 "
+                + "  AND e.status = 1 "
+                + "  AND r.roleName LIKE '%Manager' "
+                + "  AND r.roleId > (SELECT u2.roleId FROM Users u2 WHERE u2.userId = ?) "
+                + "  AND e.employeeId NOT IN ( "
+                + "      SELECT d2.managerId FROM Departments d2 "
+                + "      WHERE d2.managerId IS NOT NULL AND d2.status = 1 "
+                + "  ) "
+                + "  AND EXISTS ( "
+                + "      SELECT 1 FROM Departments dept2 "
+                + "      WHERE dept2.departmentId = ? "
+                + "        AND r.roleName LIKE CONCAT(dept2.departmentCode, '%') "
+                + "  ) "
+                + "ORDER BY u.fullName";
         try (java.sql.Connection conn = dbContext.getConnection(); java.sql.PreparedStatement ps = conn.prepareStatement(SQL)) {
             ps.setInt(1, baUserId);
             ps.setInt(2, departmentId);
@@ -436,7 +435,7 @@ public class DepartmentDAO {
 
     public boolean assignManager(int departmentId, int employeeId) {
         String sqlDept = "UPDATE Departments SET managerId = ? WHERE departmentId = ? AND status = 1";
-        String sqlEmp  = "UPDATE Employees SET departmentId = ? WHERE employeeId = ?";
+        String sqlEmp = "UPDATE Employees SET departmentId = ? WHERE employeeId = ?";
         java.sql.Connection conn = null;
         try {
             conn = dbContext.getConnection();
@@ -468,11 +467,18 @@ public class DepartmentDAO {
             LOGGER.log(java.util.logging.Level.SEVERE,
                     "Cannot assign manager for deptId=" + departmentId, e);
             if (conn != null) {
-                try { conn.rollback(); } catch (java.sql.SQLException ignored) {}
+                try {
+                    conn.rollback();
+                } catch (java.sql.SQLException ignored) {
+                }
             }
         } finally {
             if (conn != null) {
-                try { conn.setAutoCommit(true); conn.close(); } catch (java.sql.SQLException ignored) {}
+                try {
+                    conn.setAutoCommit(true);
+                    conn.close();
+                } catch (java.sql.SQLException ignored) {
+                }
             }
         }
         return false;
@@ -542,5 +548,18 @@ public class DepartmentDAO {
                     "Cannot get current manager for deptId=" + departmentId, e);
         }
         return null;
+    }
+
+    public int getDepartmentIdByCode(String code) {
+        String sql = "SELECT departmentId FROM Departments WHERE departmentCode = ?";
+        try (Connection conn = dbContext.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, code);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next() ? rs.getInt(1) : -1;
+            }
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Cannot get departmentId by code: " + code, e);
+        }
+        return -1;
     }
 }
