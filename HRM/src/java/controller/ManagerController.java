@@ -136,6 +136,9 @@ public class ManagerController extends HttpServlet {
             case "/forms/create-ot":
                 displayCreateOTForm(request, response, user);
                 break;
+            case "/forms/ot-detail":
+                displayOTRequestDetail(request, response, user);
+                break;
             case "/recruitment/list":
                 displayRecruitmentList(request, response, user);
                 break;
@@ -198,6 +201,9 @@ public class ManagerController extends HttpServlet {
                 break;
             case "/forms/create-ot":
                 handleCreateOT(request, response, user);
+                break;
+            case "/forms/cancel-ot":
+                handleCancelOT(request, response, user);
                 break;
             case "/recruitment/review":
                 handleRecruitmentReview(request, response, user);
@@ -1323,6 +1329,86 @@ public class ManagerController extends HttpServlet {
         request.getRequestDispatcher("/public/manager/forms/ot_requests.jsp").forward(request, response);
     }
 
+    private void displayOTRequestDetail(HttpServletRequest request, HttpServletResponse response, User user)
+            throws ServletException, IOException {
+        Set<String> perms = getPermissions(user);
+        request.getSession().setAttribute("userPermissions", perms);
+        
+        String idParam = request.getParameter("id");
+        if (idParam == null || idParam.trim().isEmpty()) {
+            response.sendRedirect(request.getContextPath() + "/v1/manager/forms/ot-requests");
+            return;
+        }
+        
+        try {
+            int formId = Integer.parseInt(idParam);
+            OvertimeRequestDTO otRequest = overtimeDAO.getOvertimeRequestById(formId);
+            
+            if (otRequest == null) {
+                request.getSession().setAttribute("error", "Không tìm thấy đơn OT.");
+                response.sendRedirect(request.getContextPath() + "/v1/manager/forms/ot-requests");
+                return;
+            }
+            
+            EmployeeDetailDTO manager = employeeDAO.getEmployeeByUserId(user.getUserId());
+            if (manager == null || (otRequest.getEmployeeId() != manager.getEmployeeId() && !hasPermission(user, "VIEW_ALL_DEPT_FORMS") && !hasPermission(user, "VIEW_ALL_FORMS"))) {
+                request.getSession().setAttribute("error", "Bạn không có quyền xem đơn OT này.");
+                response.sendRedirect(request.getContextPath() + "/v1/manager/forms/ot-requests");
+                return;
+            }
+
+            List<EmployeeDetailDTO> assignees = overtimeDAO.getOvertimeAssignees(formId);
+            request.setAttribute("otRequest", otRequest);
+            request.setAttribute("assignees", assignees);
+            
+            setPermissionFlags(request, perms);
+            request.getRequestDispatcher("/public/manager/forms/ot_detail.jsp").forward(request, response);
+            
+        } catch (NumberFormatException e) {
+            response.sendRedirect(request.getContextPath() + "/v1/manager/forms/ot-requests");
+        }
+    }
+
+    private void handleCancelOT(HttpServletRequest request, HttpServletResponse response, User user)
+            throws ServletException, IOException {
+        try {
+            if (user == null) {
+                response.sendRedirect(request.getContextPath() + "/v1/auth/login");
+                return;
+            }
+            
+            String formIdParam = request.getParameter("formId");
+            if (formIdParam == null || formIdParam.trim().isEmpty()) {
+                request.getSession().setAttribute("error", "Dữ liệu formId không hợp lệ.");
+                response.sendRedirect(request.getContextPath() + "/v1/manager/forms/ot-requests");
+                return;
+            }
+            
+            int formId = Integer.parseInt(formIdParam.trim());
+            EmployeeDetailDTO manager = employeeDAO.getEmployeeByUserId(user.getUserId());
+            
+            if (manager != null) {
+                dto.FormRequestDTO fr = formRequestDAO.getFormRequestById(formId);
+                if (fr != null && fr.getEmployeeId() == manager.getEmployeeId() && fr.getStatus() == 0) {
+                    boolean success = formRequestDAO.updateFormRequest(formId, 3, manager.getEmployeeId(), "Đã hủy bởi người tạo");
+                    if (success) {
+                        request.getSession().setAttribute("success", "Đã hủy đơn OT thành công.");
+                    } else {
+                        request.getSession().setAttribute("error", "Lỗi khi cập nhật trạng thái hủy đơn. Vui lòng thử lại.");
+                    }
+                } else {
+                    request.getSession().setAttribute("error", "Đơn không tồn tại, không thuộc về bạn, hoặc đã được xử lý.");
+                }
+            } else {
+                request.getSession().setAttribute("error", "Không tìm thấy thông tin quản lý.");
+            }
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Lỗi hủy đơn OT", e);
+            request.getSession().setAttribute("error", "Đã xảy ra lỗi hệ thống: " + e.getClass().getName() + " - " + e.getMessage());
+        }
+        response.sendRedirect(request.getContextPath() + "/v1/manager/forms/ot-requests");
+    }
+
     private void handleCreateOT(HttpServletRequest request, HttpServletResponse response, User user)
             throws ServletException, IOException {
         try {
@@ -1730,6 +1816,4 @@ public class ManagerController extends HttpServlet {
         setPermissionFlags(request, getPermissions(user));
         request.getRequestDispatcher("/public/manager/department/reassign_department.jsp").forward(request, response);
     }
-
-    private void displayCreateOTForm(HttpServletRequest request, HttpServletResponse response, User user)
 }
