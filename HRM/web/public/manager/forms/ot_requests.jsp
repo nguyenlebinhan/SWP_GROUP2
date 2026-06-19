@@ -126,15 +126,27 @@
                                             <div class="small text-danger mt-1">Lý do: ${req.approverNote}</div>
                                         </c:if>
                                     </td>
-                                    <td>${not empty req.approverName ? req.approverName : '-'}</td>
+                                    <td>
+                                        <c:choose>
+                                            <c:when test="${req.status == 1 || req.status == 2}">
+                                                Business Admin
+                                            </c:when>
+                                            <c:otherwise>
+                                                -
+                                            </c:otherwise>
+                                        </c:choose>
+                                    </td>
                                     <td>
                                         <a href="${pageContext.request.contextPath}/v1/manager/forms/ot-detail?id=${req.formId}" class="btn btn-sm btn-outline-primary" title="Xem chi tiết">
                                             <i class="fa-solid fa-eye"></i>
                                         </a>
                                         <c:if test="${req.status == 0}">
-                                            <button class="btn btn-sm btn-outline-danger ms-1" title="Hủy đơn">
-                                                <i class="fa-solid fa-trash"></i>
-                                            </button>
+                                            <form action="${pageContext.request.contextPath}/v1/manager/forms/cancel-ot" method="POST" class="d-inline" onsubmit="return confirm('Bạn có chắc chắn muốn hủy đơn này không?');">
+                                                <input type="hidden" name="formId" value="${req.formId}">
+                                                <button type="submit" class="btn btn-sm btn-outline-danger ms-1" title="Hủy đơn">
+                                                    <i class="fa-solid fa-trash"></i>
+                                                </button>
+                                            </form>
                                         </c:if>
                                     </td>
                                 </tr>

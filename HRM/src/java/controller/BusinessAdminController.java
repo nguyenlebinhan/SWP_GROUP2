@@ -7,6 +7,10 @@ import dao.PermissionDAO;
 import dao.RoleDAO;
 import dao.UserDAO;
 import dto.EmployeeDetailDTO;
+import dto.FormRequestDTO;
+import dao.FormRequestDAO;
+import dao.OvertimeDAO;
+import dto.OvertimeRequestDTO;
 import java.sql.Date;
 import model.Holiday;
 import jakarta.servlet.ServletException;
@@ -36,6 +40,8 @@ public class BusinessAdminController extends HttpServlet {
     private static final EmployeeDAO employeeDAO = new EmployeeDAO();
     private static final DepartmentDAO departmentDAO = new DepartmentDAO();
     private static final HolidayDAO holidayDAO = new HolidayDAO();
+    private static final FormRequestDAO formRequestDAO = new FormRequestDAO();
+    private static final OvertimeDAO overtimeDAO = new OvertimeDAO();
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
@@ -89,6 +95,12 @@ public class BusinessAdminController extends HttpServlet {
             case "/holiday/edit":
                 displayHolidayForm(request, response, true);
                 break;
+            case "/form-requests":
+                displayFormRequests(request, response);
+                break;
+            case "/form-requests/ot-detail":
+                displayOTDetail(request, response);
+                break;
             default:
                 response.sendRedirect(request.getContextPath() + "/");
                 break;
@@ -134,6 +146,12 @@ public class BusinessAdminController extends HttpServlet {
                 break;
             case "/holiday/delete":
                 handleDeleteHoliday(request, response);
+                break;
+            case "/form-requests/approve":
+                handleApproveForm(request, response, user);
+                break;
+            case "/form-requests/reject":
+                handleRejectForm(request, response, user);
                 break;
             default:
                 response.sendRedirect(request.getContextPath() + "/");
@@ -806,4 +824,112 @@ public class BusinessAdminController extends HttpServlet {
             return null;
         }
     }
+
+    // =========================================================
+    // Quản lý Đơn từ (Form Requests)
+    // =========================================================
+
+    private void displayFormRequests(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+        String dayStr = request.getParameter("day");
+        String monthStr = request.getParameter("month");
+        String yearStr = request.getParameter("year");
+        String keyword = request.getParameter("keyword");
+        
+        Integer day = parseIntParam(dayStr);
+        Integer month = parseIntParam(monthStr);
+        Integer year = parseIntParam(yearStr);
+        
+        List<FormRequestDTO> forms = formRequestDAO.getAllFormRequests(day, month, year, keyword);
+        
+        request.setAttribute("forms", forms);
+        request.setAttribute("filterDay", day);
+        request.setAttribute("filterMonth", month);
+        request.setAttribute("filterYear", year);
+        request.setAttribute("keyword", keyword);
+        
+        request.getRequestDispatcher("/public/businessadmin/form_requests.jsp").forward(request, response);
+    }
+
+    private void displayOTDetail(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+        String idParam = request.getParameter("id");
+        if (idParam == null || idParam.trim().isEmpty()) {
+            response.sendRedirect(request.getContextPath() + "/v1/businessadmin/form-requests");
+            return;
+        }
+        try {
+            int formId = Integer.parseInt(idParam.trim());
+            OvertimeRequestDTO otRequest = overtimeDAO.getOvertimeRequestById(formId);
+            if (otRequest == null) {
+                request.getSession().setAttribute("error", "Không tìm thấy đơn OT.");
+                response.sendRedirect(request.getContextPath() + "/v1/businessadmin/form-requests");
+                return;
+            }
+
+            List<EmployeeDetailDTO> assignees = overtimeDAO.getOvertimeAssignees(formId);
+            request.setAttribute("otRequest", otRequest);
+            request.setAttribute("assignees", assignees);
+            
+            request.getRequestDispatcher("/public/businessadmin/ot_detail.jsp").forward(request, response);
+            
+        } catch (NumberFormatException e) {
+            response.sendRedirect(request.getContextPath() + "/v1/businessadmin/form-requests");
+        }
+    }
+
+    private void handleApproveForm(HttpServletRequest request, HttpServletResponse response, User user)
+            throws ServletException, IOException {
+        try {
+            Integer formId = parseIntParam(request.getParameter("formId"));
+            String note = request.getParameter("note");
+            if (formId == null) {
+                request.getSession().setAttribute("error", "Không tìm thấy mã đơn.");
+                response.sendRedirect(request.getContextPath() + "/v1/businessadmin/form-requests");
+                return;
+            }
+            
+            EmployeeDetailDTO approver = employeeDAO.getEmployeeByUserId(user.getUserId());
+            int approverId = approver != null ? approver.getEmployeeId() : 0;
+            
+            boolean ok = formRequestDAO.approveFormRequest(formId, approverId, note != null ? note.trim() : "");
+            if (ok) {
+                request.getSession().setAttribute("success", "Đã duyệt đơn thành công.");
+            } else {
+                request.getSession().setAttribute("error", "Lỗi khi duyệt đơn.");
+            }
+        } catch (Exception e) {
+            LOGGER.log(java.util.logging.Level.SEVERE, "Error approving form", e);
+            request.getSession().setAttribute("error", "Lỗi hệ thống khi duyệt đơn.");
+        }
+        response.sendRedirect(request.getContextPath() + "/v1/businessadmin/form-requests");
+    }
+
+    private void handleRejectForm(HttpServletRequest request, HttpServletResponse response, User user)
+            throws ServletException, IOException {
+        try {
+            Integer formId = parseIntParam(request.getParameter("formId"));
+            String note = request.getParameter("note");
+            if (formId == null) {
+                request.getSession().setAttribute("error", "Không tìm thấy mã đơn.");
+                response.sendRedirect(request.getContextPath() + "/v1/businessadmin/form-requests");
+                return;
+            }
+            
+            EmployeeDetailDTO approver = employeeDAO.getEmployeeByUserId(user.getUserId());
+            int approverId = approver != null ? approver.getEmployeeId() : 0;
+            
+            boolean ok = formRequestDAO.rejectFormRequest(formId, approverId, note != null ? note.trim() : "");
+            if (ok) {
+                request.getSession().setAttribute("success", "Đã từ chối đơn thành công.");
+            } else {
+                request.getSession().setAttribute("error", "Lỗi khi từ chối đơn.");
+            }
+        } catch (Exception e) {
+            LOGGER.log(java.util.logging.Level.SEVERE, "Error rejecting form", e);
+            request.getSession().setAttribute("error", "Lỗi hệ thống khi từ chối đơn.");
+        }
+        response.sendRedirect(request.getContextPath() + "/v1/businessadmin/form-requests");
+    }
+
 }

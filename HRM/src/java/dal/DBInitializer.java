@@ -759,6 +759,7 @@ public class DBInitializer {
             if (countRows(conn, "Form_Types") == 0) {
                 insertFormType(conn, "LEAVE",     "Nghỉ phép");
                 insertFormType(conn, "COMPLAINT", "Khiếu nại");
+                insertFormType(conn, "OVERTIME",  "Tăng ca");
             }
 
             LOGGER.log(Level.INFO,"Seeding completed successfully.");
