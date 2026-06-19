@@ -16,11 +16,7 @@ import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import model.FormRequest;
-import model.LeaveFormRequest;
-import model.ComplaintFormRequest;
 import dto.FormRequestDTO;
-import dto.LeaveFormRequestDTO;
-import dto.ComplaintFormRequestDTO;
 import java.util.Objects;
 
 /**
@@ -36,17 +32,14 @@ public class FormRequestDAO {
         this.dbContext = new DBContext();
     }
 
-    // INSERT đơn chung (Khiếu nại, hoặc loại không có ngày)
+    //Thêm đơn
     public int addFormRequest(FormRequest fr) {
         String SQL = """
                      INSERT INTO form_requests
-                     (formCode, employeeId, formTypeId, reason,
-                      startDate, endDate, totalDays, usedDays,
-                      attachmentUrl, attachmentName, status)
-                     VALUES (?, ?, ?, ?, NULL, NULL, NULL, 0, ?, ?, 0)
+                     (formCode, employeeId, formTypeId, reason, attachmentUrl, attachmentName, status)
+                     VALUES (?, ?, ?, ?, ?, ?, 0)
                      """;
-        try (Connection conn = dbContext.getConnection();
-             PreparedStatement ps = conn.prepareStatement(SQL, Statement.RETURN_GENERATED_KEYS)) {
+        try (Connection conn = dbContext.getConnection(); PreparedStatement ps = conn.prepareStatement(SQL, Statement.RETURN_GENERATED_KEYS)) {
             ps.setString(1, fr.getFormCode());
             ps.setInt(2, fr.getEmployeeId());
             ps.setInt(3, fr.getFormTypeId());
@@ -58,61 +51,19 @@ public class FormRequestDAO {
                 ps.setString(5, fr.getAttachmentUrl());
                 ps.setString(6, fr.getAttachmentName());
             }
-            int rows = ps.executeUpdate();
-            if (rows > 0) {
+            int rowsAffected = ps.executeUpdate();
+            if (rowsAffected > 0) {
                 try (ResultSet rs = ps.getGeneratedKeys()) {
                     if (rs.next()) {
                         int newId = rs.getInt(1);
-                        LOGGER.log(Level.INFO, "Form request added: id={0}, code={1}", new Object[]{newId, fr.getFormCode()});
+                        LOGGER.log(Level.INFO, "Form request added successfully with code: {0}", fr.getFormCode());
                         return newId;
                     }
                 }
             }
-            LOGGER.log(Level.WARNING, "Add form request failed for code: {0}", fr.getFormCode());
+            LOGGER.log(Level.WARNING, "Add form request failed: no rows affected for code: {0}", fr.getFormCode());
         } catch (SQLException e) {
-            LOGGER.log(Level.SEVERE, "Error adding form request: " + fr.getFormCode(), e);
-        }
-        return -1;
-    }
-
-    // INSERT đơn Nghỉ phép (overload — đọc startDate, endDate, totalDays từ LeaveFormRequest)
-    public int addFormRequest(LeaveFormRequest fr) {
-        String SQL = """
-                     INSERT INTO form_requests
-                     (formCode, employeeId, formTypeId, reason,
-                      startDate, endDate, totalDays, usedDays,
-                      attachmentUrl, attachmentName, status)
-                     VALUES (?, ?, ?, ?, ?, ?, ?, 0, ?, ?, 0)
-                     """;
-        try (Connection conn = dbContext.getConnection();
-             PreparedStatement ps = conn.prepareStatement(SQL, Statement.RETURN_GENERATED_KEYS)) {
-            ps.setString(1, fr.getFormCode());
-            ps.setInt(2, fr.getEmployeeId());
-            ps.setInt(3, fr.getFormTypeId());
-            ps.setNString(4, fr.getReason());
-            if (fr.getStartDate() == null) ps.setNull(5, Types.DATE); else ps.setDate(5, fr.getStartDate());
-            if (fr.getEndDate() == null) ps.setNull(6, Types.DATE); else ps.setDate(6, fr.getEndDate());
-            if (fr.getTotalDays() == null) ps.setNull(7, Types.DECIMAL); else ps.setDouble(7, fr.getTotalDays());
-            if (fr.getAttachmentUrl() == null) {
-                ps.setNull(8, Types.VARCHAR);
-                ps.setNull(9, Types.VARCHAR);
-            } else {
-                ps.setString(8, fr.getAttachmentUrl());
-                ps.setString(9, fr.getAttachmentName());
-            }
-            int rows = ps.executeUpdate();
-            if (rows > 0) {
-                try (ResultSet rs = ps.getGeneratedKeys()) {
-                    if (rs.next()) {
-                        int newId = rs.getInt(1);
-                        LOGGER.log(Level.INFO, "Leave form request added: id={0}, code={1}", new Object[]{newId, fr.getFormCode()});
-                        return newId;
-                    }
-                }
-            }
-            LOGGER.log(Level.WARNING, "Add leave form request failed for code: {0}", fr.getFormCode());
-        } catch (SQLException e) {
-            LOGGER.log(Level.SEVERE, "Error adding leave form request: " + fr.getFormCode(), e);
+            LOGGER.log(Level.SEVERE, "Error adding form request with code: " + fr.getFormCode(), e);
         }
         return -1;
     }
@@ -154,8 +105,12 @@ public class FormRequestDAO {
         return list;
     }
 
-    //Lấy tất cả đơn theo phòng ban (có filter theo thời gian và tên nhân viên)
-    public List<FormRequestDTO> getAllFormRequestsByDepartmentId(int departmentId, Integer day, Integer month, Integer year, String name) {
+    //Lấy tất cả đơn theo phòng ban (có filter theo thời gian)
+    public List<FormRequestDTO> getAllFormRequestsByDepartmentId(int departmentId, Integer day, Integer month, Integer year) {
+        return getAllFormRequestsByDepartmentId(departmentId, day, month, year, null);
+    }
+
+    public List<FormRequestDTO> getAllFormRequestsByDepartmentId(int departmentId, Integer day, Integer month, Integer year, String keyword) {
         List<FormRequestDTO> list = new ArrayList<>();
         StringBuilder SQL = new StringBuilder(MANAGER_FORM_QUERY).append(" WHERE d.departmentId = ?");
         List<Object> param = new ArrayList<>();
@@ -173,10 +128,13 @@ public class FormRequestDAO {
             SQL.append(" AND YEAR(fr.createdAt) = ?");
             param.add(year);
         }
-        
-        if (name != null && !name.trim().isEmpty()) {
-            SQL.append(" AND u.fullName LIKE ?");
-            param.add("%" + name.trim() + "%");
+        if (keyword != null && !keyword.trim().isEmpty()) {
+            SQL.append(" AND (u.fullName LIKE ? OR e.employeeCode LIKE ? OR ft.formTypeName LIKE ? OR fr.formCode LIKE ?)");
+            String kw = "%" + keyword.trim() + "%";
+            param.add(kw);
+            param.add(kw);
+            param.add(kw);
+            param.add(kw);
         }
         SQL.append(" ORDER BY fr.createdAt DESC");
 
@@ -289,12 +247,11 @@ public class FormRequestDAO {
 
     private static final String MANAGER_FORM_QUERY
             = "SELECT fr.formId, fr.formCode, fr.employeeId, fr.formTypeId, fr.reason, "
-            + "fr.startDate, fr.endDate, fr.totalDays, fr.usedDays, "
             + "fr.status, fr.approverId, fr.approverNote, fr.approvedAt, "
             + "fr.attachmentUrl, fr.attachmentName, fr.createdAt, fr.updatedAt, "
             + "e.employeeCode, u.fullName, "
             + "d.departmentId, d.departmentName, "
-            + "ft.formTypeName, ft.formTypeCode, "
+            + "ft.formTypeName, "
             + "ua.fullName AS approverName "
             + "FROM Form_Requests fr "
             + "JOIN Employees e   ON fr.employeeId  = e.employeeId "
@@ -304,31 +261,8 @@ public class FormRequestDAO {
             + "LEFT JOIN Employees ea ON fr.approverId  = ea.employeeId "
             + "LEFT JOIN Users ua     ON ea.userId       = ua.userId ";
 
-    /**
-     * Map ResultSet thành đúng subtype DTO dựa vào formTypeCode.
-     * - "LEAVE"     → LeaveFormRequestDTO (có startDate, endDate, totalDays, usedDays)
-     * - "COMPLAINT" → ComplaintFormRequestDTO
-     * - khác       → FormRequestDTO (base)
-     */
     private FormRequestDTO mapFormRequestDTO(ResultSet rs) throws SQLException {
-        String typeCode = rs.getString("formTypeCode");
-
-        FormRequestDTO fr;
-        if ("LEAVE".equals(typeCode)) {
-            LeaveFormRequestDTO leave = new LeaveFormRequestDTO();
-            leave.setStartDate(rs.getDate("startDate"));
-            leave.setEndDate(rs.getDate("endDate"));
-            double totalDays = rs.getDouble("totalDays");
-            leave.setTotalDays(rs.wasNull() ? null : totalDays);
-            double usedDays = rs.getDouble("usedDays");
-            leave.setUsedDays(rs.wasNull() ? null : usedDays);
-            fr = leave;
-        } else if ("COMPLAINT".equals(typeCode)) {
-            fr = new ComplaintFormRequestDTO();
-        } else {
-            fr = new FormRequestDTO();
-        }
-
+        FormRequestDTO fr = new FormRequestDTO();
         fr.setFormId(rs.getInt("formId"));
         fr.setFormCode(rs.getString("formCode"));
         fr.setEmployeeId(rs.getInt("employeeId"));
@@ -348,7 +282,6 @@ public class FormRequestDAO {
         fr.setDepartmentId(rs.getInt("departmentId"));
         fr.setDepartmentName(rs.getNString("departmentName"));
         fr.setFormTypeName(rs.getNString("formTypeName"));
-        fr.setFormTypeCode(typeCode);
         fr.setApproverName(rs.getNString("approverName"));
         return fr;
     }
