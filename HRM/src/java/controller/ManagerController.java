@@ -136,13 +136,13 @@ public class ManagerController extends HttpServlet {
             case "/forms/create-ot":
                 displayCreateOTForm(request, response, user);
                 break;
-            case "/recruitment-list":
+            case "/recruitment/list":
                 displayRecruitmentList(request, response, user);
                 break;
-            case "/recruitment-detail":
+            case "/recruitment/detail":
                 displayRecruitmentDetail(request, response, user);
                 break;
-            case "/recruitment-import":
+            case "/recruitment/import":
                 displayRecruitmentImport(request, response, user);
                 break;
             default:
@@ -199,10 +199,10 @@ public class ManagerController extends HttpServlet {
             case "/forms/create-ot":
                 handleCreateOT(request, response, user);
                 break;
-            case "/recruitment-review":
+            case "/recruitment/review":
                 handleRecruitmentReview(request, response, user);
                 break;
-            case "/recruitment-import":
+            case "/recruitment/import":
                 handleImportCandidates(request, response, user);
                 break;
             default:
