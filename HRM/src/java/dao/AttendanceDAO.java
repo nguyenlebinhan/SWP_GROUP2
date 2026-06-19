@@ -68,7 +68,7 @@ public class AttendanceDAO {
     
 
 
-    public boolean upsertAttendance(Connection conn, Attendance a) throws SQLException {
+    public boolean insertAttendance(Connection conn, Attendance a) throws SQLException {
         String SQL = "INSERT INTO Attendance "
                 + "(attendanceCode, employeeId, employeeCode, fullName, departmentId, departmentName, "
                 + "workDate, timeIn, timeOut, hoursWorked, attendanceStatus, fileId) "
@@ -332,10 +332,41 @@ public class AttendanceDAO {
     }
 
     private String formatAdjustmentValue(Time timeIn, Time timeOut, BigDecimal hours, int status) {
-        return "timeIn=" + (timeIn != null ? timeIn : "-")
-                + "; timeOut=" + (timeOut != null ? timeOut : "-")
-                + "; hoursWorked=" + (hours != null ? hours : "-")
-                + "; status=" + status;
+        return "Giờ vào: " + (timeIn != null ? timeIn.toString().substring(0, 5) : "—")
+                + " | Giờ ra: " + (timeOut != null ? timeOut.toString().substring(0, 5) : "—")
+                + " | Số giờ: " + formatHours(timeIn, timeOut, hours)
+                + " | Trạng thái: " + statusLabel(status);
+    }
+
+    private String formatHours(Time timeIn, Time timeOut, BigDecimal hours) {
+        long minutes;
+        if (timeIn != null && timeOut != null) {
+            minutes = (timeOut.getTime() - timeIn.getTime()) / 60000L;
+        } else if (hours != null) {
+            minutes = hours.multiply(BigDecimal.valueOf(60))
+                    .setScale(0, java.math.RoundingMode.HALF_UP).longValue();
+        } else {
+            return "—";
+        }
+        if (minutes < 0) {
+            minutes = 0;
+        }
+        long h = minutes / 60;
+        long m = minutes % 60;
+        return h + "h" + String.format("%02d", m) + "m";
+    }
+
+    private String statusLabel(int status) {
+        switch (status) {
+            case 0: return "Đúng giờ";
+            case 1: return "Đi muộn";
+            case 2: return "Vắng mặt";
+            case 3: return "Không phép";
+            case 4: return "Nghỉ phép";
+            case 5: return "Nghỉ lễ";
+            case 6: return "Cuối tuần";
+            default: return "Không xác định";
+        }
     }
 
     private Attendance mapAttendance(ResultSet rs) throws SQLException {

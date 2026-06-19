@@ -25,7 +25,6 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.io.IOException;
 import java.io.InputStream;
-import java.sql.*;
 import java.sql.Date;
 import java.sql.Time;
 import java.time.LocalDate;
@@ -189,10 +188,10 @@ public class EmployeeController extends HttpServlet {
             case "/update-employee-detail":
                 handleUpdateEmployeeDetail(request, response, user);
                 break;
-            case "/form/leave/submit":
+            case "/forms/leave/submit":
                 handleLeaveFormSubmit(request, response, user);
                 break;
-            case "/form/complaint/submit":
+            case "/forms/complaint/submit":
                 handleComplaintFormSubmit(request, response, user);
                 break;
             default:
@@ -550,8 +549,7 @@ public class EmployeeController extends HttpServlet {
                 + buildAttendanceFilterQuery(request);
 
         Integer attendanceId = parseIntOrNull(request.getParameter("attendanceId"));
-        Integer status = parseIntOrNull(request.getParameter("attendanceStatus"));
-        if (attendanceId == null || status == null || status < 0 || status > 3) {
+        if (attendanceId == null) {
             request.getSession().setAttribute("error", "Dữ liệu chỉnh sửa chấm công không hợp lệ.");
             response.sendRedirect(redirectUrl);
             return;
@@ -590,11 +588,9 @@ public class EmployeeController extends HttpServlet {
             return;
         }
 
-        boolean isAbsent = (status == 2 || status == 3);
+        // Giờ công chỉ tính khi có đủ cả 2 mốc giờ; còn lại = 0.
         BigDecimal hoursWorked;
-        if (isAbsent) {
-            hoursWorked = BigDecimal.ZERO;
-        } else if (timeIn != null && timeOut != null) {
+        if (timeIn != null && timeOut != null) {
             long diffMillis = timeOut.getTime() - timeIn.getTime();
             if (diffMillis < 0) {
                 request.getSession().setAttribute("error", "Giờ ra phải sau giờ vào.");
@@ -604,8 +600,13 @@ public class EmployeeController extends HttpServlet {
             hoursWorked = new BigDecimal(diffMillis)
                     .divide(new BigDecimal(3600000), 2, RoundingMode.HALF_UP);
         } else {
-            hoursWorked = null;
+            hoursWorked = BigDecimal.ZERO;
         }
+
+        // Trạng thái được suy tự động từ giờ vào/ra (nhất quán với luồng import),
+        // không lấy từ lựa chọn tay để tránh sai lệch (vd 08:30 phải là Đi muộn).
+        int status = importService.resolveFinalStatusCode(timeIn, timeOut,
+                attendance.getEmployeeId(), attendance.getWorkDate());
 
         String updateError = attendanceDAO.updateAttendanceWithHistory(attendanceId, timeIn, timeOut,
                 hoursWorked, status, reason, user.getUserId());

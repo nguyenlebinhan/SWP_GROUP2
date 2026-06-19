@@ -17,11 +17,10 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import model.FormRequest;
 import model.LeaveFormRequest;
-import model.ComplaintFormRequest;
 import dto.FormRequestDTO;
 import dto.LeaveFormRequestDTO;
 import dto.ComplaintFormRequestDTO;
-import java.util.Objects;
+import java.sql.Date;
 
 /**
  *
@@ -36,7 +35,27 @@ public class FormRequestDAO {
         this.dbContext = new DBContext();
     }
 
-    // INSERT đơn chung (Khiếu nại, hoặc loại không có ngày)
+    public boolean hasApprovedLeave(int employeeId,Date workDate) {
+        String sql = "SELECT 1 FROM form_requests fr "
+                + "JOIN form_types ft ON fr.formTypeId = ft.formTypeId "
+                + "WHERE fr.employeeId = ? "
+                + "  AND ft.formTypeCode = 'LEAVE' "
+                + "  AND fr.status = 1 "                       // 1 = Approved
+                + "  AND ? BETWEEN fr.startDate AND fr.endDate "
+                + "LIMIT 1";
+        try (Connection conn = dbContext.getConnection();
+                PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, employeeId);
+            ps.setDate(2, workDate);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next();
+            }
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "hasApprovedLeave failed emp=" + employeeId + " date=" + workDate, e);
+            return false;
+        }
+    }
+
     public int addFormRequest(FormRequest fr) {
         String SQL = """
                      INSERT INTO form_requests

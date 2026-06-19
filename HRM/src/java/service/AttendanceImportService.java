@@ -7,6 +7,8 @@ package service;
 import dal.DBContext;
 import dao.AttendanceDAO;
 import dao.AttendanceImportRowDAO;
+import dao.FormRequestDAO;
+import dao.HolidayDAO;
 import dao.UploadedFileDAO;
 import dto.AttendanceDataDTO;
 import dto.AttendanceImportResultDTO;
@@ -21,10 +23,9 @@ import java.sql.Connection;
 import java.sql.Date;
 import java.sql.SQLException;
 import java.sql.Time;
-import java.util.HashMap;
+import java.time.DayOfWeek;
+import java.time.LocalTime;
 import java.util.List;
-import java.util.Locale;
-import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import model.Attendance;
@@ -33,16 +34,13 @@ import utils.ExcelAttendanceParser;
 public class AttendanceImportService {
 
     private static final Logger LOGGER = Logger.getLogger(AttendanceImportService.class.getName());
-    private static final Map<String, Integer> STATUS_MAP = new HashMap<>();
-    static {
-        for (AttendanceStatus s : AttendanceStatus.values()) {
-            STATUS_MAP.put(s.name(), s.getRelatedNum());
-        }
-    }
-        private final DBContext dbContext;
+    private static final LocalTime WORK_START = LocalTime.of(8, 0);
+    private final DBContext dbContext;
     private final AttendanceDAO attendanceDAO;
     private final AttendanceImportRowDAO importRowDAO;
     private final UploadedFileDAO uploadedFileDAO;
+    private final HolidayDAO holidayDAO;
+    private final FormRequestDAO formRequestDAO;
     private final ExcelAttendanceParser parser;
 
     public AttendanceImportService() {
@@ -50,6 +48,8 @@ public class AttendanceImportService {
         this.attendanceDAO = new AttendanceDAO();
         this.importRowDAO = new AttendanceImportRowDAO();
         this.uploadedFileDAO = new UploadedFileDAO();
+        this.holidayDAO = new HolidayDAO();
+        this.formRequestDAO = new FormRequestDAO();
         this.parser = new ExcelAttendanceParser();
     }
 
@@ -167,33 +167,6 @@ public class AttendanceImportService {
                     + " không thuộc tháng " + month + "/" + year + " đã chọn.");
         }
 
-        String statusRaw = trimToNull(ad.getAttendanceStatus());
-        if (statusRaw == null) {
-            throw new RowValidationException("Thiếu attendanceStatus.");
-        }
-        Integer statusCode = STATUS_MAP.get(statusRaw.toUpperCase(Locale.ROOT));
-        if (statusCode == null) {
-            throw new RowValidationException("attendanceStatus không hợp lệ: " + statusRaw
-                    + " (chỉ chấp nhận PRESENT, LATE, ABSENT, UNEXCUSED).");
-        }
-        boolean isAbsent = statusCode == 2 || statusCode == 3;
-        Time timeIn = parseTime(ad.getTimeIn(), "timeIn");
-        Time timeOut = parseTime(ad.getTimeOut(), "timeOut");
-
-        BigDecimal hoursWorked;
-        if (isAbsent) {
-            hoursWorked = BigDecimal.ZERO;
-        } else if (timeIn != null && timeOut != null) {
-            long diffMillis = timeOut.getTime() - timeIn.getTime();
-            if (diffMillis < 0) {
-                throw new RowValidationException("timeOut phải sau timeIn.");
-            }
-            hoursWorked = new BigDecimal(diffMillis)
-                    .divide(new BigDecimal(3600000), 2, RoundingMode.HALF_UP);
-        } else {
-            hoursWorked = null; 
-        }
-
         int employeeId = attendanceDAO.findEmployeeIdByCode(employeeCode);
         if (employeeId <= 0) {
             throw new RowValidationException("employeeCode không tồn tại: " + employeeCode);
@@ -201,6 +174,25 @@ public class AttendanceImportService {
         if (!attendanceDAO.employeeBelongsToDepartment(employeeId, departmentId)) {
             throw new RowValidationException("Nhân viên " + employeeCode
                     + " không thuộc phòng ban đã chọn để import.");
+        }
+
+        Time timeIn = parseTime(ad.getTimeIn(), "timeIn");
+        Time timeOut = parseTime(ad.getTimeOut(), "timeOut");
+
+        AttendanceStatus derived = deriveStatus(timeIn, timeOut);
+        AttendanceStatus finalStatus = determineFinalStatus(derived, employeeId, workDate);
+        int statusCode = finalStatus.getRelatedNum();
+
+        BigDecimal hoursWorked;
+        if (timeIn != null && timeOut != null) {
+            long diffMillis = timeOut.getTime() - timeIn.getTime();
+            if (diffMillis < 0) {
+                throw new RowValidationException("timeOut phải sau timeIn.");
+            }
+            hoursWorked = new BigDecimal(diffMillis)
+                    .divide(new BigDecimal(3600000), 2, RoundingMode.HALF_UP);
+        } else {
+            hoursWorked = BigDecimal.ZERO;
         }
 
         Attendance att = new Attendance();
@@ -217,6 +209,47 @@ public class AttendanceImportService {
         att.setAttendanceStatus(statusCode);
         att.setFileId(fileId);
         return att;
+    }
+
+    /**
+     * Suy trạng thái cuối cùng (đã áp quy tắc Holiday/Weekend/Leave) cho 1 bản ghi
+     * và trả về mã int để lưu DB. Dùng chung cho luồng import và luồng sửa tay,
+     * đảm bảo trạng thái luôn nhất quán với giờ vào/ra.
+     */
+    public int resolveFinalStatusCode(Time timeIn, Time timeOut, int employeeId, Date workDate) {
+        AttendanceStatus derived = deriveStatus(timeIn, timeOut);
+        return determineFinalStatus(derived, employeeId, workDate).getRelatedNum();
+    }
+
+    private AttendanceStatus deriveStatus(Time timeIn, Time timeOut) {
+        if (timeIn == null || timeOut == null) {
+            return AttendanceStatus.ABSENT;
+        }
+        if (timeIn.toLocalTime().isAfter(WORK_START)) { 
+            return AttendanceStatus.LATE;
+        }
+        return AttendanceStatus.PRESENT;
+    }
+
+    private AttendanceStatus determineFinalStatus(AttendanceStatus derived, int employeeId, Date workDate) {
+        if (derived == AttendanceStatus.PRESENT || derived == AttendanceStatus.LATE) {
+            return derived;
+        }
+        if (holidayDAO.isHoliday(workDate)) {
+            return AttendanceStatus.HOLIDAY;
+        }
+        if (isWeekend(workDate)) {
+            return AttendanceStatus.WEEKEND;
+        }
+        if (formRequestDAO.hasApprovedLeave(employeeId, workDate)) {
+            return AttendanceStatus.LEAVE;
+        }
+        return AttendanceStatus.ABSENT;
+    }
+
+    private boolean isWeekend(Date workDate) {
+        DayOfWeek d = workDate.toLocalDate().getDayOfWeek();
+        return d == DayOfWeek.SATURDAY || d == DayOfWeek.SUNDAY;
     }
 
     private Time parseTime(String raw, String fieldName) throws RowValidationException {

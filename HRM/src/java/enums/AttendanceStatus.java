@@ -12,7 +12,10 @@ public enum AttendanceStatus {
     PRESENT(0),
     LATE(1),
     ABSENT(2),
-    UNEXCUSED(3);
+    UNEXCUSED(3),
+    LEAVE(4),
+    HOLIDAY(5),
+    WEEKEND(6);
 
     private int relatedNum;
 

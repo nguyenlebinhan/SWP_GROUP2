@@ -20,6 +20,9 @@
         .badge-s1 { background:#fef3c7; color:#92400e; }
         .badge-s2 { background:#fee2e2; color:#991b1b; }
         .badge-s3 { background:#e5e7eb; color:#374151; }
+        .badge-s4 { background:#dbeafe; color:#1e40af; }
+        .badge-s5 { background:#ede9fe; color:#6d28d9; }
+        .badge-s6 { background:#cffafe; color:#155e75; }
         .badge-st { padding:4px 10px; border-radius:20px; font-size:12px; font-weight:600; }
     </style>
 </head>
@@ -81,17 +84,17 @@
                 </div>
                 <div class="col-md-6">
                     <label class="form-label">Trạng thái</label>
-                    <select name="attendanceStatus" class="form-select" ${editLocked ? 'disabled' : ''}>
-                        <option value="0" ${attendance.attendanceStatus == 0 ? 'selected' : ''}>Đúng giờ</option>
-                        <option value="1" ${attendance.attendanceStatus == 1 ? 'selected' : ''}>Đi muộn</option>
-                        <option value="2" ${attendance.attendanceStatus == 2 ? 'selected' : ''}>Vắng mặt</option>
-                        <option value="3" ${attendance.attendanceStatus == 3 ? 'selected' : ''}>Không phép</option>
-                    </select>
+                    <input type="text" class="form-control" value="${attendance.statusLabel}" disabled>
+                    <div class="form-text">
+                        Tự tính lại từ giờ vào / giờ ra khi lưu:
+                        vào ≤ 08:00 = Đúng giờ, vào sau 08:00 = Đi muộn, thiếu giờ vào/ra = Vắng mặt.
+                        Ngày nghỉ lễ / cuối tuần / có đơn nghỉ duyệt sẽ tự gán nếu không đi làm.
+                    </div>
                 </div>
                 <div class="col-md-6">
                     <label class="form-label">Số giờ làm</label>
                     <input type="text" class="form-control" value="${attendance.hoursWorkedLabel}" disabled>
-                    <div class="form-text">Tự tính lại từ giờ vào / giờ ra khi lưu (Vắng mặt, Không phép = 0 giờ).</div>
+                    <div class="form-text">Tự tính lại từ giờ vào / giờ ra khi lưu.</div>
                 </div>
                 <div class="col-md-12">
                     <label class="form-label">Lý do chỉnh sửa <span class="text-danger">*</span></label>
