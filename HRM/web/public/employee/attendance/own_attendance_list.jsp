@@ -46,6 +46,21 @@
                     color: #374151;
                 }
 
+                .badge-s4 {
+                    background: #dbeafe;
+                    color: #1e40af;
+                }
+
+                .badge-s5 {
+                    background: #ede9fe;
+                    color: #5b21b6;
+                }
+
+                .badge-s6 {
+                    background: #f3f4f6;
+                    color: #4b5563;
+                }
+
                 .badge-st {
                     padding: 4px 10px;
                     border-radius: 20px;
