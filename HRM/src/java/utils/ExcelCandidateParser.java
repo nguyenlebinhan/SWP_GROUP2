@@ -1,10 +1,6 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
 package utils;
 
-import dto.AttendanceDataDTO;
+import dto.CandidateDataDTO;
 import exception.InvalidFormatException;
 import java.io.IOException;
 import java.io.InputStream;
@@ -17,25 +13,21 @@ import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
-/**
- *
- * @author admin
- */
-public class ExcelAttendanceParser {
+public class ExcelCandidateParser {
 
     public static final String[] EXPECTED_HEADERS = {
-        "employeeCode", "fullName", "Department", "workDate", "timeIn", "timeOut"
+        "fullName", "email", "phoneNumber", "dateOfBirth", "gender",
+        "address", "skills", "experience", "certificates", "degree",
+        "departmentCode", "positionName", "cvUrl"
     };
 
-    
-    public List<AttendanceDataDTO> parse(InputStream in) throws IOException {
-        List<AttendanceDataDTO> attendanceDataDTOs = new ArrayList<>();
+    public List<CandidateDataDTO> parse(InputStream in) throws IOException {
+        List<CandidateDataDTO> list = new ArrayList<>();
         try (XSSFWorkbook workbook = new XSSFWorkbook(in)) {
             if (workbook.getNumberOfSheets() == 0) {
                 throw new InvalidFormatException("File Excel không có sheet nào.");
             }
             Sheet sheet = workbook.getSheetAt(0);
-
             Row header = sheet.getRow(sheet.getFirstRowNum());
             validateHeader(header);
 
@@ -45,35 +37,42 @@ public class ExcelAttendanceParser {
                 if (row == null || isRowEmpty(row)) {
                     continue;
                 }
-                AttendanceDataDTO attendanceDTO = new AttendanceDataDTO();
-                attendanceDTO.setRowNumber(i+1);
-                attendanceDTO.setEmployeeCode(getCellString(row.getCell(0)));
-                attendanceDTO.setFullName(getCellString(row.getCell(1)));
-                attendanceDTO.setDepartmentName(getCellString(row.getCell(2)));
-                attendanceDTO.setWorkDate(getCellString(row.getCell(3)));
-                attendanceDTO.setTimeIn(getCellString(row.getCell(4)));
-                attendanceDTO.setTimeOut(getCellString(row.getCell(5)));
-                attendanceDataDTOs.add(attendanceDTO);
+
+                CandidateDataDTO dto = new CandidateDataDTO();
+                dto.setRowNumber(i + 1);
+                dto.setFullName(getCellString(row.getCell(0)));
+                dto.setEmail(getCellString(row.getCell(1)));
+                dto.setPhoneNumber(getCellString(row.getCell(2)));
+                dto.setDateOfBirth(getCellString(row.getCell(3)));
+                dto.setGender(getCellString(row.getCell(4)));
+                dto.setAddress(getCellString(row.getCell(5)));
+                dto.setSkills(getCellString(row.getCell(6)));
+                dto.setExperience(getCellString(row.getCell(7)));
+                dto.setCertificates(getCellString(row.getCell(8)));
+                dto.setDegree(getCellString(row.getCell(9)));
+                dto.setDepartmentCode(getCellString(row.getCell(10)));
+                dto.setPositionName(getCellString(row.getCell(11)));
+                dto.setCvUrl(getCellString(row.getCell(12)));
+                list.add(dto);
             }
         }
-        return attendanceDataDTOs;
+        return list;
     }
 
     private void validateHeader(Row header) throws InvalidFormatException {
         if (header == null) {
-            throw new InvalidFormatException("File Excel thiếu dòng tiêu đề (header).");
+            throw new InvalidFormatException("File Excel thiếu dòng tiêu đề.");
         }
         for (int c = 0; c < EXPECTED_HEADERS.length; c++) {
-            String actual = getCellString(header.getCell(c));
+            Cell cell = header.getCell(c);
+            String actual = (cell == null) ? "" : getCellString(cell);  // thêm null check
             if (!EXPECTED_HEADERS[c].equalsIgnoreCase(actual.trim())) {
                 throw new InvalidFormatException(
                         "Header cột " + (c + 1) + " phải là \"" + EXPECTED_HEADERS[c]
-                        + "\" nhưng đang là \"" + actual + "\". "
-                        + "Thứ tự cột yêu cầu: employeeCode, fullName, Department, workDate, timeIn, timeOut.");
+                        + "\" nhưng đang là \"" + actual + "\".");
             }
         }
     }
-    
 
     private boolean isRowEmpty(Row row) {
         for (int c = 0; c < EXPECTED_HEADERS.length; c++) {
@@ -97,22 +96,18 @@ public class ExcelAttendanceParser {
                 if (DateUtil.isCellDateFormatted(cell)) {
                     double v = cell.getNumericCellValue();
                     java.util.Date d = DateUtil.getJavaDate(v);
-                    if (v < 1.0d) {
-                        return new SimpleDateFormat("HH:mm").format(d);
-                    }
                     return new SimpleDateFormat("yyyy-MM-dd").format(d);
                 }
                 double num = cell.getNumericCellValue();
-                if (num == Math.floor(num)) {
-                    return String.valueOf((long) num);
-                }
-                return String.valueOf(num);
+                return num == Math.floor(num)
+                        ? String.valueOf((long) num)
+                        : String.valueOf(num);
             case FORMULA:
                 try {
-                    return cell.getStringCellValue().trim();
-                } catch (IllegalStateException e) {
-                    return String.valueOf(cell.getNumericCellValue());
-                }
+                return cell.getStringCellValue().trim();
+            } catch (IllegalStateException e) {
+                return String.valueOf(cell.getNumericCellValue());
+            }
             default:
                 return "";
         }

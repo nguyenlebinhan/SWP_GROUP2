@@ -36,6 +36,27 @@ public class FormRequestDAO {
         this.dbContext = new DBContext();
     }
 
+    /**
+     * Dùng trong transaction import: nhân viên có đơn NGHỈ PHÉP đã DUYỆT phủ
+     * workDate hay không. status = 1 nghĩa là Approved (xem FormRequest).
+     */
+    public boolean hasApprovedLeave(Connection conn, int employeeId, java.sql.Date workDate)
+            throws SQLException {
+        String sql = "SELECT 1 FROM Form_Requests fr "
+                + "JOIN Form_Types ft ON fr.formTypeId = ft.formTypeId "
+                + "WHERE ft.formTypeCode = 'LEAVE' "
+                + "  AND fr.status = 1 "
+                + "  AND fr.employeeId = ? "
+                + "  AND ? BETWEEN fr.startDate AND fr.endDate LIMIT 1";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, employeeId);
+            ps.setDate(2, workDate);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next();
+            }
+        }
+    }
+
     // INSERT đơn chung (Khiếu nại, hoặc loại không có ngày)
     public int addFormRequest(FormRequest fr) {
         String SQL = """
