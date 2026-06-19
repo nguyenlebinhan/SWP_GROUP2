@@ -24,7 +24,7 @@ import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 public class ExcelAttendanceParser {
 
     public static final String[] EXPECTED_HEADERS = {
-        "employeeCode", "fullName", "Department", "workDate", "timeIn", "timeOut", "attendanceStatus", "note"
+        "employeeCode", "fullName", "Department", "workDate", "timeIn", "timeOut"
     };
 
     
@@ -53,8 +53,6 @@ public class ExcelAttendanceParser {
                 attendanceDTO.setWorkDate(getCellString(row.getCell(3)));
                 attendanceDTO.setTimeIn(getCellString(row.getCell(4)));
                 attendanceDTO.setTimeOut(getCellString(row.getCell(5)));
-                attendanceDTO.setAttendanceStatus(getCellString(row.getCell(6)));
-                attendanceDTO.setNote(getCellString(row.getCell(7)));
                 attendanceDataDTOs.add(attendanceDTO);
             }
         }
@@ -71,7 +69,7 @@ public class ExcelAttendanceParser {
                 throw new InvalidFormatException(
                         "Header cột " + (c + 1) + " phải là \"" + EXPECTED_HEADERS[c]
                         + "\" nhưng đang là \"" + actual + "\". "
-                        + "Thứ tự cột yêu cầu: employeeCode, fullName, Department, workDate, timeIn, timeOut, attendanceStatus, note.");
+                        + "Thứ tự cột yêu cầu: employeeCode, fullName, Department, workDate, timeIn, timeOut.");
             }
         }
     }

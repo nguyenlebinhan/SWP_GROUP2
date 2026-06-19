@@ -205,10 +205,10 @@ public class EmployeeController extends HttpServlet {
             case "/update-employee-detail":
                 handleUpdateEmployeeDetail(request, response, user);
                 break;
-            case "/form/leave/submit":
+            case "/forms/leave/submit":
                 handleLeaveFormSubmit(request, response, user);
                 break;
-            case "/form/complaint/submit":
+            case "/forms/complaint/submit":
                 handleComplaintFormSubmit(request, response, user);
                 break;
             case "/recruitment-review":
@@ -572,8 +572,7 @@ public class EmployeeController extends HttpServlet {
                 + buildAttendanceFilterQuery(request);
 
         Integer attendanceId = parseIntOrNull(request.getParameter("attendanceId"));
-        Integer status = parseIntOrNull(request.getParameter("attendanceStatus"));
-        if (attendanceId == null || status == null || status < 0 || status > 3) {
+        if (attendanceId == null) {
             request.getSession().setAttribute("error", "Dữ liệu chỉnh sửa chấm công không hợp lệ.");
             response.sendRedirect(redirectUrl);
             return;
@@ -612,21 +611,33 @@ public class EmployeeController extends HttpServlet {
             return;
         }
 
-        boolean isAbsent = (status == 2 || status == 3);
+        // Kiểm tra thứ tự giờ trước khi suy trạng thái.
+        if (timeIn != null && timeOut != null && timeOut.before(timeIn)) {
+            request.getSession().setAttribute("error", "Giờ ra phải sau giờ vào.");
+            response.sendRedirect(redirectUrl);
+            return;
+        }
+
+        // Trạng thái KHÔNG còn do người dùng chọn: tự suy lại từ giờ vào/ra theo đúng
+        // logic import (PRESENT/LATE/ABSENT + ưu tiên HOLIDAY/WEEKEND/LEAVE).
+        int status;
+        try {
+            status = importService.resolveStatus(attendance.getEmployeeId(),
+                    attendance.getWorkDate(), timeIn, timeOut).getRelatedNum();
+        } catch (SQLException e) {
+            request.getSession().setAttribute("error", "Lỗi hệ thống khi xác định trạng thái chấm công.");
+            response.sendRedirect(redirectUrl);
+            return;
+        }
+
+        // Chỉ PRESENT(0) và LATE(1) có giờ làm; còn lại = 0 giờ.
         BigDecimal hoursWorked;
-        if (isAbsent) {
-            hoursWorked = BigDecimal.ZERO;
-        } else if (timeIn != null && timeOut != null) {
+        if (timeIn != null && timeOut != null && (status == 0 || status == 1)) {
             long diffMillis = timeOut.getTime() - timeIn.getTime();
-            if (diffMillis < 0) {
-                request.getSession().setAttribute("error", "Giờ ra phải sau giờ vào.");
-                response.sendRedirect(redirectUrl);
-                return;
-            }
             hoursWorked = new BigDecimal(diffMillis)
                     .divide(new BigDecimal(3600000), 2, RoundingMode.HALF_UP);
         } else {
-            hoursWorked = null;
+            hoursWorked = BigDecimal.ZERO;
         }
 
         String updateError = attendanceDAO.updateAttendanceWithHistory(attendanceId, timeIn, timeOut,
