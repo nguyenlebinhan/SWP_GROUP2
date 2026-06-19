@@ -422,6 +422,19 @@ public class DBInitializer {
         execute(conn, SQL, "CREATE ATTENDANCE_ADJUSTMENT_HISTORY TABLE SUCCESSFULLY");
     }
 
+    // Ngày lễ cấu hình động: một dòng = một khoảng lễ (startDate..endDate).
+    public void createTableHoliday(Connection conn) {
+        String SQL = "CREATE TABLE Holiday("
+                + "holidayId INT PRIMARY KEY AUTO_INCREMENT,"
+                + "holidayName NVARCHAR(255) NOT NULL,"
+                + "startDate DATE NOT NULL,"
+                + "endDate DATE NOT NULL,"
+                + "isActive TINYINT(1) NOT NULL DEFAULT 1,"
+                + "INDEX idx_holiday_range (startDate, endDate)"
+                + ")";
+        execute(conn, SQL, "CREATE HOLIDAY TABLE SUCCESSFULLY");
+    }
+
     // ==================== LƯƠNG & ĐÁNH GIÁ ====================
 
     public void createTablePayroll(Connection conn) {
@@ -522,6 +535,7 @@ public class DBInitializer {
                 "Attendance_Adjustment_History",
                 "Attendance_Import_Rows",
                 "Attendance",
+                "Holiday",
                 "Application_Stage_Logs",
                 "Candidates",
                 "Uploaded_Files",
@@ -562,6 +576,7 @@ public class DBInitializer {
                 "Attendance",
                 "Attendance_Import_Rows",
                 "Attendance_Adjustment_History",
+                "Holiday",
                 "Payroll",
                 "Performance",
                 "Notifications",
@@ -605,6 +620,7 @@ public class DBInitializer {
                         case "Attendance":        createTableAttendance(conn);        break;
                         case "Attendance_Import_Rows":        createTableAttendanceImportRows(conn);        break;
                         case "Attendance_Adjustment_History": createTableAttendanceAdjustmentHistory(conn); break;
+                        case "Holiday":           createTableHoliday(conn);           break;
                         case "Payroll":           createTablePayroll(conn);           break;
                         case "Performance":       createTablePerformance(conn);       break;
                         case "Notifications":     createTableNotifications(conn);     break;

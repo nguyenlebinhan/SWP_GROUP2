@@ -2,10 +2,13 @@ package controller;
 
 import dao.DepartmentDAO;
 import dao.EmployeeDAO;
+import dao.HolidayDAO;
 import dao.PermissionDAO;
 import dao.RoleDAO;
 import dao.UserDAO;
 import dto.EmployeeDetailDTO;
+import java.sql.Date;
+import model.Holiday;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
@@ -32,6 +35,7 @@ public class BusinessAdminController extends HttpServlet {
     private static final PermissionDAO permissionDAO = new PermissionDAO();
     private static final EmployeeDAO employeeDAO = new EmployeeDAO();
     private static final DepartmentDAO departmentDAO = new DepartmentDAO();
+    private static final HolidayDAO holidayDAO = new HolidayDAO();
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
@@ -76,6 +80,15 @@ public class BusinessAdminController extends HttpServlet {
             case "/update-department":
                 displayUpdateDepartmentForm(request, response);
                 break;
+            case "/holiday":
+                displayHolidayList(request, response);
+                break;
+            case "/holiday/add":
+                displayHolidayForm(request, response, false);
+                break;
+            case "/holiday/edit":
+                displayHolidayForm(request, response, true);
+                break;
             default:
                 response.sendRedirect(request.getContextPath() + "/");
                 break;
@@ -112,6 +125,15 @@ public class BusinessAdminController extends HttpServlet {
                 break;
             case "/update-department":
                 handleUpdateDepartment(request, response);
+                break;
+            case "/holiday/add":
+                handleAddHoliday(request, response);
+                break;
+            case "/holiday/edit":
+                handleUpdateHoliday(request, response);
+                break;
+            case "/holiday/delete":
+                handleDeleteHoliday(request, response);
                 break;
             default:
                 response.sendRedirect(request.getContextPath() + "/");
@@ -194,9 +216,6 @@ public class BusinessAdminController extends HttpServlet {
         response.sendRedirect(request.getContextPath() + "/v1/businessadmin/my-profile");
     }
 
-    // =========================================================
-    // Department management methods (new)
-    // =========================================================
 
     private void displayDepartmentList(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
@@ -293,7 +312,6 @@ public class BusinessAdminController extends HttpServlet {
             return;
         }
 
-        // Server-side guard: kiểm tra candidate hợp lệ, không chỉ dựa vào UI
         List<EmployeeDetailDTO> candidates = departmentDAO.getAssignableManagerDTOs(ba.getUserId(), departmentId);
         boolean isValid = candidates.stream().anyMatch(c -> c.getEmployeeId() == employeeId);
         if (!isValid) {
@@ -348,9 +366,6 @@ public class BusinessAdminController extends HttpServlet {
         response.sendRedirect(request.getContextPath() + "/v1/businessadmin/department");
     }
 
-    // =========================================================
-    // Employee management methods (kế thừa từ Employee & Manager)
-    // =========================================================
 
     private void displayEmployeeList(HttpServletRequest request, HttpServletResponse response, User user)
             throws ServletException, IOException {
@@ -471,7 +486,6 @@ public class BusinessAdminController extends HttpServlet {
             return;
         }
 
-        // Thiết lập quan hệ quản lý sau khi phân công:
         String roleName = roleDAO.getRoleByUserId(userId);
         EmployeeDetailDTO assigned = employeeDAO.getEmployeeByUserId(userId);
         if (assigned != null) {
@@ -480,8 +494,7 @@ public class BusinessAdminController extends HttpServlet {
             boolean isManagerRole = roleName != null && roleName.toLowerCase().contains("manager");
 
             if (isManagerRole && !deptHasManager) {
-                // Phòng chưa có manager → người này làm manager, đồng thời gán
-                // managerId cho các nhân viên hiện có trong phòng.
+
                 employeeDAO.assignAsManager(departmentId, assigned.getEmployeeId());
             } else if (deptHasManager) {
                 // Phòng đã có manager → người mới (kể cả role manager) làm cấp dưới
@@ -643,5 +656,154 @@ public class BusinessAdminController extends HttpServlet {
             }
         }
         return ids;
+    }
+
+    // =========================================================
+    // Quản lý ngày lễ (Holiday)
+    // =========================================================
+
+    private void displayHolidayList(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+        request.setAttribute("holidays", holidayDAO.getAllHolidays());
+
+        HttpSession session = request.getSession(false);
+        if (session != null) {
+            String success = (String) session.getAttribute("holidaySuccess");
+            String error = (String) session.getAttribute("holidayError");
+            if (success != null) {
+                request.setAttribute("success", success);
+                session.removeAttribute("holidaySuccess");
+            }
+            if (error != null) {
+                request.setAttribute("error", error);
+                session.removeAttribute("holidayError");
+            }
+        }
+        request.getRequestDispatcher("/public/businessadmin/holiday_list.jsp").forward(request, response);
+    }
+
+    private void displayHolidayForm(HttpServletRequest request, HttpServletResponse response, boolean editMode)
+            throws ServletException, IOException {
+        if (editMode) {
+            Integer holidayId = parseIntParam(request.getParameter("id"));
+            Holiday holiday = (holidayId != null) ? holidayDAO.getHolidayById(holidayId) : null;
+            if (holiday == null) {
+                request.getSession().setAttribute("holidayError", "Không tìm thấy ngày lễ.");
+                response.sendRedirect(request.getContextPath() + "/v1/businessadmin/holiday");
+                return;
+            }
+            request.setAttribute("holiday", holiday);
+        }
+        request.setAttribute("editMode", editMode);
+        request.getRequestDispatcher("/public/businessadmin/holiday_form.jsp").forward(request, response);
+    }
+
+    private void handleAddHoliday(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+        Holiday holiday = new Holiday();
+        String error = bindAndValidateHoliday(request, holiday);
+        if (error != null) {
+            request.setAttribute("error", error);
+            request.setAttribute("editMode", false);
+            request.setAttribute("holiday", holiday);
+            request.getRequestDispatcher("/public/businessadmin/holiday_form.jsp").forward(request, response);
+            return;
+        }
+
+        int newId = holidayDAO.addHoliday(holiday);
+        if (newId > 0) {
+            request.getSession().setAttribute("holidaySuccess",
+                    "Đã thêm ngày lễ \"" + holiday.getHolidayName() + "\".");
+        } else {
+            request.getSession().setAttribute("holidayError", "Thêm ngày lễ thất bại. Vui lòng thử lại.");
+        }
+        response.sendRedirect(request.getContextPath() + "/v1/businessadmin/holiday");
+    }
+
+    private void handleUpdateHoliday(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+        Integer holidayId = parseIntParam(request.getParameter("holidayId"));
+        if (holidayId == null || holidayDAO.getHolidayById(holidayId) == null) {
+            request.getSession().setAttribute("holidayError", "Không tìm thấy ngày lễ.");
+            response.sendRedirect(request.getContextPath() + "/v1/businessadmin/holiday");
+            return;
+        }
+
+        Holiday holiday = new Holiday();
+        holiday.setHolidayId(holidayId);
+        String error = bindAndValidateHoliday(request, holiday);
+        if (error != null) {
+            request.setAttribute("error", error);
+            request.setAttribute("editMode", true);
+            request.setAttribute("holiday", holiday);
+            request.getRequestDispatcher("/public/businessadmin/holiday_form.jsp").forward(request, response);
+            return;
+        }
+
+        if (holidayDAO.updateHoliday(holiday)) {
+            request.getSession().setAttribute("holidaySuccess",
+                    "Đã cập nhật ngày lễ \"" + holiday.getHolidayName() + "\".");
+        } else {
+            request.getSession().setAttribute("holidayError", "Cập nhật ngày lễ thất bại. Vui lòng thử lại.");
+        }
+        response.sendRedirect(request.getContextPath() + "/v1/businessadmin/holiday");
+    }
+
+    private void handleDeleteHoliday(HttpServletRequest request, HttpServletResponse response)
+            throws IOException {
+        Integer holidayId = parseIntParam(request.getParameter("holidayId"));
+        if (holidayId == null) {
+            request.getSession().setAttribute("holidayError", "Dữ liệu không hợp lệ.");
+        } else if (holidayDAO.deleteHoliday(holidayId)) {
+            request.getSession().setAttribute("holidaySuccess", "Đã xóa ngày lễ.");
+        } else {
+            request.getSession().setAttribute("holidayError", "Xóa ngày lễ thất bại. Vui lòng thử lại.");
+        }
+        response.sendRedirect(request.getContextPath() + "/v1/businessadmin/holiday");
+    }
+
+    /**
+     * Đọc tham số form vào holiday và validate. Trả về null nếu hợp lệ, ngược lại trả về
+     * thông báo lỗi (đồng thời giữ lại giá trị đã nhập trong holiday để hiển thị lại form).
+     */
+    private String bindAndValidateHoliday(HttpServletRequest request, Holiday holiday) {
+        String name = request.getParameter("holidayName");
+        String startRaw = request.getParameter("startDate");
+        String endRaw = request.getParameter("endDate");
+        boolean active = request.getParameter("isActive") != null;
+
+        holiday.setHolidayName(name != null ? name.trim() : null);
+        holiday.setActive(active);
+
+        if (isBlank(name)) {
+            return "Vui lòng nhập tên ngày lễ.";
+        }
+        if (isBlank(startRaw) || isBlank(endRaw)) {
+            return "Vui lòng chọn ngày bắt đầu và ngày kết thúc.";
+        }
+        Date start, end;
+        try {
+            start = Date.valueOf(startRaw.trim());
+            end = Date.valueOf(endRaw.trim());
+        } catch (IllegalArgumentException e) {
+            return "Ngày không hợp lệ (yêu cầu yyyy-MM-dd).";
+        }
+        if (end.before(start)) {
+            return "Ngày kết thúc phải bằng hoặc sau ngày bắt đầu.";
+        }
+        holiday.setStartDate(start);
+        holiday.setEndDate(end);
+        return null;
+    }
+
+    private Integer parseIntParam(String raw) {
+        if (isBlank(raw)) {
+            return null;
+        }
+        try {
+            return Integer.parseInt(raw.trim());
+        } catch (NumberFormatException e) {
+            return null;
+        }
     }
 }
