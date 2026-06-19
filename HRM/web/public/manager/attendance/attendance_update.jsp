@@ -20,6 +20,9 @@
         .badge-s1 { background:#fef3c7; color:#92400e; }
         .badge-s2 { background:#fee2e2; color:#991b1b; }
         .badge-s3 { background:#e5e7eb; color:#374151; }
+        .badge-s4 { background:#dbeafe; color:#1e40af; }
+        .badge-s5 { background:#ede9fe; color:#5b21b6; }
+        .badge-s6 { background:#f3f4f6; color:#4b5563; }
         .badge-st { padding:4px 10px; border-radius:20px; font-size:12px; font-weight:600; }
     </style>
 </head>
@@ -80,18 +83,12 @@
                     <input type="time" name="timeOut" class="form-control" value="${attendance.timeOut}" ${editLocked ? 'disabled' : ''}>
                 </div>
                 <div class="col-md-6">
-                    <label class="form-label">Trạng thái</label>
-                    <select name="attendanceStatus" class="form-select" ${editLocked ? 'disabled' : ''}>
-                        <option value="0" ${attendance.attendanceStatus == 0 ? 'selected' : ''}>Đúng giờ</option>
-                        <option value="1" ${attendance.attendanceStatus == 1 ? 'selected' : ''}>Đi muộn</option>
-                        <option value="2" ${attendance.attendanceStatus == 2 ? 'selected' : ''}>Vắng mặt</option>
-                        <option value="3" ${attendance.attendanceStatus == 3 ? 'selected' : ''}>Không phép</option>
-                    </select>
-                </div>
-                <div class="col-md-6">
                     <label class="form-label">Số giờ làm</label>
                     <input type="text" class="form-control" value="${attendance.hoursWorkedLabel}" disabled>
-                    <div class="form-text">Tự tính lại từ giờ vào / giờ ra khi lưu (Vắng mặt, Không phép = 0 giờ).</div>
+                    <div class="form-text">
+                        Trạng thái được hệ thống tự xác định lại từ giờ vào / giờ ra khi lưu
+                        (đúng giờ, đi muộn, vắng mặt, nghỉ phép, nghỉ lễ, cuối tuần). Số giờ làm cũng tự tính lại.
+                    </div>
                 </div>
                 <div class="col-md-12">
                     <label class="form-label">Lý do chỉnh sửa <span class="text-danger">*</span></label>
