@@ -158,6 +158,14 @@
                                                     <fmt:formatNumber value="${activeContract.salary}" type="currency" currencySymbol="₫" />
                                                 </div>
                                             </div>
+                                            <c:if test="${not empty activeContract.signedDate}">
+                                            <div class="data-row">
+                                                <div class="info-label">Ngày ký</div>
+                                                <div class="info-value">
+                                                    <fmt:formatDate value="${activeContract.signedDate}" pattern="dd/MM/yyyy" />
+                                                </div>
+                                            </div>
+                                            </c:if>
                                             <div class="data-row">
                                                 <div class="info-label">Ngày hiệu lực</div>
                                                 <div class="info-value">

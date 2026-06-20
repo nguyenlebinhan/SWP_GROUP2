@@ -138,6 +138,9 @@
                                             </h5>
                                             <div class="meta-row">
                                                 <span class="meta-item"><i class="fa-solid fa-calendar-day"></i> Hiệu lực: <fmt:formatDate value="${contract.effectiveDate}" pattern="dd/MM/yyyy" /></span>
+                                                <c:if test="${not empty contract.signedDate}">
+                                                <span class="meta-item"><i class="fa-solid fa-pen"></i> Ngày ký: <fmt:formatDate value="${contract.signedDate}" pattern="dd/MM/yyyy" /></span>
+                                                </c:if>
                                                 <c:if test="${not empty contract.endDate}">
                                                     <span class="meta-item"><i class="fa-solid fa-calendar-xmark"></i> Hết hạn: <fmt:formatDate value="${contract.endDate}" pattern="dd/MM/yyyy" /></span>
                                                 </c:if>
