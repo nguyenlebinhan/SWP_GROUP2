@@ -50,6 +50,35 @@ public class AttendanceDAO {
         return -1;
     }
 
+    /**
+     * Lấy phòng ban hiện tại của nhân viên (phục vụ import gộp nhiều phòng trong 1 file).
+     * @return Department(id, name) hoặc null nếu nhân viên chưa được phân công phòng ban.
+     */
+    public model.Department getEmployeeDepartment(int employeeId) {
+        String SQL = "SELECT e.departmentId, d.departmentName "
+                + "FROM Employees e LEFT JOIN Departments d ON d.departmentId = e.departmentId "
+                + "WHERE e.employeeId = ?";
+        try (Connection conn = dbContext.getConnection();
+                PreparedStatement ps = conn.prepareStatement(SQL)) {
+            ps.setInt(1, employeeId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    int deptId = rs.getInt("departmentId");
+                    if (rs.wasNull() || deptId <= 0) {
+                        return null;
+                    }
+                    model.Department dep = new model.Department();
+                    dep.setDepartmentId(deptId);
+                    dep.setDepartmentName(rs.getNString("departmentName"));
+                    return dep;
+                }
+            }
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Cannot get department for employeeId: " + employeeId, e);
+        }
+        return null;
+    }
+
     public boolean employeeBelongsToDepartment(int employeeId, int departmentId) {
         String SQL = "SELECT 1 FROM Employees WHERE employeeId = ? AND departmentId = ? LIMIT 1";
         try (Connection conn = dbContext.getConnection();
@@ -205,6 +234,102 @@ public class AttendanceDAO {
         }
         return list;
     }    
+
+    /**
+     * Tổng hợp chấm công theo nhân viên trong một tháng (mỗi nhân viên một dòng).
+     * Mã trạng thái: 0=Đúng giờ, 1=Đi muộn, 2=Vắng mặt, 3=Không phép(dữ liệu cũ),
+     * 4=Nghỉ phép, 5=Nghỉ lễ, 6=Cuối tuần.
+     *
+     * Trả về các cột đếm ngày + tổng giờ làm. Riêng standardDays (số ngày công chuẩn)
+     * được AttendanceService tính theo lịch thật và gán vào DTO sau.
+     *
+     * @param departmentId null = toàn công ty; ngược lại lọc theo phòng ban.
+     */
+    public List<dto.AttendanceSummaryDTO> getMonthlySummary(Integer departmentId, int month, int year) {
+        List<dto.AttendanceSummaryDTO> list = new ArrayList<>();
+        String sql =
+                "SELECT e.employeeId, e.employeeCode, u.fullName, p.positionName, d.departmentName, "
+                + "COALESCE(SUM(a.hoursWorked), 0) AS workedHours, "
+                + "COALESCE(SUM(a.attendanceStatus = 0), 0) AS presentDays, "
+                + "COALESCE(SUM(a.attendanceStatus = 1), 0) AS lateDays, "
+                + "COALESCE(SUM(a.attendanceStatus = 4), 0) AS leaveDays, "
+                + "COALESCE(SUM(a.attendanceStatus IN (2,3)), 0) AS absentDays, "
+                + "COALESCE(SUM(a.attendanceStatus = 5), 0) AS holidayDays, "
+                + "COALESCE(SUM(a.attendanceStatus = 6), 0) AS weekendDays "
+                + "FROM Employees e "
+                + "JOIN Users u ON u.userId = e.userId "
+                + "LEFT JOIN Positions p ON p.positionId = e.positionId "
+                + "LEFT JOIN Departments d ON d.departmentId = e.departmentId "
+                + "LEFT JOIN Attendance a ON a.employeeId = e.employeeId "
+                + "    AND MONTH(a.workDate) = ? AND YEAR(a.workDate) = ? "
+                + "WHERE e.status = 1 "
+                + "  AND (? IS NULL OR e.departmentId = ?) "
+                + "GROUP BY e.employeeId, e.employeeCode, u.fullName, p.positionName, d.departmentName "
+                + "ORDER BY d.departmentName, e.employeeCode";
+
+        try (Connection conn = dbContext.getConnection();
+                PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, month);
+            ps.setInt(2, year);
+            if (departmentId != null) {
+                ps.setInt(3, departmentId);
+                ps.setInt(4, departmentId);
+            } else {
+                ps.setNull(3, Types.INTEGER);
+                ps.setNull(4, Types.INTEGER);
+            }
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    dto.AttendanceSummaryDTO s = new dto.AttendanceSummaryDTO();
+                    s.setEmployeeId(rs.getInt("employeeId"));
+                    s.setEmployeeCode(rs.getString("employeeCode"));
+                    s.setFullName(rs.getNString("fullName"));
+                    s.setPositionName(rs.getString("positionName"));
+                    s.setDepartmentName(rs.getNString("departmentName"));
+                    s.setWorkedHours(rs.getBigDecimal("workedHours"));
+                    s.setPresentDays(rs.getInt("presentDays"));
+                    s.setLateDays(rs.getInt("lateDays"));
+                    s.setLeaveDays(rs.getInt("leaveDays"));
+                    s.setAbsentDays(rs.getInt("absentDays"));
+                    s.setHolidayDays(rs.getInt("holidayDays"));
+                    s.setWeekendDays(rs.getInt("weekendDays"));
+                    list.add(s);
+                }
+            }
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Cannot retrieve monthly attendance summary", e);
+        }
+        return list;
+    }
+
+    /**
+     * Danh sách chấm công theo ngày của một nhân viên trong một tháng,
+     * sắp xếp TĂNG dần theo ngày (phục vụ màn Attendance Detail).
+     */
+    public List<Attendance> getDailyAttendance(int employeeId, int month, int year) {
+        List<Attendance> list = new ArrayList<>();
+        String sql =
+                "SELECT a.attendanceId, a.attendanceCode, a.employeeId, a.workDate, a.timeIn, a.timeOut, "
+                + "a.hoursWorked, a.attendanceStatus, a.fileId, "
+                + "a.employeeCode, a.departmentId, a.fullName, a.departmentName "
+                + "FROM Attendance a "
+                + "WHERE a.employeeId = ? AND MONTH(a.workDate) = ? AND YEAR(a.workDate) = ? "
+                + "ORDER BY a.workDate ASC";
+        try (Connection conn = dbContext.getConnection();
+                PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, employeeId);
+            ps.setInt(2, month);
+            ps.setInt(3, year);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    list.add(mapAttendance(rs));
+                }
+            }
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Cannot retrieve daily attendance for employeeId: " + employeeId, e);
+        }
+        return list;
+    }
 
     public Attendance getAttendanceById(int attendanceId) {
         String sql = "SELECT a.attendanceId, a.attendanceCode, a.employeeId, a.workDate, a.timeIn, a.timeOut, "
