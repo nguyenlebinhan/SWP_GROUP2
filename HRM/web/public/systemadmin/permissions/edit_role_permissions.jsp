@@ -266,7 +266,7 @@
                         <div class="group-title">Vai trò &amp; Nhân viên</div>
                         <div class="row g-3 mb-2">
                             <c:forEach var="p" items="${allPermissions}">
-                                <c:if test="${p.permissionCode == 'VIEW_EMPLOYEES' || p.permissionCode == 'ADD_EMPLOYEE' || p.permissionCode == 'EDIT_EMPLOYEE' || p.permissionCode == 'ADD_EMPLOYMENT_CONTRACT' || p.permissionCode == 'VIEW_DEPARTMENTS' || p.permissionCode == 'EDIT_DEPARTMENTS' || p.permissionCode == 'ASSIGN_DEPARTMENT' || p.permissionCode == 'VIEW_DEPARTMENT_EMPLOYEES_DETAIL' || p.permissionCode == 'UNASSIGN_DEPARTMENT' || p.permissionCode == 'VIEW_ATTENDANCE' || p.permissionCode == 'IMPORT_ATTENDANCE' || p.permissionCode =='EDIT_ATTENDANCE' }">
+                                <c:if test="${p.permissionCode == 'VIEW_EMPLOYEES' || p.permissionCode == 'ADD_EMPLOYEE' || p.permissionCode == 'EDIT_EMPLOYEE' || p.permissionCode == 'ADD_EMPLOYMENT_CONTRACT' || p.permissionCode == 'VIEW_DEPARTMENTS' || p.permissionCode == 'EDIT_DEPARTMENTS' || p.permissionCode == 'ASSIGN_DEPARTMENT' || p.permissionCode == 'VIEW_DEPARTMENT_EMPLOYEES_DETAIL' || p.permissionCode == 'UNASSIGN_DEPARTMENT' || p.permissionCode == 'IMPORT_ATTENDANCE' || p.permissionCode =='EDIT_ATTENDANCE' || p.permissionCode =='VIEW_DEPARTMENT_ATTENDANCE' || p.permissionCode == 'VIEW_ALL_ATTENDANCE'}">
                                     <div class="col-md-3">
                                         <label class="perm-card ${assignedPermissionIds.contains(p.permissionId) ? 'selected' : ''}">
                                             <input type="checkbox" name="permissionIds" value="${p.permissionId}" ${assignedPermissionIds.contains(p.permissionId) ? 'checked' : ''}/>

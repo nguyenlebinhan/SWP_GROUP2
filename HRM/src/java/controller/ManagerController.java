@@ -29,6 +29,7 @@ import model.ApplicationStageLog;
 import model.Attendance;
 import model.Candidate;
 import dto.OvertimeRequestDTO;
+import java.time.LocalDate;
 import model.Department;
 import model.Employee;
 import model.EmploymentContract;
@@ -38,6 +39,7 @@ import model.UploadedFile;
 import model.User;
 import service.CandidateImportService;
 import service.EmailService;
+import utils.AttendanceExcelExporter;
 
 @MultipartConfig(
         fileSizeThreshold = 1024 * 1024, // 1MB ghi ra đĩa
@@ -55,6 +57,8 @@ public class ManagerController extends HttpServlet {
     private static final EmploymentContractDAO contractDAO = new EmploymentContractDAO();
     private static final FormRequestDAO formRequestDAO = new FormRequestDAO();
     private static final AttendanceDAO attendanceDAO = new AttendanceDAO();
+    private static final service.AttendanceService attendanceService = new service.AttendanceService();
+    private static final AttendanceExcelExporter attendanceExporter = new utils.AttendanceExcelExporter();
     private static final dao.OvertimeDAO overtimeDAO = new dao.OvertimeDAO();
     private static final dao.FormTypeDAO formTypeDAO = new dao.FormTypeDAO();
     private static final CandidateDAO candidateDAO = new CandidateDAO();
@@ -126,6 +130,15 @@ public class ManagerController extends HttpServlet {
                 break;
             case "/attendance/my-department-attendance":
                 displayDepartmentAttendance(request, response, user);
+                break;
+            case "/attendance/overview":
+                displayAttendanceOverview(request, response, user);
+                break;
+            case "/attendance/detail":
+                displayAttendanceDetail(request, response, user);
+                break;
+            case "/attendance/export":
+                exportAttendanceReport(request, response, user);
                 break;
             case "/attendance/own-attendance":
                 displayOwnAttendance(request, response, user);
@@ -355,6 +368,174 @@ public class ManagerController extends HttpServlet {
         request.setAttribute("selectedMonth", month);
         request.setAttribute("selectedYear", year);
         request.getRequestDispatcher("/public/manager/attendance/own_attendance.jsp").forward(request, response);
+    }
+
+    // ===================== Attendance Dashboard (Overview / Detail / Export) =====================
+
+    /** Manager chỉ xem chấm công của phòng ban mình quản lý. */
+    private Integer resolveManagerDepartmentId(User user) {
+        EmployeeDetailDTO manager = employeeDAO.getEmployeeByUserId(user.getUserId());
+        if (manager == null || manager.getDepartmentId() <= 0) {
+            return null;
+        }
+        return manager.getDepartmentId();
+    }
+
+    private int paramOr(HttpServletRequest request, String name, int defaultValue) {
+        String raw = request.getParameter(name);
+        if (raw != null && !raw.trim().isEmpty()) {
+            try {
+                return Integer.parseInt(raw.trim());
+            } catch (NumberFormatException ignored) {
+            }
+        }
+        return defaultValue;
+    }
+
+    private void setManagerLayout(HttpServletRequest request) {
+        request.setAttribute("sidebarPath", "/public/components/managerSideBar.jsp");
+        request.setAttribute("topbarPath", "/public/components/managerTopBar.jsp");
+        request.setAttribute("baseUrl", request.getContextPath() + "/v1/manager/attendance");
+    }
+
+    private Integer optionalDepartmentParam(HttpServletRequest request) {
+        int id = paramOr(request, "departmentId", 0);
+        return id > 0 ? id : null;
+    }
+
+    private void displayAttendanceOverview(HttpServletRequest request, HttpServletResponse response,
+            User user) throws ServletException, IOException {
+        Set<String> perms = getPermissions(user);
+        request.getSession().setAttribute("userPermissions", perms);
+        setPermissionFlags(request, perms);
+        setManagerLayout(request);
+
+        boolean canViewAll = perms.contains("VIEW_ALL_ATTENDANCE");
+        boolean canViewDept = perms.contains("VIEW_DEPARTMENT_ATTENDANCE");
+        if (!canViewAll && !canViewDept) {
+            request.setAttribute("error", "Bạn không có quyền xem chấm công.");
+            request.getRequestDispatcher("/public/manager/attendance/attendance_overview.jsp").forward(request, response);
+            return;
+        }
+
+        LocalDate now = LocalDate.now();
+        int month = paramOr(request, "month", now.getMonthValue());
+        int year = paramOr(request, "year", now.getYear());
+
+        Integer departmentId;
+        if (canViewAll) {
+            departmentId = optionalDepartmentParam(request); // null = toàn công ty
+            request.setAttribute("departments", departmentDAO.getAllActiveDepartments());
+            request.setAttribute("canViewAll", true);
+            if (departmentId != null) {
+                model.Department dept = departmentDAO.getDepartmentById(departmentId);
+                request.setAttribute("departmentName", dept != null ? dept.getDepartmentName() : "");
+            }
+        } else {
+            departmentId = resolveManagerDepartmentId(user);
+            request.setAttribute("canViewAll", false);
+            if (departmentId == null) {
+                request.setAttribute("error", "Bạn chưa được phân công vào phòng ban nào.");
+                request.getRequestDispatcher("/public/manager/attendance/attendance_overview.jsp").forward(request, response);
+                return;
+            }
+            model.Department dept = departmentDAO.getDepartmentById(departmentId);
+            request.setAttribute("departmentName", dept != null ? dept.getDepartmentName() : "");
+        }
+
+        java.util.List<dto.AttendanceSummaryDTO> summaries =
+                attendanceService.getMonthlySummaries(departmentId, month, year);
+        request.setAttribute("summaries", summaries);
+        request.setAttribute("pagedSummaries", utils.Paging.page(request, summaries));
+        request.setAttribute("selectedDepartmentId", departmentId);
+        request.setAttribute("selectedMonth", month);
+        request.setAttribute("selectedYear", year);
+        request.getRequestDispatcher("/public/manager/attendance/attendance_overview.jsp").forward(request, response);
+    }
+
+    private void displayAttendanceDetail(HttpServletRequest request, HttpServletResponse response,
+            User user) throws ServletException, IOException {
+        Set<String> perms = getPermissions(user);
+        request.getSession().setAttribute("userPermissions", perms);
+        setPermissionFlags(request, perms);
+        setManagerLayout(request);
+
+        boolean canViewAll = perms.contains("VIEW_ALL_ATTENDANCE");
+        boolean canViewDept = perms.contains("VIEW_DEPARTMENT_ATTENDANCE");
+        if (!canViewAll && !canViewDept) {
+            request.setAttribute("error", "Bạn không có quyền xem chấm công.");
+            request.getRequestDispatcher("/public/manager/attendance/attendance_detail.jsp").forward(request, response);
+            return;
+        }
+
+        int employeeId = paramOr(request, "employeeId", -1);
+        java.time.LocalDate now = java.time.LocalDate.now();
+        int month = paramOr(request, "month", now.getMonthValue());
+        int year = paramOr(request, "year", now.getYear());
+
+        // canViewAll: không giới hạn phòng ban; ngược lại chỉ phòng ban của Manager.
+        Integer restrictDept = canViewAll ? null : resolveManagerDepartmentId(user);
+        request.setAttribute("canViewAll", canViewAll);
+        request.setAttribute("selectedDepartmentId", canViewAll ? optionalDepartmentParam(request) : restrictDept);
+
+        dto.AttendanceDetailDTO detail = (employeeId > 0 && (canViewAll || restrictDept != null))
+                ? attendanceService.getEmployeeDetail(employeeId, restrictDept, month, year)
+                : null;
+        if (detail == null) {
+            request.setAttribute("error", "Không tìm thấy nhân viên hoặc bạn không có quyền xem.");
+            request.getRequestDispatcher("/public/manager/attendance/attendance_detail.jsp").forward(request, response);
+            return;
+        }
+
+        int day = paramOr(request, "day", 0);
+        List<Attendance> filtered = detail.getDailyRows();
+        if (day >= 1 && day <= 31) {
+            filtered = new ArrayList<>();
+            for (Attendance a : detail.getDailyRows()) {
+                if (a.getWorkDate() != null && a.getWorkDate().toLocalDate().getDayOfMonth() == day) {
+                    filtered.add(a);
+                }
+            }
+        }
+        request.setAttribute("selectedDay", day);
+        request.setAttribute("pagedRows", utils.Paging.page(request, filtered));        
+        request.setAttribute("detail", detail);
+        request.setAttribute("selectedMonth", month);
+        request.setAttribute("selectedYear", year);
+        request.getRequestDispatcher("/public/manager/attendance/attendance_detail.jsp").forward(request, response);
+    }
+
+
+    private void exportAttendanceReport(HttpServletRequest request, HttpServletResponse response,
+            User user) throws ServletException, IOException {
+        Set<String> perms = getPermissions(user);
+        boolean canViewAll = perms.contains("VIEW_ALL_ATTENDANCE");
+        boolean canViewDept = perms.contains("VIEW_DEPARTMENT_ATTENDANCE");
+        if (!canViewAll && !canViewDept) {
+            response.sendError(HttpServletResponse.SC_FORBIDDEN, "Bạn không có quyền xuất báo cáo chấm công.");
+            return;
+        }
+        java.time.LocalDate now = java.time.LocalDate.now();
+        int month = paramOr(request, "month", now.getMonthValue());
+        int year = paramOr(request, "year", now.getYear());
+
+        Integer departmentId;
+        if (canViewAll) {
+            departmentId = optionalDepartmentParam(request);
+        } else {
+            departmentId = resolveManagerDepartmentId(user);
+            if (departmentId == null) {
+                response.sendError(HttpServletResponse.SC_FORBIDDEN, "Bạn chưa được phân công phòng ban.");
+                return;
+            }
+        }
+
+        dto.AttendanceReportDTO report = attendanceService.getReport(departmentId, month, year);
+        String scopeName = (departmentId == null) ? "company" : "dept" + departmentId;
+        String fileName = "attendance_" + scopeName + "_" + year + "_" + String.format("%02d", month) + ".xlsx";
+        response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+        response.setHeader("Content-Disposition", "attachment; filename=\"" + fileName + "\"");
+        attendanceExporter.write(report, response.getOutputStream());
     }
 
     private void displayEmployeeList(HttpServletRequest request, HttpServletResponse response,

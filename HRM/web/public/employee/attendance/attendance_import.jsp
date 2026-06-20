@@ -37,11 +37,10 @@
     </c:if>
 
     <div class="section-card">
-        <h5 class="mb-3"><i class="fa-solid fa-file-import me-2"></i>Import dữ liệu chấm công từ Excel (.xlsx)</h5>
         <form method="post" action="${pageContext.request.contextPath}/v1/employee/attendance/import"
               enctype="multipart/form-data">
             <div class="row g-3">
-                <div class="col-md-3">
+                <div class="col-md-6">
                     <label class="form-label">Tháng <span class="text-danger">*</span></label>
                     <select name="month" class="form-select" required>
                         <c:forEach var="m" begin="1" end="12">
@@ -49,29 +48,18 @@
                         </c:forEach>
                     </select>
                 </div>
-                <div class="col-md-3">
+                <div class="col-md-6">
                     <label class="form-label">Năm <span class="text-danger">*</span></label>
                     <input type="number" name="year" class="form-control" min="2000" max="2100"
                            value="${empty selectedYear ? 2026 : selectedYear}" required>
                 </div>
-                <div class="col-md-6">
-                    <label class="form-label">Phòng ban (tùy chọn)</label>
-                    <select name="departmentId" class="form-select">
-                        <option value="">-- Tất cả phòng ban --</option>
-                        <c:forEach var="d" items="${departments}">
-                            <option value="${d.departmentId}" ${selectedDepartmentId == d.departmentId ? 'selected' : ''}>
-                                ${d.departmentName}
-                            </option>
-                        </c:forEach>
-                    </select>
-                    <small class="text-muted">Nếu chọn phòng ban, chỉ chấp nhận nhân viên thuộc phòng đó.</small>
-                </div>
+
                 <div class="col-md-12">
                     <label class="form-label">File Excel (.xlsx) <span class="text-danger">*</span></label>
                     <input type="file" name="attendanceFile" class="form-control" accept=".xlsx" required>
                     <small class="text-muted">
-                        Cột yêu cầu (dòng 1 là header): employeeCode, fullName, Phòng ban, workDate, timeIn, timeOut, attendanceStatus, note.
-                        Trạng thái: PRESENT / LATE / ABSENT / UNEXCUSED. Tối đa 10MB.
+                        Cột yêu cầu (dòng 1 là header): employeeCode, fullName, Department, workDate, timeIn, timeOut.
+                        Trạng thái được tự suy từ giờ vào/ra. Khi chọn "Tất cả phòng ban", hệ thống tự xác định phòng của từng nhân viên. Tối đa 10MB.
                     </small>
                 </div>
             </div>
