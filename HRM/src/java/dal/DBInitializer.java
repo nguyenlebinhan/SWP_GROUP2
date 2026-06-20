@@ -669,7 +669,8 @@ public class DBInitializer {
                 insertPermission(conn, "ASSIGN_DEPARTMENT","Gán nhân viên vào phòng ban",     "Quyền gán nhân viên vào phòng ban");
                 insertPermission(conn, "UNASSIGN_DEPARTMENT","Xóa gán phòng ban nhân viên",     "Quyền xóa gán nhân viên sang phòng ban khác");
                 insertPermission(conn,"ADD_DEPARTMENT","Thêm phòng ban","Quyền thêm phòng ban");
-                insertPermission(conn,"VIEW_ATTENDANCE","Xem chấm công","Quyền xem dữ liệu chấm công (Manager: theo phòng mình; Employee: của bản thân)");
+                insertPermission(conn,"VIEW_DEPARTMENT_ATTENDANCE","Xem chấm công phòng ban","Quyền xem dashboard chấm công của phòng ban mình quản lý (Manager)");
+                insertPermission(conn,"VIEW_ALL_ATTENDANCE","Xem toàn bộ chấm công","Quyền xem dashboard chấm công của tất cả phòng ban trong toàn công ty (HR)");
                 insertPermission(conn,"IMPORT_ATTENDANCE","Import chấm công","Quyền import dữ liệu chấm công từ file Excel");
                 insertPermission(conn,"EDIT_ATTENDANCE","Chỉnh sửa chấm công","Quyền chỉnh sửa trạng thái chấm công khi kỳ chấm công chưa công khai");                
                 insertPermission(conn,"VIEW_DEPARTMENT_EMPLOYEES_DETAIL","Xem danh sách nhân viên của phòng ban khác","Quyền xem dữ liệu nhân viên của phòng ban khác");
@@ -753,7 +754,7 @@ public class DBInitializer {
             if (countRows(conn, "Form_Types") == 0) {
                 insertFormType(conn, "LEAVE",     "Nghỉ phép");
                 insertFormType(conn, "COMPLAINT", "Khiếu nại");
-                insertFormType(conn, "OVERTIME", "Tăng ca");
+                insertFormType(conn, "OVERTIME",  "Tăng ca");
             }
 
             LOGGER.log(Level.INFO,"Seeding completed successfully.");
