@@ -657,7 +657,7 @@ public class DBInitializer {
                 insertRole(conn, "FIE", "FIEmployee",    "Nhân viên phòng Tài chính");
             }
 
-            if (countRows(conn, "Permissions") == 0) {
+            if (true) { // Always run to ensure new permissions are inserted
                 insertPermission(conn, "VIEW_USERS",       "Xem người dùng",         "Quyền xem danh sách và chi tiết người dùng");
                 insertPermission(conn, "ADD_USER",         "Thêm người dùng",         "Quyền thêm mới người dùng");
                 insertPermission(conn, "EDIT_USER",        "Sửa người dùng",          "Quyền chỉnh sửa thông tin người dùng");
@@ -770,7 +770,7 @@ public class DBInitializer {
     }
 
     private void insertPermission(Connection conn, String code, String name, String description) throws SQLException {
-        String sql = "INSERT INTO Permissions (permissionCode, permissionName, description) VALUES (?, ?, ?)";
+        String sql = "INSERT IGNORE INTO Permissions (permissionCode, permissionName, description) VALUES (?, ?, ?)";
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, code);
             ps.setString(2, name);

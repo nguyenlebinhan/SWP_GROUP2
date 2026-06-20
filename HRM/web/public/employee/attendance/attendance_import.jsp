@@ -26,7 +26,7 @@
 <div class="main">
     <jsp:include page="${empty topbarPage ? '/public/components/employeeTopBar.jsp' : topbarPage}">
         <jsp:param name="title" value="Import chấm công" />
-        <jsp:param name="backUrl" value="/v1/employee/attendance/list"/>
+        <jsp:param name="backUrl" value="/v1/employee/attendance/overview"/>
     </jsp:include>
 
     <c:if test="${not empty error}">
@@ -125,7 +125,7 @@
                 </div>
             </c:if>
 
-            <a href="${pageContext.request.contextPath}/v1/employee/attendance/list?month=${selectedMonth}&year=${selectedYear}"
+            <a href="${pageContext.request.contextPath}/v1/employee/attendance/overview?month=${selectedMonth}&year=${selectedYear}"
                class="btn btn-outline-primary btn-sm">
                 <i class="fa-solid fa-table me-1"></i> Xem dữ liệu chấm công
             </a>

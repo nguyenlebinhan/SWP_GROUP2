@@ -103,11 +103,7 @@
             Tổng quan chấm công
         </a>
     </c:if>
-    <c:if test="${sessionScope.userPermissions.contains('VIEW_ATTENDANCE')}">
-        <a href="${pageContext.request.contextPath}/v1/employee/attendance/list">
-            Xem chấm công
-        </a>
-    </c:if>
+
     <a href="${pageContext.request.contextPath}/v1/employee/attendance/own-attendance">
         Chấm công của tôi
     </a>

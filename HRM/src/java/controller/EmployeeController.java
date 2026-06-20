@@ -432,7 +432,7 @@ public class EmployeeController extends HttpServlet {
         request.setAttribute("selectedMonth", month);
         request.setAttribute("selectedYear", year);
         request.setAttribute("selectedDay", day);
-        request.getRequestDispatcher("/public/employee/attendance/own_attendance_list.jsp").forward(request, response);
+        request.getRequestDispatcher("/public/employee/attendance/own_attendance.jsp").forward(request, response);
     }
 
 
@@ -660,7 +660,7 @@ public class EmployeeController extends HttpServlet {
         Set<String> perms = getPermissions(user);
         request.getSession().setAttribute("userPermissions", perms);
 
-        String backUrl = request.getContextPath() + "/v1/employee/attendance/list"
+        String backUrl = request.getContextPath() + "/v1/employee/attendance/overview"
                 + buildAttendanceFilterQuery(request);
 
         Integer attendanceId = parseIntOrNull(request.getParameter("id"));
@@ -689,7 +689,7 @@ public class EmployeeController extends HttpServlet {
             return;
         }
 
-        String redirectUrl = request.getContextPath() + "/v1/employee/attendance/list"
+        String redirectUrl = request.getContextPath() + "/v1/employee/attendance/overview"
                 + buildAttendanceFilterQuery(request);
 
         Integer attendanceId = parseIntOrNull(request.getParameter("attendanceId"));
