@@ -121,7 +121,7 @@
 
             <div class="card mb-4">
                 <div class="card-body filter-box">
-                    <form action="${pageContext.request.contextPath}/v1/v1/manager/contract/history" method="get" class="row g-3 align-items-end">
+                    <form action="${pageContext.request.contextPath}/v1/manager/contract/history" method="get" class="row g-3 align-items-end">
                         <div class="col-md-3">
                             <label class="form-label">Nhân viên</label>
                             <select name="employeeId" class="form-select form-select-sm">

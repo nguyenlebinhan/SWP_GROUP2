@@ -65,7 +65,9 @@
         <h1>Hợp Đồng Lao Động</h1>
 
         <p>
-            Hợp đồng lao động này ("Hợp đồng") được lập ngày
+            Hợp đồng lao động này ("Hợp đồng") được ký ngày
+            <span class="field"><fmt:formatDate value="${contract.signedDate}" pattern="dd/MM/yyyy"/></span>,
+            có hiệu lực từ ngày
             <span class="field"><fmt:formatDate value="${contract.effectiveDate}" pattern="dd/MM/yyyy"/></span>,
             giữa <span class="field">Công ty HRM</span>, có địa chỉ tại
             <span class="field">Địa chỉ công ty</span> ("Người sử dụng lao động"), và
@@ -174,14 +176,7 @@
                 <div class="signature-box"></div>
                 <p>Chữ ký</p>
                 <p>Họ tên/Chức danh: <span class="field">Đại diện Công ty HRM</span></p>
-                <p>Ngày ký: <span class="muted-line">________________</span></p>
-            </div>
-            <div>
-                <p><strong>Người lao động:</strong></p>
-                <div class="signature-box"></div>
-                <p>Chữ ký</p>
-                <p>Họ tên: <span class="field"><c:out value="${employee.fullName}"/></span></p>
-                <p>Ngày ký: <span class="muted-line">________________</span></p>
+                <p>Ngày ký: <span class="field"><fmt:formatDate value="${contract.signedDate}" pattern="dd/MM/yyyy"/></span></p>
             </div>
         </div>
 
