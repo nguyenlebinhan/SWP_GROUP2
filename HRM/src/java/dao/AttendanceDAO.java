@@ -226,6 +226,27 @@ public class AttendanceDAO {
         return null;
     }
 
+    public Attendance getAttendanceByDate(int employeeId, java.sql.Date workDate) {
+        String sql = "SELECT a.attendanceId, a.attendanceCode, a.employeeId, a.workDate, a.timeIn, a.timeOut, "
+                + "a.hoursWorked, a.attendanceStatus, a.fileId, "
+                + "a.employeeCode, a.departmentId, a.fullName, a.departmentName "
+                + "FROM Attendance a "
+                + "WHERE a.employeeId = ? AND a.workDate = ?";
+        try (Connection conn = dbContext.getConnection();
+                PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, employeeId);
+            ps.setDate(2, workDate);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return mapAttendance(rs);
+                }
+            }
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Cannot retrieve attendance by date: " + workDate, e);
+        }
+        return null;
+    }
+
 
     public String updateAttendanceWithHistory(int attendanceId, Time timeIn, Time timeOut,
             BigDecimal hoursWorked, int newStatus, String reason, int updatedByUserId) {
