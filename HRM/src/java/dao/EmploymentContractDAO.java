@@ -390,6 +390,47 @@ public class EmploymentContractDAO {
         return false;
     }
 
+    /**
+     * Update contract status with signedDate (used for HR approval flow).
+     * When signedDate is provided, sets signedDate = ? in the same UPDATE.
+     * This overload preserves backward compatibility for existing callers.
+     *
+     * @param conn            Database connection (caller manages transaction)
+     * @param contractId      Contract to update
+     * @param newStatus       Target status
+     * @param actualEndDate   Actual end date (or null)
+     * @param terminationReason Termination reason (or null)
+     * @param signedDate      Date the contract was signed (set on approval, or null)
+     * @return true if updated
+     */
+    public boolean updateContractStatus(Connection conn, int contractId, ContractStatus newStatus,
+                                        java.sql.Date actualEndDate, String terminationReason,
+                                        java.sql.Date signedDate) {
+        String SQL = "UPDATE Employment_Contracts "
+                + "SET status = ?, actualEndDate = ?, terminationReason = ?, "
+                + "signedDate = ?, updatedAt = CURRENT_TIMESTAMP "
+                + "WHERE contractId = ?";
+        try (PreparedStatement ps = conn.prepareStatement(SQL)) {
+            ps.setString(1, newStatus.name());
+            if (actualEndDate != null) {
+                ps.setDate(2, actualEndDate);
+            } else {
+                ps.setNull(2, Types.DATE);
+            }
+            ps.setString(3, terminationReason);
+            if (signedDate != null) {
+                ps.setDate(4, signedDate);
+            } else {
+                ps.setNull(4, Types.DATE);
+            }
+            ps.setInt(5, contractId);
+            return ps.executeUpdate() > 0;
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Cannot update contract status (with signedDate) for contractId: " + contractId, e);
+        }
+        return false;
+    }
+
     // =========================================================================
     // Scheduler Methods
     // =========================================================================
@@ -590,15 +631,15 @@ public class EmploymentContractDAO {
      * Advanced search for contract audit history with dynamic SQL construction.
      * Enforces strict employee isolation for non-HR users.
      *
-     * @param targetEmpId    Filter by employee ID (optional)
+     * @param targetEmpId    Filter by employee ID (optional; ignored for non-HR)
      * @param nameKeyword    Filter by employee full name LIKE (optional)
      * @param departmentId   Filter by department ID (optional)
-     * @param loggedInEmpId  Logged-in employee's ID (for isolation enforcement)
-     * @param isHrManager    true = full access, false = own contracts only
+     * @param loggedInEmpId  Logged-in employee's employeeId (for isolation enforcement)
+     * @param isHrStaff      true = full access (HR), false = own contracts only
      * @return List of audit log entries
      */
     public List<ContractAuditLog> searchContractHistory(Integer targetEmpId, String nameKeyword,
-                                                        Integer departmentId, int loggedInEmpId, boolean isHrManager) {
+                                                        Integer departmentId, int loggedInEmpId, boolean isHrStaff) {
         List<ContractAuditLog> logs = new ArrayList<>();
         StringBuilder sql = new StringBuilder(
             "SELECT la.LogId, la.ContractId, la.OldStatus, la.NewStatus, "
@@ -622,7 +663,7 @@ public class EmploymentContractDAO {
         }
 
         // CRITICAL: Data Isolation for non-HR users
-        if (!isHrManager) {
+        if (!isHrStaff) {
             sql.append("AND ec.employeeId = ? ");
         }
 
@@ -634,7 +675,7 @@ public class EmploymentContractDAO {
             if (targetEmpId != null) ps.setInt(idx++, targetEmpId);
             if (nameKeyword != null && !nameKeyword.isBlank()) ps.setString(idx++, "%" + nameKeyword + "%");
             if (departmentId != null) ps.setInt(idx++, departmentId);
-            if (!isHrManager) ps.setInt(idx++, loggedInEmpId);
+            if (!isHrStaff) ps.setInt(idx++, loggedInEmpId);
 
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
@@ -647,6 +688,7 @@ public class EmploymentContractDAO {
                     log.setChangedByName(rs.getString("changedByName"));
                     log.setChangeDate(rs.getTimestamp("ChangeDate"));
                     log.setActionReason(rs.getString("ActionReason"));
+                    log.setEmployeeId(rs.getInt("employeeId"));
                     logs.add(log);
                 }
             }
@@ -699,6 +741,12 @@ public class EmploymentContractDAO {
 
         contract.setTerminationReason(rs.getString("terminationReason"));
         contract.setRejectionReason(rs.getString("rejectionReason"));
+        try {
+            contract.setEmployeeFullName(rs.getString("fullName"));
+        } catch (SQLException ignored) {}
+        try {
+            contract.setEmployeeCode(rs.getString("employeeCode"));
+        } catch (SQLException ignored) {}
         contract.setCreatedBy(rs.getInt("createdBy"));
         contract.setCreatedAt(rs.getDate("createdAt"));
         contract.setUpdatedAt(rs.getDate("updatedAt"));
@@ -707,9 +755,10 @@ public class EmploymentContractDAO {
 
     public List<EmploymentContract> getPendingContracts() throws SQLException {
         List<EmploymentContract> contracts = new ArrayList<>();
-        String SQL = "SELECT ec.*, e.fullName, e.employeeCode "
+        String SQL = "SELECT ec.*, u.fullName, e.employeeCode "
                    + "FROM Employment_Contracts ec "
                    + "JOIN Employees e ON ec.employeeId = e.employeeId "
+                   + "JOIN Users u ON u.userId = e.userId "
                    + "WHERE ec.status = ?";
         try (Connection conn = dbContext.getConnection();
              PreparedStatement ps = conn.prepareStatement(SQL)) {

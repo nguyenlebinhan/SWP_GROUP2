@@ -20,7 +20,7 @@
         padding: 20px 20px 10px;
         font-size: 18px;
         font-weight: 700;
-        border-bottom: 1px solid rgba(255,255,255,0.1);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
         margin-bottom: 8px;
     }
 
@@ -29,7 +29,7 @@
         font-size: 11px;
         text-transform: uppercase;
         letter-spacing: 0.08em;
-        color: rgba(255,255,255,0.4);
+        color: rgba(255, 255, 255, 0.4);
         font-weight: 600;
     }
 
@@ -38,7 +38,7 @@
         align-items: center;
         gap: 10px;
         padding: 11px 20px;
-        color: rgba(255,255,255,0.85);
+        color: rgba(255, 255, 255, 0.85);
         text-decoration: none;
         font-size: 14px;
         border-radius: 6px;
@@ -69,13 +69,13 @@
     </a>
 
     <div class="nav-section">Nhân viên</div>
-    <a href="${pageContext.request.contextPath}/v1/manager/my-department-list"
+    <a href="${pageContext.request.contextPath}/v1/manager/department/my-department-list"
        class="${pageContext.request.servletPath == '/public/manager/employee_list.jsp' ? 'active' : ''}">
         Nhân viên phòng ban của tôi
     </a>
 
     <c:if test="${sessionScope.userPermissions.contains('VIEW_EMPLOYEES')}">
-        <a href="${pageContext.request.contextPath}/v1/manager/employee-list"
+        <a href="${pageContext.request.contextPath}/v1/manager/employee/list"
            class="${pageContext.request.servletPath == '/public/manager/employee_list.jsp' ? 'active' : ''}">
             Danh sách nhân viên
         </a>
@@ -83,7 +83,7 @@
 
     <c:if test="${sessionScope.userPermissions.contains('VIEW_DEPARTMENTS')}">
         <div class="nav-section">Phòng ban</div>
-        <a href="${pageContext.request.contextPath}/v1/manager/department-list"
+        <a href="${pageContext.request.contextPath}/v1/manager/department/list"
            class="${pageContext.request.servletPath == '/public/manager/department_list.jsp' ? 'active' : ''}">
             Danh sách phòng ban
         </a>
@@ -95,29 +95,67 @@
         </a>
     </c:if>
 
+
+    <a href="${pageContext.request.contextPath}/v1/manager/forms/dept-forms">
+        Đơn của phòng ban
+    </a>
+
+    <div class="nav-section">Hợp đồng lao động</div>
+    <c:if test="${sessionScope.userPermissions.contains('ADD_EMPLOYMENT_CONTRACT')}">
+        <a href="${pageContext.request.contextPath}/v1/employee/contract/add"
+           class="${pageContext.request.servletPath == '/public/employee/contract/add_contract.jsp' ? 'active' : ''}">
+            <i class="fas fa-file-contract"></i> Tạo hợp đồng
+        </a>
+    </c:if>
+    <c:if test="${sessionScope.userPermissions.contains('PERM_APPROVE_CONTRACT')}">
+        <a href="${pageContext.request.contextPath}/v1/manager/contract/pending"
+           class="${pageContext.request.servletPath == '/public/manager/contract/contract_pending_list.jsp' ? 'active' : ''}">
+            <i class="fas fa-check-circle"></i> Duyệt hợp đồng
+        </a>
+    </c:if>
+    <c:if test="${sessionScope.userPermissions.contains('VIEW_CONTRACT_PREVIEW')}">
+        <a href="${pageContext.request.contextPath}/contract/history"
+           class="${pageContext.request.servletPath == '/public/manager/contract/manager_contract_history.jsp' ? 'active' : ''}">
+            <i class="fas fa-history"></i> Lịch sử hợp đồng
+        </a>
+    </c:if>
+
+    <c:if test="${sessionScope.userPermissions.contains('VIEW_ALL_FORMS')}">
+        <a href="${pageContext.request.contextPath}/v1/manager/forms/all">
+            Tất cả đơn
+        </a>
+    </c:if>
+
     <c:if test="${sessionScope.userPermissions.contains('VIEW_LEAVE_BALANCE')}">
         <a href="${pageContext.request.contextPath}/v1/manager/leave-balances">
             Ngày phép
         </a>
     </c:if>
 
-    <div class="nav-section">Hợp đồng lao động</div>
-    <c:if test="${canCreateContract}">
-        <a href="${pageContext.request.contextPath}/v1/employee/add-contract"
-           class="${pageContext.request.servletPath == '/public/employee/add_contract.jsp' ? 'active' : ''}">
-            <i class="fas fa-file-contract"></i> Tạo hợp đồng
+    <div class="nav-section">Quản lý Overtime</div>
+    <a href="${pageContext.request.contextPath}/v1/manager/forms/ot-requests"
+       class="${pageContext.request.servletPath == '/public/manager/forms/ot_requests.jsp' || pageContext.request.servletPath == '/public/manager/forms/ot_create.jsp' ? 'active' : ''}">
+        Overtime
+    </a>
+
+    <div class="nav-section">Chấm công</div>
+    <a href="${pageContext.request.contextPath}/v1/manager/attendance/own-attendance"
+       class="${pageContext.request.servletPath == '/public/manager/own_attendance.jsp' ? 'active' : ''}">
+        Chấm công của tôi
+    </a>
+    <a href="${pageContext.request.contextPath}/v1/manager/attendance/my-department-attendance"
+       class="${pageContext.request.servletPath == '/public/manager/department_attendance.jsp' ? 'active' : ''}">
+        Chấm công phòng ban
+    </a>
+
+    <c:if test="${sessionScope.userPermissions.contains('IMPORT_ATTENDANCE')}">
+        <a href="${pageContext.request.contextPath}/v1/employee/attendance/import">
+            Import chấm công
         </a>
     </c:if>
-    <c:if test="${canApproveContract}">
-        <a href="${pageContext.request.contextPath}/v1/manager/contracts/pending"
-           class="${pageContext.request.servletPath == '/public/manager/contract-pending-list.jsp' ? 'active' : ''}">
-            <i class="fas fa-check-circle"></i> Duyệt hợp đồng
-        </a>
-    </c:if>
-    <c:if test="${canViewContractHistory}">
-        <a href="${pageContext.request.contextPath}/v1/contracts/history"
-           class="${pageContext.request.servletPath == '/public/manager/manager-contract-history.jsp' ? 'active' : ''}">
-            <i class="fas fa-history"></i> Lịch sử hợp đồng
+    <c:if test="${sessionScope.userPermissions.contains('VIEW_ATTENDANCE')}">
+        <a href="${pageContext.request.contextPath}/v1/employee/attendance/list">
+            Xem chấm công toàn công ty
         </a>
     </c:if>
 

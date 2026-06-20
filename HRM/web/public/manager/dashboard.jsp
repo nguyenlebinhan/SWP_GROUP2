@@ -157,7 +157,7 @@
     </div>
 
     <div class="row g-4 mt-4">
-        <c:if test="${canCreateContract}">
+        <c:if test="${sessionScope.userPermissions.contains('ADD_EMPLOYMENT_CONTRACT')}">
             <div class="col-md-4">
                 <a href="${pageContext.request.contextPath}/v1/employee/add-contract" class="feature-card">
                     <div class="feature-icon" style="background: #e3f2fd; color: #1565c0;">
@@ -168,9 +168,9 @@
                 </a>
             </div>
         </c:if>
-        <c:if test="${canApproveContract}">
+        <c:if test="${sessionScope.userPermissions.contains('PERM_APPROVE_CONTRACT')}">
             <div class="col-md-4">
-                <a href="${pageContext.request.contextPath}/v1/manager/contracts/pending" class="feature-card">
+                <a href="${pageContext.request.contextPath}/v1/manager/contract/pending" class="feature-card">
                     <div class="feature-icon" style="background: #fff3e0; color: #ef6c00;">
                         <i class="fas fa-check-circle"></i>
                     </div>
@@ -179,9 +179,9 @@
                 </a>
             </div>
         </c:if>
-        <c:if test="${canViewContractHistory}">
+        <c:if test="${sessionScope.userPermissions.contains('VIEW_CONTRACT_PREVIEW')}">
             <div class="col-md-4">
-                <a href="${pageContext.request.contextPath}/v1/contracts/history" class="feature-card">
+                <a href="${pageContext.request.contextPath}/contract/history" class="feature-card">
                     <div class="feature-icon" style="background: #f3e5f5; color: #7b1fa2;">
                         <i class="fas fa-history"></i>
                     </div>

@@ -1,0 +1,11 @@
+# Những thứ KHÔNG cần gửi vào Docker khi build (để build nhanh & gọn).
+# Mình chỉ cần file dist/HRM.war, nên loại bỏ source, build trung gian, IDE...
+build/
+src/
+test/
+nbproject/private/
+web/
+*.md
+*.xlsx
+*.csv
+.git/

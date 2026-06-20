@@ -19,6 +19,8 @@ public class EmploymentContract {
     private Integer previousContractId;
     private String terminationReason;
     private String rejectionReason;
+    private String employeeFullName;
+    private String employeeCode;
     private int createdBy;
     private Date createdAt;
     private Date updatedAt;
@@ -156,6 +158,22 @@ public class EmploymentContract {
 
     public void setRejectionReason(String rejectionReason) {
         this.rejectionReason = rejectionReason;
+    }
+
+    public String getEmployeeFullName() {
+        return employeeFullName;
+    }
+
+    public void setEmployeeFullName(String employeeFullName) {
+        this.employeeFullName = employeeFullName;
+    }
+
+    public String getEmployeeCode() {
+        return employeeCode;
+    }
+
+    public void setEmployeeCode(String employeeCode) {
+        this.employeeCode = employeeCode;
     }
 
     public int getCreatedBy() {
