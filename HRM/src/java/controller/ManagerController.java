@@ -4,6 +4,9 @@ import dao.*;
 import dto.CandidateImportResultDTO;
 import dto.EmployeeDTO;
 import dto.EmployeeDetailDTO;
+import dto.FormRequestDTO;
+import dto.LeaveFormRequestDTO;
+import dto.ComplaintFormRequestDTO;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.MultipartConfig;
 import jakarta.servlet.http.HttpServlet;
@@ -32,12 +35,14 @@ import dto.OvertimeRequestDTO;
 import model.Department;
 import model.Employee;
 import model.EmploymentContract;
+import model.LeaveBalance;
 import model.Position;
 import model.Role;
 import model.UploadedFile;
 import model.User;
 import service.CandidateImportService;
 import service.EmailService;
+import dal.DBContext;
 
 @MultipartConfig(
         fileSizeThreshold = 1024 * 1024, // 1MB ghi ra đĩa
@@ -57,6 +62,7 @@ public class ManagerController extends HttpServlet {
     private static final AttendanceDAO attendanceDAO = new AttendanceDAO();
     private static final dao.OvertimeDAO overtimeDAO = new dao.OvertimeDAO();
     private static final dao.FormTypeDAO formTypeDAO = new dao.FormTypeDAO();
+    private static final LeaveBalanceDAO leaveBalanceDAO = new LeaveBalanceDAO();
     private static final CandidateDAO candidateDAO = new CandidateDAO();
     private static final UploadedFileDAO uploadedFileDAO = new UploadedFileDAO();
     private static final CandidateImportService candidateImportService = new CandidateImportService();
@@ -1160,6 +1166,49 @@ public class ManagerController extends HttpServlet {
                 return;
             }
             boolean ok = formRequestDAO.approveFormRequest(formId, me.getEmployeeId(), note);
+            if (ok) {
+                FormRequestDTO form = formRequestDAO.getFormRequestById(formId);
+                if (form != null) {
+                    if (form instanceof LeaveFormRequestDTO) {
+                        LeaveFormRequestDTO leaveForm = (LeaveFormRequestDTO) form;
+                        int year = (leaveForm.getStartDate() != null) ? leaveForm.getStartDate().toLocalDate().getYear() : java.time.LocalDate.now().getYear();
+                        LeaveBalance lb = leaveBalanceDAO.getLeaveBalance(form.getEmployeeId(), year);
+                        if (lb != null && leaveForm.getTotalDays() != null) {
+                            leaveBalanceDAO.updateUsedDays(form.getEmployeeId(), year, leaveForm.getTotalDays());
+                        }
+                    } else if (form instanceof ComplaintFormRequestDTO) {
+                        ComplaintFormRequestDTO compForm = (ComplaintFormRequestDTO) form;
+                        if (compForm.getStartDate() != null && compForm.getStartTime() != null && compForm.getEndTime() != null) {
+                            Attendance att = attendanceDAO.getAttendanceByDate(form.getEmployeeId(), compForm.getStartDate());
+                            if (att != null) {
+                                attendanceDAO.updateAttendanceWithHistory(att.getAttendanceId(), compForm.getStartTime(), compForm.getEndTime(), null, 0, "Updated by complaint approval", me.getUserId());
+                            } else {
+                                EmployeeDetailDTO empForAtt = employeeDAO.getEmployeeById(form.getEmployeeId());
+                                Attendance newAtt = new Attendance();
+                                newAtt.setAttendanceCode("ATT-" + form.getEmployeeId() + "-" + System.currentTimeMillis());
+                                newAtt.setEmployeeId(form.getEmployeeId());
+                                if(empForAtt != null){
+                                    newAtt.setEmployeeCode(empForAtt.getEmployeeCode());
+                                    newAtt.setFullName(empForAtt.getFullName());
+                                    newAtt.setDepartmentId(empForAtt.getDepartmentId());
+                                    newAtt.setDepartmentName(empForAtt.getDepartmentName());
+                                }
+                                newAtt.setWorkDate(compForm.getStartDate());
+                                newAtt.setTimeIn(compForm.getStartTime());
+                                newAtt.setTimeOut(compForm.getEndTime());
+                                newAtt.setAttendanceStatus(0); // Đúng giờ
+                                try {
+                                    try (java.sql.Connection conn = new DBContext().getConnection()) {
+                                        attendanceDAO.upsertAttendance(conn, newAtt);
+                                    }
+                                } catch (java.sql.SQLException ex) {
+                                    LOGGER.log(Level.SEVERE, "Lỗi khi chèn điểm danh mới từ đơn khiếu nại", ex);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
             request.getSession().setAttribute(ok ? "success" : "error",
                     ok ? "Duyệt đơn thành công." : "Duyệt đơn thất bại.");
         } catch (NumberFormatException e) {

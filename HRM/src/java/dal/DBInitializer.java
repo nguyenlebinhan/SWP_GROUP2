@@ -265,8 +265,10 @@ public class DBInitializer {
                 + "reason NVARCHAR(500),"
                 + "startDate DATE NULL,"
                 + "endDate DATE NULL,"
-                + "totalDays DECIMAL(4,1) NULL,"
-                + "usedDays DECIMAL(4,1) DEFAULT 0,"
+                + "startTime TIME NULL,"
+                + "endTime TIME NULL,"
+                + "totalDays INT NULL,"
+                + "usedDays INT DEFAULT 0,"
                 + "status TINYINT DEFAULT 0,"
                 + "approverId INT,"
                 + "approverNote NVARCHAR(255),"
@@ -305,25 +307,17 @@ public class DBInitializer {
         execute(conn, SQL, "CREATE OVERTIME_ASSIGNEES TABLE SUCCESSFULLY");
     }
 
-    //cache để giúp tính toán số ngày còn lại nhanh hơn
-    public void createTableLeaveForm(Connection conn) {
-        String SQL = "CREATE TABLE Leave_Form("
-                + "leaveId INT PRIMARY KEY AUTO_INCREMENT,"
+    public void createTableLeaveBalances(Connection conn) {
+        String SQL = "CREATE TABLE Leave_Balances("
+                + "balanceId INT PRIMARY KEY AUTO_INCREMENT,"
                 + "employeeId INT NOT NULL,"
-                + "formTypeId INT NOT NULL,"
-                + "formId INT NOT NULL,"
-                + "startDate DATE NOT NULL,"
-                + "endDate DATE NOT NULL,"
-                + "totalDays DECIMAL(4,1) NOT NULL,"
-                + "usedDays DECIMAL(4,1) DEFAULT 0,"
-                + "createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,"
-                + "updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,"
-                + "UNIQUE KEY uq_balance (employeeId, leaveId, formTypeId),"
-                + "FOREIGN KEY (employeeId) REFERENCES Employees(employeeId),"
-                + "FOREIGN KEY (formId) REFERENCES Form_Requests(formId),"
-                + "FOREIGN KEY (formTypeId) REFERENCES Form_Types(formTypeId)"
+                + "year INT NOT NULL,"
+                + "totalAllowed INT DEFAULT 12,"
+                + "usedDays INT DEFAULT 0,"
+                + "UNIQUE KEY uq_balance (employeeId, year),"
+                + "FOREIGN KEY (employeeId) REFERENCES Employees(employeeId)"
                 + ")";
-        execute(conn, SQL, "CREATE LEAVE_BALANCE TABLE SUCCESSFULLY");
+        execute(conn, SQL, "CREATE LEAVE_BALANCES TABLE SUCCESSFULLY");
     }
     // ==================== CHẤM CÔNG ====================
 
@@ -539,7 +533,7 @@ public class DBInitializer {
                 "Application_Stage_Logs",
                 "Candidates",
                 "Uploaded_Files",
-                "Leave_Form",
+                "Leave_Balances",
                 "Overtime_Assignees",
                 "Overtime_Details",
                 "Form_Requests",
@@ -572,7 +566,7 @@ public class DBInitializer {
                 "Form_Requests",
                 "Overtime_Details",
                 "Overtime_Assignees",
-                "Leave_Form",
+                "Leave_Balances",
                 "Attendance",
                 "Attendance_Import_Rows",
                 "Attendance_Adjustment_History",
@@ -616,7 +610,7 @@ public class DBInitializer {
                         case "Form_Requests":    createTableFormRequests(conn);     break;
                         case "Overtime_Details": createTableOvertimeDetails(conn);  break;
                         case "Overtime_Assignees": createTableOvertimeAssignees(conn); break;
-                        case "Leave_Form":     createTableLeaveForm(conn);      break;
+                        case "Leave_Balances":     createTableLeaveBalances(conn);      break;
                         case "Attendance":        createTableAttendance(conn);        break;
                         case "Attendance_Import_Rows":        createTableAttendanceImportRows(conn);        break;
                         case "Attendance_Adjustment_History": createTableAttendanceAdjustmentHistory(conn); break;
@@ -759,6 +753,7 @@ public class DBInitializer {
             if (countRows(conn, "Form_Types") == 0) {
                 insertFormType(conn, "LEAVE",     "Nghỉ phép");
                 insertFormType(conn, "COMPLAINT", "Khiếu nại");
+                insertFormType(conn, "OVERTIME", "Tăng ca");
             }
 
             LOGGER.log(Level.INFO,"Seeding completed successfully.");

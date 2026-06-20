@@ -57,7 +57,14 @@
     </c:if>
 
     <div class="section-card">
-        <h5 class="mb-4">Tạo Đơn Xin Nghỉ Phép</h5>
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h5 class="mb-0">Tạo Đơn Xin Nghỉ Phép</h5>
+            <c:if test="${not empty remainingDays}">
+                <span class="badge bg-info text-dark" style="font-size: 0.95em;">
+                    Số ngày phép còn lại: ${remainingDays} ngày
+                </span>
+            </c:if>
+        </div>
         <form method="post" action="${pageContext.request.contextPath}/v1/employee/forms/leave/submit"
               enctype="multipart/form-data">
             <div class="row g-3">
@@ -66,7 +73,6 @@
                     <label class="form-label fw-semibold">Ngày bắt đầu <span class="text-danger">*</span></label>
                     <input type="date" id="startDate" name="startDate" class="form-control" required
                            value="${param.startDate}">
-                    <small class="text-muted">Không được chọn ngày trong quá khứ</small>
                 </div>
 
                 <div class="col-md-4">
@@ -106,9 +112,6 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-    const today = new Date().toISOString().split('T')[0];
-    document.getElementById('startDate').min = today;
-    document.getElementById('endDate').min = today;
 
     function calcTotalDays() {
         const s = document.getElementById('startDate').value;
@@ -122,11 +125,6 @@
     }
 
     document.getElementById('startDate').addEventListener('change', function () {
-        const endInput = document.getElementById('endDate');
-        endInput.min = this.value;
-        if (endInput.value && endInput.value < this.value) {
-            endInput.value = this.value;
-        }
         calcTotalDays();
     });
     document.getElementById('endDate').addEventListener('change', calcTotalDays);

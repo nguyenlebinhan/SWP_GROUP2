@@ -9,20 +9,20 @@ import java.sql.Date;
  */
 public class LeaveFormRequestDTO extends FormRequestDTO {
 
-    private Date startDate;
-    private Date endDate;
-    private Double totalDays;
-    private Double usedDays;
+    private java.sql.Date startDate;
+    private java.sql.Date endDate;
+    private Integer totalDays;
+    private Integer usedDays;
 
-    public Date getStartDate() { return startDate; }
-    public void setStartDate(Date startDate) { this.startDate = startDate; }
+    public java.sql.Date getStartDate() { return startDate; }
+    public void setStartDate(java.sql.Date startDate) { this.startDate = startDate; }
 
-    public Date getEndDate() { return endDate; }
-    public void setEndDate(Date endDate) { this.endDate = endDate; }
+    public java.sql.Date getEndDate() { return endDate; }
+    public void setEndDate(java.sql.Date endDate) { this.endDate = endDate; }
 
-    public Double getTotalDays() { return totalDays; }
-    public void setTotalDays(Double totalDays) { this.totalDays = totalDays; }
+    public Integer getTotalDays() { return totalDays; }
+    public void setTotalDays(Integer totalDays) { this.totalDays = totalDays; }
 
-    public Double getUsedDays() { return usedDays; }
-    public void setUsedDays(Double usedDays) { this.usedDays = usedDays; }
+    public Integer getUsedDays() { return usedDays; }
+    public void setUsedDays(Integer usedDays) { this.usedDays = usedDays; }
 }

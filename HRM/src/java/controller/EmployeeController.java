@@ -11,6 +11,7 @@ import dao.PermissionDAO;
 import dao.RoleDAO;
 import dao.UploadedFileDAO;
 import dao.UserDAO;
+import dao.LeaveBalanceDAO;
 import dto.AttendanceImportResultDTO;
 import dto.CandidateImportResultDTO;
 import dto.EmployeeDetailDTO;
@@ -62,6 +63,7 @@ public class EmployeeController extends HttpServlet {
     private final FormTypeDAO formTypeDAO = new FormTypeDAO();
     private final AttendanceDAO attendanceDAO = new AttendanceDAO();
     private final UploadedFileDAO uploadedFileDAO = new UploadedFileDAO();
+    private final LeaveBalanceDAO leaveBalanceDAO = new LeaveBalanceDAO();
     private final AttendanceImportService importService = new AttendanceImportService();
     private final String UPLOAD_DIR = config.getProperty("UPLOAD_DIR");
     private final String FILE_PART = config.getProperty("FILE_PART");
@@ -1531,6 +1533,12 @@ public class EmployeeController extends HttpServlet {
                 return;
             }
 
+            String backUrl = "/v1/employee/forms/my-forms";
+            if (canViewAll) {
+                backUrl = "/v1/employee/forms/all";
+            }
+            request.setAttribute("backUrl", backUrl);
+
             request.setAttribute("form", form);
             request.getRequestDispatcher("/public/employee/forms/form_detail.jsp").forward(request, response);
         } catch (NumberFormatException e) {
@@ -1545,6 +1553,18 @@ public class EmployeeController extends HttpServlet {
         Set<String> perms = getPermissions(user);
         request.getSession().setAttribute("userPermissions", perms);
         setPermissionFlags(request, perms);
+
+        EmployeeDetailDTO me = employeeDAO.getEmployeeByUserId(user.getUserId());
+        if (me != null) {
+            int currentYear = LocalDate.now().getYear();
+            LeaveBalance lb = leaveBalanceDAO.getLeaveBalance(me.getEmployeeId(), currentYear);
+            if (lb == null) {
+                lb = new LeaveBalance(0, me.getEmployeeId(), currentYear, 12, 0);
+                leaveBalanceDAO.createLeaveBalance(lb);
+            }
+            request.setAttribute("remainingDays", lb.getRemainingDays());
+        }
+
         request.getRequestDispatcher("/public/employee/forms/leave_form.jsp").forward(request, response);
     }
 
@@ -1584,6 +1604,7 @@ public class EmployeeController extends HttpServlet {
 
         if (rawStart == null || rawEnd == null) {
             request.setAttribute("error", "Đơn nghỉ phép yêu cầu nhập ngày bắt đầu và ngày kết thúc.");
+            setPermissionFlags(request, getPermissions(user));
             request.getRequestDispatcher("/public/employee/forms/leave_form.jsp").forward(request, response);
             return;
         }
@@ -1594,6 +1615,7 @@ public class EmployeeController extends HttpServlet {
             endDate = Date.valueOf(rawEnd);
         } catch (IllegalArgumentException ex) {
             request.setAttribute("error", "Ngày không hợp lệ. Vui lòng nhập đúng định dạng.");
+            setPermissionFlags(request, getPermissions(user));
             request.getRequestDispatcher("/public/employee/forms/leave_form.jsp").forward(request, response);
             return;
         }
@@ -1601,17 +1623,40 @@ public class EmployeeController extends HttpServlet {
         LocalDate today = LocalDate.now();
         if (startDate.toLocalDate().isBefore(today)) {
             request.setAttribute("error", "Ngày bắt đầu không được là ngày trong quá khứ.");
+            setPermissionFlags(request, getPermissions(user));
             request.getRequestDispatcher("/public/employee/forms/leave_form.jsp").forward(request, response);
             return;
         }
         if (endDate.before(startDate)) {
             request.setAttribute("error", "Ngày kết thúc không được trước ngày bắt đầu.");
+            setPermissionFlags(request, getPermissions(user));
             request.getRequestDispatcher("/public/employee/forms/leave_form.jsp").forward(request, response);
             return;
         }
 
         long diffMs = endDate.getTime() - startDate.getTime();
-        double totalDays = diffMs / (1000.0 * 60 * 60 * 24) + 1;
+        int totalDays = (int) (diffMs / (1000L * 60 * 60 * 24)) + 1;
+
+        int currentYear = LocalDate.now().getYear();
+        LeaveBalance lb = leaveBalanceDAO.getLeaveBalance(me.getEmployeeId(), currentYear);
+        int remaining = 0;
+        if(lb != null) {
+            remaining = lb.getRemainingDays();
+        }
+        if(totalDays > remaining) {
+            request.setAttribute("error", "Số ngày nghỉ vượt quá số ngày phép còn lại (" + remaining + " ngày).");
+            setPermissionFlags(request, getPermissions(user));
+            request.getRequestDispatcher("/public/employee/forms/leave_form.jsp").forward(request, response);
+            return;
+        }
+
+        // Kiểm tra đơn trùng lặp
+        if (formRequestDAO.hasOverlappingLeave(me.getEmployeeId(), startDate, endDate)) {
+            request.setAttribute("error", "Bạn đã có đơn xin nghỉ phép (Chờ duyệt hoặc Đã duyệt) trong khoảng thời gian này. Vui lòng kiểm tra lại!");
+            setPermissionFlags(request, getPermissions(user));
+            request.getRequestDispatcher("/public/employee/forms/leave_form.jsp").forward(request, response);
+            return;
+        }
 
         // Xử lý file đính kèm
         String savedUrl = null, savedName = null;
@@ -1631,6 +1676,7 @@ public class EmployeeController extends HttpServlet {
                 }
                 if (!ok) {
                     request.setAttribute("error", "Định dạng file không hợp lệ.");
+                    setPermissionFlags(request, getPermissions(user));
                     request.getRequestDispatcher("/public/employee/forms/leave_form.jsp").forward(request, response);
                     return;
                 }
@@ -1661,6 +1707,7 @@ public class EmployeeController extends HttpServlet {
         int id = formRequestDAO.addFormRequest(fr);
         if (id <= 0) {
             request.setAttribute("error", "Gửi đơn thất bại. Vui lòng thử lại.");
+            setPermissionFlags(request, getPermissions(user));
             request.getRequestDispatcher("/public/employee/forms/leave_form.jsp").forward(request, response);
             return;
         }
@@ -1688,8 +1735,41 @@ public class EmployeeController extends HttpServlet {
         }
 
         String reason = request.getParameter("reason");
+        String rawDate = trimToNull(request.getParameter("startDate"));
+        String rawStartTime = trimToNull(request.getParameter("startTime"));
+        String rawEndTime = trimToNull(request.getParameter("endTime"));
+
         if (isBlank(reason)) {
             request.setAttribute("error", "Vui lòng nhập nội dung khiếu nại.");
+            setPermissionFlags(request, getPermissions(user));
+            request.getRequestDispatcher("/public/employee/forms/complaint_form.jsp").forward(request, response);
+            return;
+        }
+
+        if (rawDate == null || rawStartTime == null || rawEndTime == null) {
+            request.setAttribute("error", "Vui lòng nhập đầy đủ ngày và giờ làm việc cần sửa.");
+            setPermissionFlags(request, getPermissions(user));
+            request.getRequestDispatcher("/public/employee/forms/complaint_form.jsp").forward(request, response);
+            return;
+        }
+
+        Date startDate;
+        Time startTime, endTime;
+        try {
+            startDate = Date.valueOf(rawDate);
+            // Append seconds for Time.valueOf format (HH:mm:ss)
+            startTime = Time.valueOf(rawStartTime.length() == 5 ? rawStartTime + ":00" : rawStartTime);
+            endTime = Time.valueOf(rawEndTime.length() == 5 ? rawEndTime + ":00" : rawEndTime);
+        } catch (IllegalArgumentException ex) {
+            request.setAttribute("error", "Định dạng ngày/giờ không hợp lệ.");
+            setPermissionFlags(request, getPermissions(user));
+            request.getRequestDispatcher("/public/employee/forms/complaint_form.jsp").forward(request, response);
+            return;
+        }
+
+        if (!endTime.after(startTime)) {
+            request.setAttribute("error", "Giờ kết thúc phải lớn hơn giờ bắt đầu.");
+            setPermissionFlags(request, getPermissions(user));
             request.getRequestDispatcher("/public/employee/forms/complaint_form.jsp").forward(request, response);
             return;
         }
@@ -1712,6 +1792,7 @@ public class EmployeeController extends HttpServlet {
                 }
                 if (!ok) {
                     request.setAttribute("error", "Định dạng file không hợp lệ.");
+                    setPermissionFlags(request, getPermissions(user));
                     request.getRequestDispatcher("/public/employee/forms/complaint_form.jsp").forward(request, response);
                     return;
                 }
@@ -1733,14 +1814,16 @@ public class EmployeeController extends HttpServlet {
         fr.setEmployeeId(me.getEmployeeId());
         fr.setFormTypeId(formTypeId);
         fr.setReason(reason.trim());
+        fr.setStartDate(startDate);
+        fr.setStartTime(startTime);
+        fr.setEndTime(endTime);
         fr.setAttachmentUrl(savedUrl);
         fr.setAttachmentName(savedName);
-        // startDate, endDate, totalDays không có trong ComplaintFormRequest → DB lưu
-        // NULL
 
         int id = formRequestDAO.addFormRequest(fr);
         if (id <= 0) {
             request.setAttribute("error", "Gửi đơn thất bại. Vui lòng thử lại.");
+            setPermissionFlags(request, getPermissions(user));
             request.getRequestDispatcher("/public/employee/forms/complaint_form.jsp").forward(request, response);
             return;
         }
