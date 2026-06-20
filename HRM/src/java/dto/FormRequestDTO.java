@@ -26,6 +26,8 @@ public class FormRequestDTO {
     private Timestamp createdAt;
     private Timestamp updatedAt;
 
+
+
     private String employeeCode;
     private String fullName;
     private String departmentName;
@@ -206,4 +208,6 @@ public class FormRequestDTO {
             default: return "Không xác định";
         }
     }
+
+
 }
