@@ -34,7 +34,6 @@ public class AttendanceImportService {
 
     private static final Logger LOGGER = Logger.getLogger(AttendanceImportService.class.getName());
 
-    /** Giờ bắt đầu làm việc chuẩn. Vào sau mốc này = đi muộn. */
     private static final Time WORK_START = Time.valueOf("08:00:00");
 
     private final DBContext dbContext;
@@ -189,9 +188,27 @@ public class AttendanceImportService {
         if (employeeId <= 0) {
             throw new RowValidationException("employeeCode không tồn tại: " + employeeCode);
         }
-        if (!attendanceDAO.employeeBelongsToDepartment(employeeId, departmentId)) {
-            throw new RowValidationException("Nhân viên " + employeeCode
-                    + " không thuộc phòng ban đã chọn để import.");
+
+        // Xác định phòng ban lưu cho bản ghi này.
+        //  - departmentId > 0: import theo 1 phòng -> nhân viên phải thuộc đúng phòng đó.
+        //  - departmentId <= 0: import gộp tất cả phòng trong 1 file -> tự suy phòng thật của nhân viên.
+        int effectiveDeptId;
+        String effectiveDeptName;
+        if (departmentId > 0) {
+            if (!attendanceDAO.employeeBelongsToDepartment(employeeId, departmentId)) {
+                throw new RowValidationException("Nhân viên " + employeeCode
+                        + " không thuộc phòng ban đã chọn để import.");
+            }
+            effectiveDeptId = departmentId;
+            effectiveDeptName = trimToNull(ad.getDepartmentName());
+        } else {
+            model.Department dep = attendanceDAO.getEmployeeDepartment(employeeId);
+            if (dep == null) {
+                throw new RowValidationException("Nhân viên " + employeeCode
+                        + " chưa được phân công phòng ban, không thể import.");
+            }
+            effectiveDeptId = dep.getDepartmentId();
+            effectiveDeptName = dep.getDepartmentName();
         }
 
         // Suy trạng thái gốc từ giờ vào/ra, rồi áp thứ tự ưu tiên nghiệp vụ.
@@ -203,8 +220,8 @@ public class AttendanceImportService {
         att.setEmployeeId(employeeId);
         att.setEmployeeCode(employeeCode);
         att.setFullName(trimToNull(ad.getFullName()));
-        att.setDepartmentId(departmentId);
-        att.setDepartmentName(trimToNull(ad.getDepartmentName()));
+        att.setDepartmentId(effectiveDeptId);
+        att.setDepartmentName(effectiveDeptName);
         att.setWorkDate(workDate);
         att.setTimeIn(timeIn);
         att.setTimeOut(timeOut);
