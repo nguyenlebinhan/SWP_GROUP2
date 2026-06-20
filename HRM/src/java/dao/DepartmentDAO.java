@@ -6,12 +6,10 @@ package dao;
 
 import dal.DBContext;
 import java.sql.Connection;
-import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.sql.Types;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
@@ -148,9 +146,6 @@ public class DepartmentDAO {
         return false;
     }
 
-
-
-
     public List<String> getAllowedRoleNames(int departmentId) {
         List<String> names = new ArrayList<>();
         String SQL = "SELECT r.roleName FROM Department_Roles dr "
@@ -168,10 +163,6 @@ public class DepartmentDAO {
         }
         return names;
     }
-
-
-
-
 
     public boolean replaceDepartmentRoles(int departmentId, List<Integer> roleIds) {
         String deleteSQL = "DELETE FROM Department_Roles WHERE departmentId = ?";
@@ -488,8 +479,9 @@ public class DepartmentDAO {
     }
 
     public boolean unassignManager(int departmentId) {
-        String SQL = "UPDATE Departments SET managerId = NULL WHERE departmentId = ?";
-        try (java.sql.Connection conn = dbContext.getConnection(); java.sql.PreparedStatement ps = conn.prepareStatement(SQL)) {
+        String sqlDept = "UPDATE Departments SET managerId = NULL WHERE departmentId = ?";
+        //String sqlEmp = "UPDATE Employee SET departmentId = NULL WHERE ";
+        try (java.sql.Connection conn = dbContext.getConnection(); java.sql.PreparedStatement ps = conn.prepareStatement(sqlDept)) {
             ps.setInt(1, departmentId);
             boolean ok = ps.executeUpdate() > 0;
             if (ok) {

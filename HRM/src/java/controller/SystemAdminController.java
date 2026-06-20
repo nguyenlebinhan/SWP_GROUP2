@@ -32,6 +32,7 @@ public class SystemAdminController extends HttpServlet {
     private static final PermissionDAO permissionDAO = new PermissionDAO();
     private static final EmployeeDAO employeeDAO = new EmployeeDAO();
     private static final DepartmentDAO departmentDAO = new DepartmentDAO();
+    private static final AuditLogDAO auditLogDAO = new AuditLogDAO();
 
     protected void processRequest(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
@@ -58,11 +59,6 @@ public class SystemAdminController extends HttpServlet {
 
         HttpSession session = request.getSession(false);
         User user = (session != null) ? (User) session.getAttribute("user") : null;
-
-        if (user == null || user.getRoleName() == null || !"SYSTEMADMIN".equalsIgnoreCase(user.getRoleName())) {
-            response.sendRedirect(request.getContextPath() + "/v1/auth/login");
-            return;
-        }
         if (action == null || action.equals("/")) {
             displayDashboard(request, response);
             return;
@@ -125,11 +121,6 @@ public class SystemAdminController extends HttpServlet {
 
         HttpSession session = request.getSession(false);
         User user = (session != null) ? (User) session.getAttribute("user") : null;
-
-        if (user == null || user.getRoleName() == null || !"SYSTEMADMIN".equalsIgnoreCase(user.getRoleName())) {
-            response.sendRedirect(request.getContextPath() + "/v1/auth/login");
-            return;
-        }
         if (action == null || action.equals("/")) {
             displayDashboard(request, response);
             return;
@@ -675,6 +666,23 @@ public class SystemAdminController extends HttpServlet {
             }
         }
         response.sendRedirect(request.getContextPath() + "/v1/systemadmin/role-list");
+    }
+
+    /** Xem nhật ký hệ thống. Chỉ admin truy cập được (đã chặn role ở doGet), không cần kiểm tra quyền. */
+    private void displayAuditLogs(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+        int limit = 200;
+        try {
+            int l = Integer.parseInt(request.getParameter("limit"));
+            if (l > 0 && l <= 1000) {
+                limit = l;
+            }
+        } catch (NumberFormatException ignored) {
+        }
+        List<AuditLog> logs = auditLogDAO.getRecentLogs(limit);
+        request.setAttribute("logs", logs);
+        request.setAttribute("limit", limit);
+        request.getRequestDispatcher("/public/systemadmin/audit_logs.jsp").forward(request, response);
     }
 
     private boolean isBlank(String value) {

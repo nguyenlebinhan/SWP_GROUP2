@@ -1,7 +1,3 @@
-
-
-
-
 package dao;
 
 import dal.DBContext;
@@ -453,9 +449,7 @@ public class EmployeeDAO {
             String phoneNumber, String skills,
             String experience, String degree) {
         LOGGER.log(Level.INFO, "Assigning userId={0} to departmentId={1}", new Object[] { userId, departmentId });
-
-
-
+        
         String SQL = "UPDATE Employees SET departmentId = ?, positionId = ?, phoneNumber = ?, "
                 + "skills = ?, experience = ?, degree = ?, status = 1 "
                 + "WHERE userId = ? AND departmentId IS NULL";
@@ -626,11 +620,6 @@ public class EmployeeDAO {
         }
         return false;
     }
-
-
-
-
-
 
     public boolean unassignEmployee(int employeeId) {
         LOGGER.log(Level.INFO, "Unassigning employeeId={0} from department", employeeId);

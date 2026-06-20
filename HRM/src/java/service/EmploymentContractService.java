@@ -72,9 +72,9 @@ public class EmploymentContractService {
             int contractId = contractDAO.addContract(conn, contract);
 
             if (contractId > 0) {
-                // 3. Audit log: Creation (OldStatus = null, NewStatus = DRAFT)
+                // 3. Audit log: Creation (OldStatus = null, NewStatus = PENDING_APPROVAL)
                 contractDAO.insertAuditLog(conn, contractId, 
-                    null, ContractStatus.DRAFT.name(), 
+                    null, ContractStatus.PENDING_APPROVAL.name(), 
                     contract.getCreatedBy(), "Created contract");
                 
                 conn.commit();
@@ -125,12 +125,13 @@ public class EmploymentContractService {
                     ContractOperationResult.SYSTEM_ERROR, "Contract not found.");
             }
 
-            // 2. Guard: Must be DRAFT
-            if (contract.getStatus() != ContractStatus.DRAFT) {
+            // 2. Guard: Must be DRAFT or PENDING_APPROVAL
+            if (contract.getStatus() != ContractStatus.DRAFT
+                    && contract.getStatus() != ContractStatus.PENDING_APPROVAL) {
                 conn.rollback();
                 return new ContractOperationResult(false, 
                     ContractOperationResult.INVALID_STATUS, 
-                    "Only draft contracts can be manually activated.");
+                    "Only draft or pending approval contracts can be manually activated.");
             }
 
             // 3. Determine target status based on timeline
@@ -179,6 +180,7 @@ public class EmploymentContractService {
     /**
      * Approve a PENDING_APPROVAL contract, transitioning to PENDING_ACTIVATION.
      * Validates overlap before promoting. All operations in a single transaction.
+     * Sets signedDate = current date (approval date = signing date).
      */
     public ContractOperationResult approveContract(int contractId, int userId) {
         Connection conn = null;
@@ -205,9 +207,12 @@ public class EmploymentContractService {
                     "Thoi gian hop dong bi trung lap voi mot hop dong dang co hieu luc.");
             }
 
+            // Approval date = signing date (ngày ký = ngày duyệt)
+            java.sql.Date signedDate = java.sql.Date.valueOf(java.time.LocalDate.now());
+            
             String oldStatus = contract.getStatus().name();
             String newStatus = ContractStatus.PENDING_ACTIVATION.name();
-            contractDAO.updateContractStatus(conn, contractId, ContractStatus.PENDING_ACTIVATION, null, null);
+            contractDAO.updateContractStatus(conn, contractId, ContractStatus.PENDING_ACTIVATION, null, null, signedDate);
             contractDAO.insertAuditLog(conn, contractId, oldStatus, newStatus, userId, "Phe duyet");
 
             conn.commit();

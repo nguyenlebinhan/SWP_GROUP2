@@ -1,3 +1,7 @@
+/*
+ * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
+ * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
+ */
 package dal;
 
 import at.favre.lib.crypto.bcrypt.BCrypt;
@@ -11,6 +15,10 @@ import java.sql.Statement;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+/**
+ *
+ * @author ADMIN
+ */
 public class DBInitializer {
 
     private static final Logger LOGGER = Logger.getLogger(DBInitializer.class.getName());
@@ -28,6 +36,7 @@ public class DBInitializer {
                 + "description TEXT NULL,"
                 + "isActive BIT DEFAULT 1,"
                 + "isDeleted BIT DEFAULT 0,"
+                + "stage VARCHAR(20) DEFAULT 'APPLIED',"
                 + "createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,"
                 + "updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"
                 + ")";
@@ -122,7 +131,11 @@ public class DBInitializer {
                 + "departmentName NVARCHAR(150) NOT NULL UNIQUE,"
                 + "description NVARCHAR(500),"
                 + "managerId INT,"
-                + "status TINYINT DEFAULT 1,"
+                + "maxHeadCount INT,"
+                + "status TINYINT DEFAULT 1," // 0: Inactive, 1: Active
+                //                + "region NVARCHAR(100),"
+                //                + "budget DECIMAL(15,2),"
+                //                + "foundedDate DATE,"
                 + "createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,"
                 + "updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,"
                 + "FOREIGN KEY (managerId) REFERENCES Employees(employeeId)"
@@ -135,14 +148,15 @@ public class DBInitializer {
                 + "employeeId INT PRIMARY KEY AUTO_INCREMENT,"
                 + "employeeCode VARCHAR(50) NOT NULL UNIQUE,"
                 + "userId INT NOT NULL,"
-                + "departmentId INT NULL,"
-                + "positionId INT NULL,"
+                + "departmentId INT NULL," // NULL = chưa phân công phòng ban (gán sau qua assign-department)
+                + "positionId INT NULL," // NULL = chưa phân công vị trí
                 + "phoneNumber VARCHAR(20),"
                 + "skills NVARCHAR(255),"
                 + "experience NVARCHAR(255),"
                 + "degree NVARCHAR(100),"
                 + "status TINYINT DEFAULT 1,"
                 + "managerId INT,"
+                + "startDate DATE,"
                 + "createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,"
                 + "updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,"
                 + "FOREIGN KEY (userId) REFERENCES Users(userId),"
@@ -159,132 +173,190 @@ public class DBInitializer {
                 + "contractCode VARCHAR(50) NOT NULL UNIQUE,"
                 + "employeeId INT NOT NULL,"
                 + "contractType VARCHAR(50) NOT NULL,"
-                + "signedDate DATE NULL,"
+                + "signedDate DATE,"
                 + "effectiveDate DATE NOT NULL,"
                 + "endDate DATE NULL,"
                 + "actualEndDate DATE NULL,"
                 + "salary DECIMAL(15,2) NOT NULL DEFAULT 0,"
-                + "status VARCHAR(50) NOT NULL DEFAULT 'DRAFT',"
+                + "status VARCHAR(50) DEFAULT 'DRAFT',"
                 + "note NVARCHAR(500),"
-                + "previousContractId INT NULL,"
-                + "terminationReason NVARCHAR(500) NULL,"
-                + "rejectionReason NVARCHAR(500) NULL,"
+                + "previousContractId INT,"
+                + "terminationReason NVARCHAR(255),"
+                + "rejectionReason NVARCHAR(255),"
                 + "createdBy INT,"
                 + "createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,"
                 + "updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,"
                 + "FOREIGN KEY (employeeId) REFERENCES Employees(employeeId),"
-                + "FOREIGN KEY (createdBy) REFERENCES Users(userId),"
-                + "FOREIGN KEY (previousContractId) REFERENCES Employment_Contracts(contractId)"
+                + "FOREIGN KEY (previousContractId) REFERENCES Employment_Contracts(contractId),"
+                + "FOREIGN KEY (createdBy) REFERENCES Users(userId)"
                 + ")";
         execute(conn, SQL, "CREATE EMPLOYMENT_CONTRACTS TABLE SUCCESSFULLY");
+    }
 
-        // Indexes for performance
-        String[] indexes = {
-            "CREATE INDEX idx_employee_contract ON Employment_Contracts(employeeId)",
-            "CREATE INDEX idx_contract_status ON Employment_Contracts(status)",
-            "CREATE INDEX idx_contract_effective ON Employment_Contracts(effectiveDate)"
-        };
-        for (String indexSQL : indexes) {
-            try (Statement stmt = conn.createStatement()) {
-                stmt.execute(indexSQL);
-            } catch (SQLException e) {
-                // Index might already exist, log but don't fail
-                LOGGER.log(Level.WARNING, "Index creation skipped (may already exist): " + indexSQL, e);
-            }
-        }
-        LOGGER.log(Level.INFO, "EMPLOYMENT_CONTRACTS TABLE INDEXES CREATED SUCCESSFULLY");
+    public void createTableContractAuditLog(Connection conn) {
+        String SQL = "CREATE TABLE Contract_Audit_Log("
+                + "logId INT PRIMARY KEY AUTO_INCREMENT,"
+                + "contractId INT NOT NULL,"
+                + "oldStatus VARCHAR(50),"
+                + "newStatus VARCHAR(50),"
+                + "changedBy INT NOT NULL,"
+                + "changeDate TIMESTAMP DEFAULT CURRENT_TIMESTAMP,"
+                + "actionReason NVARCHAR(255),"
+                + "FOREIGN KEY (contractId) REFERENCES Employment_Contracts(contractId),"
+                + "FOREIGN KEY (changedBy) REFERENCES Users(userId)"
+                + ")";
+        execute(conn, SQL, "CREATE CONTRACT_AUDIT_LOG TABLE SUCCESSFULLY");
     }
 
     public void createTableCandidates(Connection conn) {
         String SQL = "CREATE TABLE Candidates("
                 + "candidateId INT PRIMARY KEY AUTO_INCREMENT,"
                 + "candidateCode VARCHAR(50) NOT NULL UNIQUE,"
-                + "userId INT NOT NULL,"
-                + "departmentId INT NOT NULL,"
+                + "fullName NVARCHAR(150) NOT NULL,"
+                + "email VARCHAR(100) NOT NULL,"
                 + "phoneNumber VARCHAR(20),"
-                + "skills NVARCHAR(255),"
-                + "experience NVARCHAR(255),"
+                + "dateOfBirth DATE,"
+                + "gender VARCHAR(20),"
+                + "address NVARCHAR(255),"
+                + "skills NVARCHAR(500),"
+                + "experience NVARCHAR(500),"
+                + "certificates NVARCHAR(255),"
                 + "degree NVARCHAR(100),"
+                + "cvFileUrl VARCHAR(500),"
+                + "departmentId INT NOT NULL,"
                 + "positionId INT NOT NULL,"
-                + "status TINYINT DEFAULT 0,"
+                + "importFileId INT,"
+                + "status TINYINT DEFAULT 0," // 0: Đang xét, 1: Phỏng vấn, 2: Thử việc, 3: Đậu, 4: Trượt
                 + "createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,"
                 + "updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,"
-                + "FOREIGN KEY (userId) REFERENCES Users(userId),"
                 + "FOREIGN KEY (departmentId) REFERENCES Departments(departmentId),"
-                + "FOREIGN KEY (positionId) REFERENCES Positions(positionId)"
+                + "FOREIGN KEY (positionId) REFERENCES Positions(positionId),"
+                + "FOREIGN KEY (importFileId) REFERENCES Uploaded_Files(fileId)"
                 + ")";
         execute(conn, SQL, "CREATE CANDIDATES TABLE SUCCESSFULLY");
     }
 
-    public void createTableLeaveTypes(Connection conn) {
-        String SQL = "CREATE TABLE Leave_Types("
-                + "leaveTypeId INT PRIMARY KEY AUTO_INCREMENT,"
-                + "leaveTypeCode VARCHAR(50) NOT NULL UNIQUE,"
-                + "leaveTypeName NVARCHAR(100) NOT NULL UNIQUE,"
-                + "maxDaysPerYear INT DEFAULT 12,"
-                + "isPaid BIT DEFAULT 1,"
+    // ==================== NGHỈ PHÉP ====================
+    public void createTableApplicationStageLogs(Connection conn) {
+        String SQL = "CREATE TABLE Application_Stage_Logs("
+                + "logId INT PRIMARY KEY AUTO_INCREMENT,"
+                + "candidateId INT NOT NULL,"
+                + "fromStage VARCHAR(20),"
+                + "toStage VARCHAR(20) NOT NULL,"
+                + "result VARCHAR(20) NOT NULL,"
+                + "reviewedBy INT NOT NULL,"
+                + "reviewedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,"
+                + "note NVARCHAR(500),"
+                + "toEmail VARCHAR(100) NOT NULL,"
+                + "emailSubject NVARCHAR(200),"
+                + "emailBody NVARCHAR(3000),"
+                + "emailType VARCHAR(30),"
+                + "emailStatus VARCHAR(20) DEFAULT 'PENDING',"
+                + "sentAt TIMESTAMP NULL,"
+                + "FOREIGN KEY (candidateId) REFERENCES Candidates(candidateId),"
+                + "FOREIGN KEY (reviewedBy) REFERENCES Employees(employeeId)"
+                + ")";
+        execute(conn, SQL, "CREATE APPLICATION_STAGE_LOGS TABLE SUCCESSFULLY");
+    }
+
+    public void createTableFormTypes(Connection conn) {
+        String SQL = "CREATE TABLE Form_Types("
+                + "formTypeId INT PRIMARY KEY AUTO_INCREMENT,"
+                + "formTypeCode VARCHAR(50) NOT NULL UNIQUE,"
+                + "formTypeName NVARCHAR(100) NOT NULL UNIQUE,"
                 + "createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,"
                 + "updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"
                 + ")";
-        execute(conn, SQL, "CREATE LEAVE_TYPES TABLE SUCCESSFULLY");
+        execute(conn, SQL, "CREATE FORM_TYPES TABLE SUCCESSFULLY");
     }
 
-    public void createTableLeaveRequests(Connection conn) {
-        String SQL = "CREATE TABLE Leave_Requests("
-                + "leaveId INT PRIMARY KEY AUTO_INCREMENT,"
-                + "leaveCode VARCHAR(50) NOT NULL UNIQUE,"
+    public void createTableFormRequests(Connection conn) {
+        String SQL = "CREATE TABLE Form_Requests("
+                + "formId INT PRIMARY KEY AUTO_INCREMENT,"
+                + "formCode VARCHAR(50) NOT NULL UNIQUE,"
                 + "employeeId INT NOT NULL,"
-                + "leaveTypeId INT NOT NULL,"
-                + "startDate DATE NOT NULL,"
-                + "endDate DATE NOT NULL,"
-                + "totalDays DECIMAL(4,1) NOT NULL,"
+                + "formTypeId INT NOT NULL,"
                 + "reason NVARCHAR(500),"
+                + "startDate DATE NULL,"
+                + "endDate DATE NULL,"
+                + "totalDays DECIMAL(4,1) NULL,"
+                + "usedDays DECIMAL(4,1) DEFAULT 0,"
                 + "status TINYINT DEFAULT 0,"
                 + "approverId INT,"
                 + "approverNote NVARCHAR(255),"
                 + "approvedAt TIMESTAMP NULL,"
+                + "attachmentUrl VARCHAR(255) NULL,"
+                + "attachmentName VARCHAR(255) NULL,"
                 + "createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,"
                 + "updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,"
                 + "FOREIGN KEY (employeeId) REFERENCES Employees(employeeId),"
-                + "FOREIGN KEY (leaveTypeId) REFERENCES Leave_Types(leaveTypeId),"
+                + "FOREIGN KEY (formTypeId) REFERENCES Form_Types(formTypeId),"
                 + "FOREIGN KEY (approverId) REFERENCES Employees(employeeId)"
                 + ")";
-        execute(conn, SQL, "CREATE LEAVE_REQUESTS TABLE SUCCESSFULLY");
+        execute(conn, SQL, "CREATE FORM_REQUESTS TABLE SUCCESSFULLY");
     }
 
-    public void createTableLeaveBalance(Connection conn) {
-        String SQL = "CREATE TABLE Leave_Balance("
-                + "balanceId INT PRIMARY KEY AUTO_INCREMENT,"
+    public void createTableOvertimeDetails(Connection conn) {
+        String SQL = "CREATE TABLE Overtime_Details("
+                + "formId INT PRIMARY KEY,"
+                + "otDate DATE NOT NULL,"
+                + "startTime TIME NOT NULL,"
+                + "endTime TIME NOT NULL,"
+                + "dayType TINYINT NOT NULL," // 1: Thường, 2: Cuối tuần, 3: Lễ
+                + "FOREIGN KEY (formId) REFERENCES Form_Requests(formId) ON DELETE CASCADE"
+                + ")";
+        execute(conn, SQL, "CREATE OVERTIME_DETAILS TABLE SUCCESSFULLY");
+    }
+
+    public void createTableOvertimeAssignees(Connection conn) {
+        String SQL = "CREATE TABLE Overtime_Assignees("
+                + "formId INT NOT NULL,"
                 + "employeeId INT NOT NULL,"
-                + "leaveTypeId INT NOT NULL,"
-                + "year INT NOT NULL,"
+                + "PRIMARY KEY(formId, employeeId),"
+                + "FOREIGN KEY (formId) REFERENCES Form_Requests(formId) ON DELETE CASCADE,"
+                + "FOREIGN KEY (employeeId) REFERENCES Employees(employeeId)"
+                + ")";
+        execute(conn, SQL, "CREATE OVERTIME_ASSIGNEES TABLE SUCCESSFULLY");
+    }
+
+    //cache để giúp tính toán số ngày còn lại nhanh hơn
+    public void createTableLeaveForm(Connection conn) {
+        String SQL = "CREATE TABLE Leave_Form("
+                + "leaveId INT PRIMARY KEY AUTO_INCREMENT,"
+                + "employeeId INT NOT NULL,"
+                + "formTypeId INT NOT NULL,"
+                + "formId INT NOT NULL,"
+                + "effectiveDate DATE NOT NULL,"
+                + "endDate DATE NOT NULL,"
                 + "totalDays DECIMAL(4,1) NOT NULL,"
                 + "usedDays DECIMAL(4,1) DEFAULT 0,"
                 + "createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,"
                 + "updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,"
-                + "UNIQUE KEY uq_balance (employeeId, leaveTypeId, year),"
+                + "UNIQUE KEY uq_balance (employeeId, leaveId, formTypeId),"
                 + "FOREIGN KEY (employeeId) REFERENCES Employees(employeeId),"
-                + "FOREIGN KEY (leaveTypeId) REFERENCES Leave_Types(leaveTypeId)"
+                + "FOREIGN KEY (formId) REFERENCES Form_Requests(formId),"
+                + "FOREIGN KEY (formTypeId) REFERENCES Form_Types(formTypeId)"
                 + ")";
         execute(conn, SQL, "CREATE LEAVE_BALANCE TABLE SUCCESSFULLY");
     }
+    // ==================== CHẤM CÔNG ====================
 
     public void createTableUploadedFiles(Connection conn) {
         String SQL = "CREATE TABLE Uploaded_Files("
                 + "fileId INT PRIMARY KEY AUTO_INCREMENT,"
                 + "fileCode VARCHAR(50) NOT NULL UNIQUE,"
-                + "fileType VARCHAR(20) NOT NULL,"
+                + "fileType VARCHAR(20) NOT NULL," // 'ATTENDANCE', 'CANDIDATE', 'PAYROLL'
                 + "departmentId INT NOT NULL,"
                 + "employeeId INT,"
                 + "fileUrl VARCHAR(255) NOT NULL,"
                 + "fileName VARCHAR(255) NOT NULL,"
                 + "month TINYINT NOT NULL,"
                 + "year INT NOT NULL,"
-                + "status TINYINT DEFAULT 0,"
                 + "totalRows INT DEFAULT 0,"
                 + "importedRows INT DEFAULT 0,"
                 + "failedRows INT DEFAULT 0,"
                 + "errorFileUrl VARCHAR(255),"
+                + "status TINYINT DEFAULT 0," // 0: Pending, 1: Imported, 2: Failed, 3: Partial
                 + "submittedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,"
                 + "reviewedBy INT,"
                 + "reviewedAt TIMESTAMP NULL,"
@@ -301,21 +373,69 @@ public class DBInitializer {
                 + "attendanceId INT PRIMARY KEY AUTO_INCREMENT,"
                 + "attendanceCode VARCHAR(50) NOT NULL UNIQUE,"
                 + "employeeId INT NOT NULL,"
+                + "employeeCode VARCHAR(50),"
+                + "fullName NVARCHAR(100),"
+                + "departmentId INT,"
+                + "departmentName NVARCHAR(100),"
                 + "workDate DATE NOT NULL,"
                 + "timeIn TIME,"
                 + "timeOut TIME,"
                 + "hoursWorked DECIMAL(4,2),"
-                + "attendanceStatus TINYINT DEFAULT 0,"
+                + "isOvertime BIT DEFAULT 0,"
+                + "otHoursWorked DECIMAL(4,2) DEFAULT 0,"
+                + "attendanceStatus TINYINT DEFAULT 0," // 0: Đúng giờ, 1: Đi muộn, 2: Vắng mặt, 3: Không phép
                 + "dayOff DATE,"
                 + "workingDay DATE,"
                 + "penalty DECIMAL(15,2) DEFAULT 0,"
+                + "fileId INT NULL,"
                 + "createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,"
                 + "updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,"
-                + "FOREIGN KEY (employeeId) REFERENCES Employees(employeeId)"
+                + "UNIQUE KEY uq_att_emp_date (employeeId, workDate)," // chống trùng employee + ngày
+                + "FOREIGN KEY (employeeId) REFERENCES Employees(employeeId),"
+                + "FOREIGN KEY (departmentId) REFERENCES Departments(departmentId),"
+                + "FOREIGN KEY (fileId) REFERENCES Uploaded_Files(fileId)"
                 + ")";
         execute(conn, SQL, "CREATE ATTENDANCE TABLE SUCCESSFULLY");
     }
 
+    public void createTableAttendanceImportRows(Connection conn) {
+        String SQL = "CREATE TABLE Attendance_Import_Rows("
+                + "importRowId INT PRIMARY KEY AUTO_INCREMENT,"
+                + "fileId INT NOT NULL,"
+                + "rowNumber INT NOT NULL,"
+                + "employeeCode VARCHAR(50),"
+                + "fullName NVARCHAR(100),"
+                + "departmentName NVARCHAR(100),"
+                + "workDate VARCHAR(50),"
+                + "timeIn VARCHAR(20),"
+                + "timeOut VARCHAR(20),"
+                + "attendanceStatus VARCHAR(30),"
+                + "note NVARCHAR(255),"
+                + "validateStatus TINYINT DEFAULT 0," // 0: lỗi/bị từ chối, 1: hợp lệ đã merge vào Attendance
+                + "errorMessage NVARCHAR(500),"
+                + "createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,"
+                + "FOREIGN KEY (fileId) REFERENCES Uploaded_Files(fileId)"
+                + ")";
+        execute(conn, SQL, "CREATE ATTENDANCE_IMPORT_ROWS TABLE SUCCESSFULLY");
+    }
+
+    // Lịch sử chỉnh sửa chấm công: ai sửa, sửa gì, lý do.
+    public void createTableAttendanceAdjustmentHistory(Connection conn) {
+        String SQL = "CREATE TABLE Attendance_Adjustment_History("
+                + "adjustmentId INT PRIMARY KEY AUTO_INCREMENT,"
+                + "attendanceId INT NOT NULL,"
+                + "oldValue NVARCHAR(500),"
+                + "newValue NVARCHAR(500),"
+                + "reason NVARCHAR(500) NOT NULL,"
+                + "updatedBy INT NOT NULL," // userId người sửa
+                + "updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,"
+                + "FOREIGN KEY (attendanceId) REFERENCES Attendance(attendanceId),"
+                + "FOREIGN KEY (updatedBy) REFERENCES Users(userId)"
+                + ")";
+        execute(conn, SQL, "CREATE ATTENDANCE_ADJUSTMENT_HISTORY TABLE SUCCESSFULLY");
+    }
+
+    // ==================== LƯƠNG & ĐÁNH GIÁ ====================
     public void createTablePayroll(Connection conn) {
         String SQL = "CREATE TABLE Payroll("
                 + "payrollId INT PRIMARY KEY AUTO_INCREMENT,"
@@ -331,7 +451,7 @@ public class DBInitializer {
                 + "taxDeduction DECIMAL(15,2) DEFAULT 0,"
                 + "insuranceDeduction DECIMAL(15,2) DEFAULT 0,"
                 + "netSalary DECIMAL(15,2) DEFAULT 0,"
-                + "status TINYINT DEFAULT 0,"
+                + "status TINYINT DEFAULT 0," // 0: Chờ duyệt, 1: Đã duyệt, 2: Đã chuyển khoản
                 + "createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,"
                 + "updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,"
                 + "FOREIGN KEY (employeeId) REFERENCES Employees(employeeId),"
@@ -350,7 +470,7 @@ public class DBInitializer {
                 + "evaluatorId INT NOT NULL,"
                 + "evaluationDate DATE NOT NULL,"
                 + "content NVARCHAR(500),"
-                + "result NVARCHAR(100),"
+                + "result NVARCHAR(100)," // Xuất sắc / Tốt / Trung bình / Yếu
                 + "createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,"
                 + "updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,"
                 + "FOREIGN KEY (departmentId) REFERENCES Departments(departmentId),"
@@ -361,13 +481,14 @@ public class DBInitializer {
         execute(conn, SQL, "CREATE PERFORMANCE TABLE SUCCESSFULLY");
     }
 
+    // ==================== THÔNG BÁO & AUDIT ====================
     public void createTableNotifications(Connection conn) {
         String SQL = "CREATE TABLE Notifications("
                 + "notificationId INT PRIMARY KEY AUTO_INCREMENT,"
                 + "userId INT NOT NULL,"
                 + "title NVARCHAR(200),"
                 + "content NVARCHAR(500),"
-                + "type VARCHAR(50),"
+                + "type VARCHAR(50)," // 'LEAVE', 'SALARY', 'TASK', 'ATTENDANCE'
                 + "referenceId INT,"
                 + "referenceType VARCHAR(50),"
                 + "isRead BIT DEFAULT 0,"
@@ -381,7 +502,7 @@ public class DBInitializer {
         String SQL = "CREATE TABLE Audit_Logs("
                 + "logId INT PRIMARY KEY AUTO_INCREMENT,"
                 + "userId INT,"
-                + "action VARCHAR(50) NOT NULL,"
+                + "action VARCHAR(50) NOT NULL," // 'CREATE', 'UPDATE', 'DELETE', 'LOGIN', 'LOGOUT'
                 + "tableName VARCHAR(50),"
                 + "recordId INT,"
                 + "oldValue NVARCHAR(1000),"
@@ -395,35 +516,7 @@ public class DBInitializer {
         execute(conn, SQL, "CREATE AUDIT_LOGS TABLE SUCCESSFULLY");
     }
 
-    public void createTableContractAuditLogs(Connection conn) {
-        String SQL = "CREATE TABLE Contract_Audit_Log("
-                + "logId INT PRIMARY KEY AUTO_INCREMENT,"
-                + "contractId INT NOT NULL,"
-                + "oldStatus VARCHAR(50),"
-                + "newStatus VARCHAR(50) NOT NULL,"
-                + "changedBy INT NOT NULL,"
-                + "changeDate DATETIME DEFAULT CURRENT_TIMESTAMP,"
-                + "actionReason VARCHAR(500),"
-                + "FOREIGN KEY (contractId) REFERENCES Employment_Contracts(contractId),"
-                + "FOREIGN KEY (changedBy) REFERENCES Users(userId)"
-                + ")";
-        execute(conn, SQL, "CREATE CONTRACT_AUDIT_LOG TABLE SUCCESSFULLY");
-
-        // Indexes for fast history retrieval
-        String[] indexes = {
-            "CREATE INDEX IX_ContractAudit_ContractId ON Contract_Audit_Log(contractId)",
-            "CREATE INDEX IX_ContractAudit_Date ON Contract_Audit_Log(changeDate)"
-        };
-        for (String indexSQL : indexes) {
-            try (Statement stmt = conn.createStatement()) {
-                stmt.execute(indexSQL);
-            } catch (SQLException e) {
-                LOGGER.log(Level.WARNING, "Index creation skipped (may already exist): " + indexSQL, e);
-            }
-        }
-        LOGGER.log(Level.INFO, "CONTRACT_AUDIT_LOG TABLE INDEXES CREATED SUCCESSFULLY");
-    }
-
+    // ==================== KHỞI TẠO ====================
     public void initializeDatabase(boolean enforceReset) {
         try (Connection conn = dbContext.getConnection()) {
             if (conn == null) {
@@ -432,17 +525,60 @@ public class DBInitializer {
             }
 
             String[] dropOrder = {
-                "Contract_Audit_Log", "Audit_Logs", "Notifications", "Performance", "Payroll", "Attendance",
-                "Uploaded_Files", "Leave_Balance", "Leave_Requests", "Leave_Types", "Candidates", "Employment_Contracts", "Employees",
-                "Users", "Department_Roles", "Role_Permissions", "Permissions", "Email_Templates", "Departments",
-                "Positions", "Roles"
+                "Audit_Logs",
+                "Notifications",
+                "Performance",
+                "Payroll",
+                "Attendance_Adjustment_History",
+                "Attendance_Import_Rows",
+                "Attendance",
+                "Application_Stage_Logs",
+                "Candidates",
+                "Uploaded_Files",
+                "Leave_Form",
+                "Overtime_Assignees",
+                "Overtime_Details",
+                "Form_Requests",
+                "Form_Types",
+                "Contract_Audit_Log",
+                "Employment_Contracts",
+                "Employees",
+                "Users",
+                "Department_Roles",
+                "Role_Permissions",
+                "Permissions",
+                "Email_Templates",
+                "Departments",
+                "Positions",
+                "Roles"
             };
 
             String[] createOrder = {
-                "Roles", "Permissions", "Role_Permissions", "Email_Templates", "Positions",
-                "Departments", "Department_Roles", "Users", "Employees", "Employment_Contracts", "Candidates", "Leave_Types",
-                "Leave_Requests", "Leave_Balance", "Uploaded_Files", "Attendance", "Payroll", "Performance",
-                "Notifications", "Audit_Logs", "Contract_Audit_Log"
+                "Roles",
+                "Permissions",
+                "Role_Permissions",
+                "Email_Templates",
+                "Positions",
+                "Departments",
+                "Department_Roles",
+                "Users",
+                "Employees",
+                "Employment_Contracts",
+                "Uploaded_Files",
+                "Candidates",
+                "Application_Stage_Logs",
+                "Form_Types",
+                "Form_Requests",
+                "Overtime_Details",
+                "Overtime_Assignees",
+                "Leave_Form",
+                "Attendance",
+                "Attendance_Import_Rows",
+                "Attendance_Adjustment_History",
+                "Payroll",
+                "Performance",
+                "Notifications",
+                "Audit_Logs"
             };
 
             if (enforceReset) {
@@ -454,6 +590,7 @@ public class DBInitializer {
                 execute(conn, "SET FOREIGN_KEY_CHECKS=1", "ENABLE FK CHECKS AFTER DROP");
             }
 
+            // --- BẮT ĐẦU ĐOẠN SỬA ĐỔI QUAN TRỌNG CHẮN LỖI TẠO BẢNG CHÉO ---
             LOGGER.log(Level.INFO, "Tạm thời tắt kiểm tra khóa ngoại để tiến hành tạo bảng tuần tự...");
             execute(conn, "SET FOREIGN_KEY_CHECKS=0", "DISABLE FK CHECKS FOR CREATE");
 
@@ -490,23 +627,41 @@ public class DBInitializer {
                         case "Employment_Contracts":
                             createTableEmploymentContracts(conn);
                             break;
-                        case "Candidates":
-                            createTableCandidates(conn);
-                            break;
-                        case "Leave_Types":
-                            createTableLeaveTypes(conn);
-                            break;
-                        case "Leave_Requests":
-                            createTableLeaveRequests(conn);
-                            break;
-                        case "Leave_Balance":
-                            createTableLeaveBalance(conn);
+                        case "Contract_Audit_Log":
+                            createTableContractAuditLog(conn);
                             break;
                         case "Uploaded_Files":
                             createTableUploadedFiles(conn);
                             break;
+                        case "Candidates":
+                            createTableCandidates(conn);
+                            break;
+                        case "Application_Stage_Logs":
+                            createTableApplicationStageLogs(conn);
+                            break;
+                        case "Form_Types":
+                            createTableFormTypes(conn);
+                            break;
+                        case "Form_Requests":
+                            createTableFormRequests(conn);
+                            break;
+                        case "Overtime_Details":
+                            createTableOvertimeDetails(conn);
+                            break;
+                        case "Overtime_Assignees":
+                            createTableOvertimeAssignees(conn);
+                            break;
+                        case "Leave_Form":
+                            createTableLeaveForm(conn);
+                            break;
                         case "Attendance":
                             createTableAttendance(conn);
+                            break;
+                        case "Attendance_Import_Rows":
+                            createTableAttendanceImportRows(conn);
+                            break;
+                        case "Attendance_Adjustment_History":
+                            createTableAttendanceAdjustmentHistory(conn);
                             break;
                         case "Payroll":
                             createTablePayroll(conn);
@@ -520,9 +675,6 @@ public class DBInitializer {
                         case "Audit_Logs":
                             createTableAuditLogs(conn);
                             break;
-                        case "Contract_Audit_Log":
-                            createTableContractAuditLogs(conn);
-                            break;
                         default:
                             LOGGER.log(Level.WARNING, "Unknown table: {0}", table);
                             break;
@@ -533,7 +685,6 @@ public class DBInitializer {
             execute(conn, "SET FOREIGN_KEY_CHECKS=1", "ENABLE FK CHECKS AFTER CREATE");
             LOGGER.log(Level.INFO, "Đã kích hoạt lại toàn bộ kiểm tra khóa ngoại hệ thống.");
 
-            ensureUsersUsernameColumn(conn);
             insertInitialData(conn);
             LOGGER.log(Level.INFO, "Database initialized successfully!");
 
@@ -543,7 +694,6 @@ public class DBInitializer {
     }
 
     private void insertInitialData(Connection conn) {
-        UserDAO userDao = new UserDAO();
         try {
             if (countRows(conn, "Roles") == 0) {
                 LOGGER.info("Starting to seed initial data...");
@@ -573,52 +723,20 @@ public class DBInitializer {
                 insertPermission(conn, "ADD_EMPLOYMENT_CONTRACT", "Thêm hợp đồng lao động", "Quyền thêm hợp đồng lao động cho nhân viên");
                 insertPermission(conn, "EDIT_DEPARTMENTS", "Chỉnh sửa phòng ban", "Quyền chỉnh sửa phòng ban ");
                 insertPermission(conn, "ASSIGN_DEPARTMENT", "Gán nhân viên vào phòng ban", "Quyền gán nhân viên vào phòng ban");
-                insertPermission(conn, "REASSIGN_DEPARTMENT", "Chuyển phòng ban nhân viên", "Quyền chuyển nhân viên sang phòng ban khác");
+                insertPermission(conn, "UNASSIGN_DEPARTMENT", "Xóa gán phòng ban nhân viên", "Quyền xóa gán nhân viên sang phòng ban khác");
                 insertPermission(conn, "ADD_DEPARTMENT", "Thêm phòng ban", "Quyền thêm phòng ban");
                 insertPermission(conn, "VIEW_ATTENDANCE", "Xem chấm công", "Quyền xem dữ liệu chấm công (Manager: theo phòng mình; Employee: của bản thân)");
+                insertPermission(conn, "IMPORT_ATTENDANCE", "Import chấm công", "Quyền import dữ liệu chấm công từ file Excel");
+                insertPermission(conn, "EDIT_ATTENDANCE", "Chỉnh sửa chấm công", "Quyền chỉnh sửa trạng thái chấm công khi kỳ chấm công chưa công khai");
                 insertPermission(conn, "VIEW_DEPARTMENT_EMPLOYEES_DETAIL", "Xem danh sách nhân viên của phòng ban khác", "Quyền xem dữ liệu nhân viên của phòng ban khác");
-                insertPermission(conn, "PERM_APPROVE_CONTRACT", "Duyet hop dong", "Quyen duyet/tu choi hop dong lao dong");
-                insertPermission(conn, "PERM_VIEW_ALL_CONTRACTS", "Xem tat ca hop dong", "Quyen xem tat ca hop dong trong he thong");
-                insertPermission(conn, "VIEW_CONTRACT_PREVIEW", "Xem trước hợp đồng", "Cho phép xem trước chi tiết hợp đồng lao động");
+                insertPermission(conn, "VIEW_ALL_FORMS", "Xem tất cả đơn", "Quyền xem toàn bộ đơn yêu cầu của mọi phòng ban (chỉ HR)");
+                insertPermission(conn, "VIEW_ALL_DEPT_FORMS", "Xem tất cả đơn của phòng ban", "Quyền xem toàn bộ đơn yêu cầu của một phòng ban cụ thể");
+                insertPermission(conn, "PROCESS_RECRUITMENT", "Xử lý tuyển dụng", "Quyền import, duyệt và gửi thông báo kết quả tuyển dụng");
+                insertPermission(conn, "VIEW_CONTRACT_PREVIEW", "Xem hợp đồng", "Quyền xem hợp đồng hiện tại và lịch sử hợp đồng");
+                insertPermission(conn, "PERM_APPROVE_CONTRACT", "Duyệt hợp đồng", "Quyền duyệt hợp đồng lao động");
+                insertPermission(conn, "PERM_VIEW_ALL_CONTRACTS", "Xem toàn bộ hợp đồng", "Quyền xem toàn bộ lịch sử hợp đồng");
+
             }
-            ensurePermission(conn, "VIEW_EMPLOYEES", "Xem nhân viên", "Quyền xem danh sách nhân viên");
-            ensurePermission(conn, "EDIT_EMPLOYEE", "Chỉnh sửa nhân viên", "Quyền chỉnh sửa nhân viên");
-            ensurePermission(conn, "ADD_EMPLOYMENT_CONTRACT", "Thêm hợp đồng lao động", "Quyền thêm hợp đồng lao động cho nhân viên");
-            ensurePermission(conn, "VIEW_DEPARTMENTS", "Xem phòng ban", "Quyền xem danh sách phòng ban");
-            ensurePermission(conn, "REASSIGN_DEPARTMENT", "Chuyển phòng ban nhân viên", "Quyền chuyển nhân viên sang phòng ban khác");
-            ensurePermission(conn, "VIEW_CONTRACT_PREVIEW", "Xem trước hợp đồng", "Cho phép xem trước chi tiết hợp đồng lao động");
-            ensureRolePermission(conn, "HRManager", "VIEW_DEPARTMENTS");
-            ensureRolePermission(conn, "HRManager", "VIEW_CONTRACT_PREVIEW");
-            ensureRolePermission(conn, "HREmployee", "VIEW_EMPLOYEES");
-            ensureRolePermission(conn, "HREmployee", "EDIT_EMPLOYEE");
-            ensureRolePermission(conn, "HREmployee", "ADD_EMPLOYMENT_CONTRACT");
-            ensureRolePermission(conn, "HREmployee", "VIEW_CONTRACT_PREVIEW");
-
-            // System Admin: All permissions for Users and Roles management
-            ensureRolePermission(conn, "SystemAdmin", "VIEW_USERS");
-            ensureRolePermission(conn, "SystemAdmin", "ADD_USER");
-            ensureRolePermission(conn, "SystemAdmin", "EDIT_USER");
-            ensureRolePermission(conn, "SystemAdmin", "DELETE_USER");
-            ensureRolePermission(conn, "SystemAdmin", "VIEW_ROLES");
-            ensureRolePermission(conn, "SystemAdmin", "ADD_ROLE");
-            ensureRolePermission(conn, "SystemAdmin", "EDIT_ROLE");
-            ensureRolePermission(conn, "SystemAdmin", "DELETE_ROLE");
-            ensureRolePermission(conn, "SystemAdmin", "MANAGE_PERMISSIONS");
-
-            // Business Admin: All permissions for Employees and Permissions management
-            ensureRolePermission(conn, "BusinessAdmin", "VIEW_EMPLOYEES");
-            ensureRolePermission(conn, "BusinessAdmin", "ADD_EMPLOYEE");
-            ensureRolePermission(conn, "BusinessAdmin", "EDIT_EMPLOYEE");
-            ensureRolePermission(conn, "BusinessAdmin", "ADD_EMPLOYMENT_CONTRACT");
-            ensureRolePermission(conn, "BusinessAdmin", "EDIT_DEPARTMENTS");
-            ensureRolePermission(conn, "BusinessAdmin", "ASSIGN_DEPARTMENT");
-            ensureRolePermission(conn, "BusinessAdmin", "REASSIGN_DEPARTMENT");
-            ensureRolePermission(conn, "BusinessAdmin", "ADD_DEPARTMENT");
-            ensureRolePermission(conn, "BusinessAdmin", "VIEW_ATTENDANCE");
-            ensureRolePermission(conn, "BusinessAdmin", "VIEW_DEPARTMENT_EMPLOYEES_DETAIL");
-            ensureRolePermission(conn, "BusinessAdmin", "MANAGE_PERMISSIONS");
-            ensureRolePermission(conn, "BusinessAdmin", "PERM_APPROVE_CONTRACT");
-            ensureRolePermission(conn, "BusinessAdmin", "PERM_VIEW_ALL_CONTRACTS");
 
             if (countRows(conn, "Positions") == 0) {
                 insertPosition(conn, "Thực tập sinh", 1, "Sinh viên thực tập tại công ty");
@@ -634,54 +752,76 @@ public class DBInitializer {
             }
 
             if (countRows(conn, "Users") == 0) {
-
+                // userId 1 = admin    (SA)
                 insertUser(conn, "admin", "admin@company.com", BCrypt.withDefaults().hashToString(12, "admin123".toCharArray()), "Nguyễn Lê Bình An", "2006-01-06", "Phủ Lý, Hà Nam", 1);
-
+                // userId 2 = minhquan (BA)
                 insertUser(conn, "minhquan", "minhquan@company.com", BCrypt.withDefaults().hashToString(12, "google123".toCharArray()), "Minh Quân", "2000-01-01", "Hà Nội", 2);
-
+                // userId 3 = vu       (SA)
                 insertUser(conn, "vu", "didoan482@gmail.com", BCrypt.withDefaults().hashToString(12, "soss123".toCharArray()), "Phạm Vũ", "2006-10-17", "Thanh Hóa", 1);
-
+                // userId 4 = mixi     (BA)
                 insertUser(conn, "mixi", "mixi@gmail.com", BCrypt.withDefaults().hashToString(12, "misi".toCharArray()), "Phung Thanh Do", "2006-10-10", "Cao Bang", 2);
-
+                // userId 5 = misi     (HRManager)
                 insertUser(conn, "misi", "ngng@gmail.com", BCrypt.withDefaults().hashToString(12, "mixi".toCharArray()), "Nguyen Nguyen", "2006-10-10", "Cao Bang", 3);
-
+                // userId 6 = it_mgr   (ITManager)
                 insertUser(conn, "it_mgr", "it.manager@company.com", BCrypt.withDefaults().hashToString(12, "123456".toCharArray()), "Trần Văn IT", "1990-05-10", "Hà Nội", 5);
-
+                // userId 7 = it_emp1  (ITEmployee)
                 insertUser(conn, "it_emp1", "it.emp1@company.com", BCrypt.withDefaults().hashToString(12, "123456".toCharArray()), "Lê Thị IT", "1995-03-15", "Hà Nội", 6);
-
+                // userId 8 = it_emp2  (ITEmployee)
                 insertUser(conn, "it_emp2", "it.emp2@company.com", BCrypt.withDefaults().hashToString(12, "123456".toCharArray()), "Phạm Văn Dev", "1997-07-20", "Hà Nội", 6);
-
+                // userId 9 = hr_mgr   (HRManager)
                 insertUser(conn, "hr_mgr", "hr.manager@company.com", BCrypt.withDefaults().hashToString(12, "123456".toCharArray()), "Nguyễn Thị HR", "1988-11-01", "TP HCM", 3);
-
+                // userId 10 = hr_emp1 (HREmployee)
                 insertUser(conn, "hr_emp1", "hr.emp1@company.com", BCrypt.withDefaults().hashToString(12, "123456".toCharArray()), "Vũ Thị Nhân Sự", "1993-06-25", "TP HCM", 4);
-
+                // userId 11 = fi_mgr  (FIManager)
                 insertUser(conn, "fi_mgr", "fi.manager@company.com", BCrypt.withDefaults().hashToString(12, "123456".toCharArray()), "Hoàng Văn FI", "1985-09-12", "Đà Nẵng", 7);
-
+                // userId 12 = fi_emp1 (FIEmployee)
                 insertUser(conn, "fi_emp1", "fi.emp1@company.com", BCrypt.withDefaults().hashToString(12, "123456".toCharArray()), "Đinh Thị Kế Toán", "1996-02-18", "Đà Nẵng", 8);
             }
 
             if (countRows(conn, "Employees") == 0) {
-
+                // departmentId: 1=IT, 2=HR, 3=FI | positionId: 1=Thực tập sinh, 2=Nhân viên, 3=Trưởng phòng
+                // IT — userId 6,7,8
                 insertEmployee(conn, "EMP001", 6, 1, 3, "0901000001", "Java, SQL, Spring Boot", "5 năm phát triển web", "Kỹ sư CNTT");
                 insertEmployee(conn, "EMP002", 7, 1, 2, "0901000002", "React, TypeScript", "2 năm frontend", "Cử nhân CNTT");
                 insertEmployee(conn, "EMP003", 8, 1, 1, "0901000003", "DevOps, Docker", "1 năm vận hành", "Cử nhân CNTT");
-
+                // HR — userId 9,10
                 insertEmployee(conn, "EMP004", 9, 2, 3, "0901000004", "Tuyển dụng, HRIS", "6 năm nhân sự", "Cử nhân Quản trị nhân lực");
                 insertEmployee(conn, "EMP005", 10, 2, 2, "0901000005", "Đào tạo, C&B", "3 năm C&B", "Cử nhân Kinh tế");
-
+                // FI — userId 11,12
                 insertEmployee(conn, "EMP006", 11, 3, 3, "0901000006", "Kế toán, MISA, Excel", "8 năm kế toán tài chính", "Cử nhân Kế toán");
                 insertEmployee(conn, "EMP007", 12, 3, 2, "0901000007", "Thuế, kiểm toán", "2 năm tài chính", "Cử nhân Tài chính");
             }
 
             if (countRows(conn, "Department_Roles") == 0) {
-                insertDepartmentRole(conn, 1, 5);
-                insertDepartmentRole(conn, 1, 6);
+                // roleId: 3=HRManager, 4=HREmployee, 5=ITManager, 6=ITEmployee, 7=FIManager, 8=FIEmployee
 
-                insertDepartmentRole(conn, 2, 3);
-                insertDepartmentRole(conn, 2, 4);
+                // Phòng IT (departmentId=1)
+                insertDepartmentRole(conn, 1, 5); // ITManager
+                insertDepartmentRole(conn, 1, 6); // ITEmployee
 
-                insertDepartmentRole(conn, 3, 7);
-                insertDepartmentRole(conn, 3, 8);
+                // Phòng HR (departmentId=2)
+                insertDepartmentRole(conn, 2, 3); // HRManager
+                insertDepartmentRole(conn, 2, 4); // HREmployee
+
+                // Phòng FI (departmentId=3)
+                insertDepartmentRole(conn, 3, 7); // FIManager
+                insertDepartmentRole(conn, 3, 8); // FIEmployee
+            }
+
+            if (countRows(conn, "Form_Types") == 0) {
+                insertFormType(conn, "LEAVE", "Nghỉ phép");
+                insertFormType(conn, "COMPLAINT", "Khiếu nại");
+            }
+
+            if (countRows(conn, "Role_Permissions") == 0) {
+                // HR Employee (HE) permissions
+                insertRolePermission(conn, "HE", "ADD_EMPLOYMENT_CONTRACT");
+                insertRolePermission(conn, "HE", "VIEW_CONTRACT_PREVIEW");
+                // HR Manager (HM) permissions
+                insertRolePermission(conn, "HM", "ADD_EMPLOYMENT_CONTRACT");
+                insertRolePermission(conn, "HM", "VIEW_CONTRACT_PREVIEW");
+                insertRolePermission(conn, "HM", "PERM_APPROVE_CONTRACT");
+                insertRolePermission(conn, "HM", "PERM_VIEW_ALL_CONTRACTS");
             }
 
             LOGGER.log(Level.INFO, "Seeding completed successfully.");
@@ -700,40 +840,11 @@ public class DBInitializer {
         }
     }
 
-    private void ensurePermission(Connection conn, String code, String name, String description) throws SQLException {
-        String checkSql = "SELECT 1 FROM Permissions WHERE permissionCode = ?";
-        try (PreparedStatement ps = conn.prepareStatement(checkSql)) {
+    private void insertFormType(Connection conn, String code, String name) throws SQLException {
+        String sql = "INSERT INTO Form_Types (formTypeCode, formTypeName) VALUES (?, ?)";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, code);
-            try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) {
-                    return;
-                }
-            }
-        }
-        insertPermission(conn, code, name, description);
-    }
-
-    private void ensureRolePermission(Connection conn, String roleName, String permissionCode) throws SQLException {
-        String checkSql = "SELECT 1 FROM Role_Permissions rp "
-                + "JOIN Roles r ON r.roleId = rp.roleId "
-                + "JOIN Permissions p ON p.permissionId = rp.permissionId "
-                + "WHERE r.roleName = ? AND p.permissionCode = ?";
-        try (PreparedStatement ps = conn.prepareStatement(checkSql)) {
-            ps.setString(1, roleName);
-            ps.setString(2, permissionCode);
-            try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) {
-                    return;
-                }
-            }
-        }
-
-        String insertSql = "INSERT INTO Role_Permissions (roleId, permissionId) "
-                + "SELECT r.roleId, p.permissionId FROM Roles r, Permissions p "
-                + "WHERE r.roleName = ? AND p.permissionCode = ?";
-        try (PreparedStatement ps = conn.prepareStatement(insertSql)) {
-            ps.setString(1, roleName);
-            ps.setString(2, permissionCode);
+            ps.setNString(2, name);
             ps.executeUpdate();
         }
     }
@@ -794,6 +905,17 @@ public class DBInitializer {
         }
     }
 
+    private void insertRolePermission(Connection conn, String roleCode, String permissionCode) throws SQLException {
+        String sql = "INSERT IGNORE INTO Role_Permissions (roleId, permissionId) "
+                + "SELECT r.roleId, p.permissionId FROM Roles r, Permissions p "
+                + "WHERE r.roleCode = ? AND p.permissionCode = ?";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, roleCode);
+            ps.setString(2, permissionCode);
+            ps.executeUpdate();
+        }
+    }
+
     private int insertEmployee(Connection conn, String code, int userId, int deptId, int posId,
             String phone, String skills, String experience, String degree) throws SQLException {
         String sql = "INSERT INTO Employees (employeeCode, userId, departmentId, positionId, phoneNumber, skills, experience, degree) "
@@ -814,48 +936,14 @@ public class DBInitializer {
         }
     }
 
-    private void updateDepartmentManager(Connection conn, int departmentId, int employeeId) throws SQLException {
-        String sql = "UPDATE Departments SET managerId = ? WHERE departmentId = ?";
-        try (PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setInt(1, employeeId);
-            ps.setInt(2, departmentId);
-            ps.executeUpdate();
-        }
-    }
-
-    private void updateEmployeeManager(Connection conn, int employeeId, int managerId) throws SQLException {
-        String sql = "UPDATE Employees SET managerId = ? WHERE employeeId = ?";
-        try (PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setInt(1, managerId);
-            ps.setInt(2, employeeId);
-            ps.executeUpdate();
-        }
-    }
-
-    private void ensureUsersUsernameColumn(Connection conn) {
-        try {
-            if (tableExists(conn, "Users") && !columnExists(conn, "Users", "username")) {
-                execute(conn, "ALTER TABLE Users ADD COLUMN username VARCHAR(100) NULL AFTER userId", "ADD USERS.USERNAME COLUMN");
-                execute(conn, "UPDATE Users SET username = SUBSTRING_INDEX(email, '@', 1) WHERE username IS NULL OR username = ''", "BACKFILL USERS.USERNAME");
-            }
-        } catch (SQLException e) {
-            LOGGER.log(Level.SEVERE, "Could not ensure Users.username column: {0}", e.getMessage());
-        }
-    }
-
-    private boolean columnExists(Connection conn, String tableName, String columnName) throws SQLException {
-        DatabaseMetaData meta = conn.getMetaData();
-        try (ResultSet rs = meta.getColumns(null, null, tableName, columnName)) {
-            return rs.next();
-        }
-    }
-
     private void execute(Connection conn, String sql, String label) {
         try (Statement stmt = conn.createStatement()) {
             stmt.execute(sql);
             LOGGER.log(Level.INFO, "EXECUTED: {0}", label);
         } catch (SQLException e) {
-            LOGGER.log(Level.SEVERE, "CANNOT EXECUTE: {0}", label);
+            LOGGER.log(Level.SEVERE,
+                    "CANNOT EXECUTE: " + label,
+                    e);
         }
     }
 
@@ -886,4 +974,3 @@ public class DBInitializer {
         initializer.initializeDatabase(true);
     }
 }
-

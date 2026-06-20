@@ -266,8 +266,7 @@
                         <div class="group-title">Vai trò &amp; Nhân viên</div>
                         <div class="row g-3 mb-2">
                             <c:forEach var="p" items="${allPermissions}">
-                                <c:if test="${p.permissionCode == 'VIEW_EMPLOYEES' || p.permissionCode == 'ADD_EMPLOYEE' || p.permissionCode == 'EDIT_EMPLOYEE' || p.permissionCode == 'ADD_EMPLOYMENT_CONTRACT' 
-                                              || p.permissionCode == 'VIEW_DEPARTMENTS' || p.permissionCode == 'EDIT_DEPARTMENTS' || p.permissionCode == 'ASSIGN_DEPARTMENT' || p.permissionCode == 'VIEW_DEPARTMENT_EMPLOYEES_DETAIL' || p.permissionCode == 'REASSIGN_DEPARTMENT' || p.permissionCode == 'PERM_APPROVE_CONTRACT' || p.permissionCode == 'PERM_VIEW_ALL_CONTRACTS'}">
+                                <c:if test="${p.permissionCode == 'VIEW_EMPLOYEES' || p.permissionCode == 'ADD_EMPLOYEE' || p.permissionCode == 'EDIT_EMPLOYEE' || p.permissionCode == 'VIEW_DEPARTMENTS' || p.permissionCode == 'EDIT_DEPARTMENTS' || p.permissionCode == 'ASSIGN_DEPARTMENT' || p.permissionCode == 'VIEW_DEPARTMENT_EMPLOYEES_DETAIL' || p.permissionCode == 'UNASSIGN_DEPARTMENT' || p.permissionCode == 'VIEW_ATTENDANCE' || p.permissionCode == 'IMPORT_ATTENDANCE' || p.permissionCode == 'EDIT_ATTENDANCE' }">
                                     <div class="col-md-3">
                                         <label class="perm-card ${assignedPermissionIds.contains(p.permissionId) ? 'selected' : ''}">
                                             <input type="checkbox" name="permissionIds" value="${p.permissionId}" ${assignedPermissionIds.contains(p.permissionId) ? 'checked' : ''}/>
@@ -280,13 +279,51 @@
                                 </c:if>
                             </c:forEach>
                         </div>
+                        
+                        <%-- Nhóm: Đơn yêu cầu --%>
+                        <div class="group-title">Đơn yêu cầu</div>
+                        <div class="row g-3 mb-2">
+                            <c:forEach var="p" items="${allPermissions}">
+                                <c:if test="${p.permissionCode == 'VIEW_ALL_FORMS' || p.permissionCode == 'VIEW_ALL_DEPT_FORMS' }">
+                                    <div class="col-md-3">
+                                        <label class="perm-card ${assignedPermissionIds.contains(p.permissionId) ? 'selected' : ''}">
+                                            <input type="checkbox" name="permissionIds" value="${p.permissionId}" ${assignedPermissionIds.contains(p.permissionId) ? 'checked' : ''}/>
+                                            
+                                            <div class="perm-name"><c:out value="${p.permissionName}"/></div>
+                                            <div><span class="perm-code"><c:out value="${p.permissionCode}"/></span></div>
+                                            <div class="perm-desc"><c:out value="${empty p.description ? '—' : p.description}"/></div>
+                                        </label>
+                                    </div>
+                                </c:if>
+                            </c:forEach>
+                        </div>
+                        
+                        <%-- Nhóm: Hợp đồng lao động --%>
+                        <div class="group-title">Hợp đồng lao động</div>
+                        <div class="row g-3 mb-2">
+                            <c:forEach var="p" items="${allPermissions}">
+                                <c:if test="${p.permissionCode == 'PERM_APPROVE_CONTRACT' || p.permissionCode == 'ADD_EMPLOYMENT_CONTRACT' || p.permissionCode == 'VIEW_CONTRACT_PREVIEW' }">
+                                    <div class="col-md-3">
+                                        <label class="perm-card ${assignedPermissionIds.contains(p.permissionId) ? 'selected' : ''}">
+                                            <input type="checkbox" name="permissionIds" value="${p.permissionId}" ${assignedPermissionIds.contains(p.permissionId) ? 'checked' : ''}/>
 
-
+                                            <div class="perm-name"><c:out value="${p.permissionName}"/></div>
+                                            <div><span class="perm-code"><c:out value="${p.permissionCode}"/></span></div>
+                                            <div class="perm-desc"><c:out value="${empty p.description ? '—' : p.description}"/></div>
+                                        </label>
+                                    </div>
+                                </c:if>
+                            </c:forEach>
+                        </div>
+                        
                         <div class="d-flex gap-3 pt-2 border-top">
                             <button type="submit" class="btn-save mt-3">
                                 Lưu phân quyền
                             </button>
-                            <a href="${pageContext.request.contextPath}/v1/systemadmin/role-detail?id=${selectedRole.roleId}" class="btn-cancel-link mt-3">
+                            <c:url var="cancelUrl" value="/v1/systemadmin/role-detail">
+                                <c:param name="id" value="${selectedRole.roleId}"/>
+                            </c:url>
+                            <a href="${cancelUrl}" class="btn-cancel-link mt-3">
                                 Hủy
                             </a>
                         </div>
