@@ -563,16 +563,4 @@ public class DepartmentDAO {
         return null;
     }
 
-    public int getDepartmentIdByCode(String code) {
-        String sql = "SELECT departmentId FROM Departments WHERE departmentCode = ?";
-        try (Connection conn = dbContext.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setString(1, code);
-            try (ResultSet rs = ps.executeQuery()) {
-                return rs.next() ? rs.getInt(1) : -1;
-            }
-        } catch (SQLException e) {
-            LOGGER.log(Level.SEVERE, "Cannot get departmentId by code: " + code, e);
-        }
-        return -1;
-    }
 }
