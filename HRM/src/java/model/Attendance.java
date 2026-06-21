@@ -176,6 +176,9 @@ public class Attendance {
             case 1: return "Đi muộn";
             case 2: return "Vắng mặt";
             case 3: return "Không phép";
+            case 4: return "Nghỉ phép";
+            case 5: return "Nghỉ lễ";
+            case 6: return "Cuối tuần";
             default: return "Không xác định";
         }
     }

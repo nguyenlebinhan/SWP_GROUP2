@@ -77,7 +77,6 @@
                         <label class="form-label fw-bold">Loại ngày <span class="text-danger">*</span></label>
                         <select name="dayType" class="form-select" required>
                             <option value="1">Ngày thường</option>
-                            <option value="2">Cuối tuần</option>
                             <option value="3">Ngày lễ</option>
                         </select>
                     </div>
