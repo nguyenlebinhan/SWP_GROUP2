@@ -1,19 +1,19 @@
-
-
-
-
+/*
+ * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
+ * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
+ */
 package model;
 
-
-
-
-
+/**
+ *
+ * @author ADMIN
+ */
 public class User {
     private int userId;
     private String username;
     private String email;
     private String password;
-    private String fullName;
+    private String fullName;    
     private String dob;
     private String gender;
     private String address;
@@ -163,9 +163,9 @@ public class User {
     public void setAvatar(String avatar) {
         this.avatar = avatar;
     }
-
-
-
-
+    
+    
+    
+    
 }
 

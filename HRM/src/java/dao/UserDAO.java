@@ -1,7 +1,7 @@
-
-
-
-
+/*
+ * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
+ * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
+ */
 package dao;
 
 import at.favre.lib.crypto.bcrypt.BCrypt;
@@ -19,11 +19,10 @@ import java.util.List;
 import java.util.UUID;
 import java.util.logging.*;
 import model.User;
-
-
-
-
-
+/**
+ *
+ * @author ADMIN
+ */
 public class UserDAO {
 
     private static final Logger LOGGER = Logger.getLogger(UserDAO.class.getName());
@@ -190,16 +189,17 @@ public class UserDAO {
                 }
             }
 
+            
             try (PreparedStatement ps = conn.prepareStatement(insertEmpSql)) {
                 ps.setString(1, employeeCode);
                 ps.setInt(2, newUserId);
-                ps.setNull(3, Types.INTEGER);
-                ps.setNull(4, Types.INTEGER);
-                ps.setNull(5, Types.VARCHAR);
-                ps.setNull(6, Types.VARCHAR);
-                ps.setNull(7, Types.VARCHAR);
-                ps.setNull(8, Types.VARCHAR);
-                ps.setNull(9, Types.INTEGER);
+                ps.setNull(3, Types.INTEGER); // departmentId - gán sau
+                ps.setNull(4, Types.INTEGER); // positionId   - gán sau
+                ps.setNull(5, Types.VARCHAR); // phoneNumber
+                ps.setNull(6, Types.VARCHAR); // skills
+                ps.setNull(7, Types.VARCHAR); // experience
+                ps.setNull(8, Types.VARCHAR); // degree
+                ps.setNull(9, Types.INTEGER); // managerId
 
                 if (ps.executeUpdate() == 0) {
                     LOGGER.log(Level.WARNING, "Add employee failed: no rows affected for userId: {0}", newUserId);
@@ -334,9 +334,9 @@ public class UserDAO {
             return null;
         }
         User user = getUserByUsername(identifier);
-
-
-
+//        if (user == null) {
+//            user = getUserByEmail(identifier);
+//        }
         if (user == null) {
             return null;
         }
@@ -518,13 +518,13 @@ public class UserDAO {
         String gender = rs.getNString("gender");
         String address = rs.getString("address");
         String roleName = rs.getString("roleName");
-
+        //String avatar = rs.getString("avatar");
         boolean isTemporaryPassword = rs.getBoolean("isTemporaryPassword");
         int isActive = rs.getInt("isActive");
         return new User(userId, username, email, password, fullName, dateOfBirth, gender, address, roleName, isTemporaryPassword, isActive);
     }
 
-
+    // Thêm vào class UserDAO, bên dưới method getAllUsers() hiện có
     public int countUsers(String keyword, String role) {
         StringBuilder sql = new StringBuilder(
                 "SELECT COUNT(*) FROM Users u JOIN Roles r ON r.roleId = u.roleId WHERE 1=1"
@@ -532,7 +532,7 @@ public class UserDAO {
         List<Object> params = new ArrayList<>();
 
         if (keyword != null && !keyword.trim().isEmpty()) {
-            sql.append(" AND u.fullName LIKE ?");
+            sql.append(" AND u.fullName LIKE ?");   // 1 dấu ? → 1 param
             params.add("%" + keyword.trim() + "%");
         }
         if (role != null && !role.trim().isEmpty()) {
@@ -566,8 +566,7 @@ public class UserDAO {
         List<Object> params = new ArrayList<>();
 
         if (keyword != null && !keyword.trim().isEmpty()) {
-            sql.append(" AND u.fullName LIKE ?");
-            params.add("%" + keyword.trim() + "%");
+            sql.append(" AND u.fullName LIKE ?");   // 1 dấu ? → 1 param
         }
         if (role != null && !role.trim().isEmpty()) {
             sql.append(" AND r.roleName = ?");

@@ -1,13 +1,13 @@
-
-
-
-
+/*
+ * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
+ * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
+ */
 package model;
 
-
-
-
-
+/**
+ *
+ * @author ADMIN
+ */
 public class Permission {
     private int permissionId;
     private String permissionCode;
@@ -55,7 +55,7 @@ public class Permission {
     public void setDescription(String description) {
         this.description = description;
     }
-
-
+    
+    
 }
 

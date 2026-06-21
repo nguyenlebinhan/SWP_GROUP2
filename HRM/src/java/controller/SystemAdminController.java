@@ -1,7 +1,7 @@
-
-
-
-
+/*
+ * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
+ * Click nbfs://nbhost/SystemFileSystem/Templates/JSP_Servlet/Servlet.java to edit this template
+ */
 package controller;
 
 import dao.*;
@@ -18,11 +18,10 @@ import java.util.logging.*;
 import model.*;
 import service.*;
 import java.util.*;
-
-
-
-
-
+/**
+ *
+ * @author ADMIN
+ */
 public class SystemAdminController extends HttpServlet {
 
     private static final Logger LOGGER = Logger.getLogger(SystemAdminController.class.getName());
@@ -106,7 +105,9 @@ public class SystemAdminController extends HttpServlet {
             case "/change-status-role":
                 handleChangingStatusRole(request, response);
                 break;
-
+            case "/audit-logs":
+                displayAuditLogs(request, response);
+                break;
             default:
                 response.sendRedirect(request.getContextPath() + "/");
                 break;
@@ -193,7 +194,7 @@ public class SystemAdminController extends HttpServlet {
             totalPages = 1;
         }
 
-
+        // getUsersFiltered chỉ lấy đúng 5 người của trang hiện tại
         List<User> list = userDAO.getUsersFiltered(keyword, role, offset, PAGE_SIZE);
 
         List<Role> roles = roleDAO.getAllRoles();

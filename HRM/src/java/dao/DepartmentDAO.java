@@ -1,7 +1,7 @@
-
-
-
-
+/*
+ * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
+ * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
+ */
 package dao;
 
 import dal.DBContext;
@@ -16,11 +16,10 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import model.Department;
 import model.Position;
-
-
-
-
-
+/**
+ *
+ * @author admin
+ */
 public class DepartmentDAO {
 
     private static final Logger LOGGER = Logger.getLogger(DepartmentDAO.class.getName());
@@ -340,7 +339,7 @@ public class DepartmentDAO {
 
     public List<model.Employee> getAssignableManagers(int baUserId) {
         List<model.Employee> list = new java.util.ArrayList<>();
-
+        // roleId của BA (người đang đăng nhập) → chỉ lấy nhân viên có roleId > đó
         String SQL
                 = "SELECT e.employeeId, e.employeeCode, e.userId, e.departmentId, e.positionId, "
                 + "       e.phoneNumber, e.skills, e.experience, e.degree, e.status, e.managerId, "
@@ -350,9 +349,9 @@ public class DepartmentDAO {
                 + "JOIN Roles r ON r.roleId = u.roleId "
                 + "WHERE u.isActive = 1 "
                 + "  AND e.status = 1 "
-                +
+                + // role phải thấp hơn BA: roleId > roleId của BA hiện tại
                 "  AND r.roleId > (SELECT u2.roleId FROM Users u2 WHERE u2.userId = ?) "
-                +
+                + // chưa là manager của phòng ban active nào
                 "  AND e.employeeId NOT IN ( "
                 + "      SELECT d.managerId FROM Departments d "
                 + "      WHERE d.managerId IS NOT NULL AND d.status = 1 "
@@ -375,8 +374,8 @@ public class DepartmentDAO {
                     emp.setStatus(rs.getInt("status"));
                     int mgr = rs.getInt("managerId");
                     emp.setManagerId(rs.wasNull() ? null : mgr);
-
-
+                    // fullName và roleName lưu tạm vào transient — xem ghi chú bên dưới (*)
+                    // Vì Employee model không có fullName, ta dùng EmployeeDetailDTO thay thế
                     list.add(emp);
                 }
             }
@@ -455,7 +454,8 @@ public class DepartmentDAO {
             conn = dbContext.getConnection();
             conn.setAutoCommit(false);
 
-
+            
+            // 1. Set managerId trên Departments
             try (java.sql.PreparedStatement ps = conn.prepareStatement(sqlDept)) {
                 ps.setInt(1, employeeId);
                 ps.setInt(2, departmentId);
@@ -465,7 +465,7 @@ public class DepartmentDAO {
                 }
             }
 
-
+            // 2. Set departmentId trên Employees cho manager
             try (java.sql.PreparedStatement ps = conn.prepareStatement(sqlEmp)) {
                 ps.setInt(1, departmentId);
                 ps.setInt(2, employeeId);
