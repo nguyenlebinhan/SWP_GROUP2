@@ -353,6 +353,7 @@ public class UserDAO {
     public static boolean verifyPassword(String plainPassword, String hashedPassword) {
         return BCrypt.verifyer().verify(plainPassword.toCharArray(), hashedPassword).verified;
     }
+    
 
     public List<User> getAllUsers() {
         LOGGER.log(Level.INFO, "Getting all users");

@@ -5,6 +5,7 @@
     <head>
         <title>Đơn yêu cầu phòng ban - HRM</title>
         <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+        <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
         <style>
             body {
                 background: #f5f6fa;
@@ -62,14 +63,14 @@
 
             <c:if test="${not empty sessionScope.success}">
                 <div class="alert alert-success alert-dismissible fade show">
-                    ${sessionScope.success}
+                    <i class="fa-solid fa-circle-check me-2"></i>${sessionScope.success}
                     <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                 </div>
                 <c:remove var="success" scope="session"/>
             </c:if>
             <c:if test="${not empty sessionScope.error}">
                 <div class="alert alert-danger alert-dismissible fade show">
-                    ${sessionScope.error}
+                    <i class="fa-solid fa-circle-xmark me-2"></i>${sessionScope.error}
                     <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                 </div>
                 <c:remove var="error" scope="session"/>
@@ -77,32 +78,41 @@
 
             <%-- Filter theo ngày / tháng / năm --%>
             <div class="section-card">
-                <form method="get" action="${pageContext.request.contextPath}/v1/manager/forms/dept-forms"
-                      class="d-flex align-items-center gap-2 flex-wrap">
-                    <div class="input-group" style="max-width: 520px;">
+                <form method="get" action="${pageContext.request.contextPath}/v1/manager/dept-forms"
+                      class="row g-3 align-items-end">
+                    <div class="col-md-2">
+                        <label class="form-label">Ngày</label>
                         <select name="day" class="form-select" id="select-day">
-                            <option value="">Tất cả Ngày</option>
+                            <option value="">Tất cả</option>
                             <c:forEach var="d" begin="1" end="31">
                                 <option value="${d}" ${filterDay == d ? 'selected' : ''}>${d}</option>
                             </c:forEach>
                         </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">Tháng</label>
                         <select name="month" class="form-select" id="select-month">
-                            <option value="">Tất cả Tháng</option>
+                            <option value="">Tất cả</option>
                             <c:forEach var="m" begin="1" end="12">
                                 <option value="${m}" ${filterMonth == m ? 'selected' : ''}>Tháng ${m}</option>
                             </c:forEach>
                         </select>
-                        <input type="number" name="year" class="form-control" id="input-year"
-                               min="2000" max="2100" value="${filterYear}" placeholder="Năm">
                     </div>
-                    <input type="text" name="empName" class="form-control" style="max-width: 220px;"
-                           value="${filterName}" placeholder="Tên nhân viên">
-                    <button type="submit" class="btn btn-primary" id="btn-filter-forms">Lọc</button>
+                    <div class="col-md-2">
+                        <label class="form-label">Năm</label>
+                        <input type="number" name="year" class="form-control" id="input-year"
+                               min="2000" max="2100" value="${filterYear}">
+                    </div>
+                    <div class="col-md-2">
+                        <button type="submit" class="btn btn-primary w-100" id="btn-filter-forms">
+                            <i class="fa-solid fa-magnifying-glass me-1"></i> Lọc
+                        </button>
+                    </div>
                 </form>
             </div>
 
             <div class="section-card">
-                <h5 class="mb-3">Danh sách đơn yêu cầu</h5>
+                <h5 class="mb-3"><i class="fa-solid fa-layer-group me-2"></i>Danh sách đơn yêu cầu</h5>
 
                 <div class="table-responsive">
                     <table class="table table-hover align-middle">
@@ -119,12 +129,18 @@
                         <tbody>
                             <c:choose>
                                 <c:when test="${empty forms}">
-                                    <tr><td colspan="8" class="text-center text-muted py-4">Không có đơn nào trong thời gian này.</td></tr>
+                                    <tr><td colspan="8" class="text-center text-muted py-4">
+                                            <i class="fa-regular fa-folder-open me-2"></i>Không có đơn nào trong thời gian này.
+                                        </td></tr>
                                     </c:when>
                                     <c:otherwise>
                                         <c:forEach var="f" items="${forms}">
                                         <tr>
-                                            <td>${f.formCode}</td>
+                                            <td>
+                                                <a href="${pageContext.request.contextPath}/v1/manager/form-detail?id=${f.formId}" class="text-decoration-none fw-bold">
+                                                    ${f.formCode}
+                                                </a>
+                                            </td>
                                             <td>
                                                 <c:out value="${f.fullName}"/><br>
                                                 <small class="text-muted">${f.employeeCode}</small>
@@ -135,8 +151,33 @@
                                             </td>
                                             <td>${f.createdAt}</td>
                                             <td>
-                                                <a href="${pageContext.request.contextPath}/v1/manager/forms/detail?id=${f.formId}"
-                                                   class="btn btn-sm btn-outline-primary mb-1">Xem chi tiết</a>
+                                                <a href="${pageContext.request.contextPath}/v1/manager/form-detail?id=${f.formId}"
+                                                   class="btn btn-sm btn-outline-primary mb-1">
+                                                    <i class="fa-solid fa-eye me-1"></i> Xem chi tiết
+                                                </a>
+                                                <br>
+                                                <c:if test="${f.status == 0 && canApproveForm}">
+                                                    <form method="post"
+                                                          action="${pageContext.request.contextPath}/v1/manager/approve-form"
+                                                          class="d-inline">
+                                                        <input type="hidden" name="formId" value="${f.formId}">
+                                                        <input type="hidden" name="note" value="">
+                                                        <button type="submit" class="btn btn-success btn-sm"
+                                                                id="btn-approve-${f.formId}">
+                                                            <i class="fa-solid fa-check"></i> Duyệt
+                                                        </button>
+                                                    </form>
+                                                    <form method="post"
+                                                          action="${pageContext.request.contextPath}/v1/manager/reject-form"
+                                                          class="d-inline ms-1">
+                                                        <input type="hidden" name="formId" value="${f.formId}">
+                                                        <input type="hidden" name="note" value="">
+                                                        <button type="submit" class="btn btn-danger btn-sm"
+                                                                id="btn-reject-${f.formId}">
+                                                            <i class="fa-solid fa-xmark"></i> Từ chối
+                                                        </button>
+                                                    </form>
+                                                </c:if>
                                             </td>
                                         </tr>
                                     </c:forEach>

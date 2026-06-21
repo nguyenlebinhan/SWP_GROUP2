@@ -4,6 +4,8 @@
  */
 package dto;
 
+import java.util.Date;
+
 /**
  *
  * @author ADMIN
@@ -20,6 +22,7 @@ public class EmployeeDetailDTO {
     private String degree;
     private int status;
     private Integer managerId;
+    private Date startDate;
     private String fullName;
     private String email;
     private String username;
@@ -30,7 +33,7 @@ public class EmployeeDetailDTO {
     public EmployeeDetailDTO() {
     }
 
-    public EmployeeDetailDTO(int employeeId, String employeeCode, int userId, int departmentId, int positionId, String phoneNumber, String skills, String experience, String degree, int status, Integer managerId, String fullName, String email, String username, String departmentName, String positionName, String roleName) {
+    public EmployeeDetailDTO(int employeeId, String employeeCode, int userId, int departmentId, int positionId, String phoneNumber, String skills, String experience, String degree, int status, Integer managerId, Date startDate, String fullName, String email, String username, String departmentName, String positionName, String roleName) {
         this.employeeId = employeeId;
         this.employeeCode = employeeCode;
         this.userId = userId;
@@ -42,6 +45,7 @@ public class EmployeeDetailDTO {
         this.degree = degree;
         this.status = status;
         this.managerId = managerId;
+        this.startDate = startDate;
         this.fullName = fullName;
         this.email = email;
         this.username = username;
@@ -49,6 +53,8 @@ public class EmployeeDetailDTO {
         this.positionName = positionName;
         this.roleName = roleName;
     }
+
+    
 
     public int getEmployeeId() {
         return employeeId;
@@ -185,6 +191,16 @@ public class EmployeeDetailDTO {
     public void setRoleName(String roleName) {
         this.roleName = roleName;
     }
+
+    public Date getStartDate() {
+        return startDate;
+    }
+
+    public void setStartDate(Date startDate) {
+        this.startDate = startDate;
+    }
+    
+    
     
     public String getStatusLabel() {
         switch (status) {
