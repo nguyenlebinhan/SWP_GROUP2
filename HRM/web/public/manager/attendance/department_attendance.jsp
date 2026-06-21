@@ -85,7 +85,7 @@
                         <th>Giờ ra</th>
                         <th>Số giờ</th>
                         <th>Trạng thái</th>
-                        <th>Kỳ</th>
+                        <th>Tháng</th>
                     </tr>
                 </thead>
                 <tbody>

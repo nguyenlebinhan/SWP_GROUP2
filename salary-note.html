@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Đề xuất công thức tính lương HRM</title>
+  <title>Ghi chú thiết kế tính lương HRM</title>
   <style>
     :root {
       --ink: #18212f;
@@ -12,54 +12,33 @@
       --soft: #f5f7fb;
       --accent: #0f766e;
       --warn: #a15c07;
-      --bad: #b42318;
       --good: #0f7a45;
     }
-
     * { box-sizing: border-box; }
-
     body {
       margin: 0;
       font-family: Arial, Helvetica, sans-serif;
       color: var(--ink);
-      background: #ffffff;
+      background: #fff;
       line-height: 1.55;
     }
-
     main {
       max-width: 1080px;
       margin: 0 auto;
       padding: 40px 24px 64px;
     }
-
-    h1, h2, h3 {
-      line-height: 1.2;
-      margin: 0 0 12px;
-    }
-
-    h1 {
-      font-size: 32px;
-      letter-spacing: 0;
-    }
-
+    h1, h2, h3 { line-height: 1.2; margin: 0 0 12px; }
+    h1 { font-size: 32px; letter-spacing: 0; }
     h2 {
       font-size: 22px;
       padding-top: 28px;
       border-top: 1px solid var(--line);
       margin-top: 32px;
     }
-
-    h3 {
-      font-size: 18px;
-      margin-top: 20px;
-    }
-
+    h3 { font-size: 18px; margin-top: 20px; }
     p { margin: 8px 0 14px; }
-
     ul { margin-top: 8px; }
-
     li { margin: 6px 0; }
-
     code {
       background: var(--soft);
       border: 1px solid var(--line);
@@ -68,40 +47,31 @@
       font-family: Consolas, "Courier New", monospace;
       font-size: 0.95em;
     }
-
     table {
       width: 100%;
       border-collapse: collapse;
       margin: 14px 0 22px;
       font-size: 14px;
     }
-
     th, td {
       border: 1px solid var(--line);
       padding: 9px 10px;
       vertical-align: top;
       text-align: left;
     }
-
-    th {
-      background: #eef3f8;
-      font-weight: 700;
-    }
-
+    th { background: #eef3f8; font-weight: 700; }
     .note {
       background: #f3faf8;
       border-left: 4px solid var(--accent);
       padding: 12px 14px;
       margin: 16px 0;
     }
-
     .warning {
       background: #fff7ed;
       border-left: 4px solid var(--warn);
       padding: 12px 14px;
       margin: 16px 0;
     }
-
     .formula {
       background: #f7f9fc;
       border: 1px solid var(--line);
@@ -111,583 +81,333 @@
       font-family: Consolas, "Courier New", monospace;
       white-space: pre-wrap;
     }
-
     .status {
       display: inline-block;
       border-radius: 999px;
       padding: 2px 8px;
       font-size: 12px;
       font-weight: 700;
+      background: #e7f7ee;
+      color: var(--good);
     }
-
-    .good { color: var(--good); }
-    .bad { color: var(--bad); }
-    .pill-ok { background: #e7f7ee; color: var(--good); }
-    .pill-risk { background: #fff2e0; color: var(--warn); }
   </style>
 </head>
 <body>
 <main>
-  <h1>Đề xuất feature tính lương cho HRM</h1>
+  <h1>Ghi chú thiết kế tính lương HRM</h1>
   <p>
-    Tài liệu này dựa trên schema trong <code>HRM/src/java/dal/DBInitializer.java</code>.
-    Mục tiêu là dùng tối đa dữ liệu đã có, giữ công thức đủ thực tế để demo và vẫn dễ implement.
+    Tài liệu này mô tả logic tính lương đang dùng trong project HRM sau khi bỏ import payroll.
+    Payroll được generate từ dữ liệu hệ thống: hợp đồng, chấm công, overtime, performance và các policy hard-code trong <code>PayrollService</code>.
   </p>
 
   <div class="note">
-    Kết luận nhanh: nên coi <code>Employment_Contracts.salary</code> là lương cơ bản theo hợp đồng/tháng,
-    dùng <code>Payroll</code> làm bảng lưu kết quả cuối kỳ, và tính lương theo các khối:
-    lương theo công thực tế, phụ cấp/chức vụ/thâm niên, overtime/ngày lễ, thưởng/kỷ luật, bảo hiểm, thuế TNCN.
+    Kết luận hiện tại: không dùng file Excel để import bảng lương. HR chỉ bấm generate theo tháng, hệ thống tự tính.
+    Bảng <code>Payroll</code> chỉ lưu snapshot kết quả cuối kỳ, không lưu chi tiết 3 cột bảo hiểm con.
   </div>
 
-  <h2>1. Các bảng hiện có liên quan</h2>
+  <h2>1. Bảng liên quan</h2>
   <table>
     <thead>
       <tr>
         <th>Bảng</th>
-        <th>Dữ liệu dùng cho lương</th>
-        <th>Vai trò trong công thức</th>
+        <th>Dữ liệu dùng</th>
+        <th>Vai trò</th>
       </tr>
     </thead>
     <tbody>
       <tr>
         <td><code>Employees</code></td>
-        <td><code>employeeId</code>, <code>departmentId</code>, <code>positionId</code>, <code>startDate</code>, <code>status</code></td>
-        <td>Xác định nhân viên, phòng ban, vị trí, thâm niên, trạng thái còn làm việc.</td>
-      </tr>
-      <tr>
-        <td><code>Positions</code></td>
-        <td><code>positionId</code>, <code>positionName</code>, <code>level</code></td>
-        <td>Tính hệ số chức vụ. Hiện seed có 3 vị trí, nếu muốn 4 vị trí nên thêm một cấp Senior/Lead.</td>
+        <td><code>employeeId</code>, <code>departmentId</code>, <code>positionId</code>, <code>status</code></td>
+        <td>Lấy danh sách nhân sự còn làm việc và snapshot phòng ban/vị trí.</td>
       </tr>
       <tr>
         <td><code>Employment_Contracts</code></td>
-        <td><code>salary</code>, <code>contractType</code>, <code>startDate</code>, <code>endDate</code>, <code>status</code></td>
-        <td>Lấy lương cơ bản và hợp đồng active mới nhất.</td>
+        <td><code>salary</code>, <code>startDate</code>, <code>endDate</code>, <code>status</code></td>
+        <td>Lấy lương hợp đồng active trong kỳ. Đây là nền chính để tính lương.</td>
       </tr>
       <tr>
         <td><code>Attendance</code></td>
-        <td><code>workDate</code>, <code>hoursWorked</code>, <code>attendanceStatus</code>, <code>penalty</code></td>
-        <td>Tính ngày/giờ công, đi muộn, vắng, nghỉ phép, nghỉ lễ, cuối tuần.</td>
-      </tr>
-      <tr>
-        <td><code>Holiday</code></td>
-        <td><code>startDate</code>, <code>endDate</code>, <code>isActive</code></td>
-        <td>Xác định ngày lễ để nhân hệ số lương hoặc overtime.</td>
+        <td><code>workDate</code>, <code>timeIn</code>, <code>hoursWorked</code>, <code>attendanceStatus</code></td>
+        <td>Tính ngày công, giờ công, đi muộn, nghỉ phép, nghỉ không phép.</td>
       </tr>
       <tr>
         <td><code>Form_Requests</code>, <code>Overtime_Details</code>, <code>Overtime_Assignees</code></td>
-        <td>Đơn overtime đã duyệt, ngày OT, giờ bắt đầu/kết thúc, loại ngày</td>
-        <td>Tính tiền tăng ca, chỉ lấy đơn <code>status = 1</code> hoặc trạng thái approved tương ứng.</td>
-      </tr>
-      <tr>
-        <td><code>Leave_Form</code>, <code>Form_Requests</code></td>
-        <td>Nghỉ phép đã duyệt, số ngày</td>
-        <td>Phân biệt nghỉ phép có lương và vắng không phép.</td>
+        <td>Đơn OT đã duyệt, ngày OT, giờ bắt đầu/kết thúc, loại ngày</td>
+        <td>Tính tiền overtime theo hệ số ngày thường/cuối tuần/ngày lễ.</td>
       </tr>
       <tr>
         <td><code>Performance</code></td>
-        <td><code>result</code>: Xuất sắc/Tốt/Trung bình/Yếu</td>
-        <td>Tính bonus hiệu suất cuối tháng nếu có đánh giá trong kỳ.</td>
+        <td><code>result</code>, <code>evaluationDate</code></td>
+        <td>Tính thưởng hoặc phạt hiệu suất trong tháng nếu có đánh giá.</td>
       </tr>
       <tr>
         <td><code>Payroll</code></td>
-        <td><code>workingDays</code>, <code>hoursWorked</code>, <code>baseSalary</code>, <code>allowance</code>, <code>bonus</code>, <code>taxDeduction</code>, <code>insuranceDeduction</code>, <code>netSalary</code></td>
-        <td>Lưu snapshot kết quả tính lương theo kỳ.</td>
+        <td>Kết quả tính lương đã generate</td>
+        <td>Lưu snapshot lương tháng để employee xác nhận và HR duyệt.</td>
+      </tr>
+      <tr>
+        <td><code>AuditLog</code></td>
+        <td>Action, recordId, old/new value, status</td>
+        <td>Ghi nhận thao tác generate/export/confirm/approve/reject payroll.</td>
       </tr>
     </tbody>
   </table>
 
-  <h2>2. Giả định nghiệp vụ nên dùng</h2>
+  <h2>2. Quyết định nghiệp vụ đã chốt</h2>
   <ul>
-    <li>Kỳ lương tính theo tháng, <code>periodStart</code> là ngày đầu tháng.</li>
-    <li>Ngày công chuẩn: đếm các ngày thứ 2 đến thứ 6 trong tháng, trừ ngày lễ active trong <code>Holiday</code>. Có thể cấu hình mặc định 22 ngày nếu chưa muốn viết hàm calendar.</li>
-    <li>Giờ công chuẩn/ngày: 8 giờ. Công thực tế được quy đổi theo <code>hoursWorked / 8</code>, tối đa 1 công/ngày cho lương thường.</li>
-    <li><code>Attendance.attendanceStatus</code>: 0 đúng giờ, 1 đi muộn, 2 vắng mặt, 3 không phép, 4 nghỉ phép, 5 nghỉ lễ, 6 cuối tuần.</li>
-    <li>Chỉ tính nhân viên có <code>Employees.status = 1</code> và có hợp đồng active trong tháng.</li>
-    <li>Không có người phụ thuộc theo yêu cầu, tức giảm trừ phụ thuộc = 0.</li>
+    <li><span class="status">Đã chốt</span> Vị trí không còn là hệ số nhân lương. Lương cơ bản được deal trong hợp đồng và lưu tại <code>Employment_Contracts.salary</code>.</li>
+    <li><span class="status">Đã chốt</span> <code>workingDays</code> dùng kiểu <code>INT</code> vì hệ thống tính làm nguyên ngày.</li>
+    <li><span class="status">Đã chốt</span> Đi muộn không làm giảm ngày công, mà trừ tiền theo số phút muộn.</li>
+    <li><span class="status">Đã chốt</span> Nghỉ phép có lương vẫn cộng ngày công. Nghỉ không phép không cộng ngày công và bị phạt thêm.</li>
+    <li><span class="status">Đã chốt</span> Thuế TNCN và bảo hiểm hard-code trong <code>PayrollService</code>, không tạo bảng policy riêng.</li>
+    <li><span class="status">Đã chốt</span> Không tạo <code>Payroll_Details</code>. Chi tiết tính lương trả về bằng DTO.</li>
+    <li><span class="status">Đã chốt</span> Không dùng import payroll Excel nữa. Excel chỉ còn dùng để export bảng lương tháng.</li>
+    <li><span class="status">Đã chốt</span> Employee xác nhận trước, sau đó HR duyệt. HR không được tự duyệt lương của chính mình.</li>
   </ul>
 
-  <h2>3. Hệ số đề xuất</h2>
-  <h3>3.1. Hệ số vị trí</h3>
-  <table>
-    <thead>
-      <tr>
-        <th>Level</th>
-        <th>Vị trí đề xuất</th>
-        <th>Hệ số chức vụ</th>
-        <th>Ghi chú</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr>
-        <td>1</td>
-        <td>Thực tập sinh</td>
-        <td>0.60</td>
-        <td>Lương/hỗ trợ thấp hơn full-time.</td>
-      </tr>
-      <tr>
-        <td>2</td>
-        <td>Nhân viên chính thức</td>
-        <td>1.00</td>
-        <td>Mốc chuẩn.</td>
-      </tr>
-      <tr>
-        <td>3</td>
-        <td>Senior/Lead</td>
-        <td>1.20</td>
-        <td>Nên thêm để đủ 4 vị trí như mong muốn.</td>
-      </tr>
-      <tr>
-        <td>4</td>
-        <td>Trưởng phòng</td>
-        <td>1.45</td>
-        <td>Hiện DB seed đang để Trưởng phòng là level 3; nên migrate lên level 4 nếu thêm Senior.</td>
-      </tr>
-    </tbody>
-  </table>
-
-  <h3>3.2. Hệ số thâm niên</h3>
-  <table>
-    <thead>
-      <tr>
-        <th>Số năm hợp đồng/làm việc</th>
-        <th>Hệ số thâm niên</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr><td>&lt; 1 năm</td><td>1.00</td></tr>
-      <tr><td>1 đến &lt; 3 năm</td><td>1.03</td></tr>
-      <tr><td>3 đến &lt; 5 năm</td><td>1.07</td></tr>
-      <tr><td>5 đến &lt; 10 năm</td><td>1.12</td></tr>
-      <tr><td>&ge; 10 năm</td><td>1.18</td></tr>
-    </tbody>
-  </table>
-
-  <h3>3.3. Overtime và ngày lễ</h3>
-  <table>
-    <thead>
-      <tr>
-        <th>Loại ngày</th>
-        <th>Dữ liệu</th>
-        <th>Hệ số OT</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr><td>Ngày thường</td><td><code>Overtime_Details.dayType = 1</code></td><td>150%</td></tr>
-      <tr><td>Cuối tuần</td><td><code>dayType = 2</code> hoặc <code>attendanceStatus = 6</code></td><td>200%</td></tr>
-      <tr><td>Ngày lễ</td><td><code>dayType = 3</code> hoặc nằm trong bảng <code>Holiday</code></td><td>300%</td></tr>
-    </tbody>
-  </table>
-
-  <h3>3.4. Thưởng và phạt</h3>
-  <table>
-    <thead>
-      <tr>
-        <th>Khoản</th>
-        <th>Cách tính đề xuất</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr>
-        <td>Bonus chuyên cần</td>
-        <td>500.000 VND nếu không có vắng/không phép và số lần đi muộn &le; 1 trong tháng.</td>
-      </tr>
-      <tr>
-        <td>Bonus đi làm đủ công</td>
-        <td>2% lương cơ bản đã nhân hệ số nếu <code>paidWorkDays >= standardWorkDays</code>.</td>
-      </tr>
-      <tr>
-        <td>Bonus hiệu suất</td>
-        <td>Xuất sắc: 8%, Tốt: 4%, Trung bình: 0%, Yếu: -2% lương cơ bản đã nhân hệ số.</td>
-      </tr>
-      <tr>
-        <td>Phạt đi muộn</td>
-        <td>Tính theo số phút muộn, không phạt đồng giá. Nếu <code>Attendance.penalty</code> đã có dữ liệu thì ưu tiên dùng số tiền đã lưu; nếu chưa có thì tính từ <code>timeIn</code> so với giờ chuẩn.</td>
-      </tr>
-      <tr>
-        <td>Vắng không phép</td>
-        <td>Trừ 1 ngày lương cho mỗi ngày không phép, cộng thêm phạt 100.000 VND/ngày nếu muốn nghiêm hơn.</td>
-      </tr>
-    </tbody>
-  </table>
-
-  <h3>3.5. Bậc phạt đi muộn đề xuất</h3>
-  <table>
-    <thead>
-      <tr>
-        <th>Số phút muộn trong ngày</th>
-        <th>Phạt đề xuất</th>
-        <th>Ghi chú</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr><td>0 đến 5 phút</td><td>0 VND</td><td>Grace period để tránh phạt vì sai lệch máy chấm công.</td></tr>
-      <tr><td>6 đến 15 phút</td><td>30.000 VND</td><td>Muộn nhẹ.</td></tr>
-      <tr><td>16 đến 30 phút</td><td>70.000 VND</td><td>Muộn rõ ràng.</td></tr>
-      <tr><td>31 đến 60 phút</td><td>150.000 VND</td><td>Ảnh hưởng đáng kể tới ca làm.</td></tr>
-      <tr><td>Trên 60 phút</td><td>Trừ 0,5 ngày lương hoặc 300.000 VND, lấy mức cao hơn</td><td>Nên coi là vi phạm nặng, nhưng vẫn không tự động tính vắng cả ngày nếu nhân viên có làm.</td></tr>
-    </tbody>
-  </table>
-
-  <div class="formula">standardStartTime = 08:00
-lateMinutes = max(0, minutesBetween(standardStartTime, timeIn))
-
-latePenalty =
-  0                    nếu lateMinutes <= 5
-  30_000               nếu 6  <= lateMinutes <= 15
-  70_000               nếu 16 <= lateMinutes <= 30
-  150_000              nếu 31 <= lateMinutes <= 60
-  max(300_000, dailyRate * 0.5) nếu lateMinutes > 60</div>
-
-  <h2>4. Công thức tổng quát</h2>
-  <div class="formula">monthlyBase = Employment_Contracts.salary
-positionAdjustedBase = monthlyBase * positionCoefficient * seniorityCoefficient
-
-dailyRate = positionAdjustedBase / standardWorkDays
+  <h2>3. Công thức tính lương</h2>
+  <div class="formula">standardWorkingDays = số ngày thứ 2 đến thứ 6 trong tháng
+dailyRate = contractSalary / standardWorkingDays
 hourlyRate = dailyRate / 8
+minuteRate = hourlyRate / 60
 
-paidWorkDays =
-  SUM(
-    đúng giờ: min(hoursWorked / 8, 1),
-    đi muộn: min(hoursWorked / 8, 1),
-    nghỉ phép có lương: 1,
-    nghỉ lễ: 1 nếu là ngày làm việc hưởng lương
-  )
+baseSalary = dailyRate * paidWorkingDays
 
-attendanceSalary = dailyRate * min(paidWorkDays, standardWorkDays)
+attendanceBonus =
+  nếu không đi muộn và không nghỉ không phép: contractSalary * 3%
+  ngược lại: 0
 
-overtimePay =
-  SUM(approvedOtHours * hourlyRate * overtimeCoefficient)
+performanceBonus =
+  EXCELLENT: contractSalary * 8%
+  GOOD:      contractSalary * 4%
+  AVERAGE:   0
+  POOR:     -contractSalary * 2%
 
-grossIncome =
-  attendanceSalary
-  + overtimePay
-  + allowance
-  + attendanceBonus
-  + performanceBonus
-  - attendancePenalty
+latePenalty = lateMinutes * minuteRate
+unauthorizedAbsentPenalty = unauthorizedAbsentDays * dailyRate
+penalty = latePenalty + unauthorizedAbsentPenalty
 
-insuranceDeduction = socialInsurance + healthInsurance + unemploymentInsurance
-taxableIncome = max(0, grossIncome - insuranceDeduction - personalAllowance - dependentAllowance)
-pit = progressiveTax(taxableIncome)
+overtimePay = SUM(approvedOtHours * hourlyRate * overtimeCoefficient)
 
-netSalary = grossIncome - insuranceDeduction - pit</div>
+grossSalary = baseSalary + allowance + bonus + overtimePay - penalty
 
-  <h2>5. Thuế TNCN và bảo hiểm Việt Nam 2026</h2>
+insuranceDeduction = contractSalary * (8% + 1.5% + 1%)
+taxableIncome = max(0, grossSalary - insuranceDeduction - personalAllowance)
+personalIncomeTax = progressiveTax(taxableIncome)
+
+netSalary = grossSalary - insuranceDeduction - personalIncomeTax</div>
+
+  <h2>4. Thuế TNCN và bảo hiểm</h2>
   <div class="warning">
-    Nên đưa các mức này vào bảng cấu hình thay vì hard-code, vì luật có thể thay đổi. Theo nguồn PwC cập nhật ngày 09/03/2026,
-    giảm trừ cá nhân là 15.500.000 VND/tháng và giảm trừ người phụ thuộc là 6.200.000 VND/người/tháng.
-    Theo yêu cầu hiện tại: mặc định số người phụ thuộc = 0.
+    Policy đang hard-code trong <code>PayrollService</code>. Nếu luật thay đổi thì sửa hằng số trong service, không sửa database.
+    Giảm trừ cá nhân đang dùng: <strong>15.500.000 VND/tháng</strong>. Không tính người phụ thuộc.
   </div>
 
-  <h3>5.1. Bảo hiểm trừ vào người lao động</h3>
+  <h3>4.1. Bảo hiểm người lao động</h3>
   <table>
     <thead>
       <tr>
         <th>Khoản</th>
-        <th>Tỷ lệ NLĐ</th>
-        <th>Ghi chú</th>
+        <th>Tỷ lệ</th>
+        <th>Cách lưu</th>
       </tr>
     </thead>
     <tbody>
-      <tr><td>BHXH</td><td>8%</td><td>Có trần theo 20 lần mức tham chiếu.</td></tr>
-      <tr><td>BHYT</td><td>1,5%</td><td>Có trần theo 20 lần mức tham chiếu.</td></tr>
-      <tr><td>BHTN</td><td>1%</td><td>Có trần theo 20 lần lương tối thiểu vùng.</td></tr>
-    </tbody>
-  </table>
-  <div class="formula">insuranceBase = min(monthlyBase, configuredInsuranceCap)
-insuranceDeduction = insuranceBase * (8% + 1.5% + 1%)</div>
-
-  <h3>5.2. Thuế TNCN lũy tiến cho resident employment income</h3>
-  <table>
-    <thead>
-      <tr>
-        <th>Thu nhập tính thuế/tháng</th>
-        <th>Thuế suất</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr><td>0 đến 10 triệu VND</td><td>5%</td></tr>
-      <tr><td>Trên 10 đến 30 triệu VND</td><td>10%</td></tr>
-      <tr><td>Trên 30 đến 60 triệu VND</td><td>20%</td></tr>
-      <tr><td>Trên 60 đến 100 triệu VND</td><td>30%</td></tr>
-      <tr><td>Trên 100 triệu VND</td><td>35%</td></tr>
+      <tr><td>BHXH</td><td>8%</td><td>Không lưu cột riêng.</td></tr>
+      <tr><td>BHYT</td><td>1.5%</td><td>Không lưu cột riêng.</td></tr>
+      <tr><td>BHTN</td><td>1%</td><td>Không lưu cột riêng.</td></tr>
+      <tr><td>Tổng bảo hiểm</td><td>10.5%</td><td>Lưu vào <code>Payroll.insuranceDeduction</code>.</td></tr>
     </tbody>
   </table>
 
-  <div class="formula">personalAllowance = 15_500_000
-dependentAllowance = numberOfDependents * 6_200_000
-taxableIncome = max(0, grossIncome - insuranceDeduction - personalAllowance - dependentAllowance)
-
-pit =
-  5%  * min(taxableIncome, 10_000_000)
-  + 10% * min(max(taxableIncome - 10_000_000, 0), 20_000_000)
-  + 20% * min(max(taxableIncome - 30_000_000, 0), 30_000_000)
-  + 30% * min(max(taxableIncome - 60_000_000, 0), 40_000_000)
-  + 35% * max(taxableIncome - 100_000_000, 0)</div>
-
-  <h2>6. Mapping vào bảng Payroll hiện tại</h2>
-  <table>
-    <thead>
-      <tr>
-        <th>Cột Payroll</th>
-        <th>Giá trị nên lưu</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr><td><code>periodStart</code></td><td>Ngày đầu tháng tính lương.</td></tr>
-      <tr><td><code>workingDays</code></td><td>Số ngày công được trả lương, nên lưu dạng int hiện tại nhưng tốt hơn là đổi sang <code>DECIMAL(5,2)</code> nếu có nửa ngày.</td></tr>
-      <tr><td><code>hoursWorked</code></td><td>Tổng giờ làm thực tế từ <code>Attendance</code>, không gồm OT nếu OT tính từ đơn riêng.</td></tr>
-      <tr><td><code>baseSalary</code></td><td><code>attendanceSalary</code> hoặc <code>positionAdjustedBase</code>; khuyến nghị lưu <code>attendanceSalary</code> để đúng số tiền base thực trả.</td></tr>
-      <tr><td><code>allowance</code></td><td>Phụ cấp chức vụ/ăn trưa/xăng xe/trách nhiệm nếu có.</td></tr>
-      <tr><td><code>bonus</code></td><td>Tổng bonus chuyên cần + đủ công + performance + overtimePay. Chi tiết từng dòng nên nằm trong <code>PayrollDetailDTO</code> khi preview payslip.</td></tr>
-      <tr><td><code>insuranceDeduction</code></td><td>BHXH + BHYT + BHTN người lao động.</td></tr>
-      <tr><td><code>taxDeduction</code></td><td>Thuế TNCN sau giảm trừ.</td></tr>
-      <tr><td><code>netSalary</code></td><td>Lương thực nhận.</td></tr>
-      <tr><td><code>status</code></td><td>0 chờ duyệt, 1 đã duyệt, 2 đã chuyển khoản.</td></tr>
-    </tbody>
-  </table>
-
-  <h2>7. Không thêm bảng mới, chỉ chỉnh nhẹ Payroll</h2>
+  <h3>4.2. Thuế TNCN</h3>
   <p>
-    Với scope hiện tại, không cần tạo <code>Payroll_Details</code> hay <code>Salary_Policies</code>.
-    Chi tiết tính lương có thể gom bằng DTO trong Java, còn policy như hệ số OT, bậc phạt đi muộn, thuế và bảo hiểm có thể hard-code trong <code>PayrollService</code>.
-    Nếu muốn bảng kết quả rõ ràng hơn, nên thêm vài cột trực tiếp vào <code>Payroll</code>.
+    Thuế TNCN lưu vào <code>Payroll.personalIncomeTax</code>. Không còn cột <code>taxDeduction</code> vì cột này trùng nghĩa với <code>personalIncomeTax</code>.
   </p>
+  <div class="formula">personalAllowance = 15_500_000
+taxableIncome = max(0, grossSalary - insuranceDeduction - personalAllowance)
+
+PIT hiện tại trong code:
+0 - 5 triệu:        5%
+5 - 10 triệu:       10%
+10 - 18 triệu:      15%
+18 - 32 triệu:      20%
+32 - 52 triệu:      25%
+52 - 80 triệu:      30%
+Trên 80 triệu:      35%</div>
+
+  <h2>5. Payroll schema hiện tại</h2>
   <table>
     <thead>
       <tr>
-        <th>Cột nên thêm/sửa trong Payroll</th>
-        <th>Lý do</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr>
-        <td><code>Payroll.periodEnd</code></td>
-        <td>Tránh suy luận tháng chỉ từ <code>periodStart</code>.</td>
-      </tr>
-      <tr>
-        <td><code>Payroll.grossSalary</code></td>
-        <td>Lưu tổng thu nhập trước khi trừ bảo hiểm và thuế.</td>
-      </tr>
-      <tr>
-        <td><code>Payroll.overtimePay</code></td>
-        <td>Tách tiền tăng ca khỏi <code>bonus</code>, vì OT là tiền công phát sinh chứ không hẳn là thưởng.</td>
-      </tr>
-      <tr>
-        <td><code>Payroll.penalty</code></td>
-        <td>Lưu tổng tiền phạt đi muộn/vắng không phép để giải thích net salary.</td>
-      </tr>
-      <tr>
-        <td><code>Payroll.personalIncomeTax</code></td>
-        <td>Có thể dùng thay hoặc map tương đương với <code>taxDeduction</code>; tên này rõ là Thuế TNCN.</td>
-      </tr>
-      <tr>
-        <td><code>Payroll.socialInsurance</code>, <code>Payroll.healthInsurance</code>, <code>Payroll.unemploymentInsurance</code></td>
-        <td>Tách 3 khoản BHXH, BHYT, BHTN. <code>insuranceDeduction</code> vẫn có thể lưu tổng 3 khoản.</td>
-      </tr>
-      <tr>
-        <td><code>Payroll.note</code></td>
-        <td>Lưu diễn giải ngắn hoặc JSON snapshot từ DTO nếu muốn xem lại công thức lúc chốt lương mà không thêm bảng details.</td>
-      </tr>
-      <tr>
-        <td><code>Payroll.workingDays DECIMAL(5,2)</code></td>
-        <td>Nên đổi từ <code>INT</code> nếu sau này có nghỉ nửa ngày hoặc tính công theo phần lẻ.</td>
-      </tr>
-    </tbody>
-  </table>
-
-  <h2>8. Ví dụ tính nhanh</h2>
-  <p>Giả sử nhân viên chính thức, lương hợp đồng 20.000.000 VND, level 2, làm 21/22 công, 6 giờ OT ngày thường, không người phụ thuộc, không phạt.</p>
-  <div class="formula">positionAdjustedBase = 20_000_000 * 1.00 * 1.00 = 20_000_000
-dailyRate = 20_000_000 / 22 = 909_091
-attendanceSalary = 909_091 * 21 = 19_090_911
-hourlyRate = 909_091 / 8 = 113_636
-overtimePay = 6 * 113_636 * 150% = 1_022_724
-attendanceBonus = 0 vì chưa đủ công
-grossIncome = 19_090_911 + 1_022_724 = 20_113_635
-insuranceDeduction xấp xỉ = 20_000_000 * 10.5% = 2_100_000
-taxableIncome = 20_113_635 - 2_100_000 - 15_500_000 = 2_513_635
-pit = 2_513_635 * 5% = 125_682
-netSalary = 20_113_635 - 2_100_000 - 125_682 = 17_887_953</div>
-
-  <h2>9. Luồng xử lý đề xuất khi implement</h2>
-  <ul>
-    <li>HR/Business Admin chọn tháng, phòng ban hoặc toàn công ty.</li>
-    <li>System lấy danh sách nhân viên active có hợp đồng active trong tháng.</li>
-    <li>Với từng nhân viên, tổng hợp attendance, leave, holiday, overtime approved, performance mới nhất trong kỳ.</li>
-    <li>Tính snapshot lương theo công thức ở trên, lưu tổng vào <code>Payroll</code>; chi tiết từng khoản trả về bằng <code>PayrollPreviewDTO</code> và <code>PayrollDetailDTO</code>.</li>
-    <li>Manager/Business Admin duyệt payroll. Sau khi duyệt thì khóa sửa hoặc chỉ cho tạo bản điều chỉnh.</li>
-    <li>Employee xem payslip, có thể gửi complaint nếu thấy sai.</li>
-  </ul>
-
-  <h2>10. Quyết định thiết kế đã chốt</h2>
-  <ul>
-    <li><span class="status pill-ok">Đã chốt</span> Vị trí không còn là hệ số tính lương. Lương cơ bản đã được deal và lưu trực tiếp trong <code>Employment_Contracts.salary</code>.</li>
-    <li><span class="status pill-ok">Đã chốt</span> <code>Payroll.workingDays</code> giữ kiểu <code>INT</code>, vì hệ thống tính làm nguyên ngày. Đi muộn không làm giảm ngày công mà được ghi nhận để trừ phạt riêng.</li>
-    <li><span class="status pill-ok">Đã chốt</span> Đi muộn tính theo số phút muộn từ <code>Attendance.timeIn</code>; nếu <code>Attendance.penalty</code> đã có số tiền thì ưu tiên dùng giá trị đó.</li>
-    <li><span class="status pill-ok">Đã chốt</span> Làm tăng ca được ghi nhận riêng và tính vào <code>overtimePay</code>. Ưu tiên lấy từ đơn OT đã duyệt trong <code>Form_Requests</code>, <code>Overtime_Details</code>, <code>Overtime_Assignees</code>; dữ liệu OT trong <code>Attendance</code> dùng để đối chiếu nếu cần.</li>
-    <li><span class="status pill-ok">Đã chốt</span> Không thêm bảng <code>Payroll_Details</code> và <code>Salary_Policies</code>. Chi tiết lương trả về bằng DTO, còn policy như thuế, bảo hiểm, bậc phạt đi muộn hard-code trong <code>PayrollService</code> cho bản đầu.</li>
-    <li><span class="status pill-ok">Đã chốt</span> Chỉnh trực tiếp bảng <code>Payroll</code> để lưu đủ snapshot lương sau khi tính.</li>
-  </ul>
-
-  <table>
-    <thead>
-      <tr>
-        <th>Cột trong Payroll</th>
-        <th>Kiểu dữ liệu đề xuất</th>
+        <th>Cột</th>
+        <th>Kiểu</th>
         <th>Khóa ngoại</th>
         <th>Mục đích</th>
       </tr>
     </thead>
     <tbody>
+      <tr><td><code>payrollId</code></td><td><code>INT AUTO_INCREMENT</code></td><td>Không</td><td>Khóa chính.</td></tr>
+      <tr><td><code>periodStart</code></td><td><code>DATE NOT NULL</code></td><td>Không</td><td>Ngày đầu kỳ lương.</td></tr>
+      <tr><td><code>periodEnd</code></td><td><code>DATE NOT NULL</code></td><td>Không</td><td>Ngày cuối kỳ lương.</td></tr>
+      <tr><td><code>employeeId</code></td><td><code>INT NOT NULL</code></td><td><code>Employees.employeeId</code></td><td>Nhân sự được tính lương.</td></tr>
+      <tr><td><code>positionId</code></td><td><code>INT NOT NULL</code></td><td><code>Positions.positionId</code></td><td>Snapshot vị trí khi tính lương.</td></tr>
+      <tr><td><code>departmentId</code></td><td><code>INT NULL</code></td><td><code>Departments.departmentId</code></td><td>Snapshot phòng ban khi tính lương.</td></tr>
+      <tr><td><code>workingDays</code></td><td><code>INT DEFAULT 0</code></td><td>Không</td><td>Số ngày công được trả lương.</td></tr>
+      <tr><td><code>hoursWorked</code></td><td><code>DECIMAL(6,2)</code></td><td>Không</td><td>Tổng giờ làm từ attendance.</td></tr>
+      <tr><td><code>baseSalary</code></td><td><code>DECIMAL(15,2)</code></td><td>Không</td><td>Lương theo ngày công.</td></tr>
+      <tr><td><code>allowance</code></td><td><code>DECIMAL(15,2)</code></td><td>Không</td><td>Phụ cấp nếu có.</td></tr>
+      <tr><td><code>bonus</code></td><td><code>DECIMAL(15,2)</code></td><td>Không</td><td>Thưởng chuyên cần và hiệu suất.</td></tr>
+      <tr><td><code>overtimePay</code></td><td><code>DECIMAL(15,2)</code></td><td>Không</td><td>Tiền tăng ca.</td></tr>
+      <tr><td><code>penalty</code></td><td><code>DECIMAL(15,2)</code></td><td>Không</td><td>Phạt đi muộn/nghỉ không phép.</td></tr>
+      <tr><td><code>grossSalary</code></td><td><code>DECIMAL(15,2)</code></td><td>Không</td><td>Tổng thu nhập trước bảo hiểm và thuế.</td></tr>
+      <tr><td><code>insuranceDeduction</code></td><td><code>DECIMAL(15,2)</code></td><td>Không</td><td>Tổng BHXH + BHYT + BHTN.</td></tr>
+      <tr><td><code>personalIncomeTax</code></td><td><code>DECIMAL(15,2)</code></td><td>Không</td><td>Thuế TNCN.</td></tr>
+      <tr><td><code>netSalary</code></td><td><code>DECIMAL(15,2)</code></td><td>Không</td><td>Lương thực lĩnh.</td></tr>
+      <tr><td><code>note</code></td><td><code>NVARCHAR(1000)</code></td><td>Không</td><td>Ghi chú tóm tắt số ngày nghỉ, đi muộn, OT.</td></tr>
+      <tr><td><code>employeeConfirmedBy</code></td><td><code>INT NULL</code></td><td><code>Users.userId</code></td><td>User nhân viên xác nhận lương.</td></tr>
+      <tr><td><code>employeeConfirmedAt</code></td><td><code>DATETIME NULL</code></td><td>Không</td><td>Thời điểm nhân viên xác nhận hoặc báo sai.</td></tr>
+      <tr><td><code>approvedBy</code></td><td><code>INT NULL</code></td><td><code>Users.userId</code></td><td>User HR duyệt/từ chối.</td></tr>
+      <tr><td><code>approvedAt</code></td><td><code>DATETIME NULL</code></td><td>Không</td><td>Thời điểm HR xử lý.</td></tr>
+      <tr><td><code>rejectNote</code></td><td><code>NVARCHAR(500)</code></td><td>Không</td><td>Lý do HR chưa duyệt.</td></tr>
+      <tr><td><code>status</code></td><td><code>TINYINT DEFAULT 0</code></td><td>Không</td><td>Trạng thái duyệt lương.</td></tr>
+    </tbody>
+  </table>
+
+  <h2>6. Cột đã bỏ khỏi Payroll</h2>
+  <table>
+    <thead>
       <tr>
-        <td><code>payrollId</code></td>
-        <td><code>INT AUTO_INCREMENT</code></td>
-        <td>Không</td>
-        <td>Khóa chính của bảng <code>Payroll</code>.</td>
+        <th>Cột cũ</th>
+        <th>Lý do bỏ</th>
+        <th>Thay bằng</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td><code>socialInsurance</code></td><td>Tỷ lệ BHXH hard-code, không cần lưu riêng.</td><td><code>insuranceDeduction</code></td></tr>
+      <tr><td><code>healthInsurance</code></td><td>Tỷ lệ BHYT hard-code, không cần lưu riêng.</td><td><code>insuranceDeduction</code></td></tr>
+      <tr><td><code>unemploymentInsurance</code></td><td>Tỷ lệ BHTN hard-code, không cần lưu riêng.</td><td><code>insuranceDeduction</code></td></tr>
+      <tr><td><code>taxDeduction</code></td><td>Trùng ý nghĩa với Thuế TNCN.</td><td><code>personalIncomeTax</code></td></tr>
+    </tbody>
+  </table>
+
+  <h2>7. Trạng thái duyệt lương</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Status</th>
+        <th>Ý nghĩa</th>
+        <th>Ai xử lý</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td><code>0</code></td><td>Chờ nhân viên xác nhận</td><td>Employee/Manager xem lương cá nhân</td></tr>
+      <tr><td><code>1</code></td><td>Chờ HR duyệt</td><td>HR có quyền duyệt payroll</td></tr>
+      <tr><td><code>2</code></td><td>Nhân viên báo sai thông tin</td><td>Employee/Manager xem lương cá nhân</td></tr>
+      <tr><td><code>3</code></td><td>HR đã duyệt</td><td>HR có quyền duyệt payroll</td></tr>
+      <tr><td><code>4</code></td><td>HR chưa duyệt</td><td>HR có quyền duyệt payroll, bắt buộc nhập <code>rejectNote</code></td></tr>
+    </tbody>
+  </table>
+
+  <h2>8. Luồng nghiệp vụ hiện tại</h2>
+  <ol>
+    <li>HR mở màn hình bảng lương tháng.</li>
+    <li>HR bấm generate để hệ thống tính payroll từ dữ liệu có sẵn trong database.</li>
+    <li>Nếu nhân sự thiếu hợp đồng, thiếu lương hợp đồng, thiếu attendance hoặc tạo ra lương âm thì dòng đó hiển thị lỗi “chưa đủ thông tin”.</li>
+    <li>Employee/Manager vào “Lương của tôi” để xem bảng lương cá nhân.</li>
+    <li>Employee xác nhận nếu đúng. Payroll chuyển từ status 0 sang status 1.</li>
+    <li>Nếu employee thấy sai, bấm “Chưa đúng thông tin”, payroll chuyển sang status 2 và redirect sang form khiếu nại.</li>
+    <li>HR mở chi tiết bảng lương status 1 để duyệt hoặc chưa duyệt.</li>
+    <li>Nếu HR duyệt, payroll chuyển sang status 3.</li>
+    <li>Nếu HR chưa duyệt, bắt buộc nhập lý do và payroll chuyển sang status 4.</li>
+    <li>HR không được tự duyệt payroll của chính mình.</li>
+  </ol>
+
+  <h2>9. Luồng code chính</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>File</th>
+        <th>Vai trò</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>HRM/src/java/service/PayrollService.java</code></td>
+        <td>Chứa toàn bộ logic tính lương, kiểm tra quyền, generate payroll, export Excel, xác nhận, báo sai, duyệt, chưa duyệt.</td>
       </tr>
       <tr>
-        <td><code>employeeId</code></td>
-        <td><code>INT NOT NULL</code></td>
-        <td><code>Employees.employeeId</code></td>
-        <td>Nhân viên được tính lương.</td>
+        <td><code>HRM/src/java/dao/PayrollDAO.java</code></td>
+        <td>Insert/update/select payroll, cập nhật trạng thái employee confirm, HR approve/reject.</td>
       </tr>
       <tr>
-        <td><code>positionId</code></td>
-        <td><code>INT NOT NULL</code></td>
-        <td><code>Positions.positionId</code></td>
-        <td>Lưu snapshot vị trí tại thời điểm tính lương để xem lại lịch sử, không dùng làm hệ số nhân lương.</td>
+        <td><code>HRM/src/java/model/Payroll.java</code></td>
+        <td>Model ánh xạ bảng <code>Payroll</code>.</td>
       </tr>
       <tr>
-        <td><code>departmentId</code></td>
-        <td><code>INT NULL</code></td>
-        <td><code>Departments.departmentId</code></td>
-        <td>Lưu phòng ban tại thời điểm tính lương.</td>
+        <td><code>HRM/src/java/dto/PayrollPreviewDTO.java</code></td>
+        <td>DTO gom thông tin payroll với employee, department, position, lỗi generate và danh sách detail.</td>
       </tr>
       <tr>
-        <td><code>periodStart</code></td>
-        <td><code>DATE NOT NULL</code></td>
-        <td>Không</td>
-        <td>Ngày bắt đầu kỳ lương, thường là ngày đầu tháng.</td>
+        <td><code>HRM/src/java/dto/PayrollDetailDTO.java</code></td>
+        <td>DTO dòng chi tiết lương để JSP hiển thị. Không lưu DB.</td>
       </tr>
       <tr>
-        <td><code>periodEnd</code></td>
-        <td><code>DATE NOT NULL</code></td>
-        <td>Không</td>
-        <td>Ngày kết thúc kỳ lương, thường là ngày cuối tháng.</td>
+        <td><code>ManagerController.java</code>, <code>EmployeeController.java</code></td>
+        <td>Route xem lương cá nhân, xem tất cả lương, chi tiết, generate, export, confirm, report, approve, reject.</td>
       </tr>
       <tr>
-        <td><code>workingDays</code></td>
-        <td><code>INT DEFAULT 0</code></td>
-        <td>Không</td>
-        <td>Số ngày công được trả lương. Giữ <code>INT</code> vì hệ thống tính nguyên ngày.</td>
+        <td><code>HRM/web/public/*/salary/*.jsp</code></td>
+        <td>Giao diện danh sách lương, lương cá nhân, chi tiết lương.</td>
       </tr>
       <tr>
-        <td><code>hoursWorked</code></td>
-        <td><code>DECIMAL(6,2) DEFAULT 0</code></td>
-        <td>Không</td>
-        <td>Tổng giờ làm từ <code>Attendance</code>, dùng để thống kê/đối chiếu.</td>
-      </tr>
-      <tr>
-        <td><code>baseSalary</code></td>
-        <td><code>DECIMAL(15,2) DEFAULT 0</code></td>
-        <td>Không</td>
-        <td>Lương cơ bản thực trả theo công, lấy nền từ <code>Employment_Contracts.salary</code>.</td>
-      </tr>
-      <tr>
-        <td><code>allowance</code></td>
-        <td><code>DECIMAL(15,2) DEFAULT 0</code></td>
-        <td>Không</td>
-        <td>Phụ cấp nếu có.</td>
-      </tr>
-      <tr>
-        <td><code>bonus</code></td>
-        <td><code>DECIMAL(15,2) DEFAULT 0</code></td>
-        <td>Không</td>
-        <td>Thưởng chuyên cần, thưởng hiệu suất, thưởng đủ công.</td>
-      </tr>
-      <tr>
-        <td><code>overtimePay</code></td>
-        <td><code>DECIMAL(15,2) DEFAULT 0</code></td>
-        <td>Không</td>
-        <td>Tiền tăng ca, tính từ OT đã được ghi nhận/duyệt.</td>
-      </tr>
-      <tr>
-        <td><code>penalty</code></td>
-        <td><code>DECIMAL(15,2) DEFAULT 0</code></td>
-        <td>Không</td>
-        <td>Tổng tiền phạt đi muộn/vắng không phép.</td>
-      </tr>
-      <tr>
-        <td><code>grossSalary</code></td>
-        <td><code>DECIMAL(15,2) DEFAULT 0</code></td>
-        <td>Không</td>
-        <td>Tổng thu nhập trước thuế và bảo hiểm: base + allowance + bonus + overtime - penalty.</td>
-      </tr>
-      <tr>
-        <td><code>socialInsurance</code></td>
-        <td><code>DECIMAL(15,2) DEFAULT 0</code></td>
-        <td>Không</td>
-        <td>BHXH người lao động, hard-code tỷ lệ 8% trong service.</td>
-      </tr>
-      <tr>
-        <td><code>healthInsurance</code></td>
-        <td><code>DECIMAL(15,2) DEFAULT 0</code></td>
-        <td>Không</td>
-        <td>BHYT người lao động, hard-code tỷ lệ 1,5% trong service.</td>
-      </tr>
-      <tr>
-        <td><code>unemploymentInsurance</code></td>
-        <td><code>DECIMAL(15,2) DEFAULT 0</code></td>
-        <td>Không</td>
-        <td>BHTN người lao động, hard-code tỷ lệ 1% trong service.</td>
-      </tr>
-      <tr>
-        <td><code>insuranceDeduction</code></td>
-        <td><code>DECIMAL(15,2) DEFAULT 0</code></td>
-        <td>Không</td>
-        <td>Tổng 3 khoản: BHXH + BHYT + BHTN.</td>
-      </tr>
-      <tr>
-        <td><code>personalIncomeTax</code></td>
-        <td><code>DECIMAL(15,2) DEFAULT 0</code></td>
-        <td>Không</td>
-        <td>Thuế TNCN sau giảm trừ.</td>
-      </tr>
-      <tr>
-        <td><code>taxDeduction</code></td>
-        <td><code>DECIMAL(15,2) DEFAULT 0</code></td>
-        <td>Không</td>
-        <td>Có thể giữ để tương thích schema cũ; giá trị bằng <code>personalIncomeTax</code>.</td>
-      </tr>
-      <tr>
-        <td><code>netSalary</code></td>
-        <td><code>DECIMAL(15,2) DEFAULT 0</code></td>
-        <td>Không</td>
-        <td>Lương thực nhận: gross - insurance - PIT.</td>
-      </tr>
-      <tr>
-        <td><code>note</code></td>
-        <td><code>NVARCHAR(1000) NULL</code></td>
-        <td>Không</td>
-        <td>Ghi chú hoặc JSON ngắn từ DTO để giải thích công thức khi chốt lương.</td>
-      </tr>
-      <tr>
-        <td><code>status</code></td>
-        <td><code>TINYINT DEFAULT 0</code></td>
-        <td>Không</td>
-        <td>0 chờ duyệt, 1 đã duyệt, 2 đã chuyển khoản.</td>
+        <td><code>HRM/src/java/dal/DBInitializer.java</code></td>
+        <td>Tạo bảng <code>Payroll</code> và seed các permission salary: view own, view all, approve, export.</td>
       </tr>
     </tbody>
   </table>
 
-  <h2>Nguồn tham khảo thuế/bảo hiểm</h2>
+  <h2>10. Permission liên quan</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Permission</th>
+        <th>Ý nghĩa</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td><code>VIEW_OWN_SALARY</code></td><td>Cho phép xem lương cá nhân.</td></tr>
+      <tr><td><code>VIEW_ALL_SALARY</code></td><td>Cho phép HR xem bảng lương tất cả nhân viên.</td></tr>
+      <tr><td><code>APPROVE_PAYROLL</code></td><td>Cho phép HR duyệt hoặc chưa duyệt payroll.</td></tr>
+      <tr><td><code>EXPORT_PAYROLL</code></td><td>Cho phép export bảng lương tháng ra Excel.</td></tr>
+    </tbody>
+  </table>
+  <p>
+    Không còn <code>IMPORT_PAYROLL</code>. Nếu database cũ đã có permission này thì chạy <code>payroll-schema-migration.sql</code> để xóa.
+  </p>
+
+  <h2>11. Migration cho database cũ</h2>
+  <p>
+    Nếu database đã được tạo trước khi bỏ import payroll, chạy file:
+    <code>payroll-schema-migration.sql</code>.
+  </p>
+  <div class="formula">ALTER TABLE Payroll
+  DROP COLUMN socialInsurance,
+  DROP COLUMN healthInsurance,
+  DROP COLUMN unemploymentInsurance,
+  DROP COLUMN taxDeduction;
+
+DELETE role-permission IMPORT_PAYROLL;
+DELETE permission IMPORT_PAYROLL;</div>
+
+  <h2>12. Điểm cần nhớ khi test</h2>
   <ul>
-    <li><a href="https://taxsummaries.pwc.com/vietnam/individual/taxes-on-personal-income">PwC Worldwide Tax Summaries - Vietnam Individual Taxes on personal income</a>, last reviewed 09 March 2026.</li>
-    <li><a href="https://taxsummaries.pwc.com/vietnam/individual/deductions">PwC Worldwide Tax Summaries - Vietnam Individual Deductions</a>, last reviewed 09 March 2026.</li>
-    <li><a href="https://taxsummaries.pwc.com/vietnam/individual/other-taxes">PwC Worldwide Tax Summaries - Vietnam Individual Other taxes</a>, last reviewed 09 March 2026.</li>
+    <li>Nhân sự chưa có contract active hoặc contract salary không hợp lệ phải hiện lỗi, không được generate ra lương âm.</li>
+    <li>Nhân sự chưa có attendance trong tháng phải hiện lỗi chưa đủ thông tin.</li>
+    <li>Export không xuất các dòng lỗi generate.</li>
+    <li>Màn chi tiết không hiển thị 3 dòng bảo hiểm con.</li>
+    <li>Gross salary vẫn là thu nhập trước khi trừ bảo hiểm và thuế.</li>
+    <li>Giảm trừ cá nhân 15.500.000 VND vẫn hiển thị ở màn lương cá nhân, kể cả taxable income bằng 0.</li>
   </ul>
 </main>
 </body>
