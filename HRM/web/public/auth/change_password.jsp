@@ -72,7 +72,7 @@
     .logo-powered span { color: #ff6b00; font-weight: 600; }
 
 
-
+    
     .form-heading {
       font-size: 1.15rem; font-weight: 700;
       color: #1a1a2e; text-align: center;
@@ -84,7 +84,7 @@
       line-height: 1.55;
     }
 
-
+    
     .form-label {
       font-size: .78rem; font-weight: 600;
       color: #444; margin-bottom: .3rem; display: block;
@@ -105,7 +105,7 @@
 
     .pw-wrap { position: relative; }
     .pw-wrap .form-control { padding-right: 2.8rem; }
-
+    
     .pw-toggle {
       position: absolute; right: .75rem; top: 50%;
       transform: translateY(-50%);
@@ -119,7 +119,7 @@
     input[type="password"]::-ms-clear { display: none; }
     input[type="password"]::-webkit-credentials-auto-fill-button { display: none; }
 
-
+   
     .btn-submit {
       width: 100%; height: 46px;
       background: #1565c0; color: #fff;
@@ -257,7 +257,7 @@
             </button>
           </div>
         </div>
-
+          
         <button type="submit" class="btn-submit">
           <i class="bi bi-shield-check"></i> Thay đổi mật khẩu
         </button>

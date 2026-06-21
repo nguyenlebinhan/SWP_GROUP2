@@ -1,13 +1,13 @@
-
-
-
-
+/*
+ * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
+ * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
+ */
 package model;
 
-
-
-
-
+/**
+ *
+ * @author ADMIN
+ */
 public class Position {
 
     private int positionId;
@@ -16,7 +16,7 @@ public class Position {
     private String description;
 
     public Position() {}
-
+    
     public Position(int positionId, String positionName, int level, String description) {
         this.positionId = positionId;
         this.positionName = positionName;

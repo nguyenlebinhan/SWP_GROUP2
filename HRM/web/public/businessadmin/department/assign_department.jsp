@@ -283,9 +283,9 @@
             const level = parseInt(o.dataset.level, 10);
             let hide = false;
             if (employeeOnly) {
-                hide = level >= 3;
-            } else if (managerOnly) {
-                hide = level < 3;
+                hide = level >= 3;        // Employee: chỉ vị trí thường (level < 3)            
+                } else if (managerOnly) {
+                hide = level < 3;         // Manager: chỉ vị trí quản lý (level >= 3)
             }
             o.hidden = hide;
             o.disabled = hide;

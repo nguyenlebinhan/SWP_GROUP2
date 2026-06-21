@@ -1,18 +1,18 @@
-
-
-
-
+/*
+ * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
+ * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
+ */
 package dto;
 
-
-
-
-
+/**
+ *
+ * @author ADMIN
+ */
 public class UserUpdateRequestDTO {
     private int userId;
     private String username;
     private String email;
-    private String fullName;
+    private String fullName;    
     private String dob;
     private String gender;
     private String address;
@@ -97,8 +97,8 @@ public class UserUpdateRequestDTO {
     public void setRoleId(int roleId) {
         this.roleId = roleId;
     }
-
-
-
+    
+    
+    
 }
 

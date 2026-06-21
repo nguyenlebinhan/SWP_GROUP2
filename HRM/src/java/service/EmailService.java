@@ -1,7 +1,7 @@
-
-
-
-
+/*
+ * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
+ * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
+ */
 package service;
 
 import jakarta.activation.DataHandler;
@@ -26,10 +26,10 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.*;
 import utils.ConfigManager;
-
-
-
-
+/**
+ *
+ * @author ADMIN
+ */
 public class EmailService {
     private static final Logger LOGGER = Logger.getLogger(EmailService.class.getName());
     private final ConfigManager config = ConfigManager.getInstance();
@@ -39,7 +39,7 @@ public class EmailService {
     private final String FROM_EMAIL = config.getProperty("EMAIL_FROM");
     private final String APP_PASSWORD = config.getProperty("EMAIL_APP_PASSWORD");
     private static final ExecutorService EMAIL_EXECUTOR = Executors.newFixedThreadPool(10);
-
+    
 
     public boolean sendEmail(String to, String subject, String body) {
         if (FROM_EMAIL == null || FROM_EMAIL.isBlank() || APP_PASSWORD == null || APP_PASSWORD.isBlank()) {
@@ -76,21 +76,21 @@ public class EmailService {
             LOGGER.log(Level.SEVERE, "sendEmail failed to " + to, e);
             return false;
         }
-    }
+    }    
 
 
 
     public void sendResetPasswordEmailAsync(String toEmail, String password) {
         EMAIL_EXECUTOR.submit(() -> {
             String subject = "Password Reset Request - Thesis Management System";
-
+            
             String body = "<html><head><meta charset='UTF-8'></head><body>" +
                           "<p>You have requested to reset your password.</p>" +
                           "<p>Your password has been updated into the DB:</p>" +
                           "<p>Here is your password: '" + password + "'</p>" +
                           "<p>If you did not request this, please ignore this email.</p>" +
                           "</body></html>";
-
+            
             sendEmail(toEmail, subject, body);
         });
     }
