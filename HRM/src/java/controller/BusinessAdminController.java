@@ -24,11 +24,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.HashMap;
 import java.util.logging.Logger;
+import model.Attendance;
 import model.Department;
 import model.Role;
 import model.User;
 import static org.apache.tomcat.jakartaee.commons.lang3.StringUtils.isBlank;
 import service.EmailService;
+import utils.Paging;
 
 public class BusinessAdminController extends HttpServlet {
 
@@ -42,6 +44,8 @@ public class BusinessAdminController extends HttpServlet {
     private static final HolidayDAO holidayDAO = new HolidayDAO();
     private static final FormRequestDAO formRequestDAO = new FormRequestDAO();
     private static final OvertimeDAO overtimeDAO = new OvertimeDAO();
+    private static final service.AttendanceService attendanceService = new service.AttendanceService();
+    private static final utils.AttendanceExcelExporter attendanceExporter = new utils.AttendanceExcelExporter();
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
@@ -94,6 +98,15 @@ public class BusinessAdminController extends HttpServlet {
                 break;
             case "/holiday/edit":
                 displayHolidayForm(request, response, true);
+                break;
+            case "/attendance/overview":
+                displayAttendanceOverview(request, response);
+                break;
+            case "/attendance/detail":
+                displayAttendanceDetail(request, response);
+                break;
+            case "/attendance/export":
+                exportAttendanceReport(request, response);
                 break;
             case "/forms":
                 displayFormRequests(request, response);
@@ -679,6 +692,116 @@ public class BusinessAdminController extends HttpServlet {
     // =========================================================
     // Quản lý ngày lễ (Holiday)
     // =========================================================
+
+    // ===================== Attendance Dashboard (Overview / Detail / Export) =====================
+
+    /** HR/Business Admin: 0 hoặc rỗng = toàn công ty; ngược lại lọc theo phòng ban. */
+    private Integer resolveDepartmentFilter(HttpServletRequest request) {
+        String raw = request.getParameter("departmentId");
+        if (raw != null && !raw.trim().isEmpty()) {
+            try {
+                int id = Integer.parseInt(raw.trim());
+                return id > 0 ? id : null;
+            } catch (NumberFormatException ignored) {
+            }
+        }
+        return null;
+    }
+
+    private int paramOr(HttpServletRequest request, String name, int defaultValue) {
+        String raw = request.getParameter(name);
+        if (raw != null && !raw.trim().isEmpty()) {
+            try {
+                return Integer.parseInt(raw.trim());
+            } catch (NumberFormatException ignored) {
+            }
+        }
+        return defaultValue;
+    }
+
+    private void displayAttendanceOverview(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+        Integer departmentId = resolveDepartmentFilter(request);
+        java.time.LocalDate now = java.time.LocalDate.now();
+        int month = paramOr(request, "month", now.getMonthValue());
+        int year = paramOr(request, "year", now.getYear());
+
+        java.util.List<dto.AttendanceSummaryDTO> summaries =
+                attendanceService.getMonthlySummaries(departmentId, month, year);
+
+        request.setAttribute("summaries", summaries);
+        request.setAttribute("pagedSummaries", utils.Paging.page(request, summaries));
+        request.setAttribute("departments", departmentDAO.getAllActiveDepartments());
+        request.setAttribute("canViewAll", true);
+        request.setAttribute("selectedDepartmentId", departmentId);
+        if (departmentId != null) {
+            model.Department dept = departmentDAO.getDepartmentById(departmentId);
+            request.setAttribute("departmentName", dept != null ? dept.getDepartmentName() : "");
+        }
+        request.setAttribute("selectedMonth", month);
+        request.setAttribute("selectedYear", year);
+        setBusinessAdminAttendanceLayout(request);
+        request.getRequestDispatcher("/public/businessadmin/attendance/attendance_overview.jsp").forward(request, response);
+    }
+
+    private void setBusinessAdminAttendanceLayout(HttpServletRequest request) {
+        request.setAttribute("sidebarPath", "/public/components/businessAdminSideBar.jsp");
+        request.setAttribute("topbarPath", "/public/components/businessAdminTopBar.jsp");
+        request.setAttribute("baseUrl", request.getContextPath() + "/v1/businessadmin/attendance");
+    }
+
+    private void displayAttendanceDetail(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+        Integer departmentId = resolveDepartmentFilter(request);
+        int employeeId = paramOr(request, "employeeId", -1);
+        java.time.LocalDate now = java.time.LocalDate.now();
+        int month = paramOr(request, "month", now.getMonthValue());
+        int year = paramOr(request, "year", now.getYear());
+
+        dto.AttendanceDetailDTO detail = (employeeId > 0)
+                ? attendanceService.getEmployeeDetail(employeeId, departmentId, month, year)
+                : null;
+        setBusinessAdminAttendanceLayout(request);
+        request.setAttribute("canViewAll", true);
+        if (detail == null) {
+            request.setAttribute("error", "Không tìm thấy dữ liệu chấm công của nhân viên.");
+            request.getRequestDispatcher("/public/businessadmin/attendance/attendance_detail.jsp").forward(request, response);
+            return;
+        }
+        int day = paramOr(request, "day", 0);
+        List<Attendance> filtered = detail.getDailyRows();
+        if (day >= 1 && day <= 31) {
+            filtered = new ArrayList<>();
+            for (model.Attendance a : detail.getDailyRows()) {
+                if (a.getWorkDate() != null && a.getWorkDate().toLocalDate().getDayOfMonth() == day) {
+                    filtered.add(a);
+                }
+            }
+        }
+        request.setAttribute("selectedDay", day);
+        request.setAttribute("pagedRows", utils.Paging.page(request, filtered));
+        request.setAttribute("detail", detail);
+        request.setAttribute("selectedDepartmentId", departmentId);
+        request.setAttribute("selectedMonth", month);
+        request.setAttribute("selectedYear", year);
+        request.getRequestDispatcher("/public/businessadmin/attendance/attendance_detail.jsp").forward(request, response);
+    }
+
+
+    private void exportAttendanceReport(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+        Integer departmentId = resolveDepartmentFilter(request);
+        java.time.LocalDate now = java.time.LocalDate.now();
+        int month = paramOr(request, "month", now.getMonthValue());
+        int year = paramOr(request, "year", now.getYear());
+
+        dto.AttendanceReportDTO report = attendanceService.getReport(departmentId, month, year);
+        String scope = (departmentId == null) ? "company" : "dept" + departmentId;
+        String fileName = "attendance_" + scope + "_" + year + "_" + String.format("%02d", month) + ".xlsx";
+        response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+        response.setHeader("Content-Disposition", "attachment; filename=\"" + fileName + "\"");
+        attendanceExporter.write(report, response.getOutputStream());
+    }
 
     private void displayHolidayList(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {

@@ -57,14 +57,14 @@ public class FormRequestDAO {
         }
     }
 
-    // INSERT đơn chung (Khiếu nại, hoặc loại không có ngày)
+    // INSERT đơn chung (Loại không có ngày)
     public int addFormRequest(FormRequest fr) {
         String SQL = """
                      INSERT INTO form_requests
                      (formCode, employeeId, formTypeId, reason,
-                      startDate, endDate, totalDays, usedDays,
+                      startDate, endDate, startTime, endTime, totalDays, usedDays,
                       attachmentUrl, attachmentName, status)
-                     VALUES (?, ?, ?, ?, NULL, NULL, NULL, 0, ?, ?, 0)
+                     VALUES (?, ?, ?, ?, NULL, NULL, NULL, NULL, NULL, 0, ?, ?, 0)
                      """;
         try (Connection conn = dbContext.getConnection();
              PreparedStatement ps = conn.prepareStatement(SQL, Statement.RETURN_GENERATED_KEYS)) {
@@ -101,9 +101,9 @@ public class FormRequestDAO {
         String SQL = """
                      INSERT INTO form_requests
                      (formCode, employeeId, formTypeId, reason,
-                      startDate, endDate, totalDays, usedDays,
+                      startDate, endDate, startTime, endTime, totalDays, usedDays,
                       attachmentUrl, attachmentName, status)
-                     VALUES (?, ?, ?, ?, ?, ?, ?, 0, ?, ?, 0)
+                     VALUES (?, ?, ?, ?, ?, ?, NULL, NULL, ?, 0, ?, ?, 0)
                      """;
         try (Connection conn = dbContext.getConnection();
              PreparedStatement ps = conn.prepareStatement(SQL, Statement.RETURN_GENERATED_KEYS)) {
@@ -113,7 +113,7 @@ public class FormRequestDAO {
             ps.setNString(4, fr.getReason());
             if (fr.getStartDate() == null) ps.setNull(5, Types.DATE); else ps.setDate(5, fr.getStartDate());
             if (fr.getEndDate() == null) ps.setNull(6, Types.DATE); else ps.setDate(6, fr.getEndDate());
-            if (fr.getTotalDays() == null) ps.setNull(7, Types.DECIMAL); else ps.setDouble(7, fr.getTotalDays());
+            if (fr.getTotalDays() == null) ps.setNull(7, Types.INTEGER); else ps.setInt(7, fr.getTotalDays());
             if (fr.getAttachmentUrl() == null) {
                 ps.setNull(8, Types.VARCHAR);
                 ps.setNull(9, Types.VARCHAR);
@@ -136,6 +136,73 @@ public class FormRequestDAO {
             LOGGER.log(Level.SEVERE, "Error adding leave form request: " + fr.getFormCode(), e);
         }
         return -1;
+    }
+
+    // INSERT đơn Khiếu nại (overload)
+    public int addFormRequest(ComplaintFormRequest fr) {
+        String SQL = """
+                     INSERT INTO form_requests
+                     (formCode, employeeId, formTypeId, reason,
+                      startDate, endDate, startTime, endTime, totalDays, usedDays,
+                      attachmentUrl, attachmentName, status)
+                     VALUES (?, ?, ?, ?, ?, NULL, ?, ?, NULL, 0, ?, ?, 0)
+                     """;
+        try (Connection conn = dbContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(SQL, Statement.RETURN_GENERATED_KEYS)) {
+            ps.setString(1, fr.getFormCode());
+            ps.setInt(2, fr.getEmployeeId());
+            ps.setInt(3, fr.getFormTypeId());
+            ps.setNString(4, fr.getReason());
+            if (fr.getStartDate() == null) ps.setNull(5, Types.DATE); else ps.setDate(5, fr.getStartDate());
+            if (fr.getStartTime() == null) ps.setNull(6, Types.TIME); else ps.setTime(6, fr.getStartTime());
+            if (fr.getEndTime() == null) ps.setNull(7, Types.TIME); else ps.setTime(7, fr.getEndTime());
+            if (fr.getAttachmentUrl() == null) {
+                ps.setNull(8, Types.VARCHAR);
+                ps.setNull(9, Types.VARCHAR);
+            } else {
+                ps.setString(8, fr.getAttachmentUrl());
+                ps.setString(9, fr.getAttachmentName());
+            }
+            int rows = ps.executeUpdate();
+            if (rows > 0) {
+                try (ResultSet rs = ps.getGeneratedKeys()) {
+                    if (rs.next()) {
+                        int newId = rs.getInt(1);
+                        LOGGER.log(Level.INFO, "Complaint form request added: id={0}, code={1}", new Object[]{newId, fr.getFormCode()});
+                        return newId;
+                    }
+                }
+            }
+            LOGGER.log(Level.WARNING, "Add complaint form request failed for code: {0}", fr.getFormCode());
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Error adding complaint form request: " + fr.getFormCode(), e);
+        }
+        return -1;
+    }
+
+    // Kiểm tra trùng ngày nghỉ
+    public boolean hasOverlappingLeave(int employeeId, java.sql.Date startDate, java.sql.Date endDate) {
+        String SQL = """
+                     SELECT COUNT(*) FROM Form_Requests fr
+                     JOIN Form_Types ft ON fr.formTypeId = ft.formTypeId
+                     WHERE fr.employeeId = ? 
+                       AND ft.formTypeCode = 'LEAVE'
+                       AND fr.status IN (0, 1)
+                       AND (fr.startDate <= ? AND fr.endDate >= ?)
+                     """;
+        try (Connection conn = dbContext.getConnection(); PreparedStatement ps = conn.prepareStatement(SQL)) {
+            ps.setInt(1, employeeId);
+            ps.setDate(2, endDate);
+            ps.setDate(3, startDate);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt(1) > 0;
+                }
+            }
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Error checking overlapping leave for employee: " + employeeId, e);
+        }
+        return false;
     }
 
     //Lấy tất cả đơn theo mã nhân viên (có filter theo thời gian)
@@ -314,7 +381,7 @@ public class FormRequestDAO {
 
     private static final String MANAGER_FORM_QUERY
             = "SELECT fr.formId, fr.formCode, fr.employeeId, fr.formTypeId, fr.reason, "
-            + "fr.startDate, fr.endDate, fr.totalDays, fr.usedDays, "
+            + "fr.startDate, fr.endDate, fr.startTime, fr.endTime, fr.totalDays, fr.usedDays, "
             + "fr.status, fr.approverId, fr.approverNote, fr.approvedAt, "
             + "fr.attachmentUrl, fr.attachmentName, fr.createdAt, fr.updatedAt, "
             + "e.employeeCode, u.fullName, "
@@ -338,20 +405,28 @@ public class FormRequestDAO {
     private FormRequestDTO mapFormRequestDTO(ResultSet rs) throws SQLException {
         String typeCode = rs.getString("formTypeCode");
 
-        FormRequestDTO fr;
+        FormRequestDTO fr = new FormRequestDTO();
         if ("LEAVE".equals(typeCode)) {
-            LeaveFormRequestDTO leave = new LeaveFormRequestDTO();
-            leave.setStartDate(rs.getDate("startDate"));
-            leave.setEndDate(rs.getDate("endDate"));
-            double totalDays = rs.getDouble("totalDays");
-            leave.setTotalDays(rs.wasNull() ? null : totalDays);
-            double usedDays = rs.getDouble("usedDays");
-            leave.setUsedDays(rs.wasNull() ? null : usedDays);
-            fr = leave;
+            fr = new LeaveFormRequestDTO();
         } else if ("COMPLAINT".equals(typeCode)) {
             fr = new ComplaintFormRequestDTO();
         } else {
             fr = new FormRequestDTO();
+        }
+
+        if (fr instanceof LeaveFormRequestDTO) {
+            LeaveFormRequestDTO leaveFr = (LeaveFormRequestDTO) fr;
+            leaveFr.setStartDate(rs.getDate("startDate"));
+            leaveFr.setEndDate(rs.getDate("endDate"));
+            int totalDays = rs.getInt("totalDays");
+            leaveFr.setTotalDays(rs.wasNull() ? null : totalDays);
+            int usedDays = rs.getInt("usedDays");
+            leaveFr.setUsedDays(rs.wasNull() ? null : usedDays);
+        } else if (fr instanceof ComplaintFormRequestDTO) {
+            ComplaintFormRequestDTO compFr = (ComplaintFormRequestDTO) fr;
+            compFr.setStartDate(rs.getDate("startDate"));
+            compFr.setStartTime(rs.getTime("startTime"));
+            compFr.setEndTime(rs.getTime("endTime"));
         }
 
         fr.setFormId(rs.getInt("formId"));
