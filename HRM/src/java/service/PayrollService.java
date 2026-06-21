@@ -878,4 +878,35 @@ public class PayrollService {
         BigDecimal overtimeHours = BigDecimal.ZERO;
         BigDecimal overtimePay = BigDecimal.ZERO;
     }
+
+    public int approveAllPayrollForPeriod(User user, int year, int month, Integer departmentId) {
+        if (!canApprovePayroll(user)) {
+            return 0;
+        }
+        Date start = toPeriodStart(year, month);
+        Date end = toPeriodEnd(year, month);
+        EmployeeDetailDTO approver = employeeDAO.getEmployeeByUserId(user.getUserId());
+        Integer excludeEmployeeId = approver != null ? approver.getEmployeeId() : null;
+
+        int approvedCount = payrollDAO.approveAllPendingPayroll(start, end, departmentId,
+                user.getUserId(), excludeEmployeeId);
+
+        auditPayroll(user, "APPROVE_ALL_PAYROLL", null, "status=1",
+                "status=3; approvedBy=" + user.getUserId()
+                + "; period=" + String.format("%04d-%02d", year, month)
+                + "; departmentId=" + departmentId
+                + "; approvedCount=" + approvedCount, "SUCCESS");
+        return approvedCount;
+    }
+
+    public int countPendingApprovalForPeriod(User user, int year, int month, Integer departmentId) {
+        if (!canApprovePayroll(user)) {
+            return 0;
+        }
+        Date start = toPeriodStart(year, month);
+        Date end = toPeriodEnd(year, month);
+        EmployeeDetailDTO approver = employeeDAO.getEmployeeByUserId(user.getUserId());
+        Integer excludeEmployeeId = approver != null ? approver.getEmployeeId() : null;
+        return payrollDAO.countPendingApproval(start, end, departmentId, excludeEmployeeId);
+    }
 }

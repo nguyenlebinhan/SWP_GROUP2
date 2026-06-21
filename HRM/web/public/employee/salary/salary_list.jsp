@@ -268,27 +268,27 @@
 
             <c:if test="${not empty sessionScope.success}">
                 <div class="alert alert-success"><i class="fa-solid fa-circle-check me-2"></i>${sessionScope.success}</div>
-                <c:remove var="success" scope="session" />
-            </c:if>
-            <c:if test="${not empty sessionScope.error}">
+                    <c:remove var="success" scope="session" />
+                </c:if>
+                <c:if test="${not empty sessionScope.error}">
                 <div class="alert alert-danger"><i class="fa-solid fa-circle-xmark me-2"></i>${sessionScope.error}</div>
-                <c:remove var="error" scope="session" />
-            </c:if>
+                    <c:remove var="error" scope="session" />
+                </c:if>
 
             <c:set var="totalGross" value="${0}" />
             <c:set var="totalApproved" value="${0}" />
             <c:set var="totalPending" value="${0}" />
             <c:forEach var="row" items="${payrollPreviews}">
                 <c:if test="${not row.generationBlocked}">
-                <c:set var="totalGross" value="${totalGross + row.payroll.grossSalary}" />
-                <c:choose>
-                    <c:when test="${row.payroll.status == 3}">
-                        <c:set var="totalApproved" value="${totalApproved + row.payroll.netSalary}" />
-                    </c:when>
-                    <c:otherwise>
-                        <c:set var="totalPending" value="${totalPending + row.payroll.netSalary}" />
-                    </c:otherwise>
-                </c:choose>
+                    <c:set var="totalGross" value="${totalGross + row.payroll.grossSalary}" />
+                    <c:choose>
+                        <c:when test="${row.payroll.status == 3}">
+                            <c:set var="totalApproved" value="${totalApproved + row.payroll.netSalary}" />
+                        </c:when>
+                        <c:otherwise>
+                            <c:set var="totalPending" value="${totalPending + row.payroll.netSalary}" />
+                        </c:otherwise>
+                    </c:choose>
                 </c:if>
             </c:forEach>
 
@@ -299,20 +299,33 @@
                 </div>
                 <div class="action-group">
                     <c:if test="${canViewAllSalary}">
-                    <form method="post" action="${pageContext.request.contextPath}/v1/employee/salary/generate" class="m-0">
-                        <input type="hidden" name="month" value="${selectedMonth}">
-                        <input type="hidden" name="year" value="${selectedYear}">
-                        <input type="hidden" name="departmentId" value="${selectedDepartmentId}">
-                        <button type="submit" class="btn-blue border-0"
-                                onclick="return confirm('Generate lại bảng lương tháng này từ dữ liệu hệ thống?');">
-                            <i class="fa-solid fa-calculator me-1"></i> Tạo bảng lương từ dữ liệu tháng này
-                        </button>
-                    </form>
+                        <form method="post" action="${pageContext.request.contextPath}/v1/employee/salary/generate" class="m-0">
+                            <input type="hidden" name="month" value="${selectedMonth}">
+                            <input type="hidden" name="year" value="${selectedYear}">
+                            <input type="hidden" name="departmentId" value="${selectedDepartmentId}">
+                            <button type="submit" class="btn-blue border-0"
+                                    onclick="return confirm('Generate lại bảng lương tháng này từ dữ liệu hệ thống?');">
+                                <i class="fa-solid fa-calculator me-1"></i> Tạo bảng lương từ dữ liệu tháng này
+                            </button>
+                        </form>
                     </c:if>
+
+                    <c:if test="${canApprovePayroll && pendingApprovalCount > 0}">
+                        <form method="post" action="${pageContext.request.contextPath}/v1/employee/salary/approve-all" class="m-0">
+                            <input type="hidden" name="month" value="${selectedMonth}">
+                            <input type="hidden" name="year" value="${selectedYear}">
+                            <input type="hidden" name="departmentId" value="${selectedDepartmentId}">
+                            <button type="submit" class="btn-blue border-0" style="background:#16a34a;"
+                                    onclick="return confirm('Xác nhận duyệt toàn bộ ${pendingApprovalCount} bảng lương đang chờ HR duyệt trong kỳ lương Tháng ${selectedMonth}/${selectedYear}?');">
+                                <i class="fa-solid fa-check-double me-1"></i> Duyệt tất cả (${pendingApprovalCount})
+                            </button>
+                        </form>
+                    </c:if>
+
                     <c:if test="${canExportPayroll}">
-                    <a class="btn-blue" href="${pageContext.request.contextPath}/v1/employee/salary/export?month=${selectedMonth}&year=${selectedYear}&departmentId=${selectedDepartmentId}">
-                        <i class="fa-solid fa-file-export me-1"></i> Xuất bảng lương
-                    </a>
+                        <a class="btn-blue" href="${pageContext.request.contextPath}/v1/employee/salary/export?month=${selectedMonth}&year=${selectedYear}&departmentId=${selectedDepartmentId}">
+                            <i class="fa-solid fa-file-export me-1"></i> Xuất bảng lương
+                        </a>
                     </c:if>
                 </div>
             </div>
@@ -426,45 +439,45 @@
                                                 </tr>
                                             </c:when>
                                             <c:otherwise>
-                                        <c:set var="earning" value="${row.payroll.bonus + row.payroll.overtimePay + row.payroll.allowance}" />
-                                        <c:set var="deduction" value="${row.payroll.insuranceDeduction + row.payroll.personalIncomeTax + row.payroll.penalty}" />
-                                        <tr>
-                                            <td>${st.index + 1}</td>
-                                            <td>
-                                                <span class="employee-name"><c:out value="${row.fullName}" /></span>
-                                                <span class="employee-code"><c:out value="${row.employeeCode}" /></span>
-                                            </td>
-                                            <td><c:out value="${row.departmentName}" /></td>
-                                            <td class="money"><fmt:formatNumber value="${row.payroll.baseSalary}" type="number" groupingUsed="true" />đ</td>
-                                            <td class="money money-green">+<fmt:formatNumber value="${earning}" type="number" groupingUsed="true" />đ</td>
-                                            <td class="money money-red">-<fmt:formatNumber value="${deduction}" type="number" groupingUsed="true" />đ</td>
-                                            <td class="money money-net"><fmt:formatNumber value="${row.payroll.netSalary}" type="number" groupingUsed="true" />đ</td>
-                                            <td>
-                                                <c:choose>
-                                                    <c:when test="${row.payroll.status == 3}">
-                                                        <span class="status-badge status-paid">HR đã duyệt</span>
-                                                    </c:when>
-                                                    <c:when test="${row.payroll.status == 1}">
-                                                        <span class="status-badge status-approved">Chờ HR duyệt</span>
-                                                    </c:when>
-                                                    <c:when test="${row.payroll.status == 2}">
-                                                        <span class="status-badge status-pending">Đã báo sai thông tin</span>
-                                                    </c:when>
-                                                    <c:when test="${row.payroll.status == 4}">
-                                                        <span class="status-badge status-pending">HR chưa duyệt</span>
-                                                    </c:when>
-                                                    <c:otherwise>
-                                                        <span class="status-badge status-pending">Chờ xác nhận</span>
-                                                    </c:otherwise>
-                                                </c:choose>
-                                            </td>
-                                            <td>
-                                                <a class="btn btn-sm btn-outline-primary"
-                                                   href="${pageContext.request.contextPath}/v1/employee/salary/detail?id=${row.payroll.payrollId}">
-                                                    <i class="fa-solid fa-eye me-1"></i> Xem
-                                                </a>
-                                            </td>
-                                        </tr>
+                                                <c:set var="earning" value="${row.payroll.bonus + row.payroll.overtimePay + row.payroll.allowance}" />
+                                                <c:set var="deduction" value="${row.payroll.insuranceDeduction + row.payroll.personalIncomeTax + row.payroll.penalty}" />
+                                                <tr>
+                                                    <td>${st.index + 1}</td>
+                                                    <td>
+                                                        <span class="employee-name"><c:out value="${row.fullName}" /></span>
+                                                        <span class="employee-code"><c:out value="${row.employeeCode}" /></span>
+                                                    </td>
+                                                    <td><c:out value="${row.departmentName}" /></td>
+                                                    <td class="money"><fmt:formatNumber value="${row.payroll.baseSalary}" type="number" groupingUsed="true" />đ</td>
+                                                    <td class="money money-green">+<fmt:formatNumber value="${earning}" type="number" groupingUsed="true" />đ</td>
+                                                    <td class="money money-red">-<fmt:formatNumber value="${deduction}" type="number" groupingUsed="true" />đ</td>
+                                                    <td class="money money-net"><fmt:formatNumber value="${row.payroll.netSalary}" type="number" groupingUsed="true" />đ</td>
+                                                    <td>
+                                                        <c:choose>
+                                                            <c:when test="${row.payroll.status == 3}">
+                                                                <span class="status-badge status-paid">HR đã duyệt</span>
+                                                            </c:when>
+                                                            <c:when test="${row.payroll.status == 1}">
+                                                                <span class="status-badge status-approved">Chờ HR duyệt</span>
+                                                            </c:when>
+                                                            <c:when test="${row.payroll.status == 2}">
+                                                                <span class="status-badge status-pending">Đã báo sai thông tin</span>
+                                                            </c:when>
+                                                            <c:when test="${row.payroll.status == 4}">
+                                                                <span class="status-badge status-pending">HR chưa duyệt</span>
+                                                            </c:when>
+                                                            <c:otherwise>
+                                                                <span class="status-badge status-pending">Chờ xác nhận</span>
+                                                            </c:otherwise>
+                                                        </c:choose>
+                                                    </td>
+                                                    <td>
+                                                        <a class="btn btn-sm btn-outline-primary"
+                                                           href="${pageContext.request.contextPath}/v1/employee/salary/detail?id=${row.payroll.payrollId}">
+                                                            <i class="fa-solid fa-eye me-1"></i> Xem
+                                                        </a>
+                                                    </td>
+                                                </tr>
                                             </c:otherwise>
                                         </c:choose>
                                     </c:forEach>
