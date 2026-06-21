@@ -218,10 +218,10 @@
                                     <td>
                                         <c:choose>
                                             <c:when test="${r.isActive == 1}">
-                                                <span class="badge-active"></i>Hoạt động</span>
+                                                <span class="badge-active">Hoạt động</span>
                                             </c:when>
                                             <c:otherwise>
-                                                <span class="badge-inactive"></i>Vô hiệu</span>
+                                                <span class="badge-inactive">Vô hiệu</span>
                                             </c:otherwise>
                                         </c:choose>
                                     </td>

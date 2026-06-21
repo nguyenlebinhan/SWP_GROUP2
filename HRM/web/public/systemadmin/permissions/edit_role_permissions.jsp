@@ -189,7 +189,7 @@
         <c:when test="${empty selectedRole}">
             <div class="alert alert-warning">
                 <i class="fa fa-exclamation-triangle me-2"></i>Không tìm thấy thông tin vai trò.
-            </div>
+            </div> 
             <a href="${pageContext.request.contextPath}/v1/systemadmin/role-list" class="btn-cancel-link">
                 <i class="fa fa-arrow-left me-2"></i>Quay lại danh sách
             </a>
@@ -266,9 +266,7 @@
                         <div class="group-title">Vai trò &amp; Nhân viên</div>
                         <div class="row g-3 mb-2">
                             <c:forEach var="p" items="${allPermissions}">
-                                <c:if test="${p.permissionCode == 'VIEW_EMPLOYEES' || p.permissionCode == 'ADD_EMPLOYEE' || p.permissionCode == 'EDIT_EMPLOYEE' || p.permissionCode == 'VIEW_DEPARTMENTS' || p.permissionCode == 'EDIT_DEPARTMENTS' || p.permissionCode == 'ASSIGN_DEPARTMENT' || p.permissionCode == 'VIEW_DEPARTMENT_EMPLOYEES_DETAIL' || p.permissionCode == 'UNASSIGN_DEPARTMENT' || p.permissionCode == 'VIEW_ATTENDANCE' || p.permissionCode == 'IMPORT_ATTENDANCE' || p.permissionCode == 'EDIT_ATTENDANCE' }">
                                 <c:if test="${p.permissionCode == 'VIEW_EMPLOYEES' || p.permissionCode == 'ADD_EMPLOYEE' || p.permissionCode == 'EDIT_EMPLOYEE' || p.permissionCode == 'ADD_EMPLOYMENT_CONTRACT' || p.permissionCode == 'VIEW_DEPARTMENTS' || p.permissionCode == 'EDIT_DEPARTMENTS' || p.permissionCode == 'ASSIGN_DEPARTMENT' || p.permissionCode == 'VIEW_DEPARTMENT_EMPLOYEES_DETAIL' || p.permissionCode == 'UNASSIGN_DEPARTMENT' || p.permissionCode == 'IMPORT_ATTENDANCE' || p.permissionCode =='EDIT_ATTENDANCE' || p.permissionCode =='VIEW_DEPARTMENT_ATTENDANCE' || p.permissionCode == 'VIEW_ALL_ATTENDANCE'}">
- 0021fc6ff7304a895cc73b7348b2d1b0141ab945:HRM/web/public/systemadmin/permissions/edit_role_permissions.jsp
                                     <div class="col-md-3">
                                         <label class="perm-card ${assignedPermissionIds.contains(p.permissionId) ? 'selected' : ''}">
                                             <input type="checkbox" name="permissionIds" value="${p.permissionId}" ${assignedPermissionIds.contains(p.permissionId) ? 'checked' : ''}/>
