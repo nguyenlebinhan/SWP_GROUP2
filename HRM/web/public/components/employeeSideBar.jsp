@@ -98,6 +98,11 @@
     </c:if>
 
     <div class="nav-section">Chấm công</div>
+    <c:if test="${sessionScope.userPermissions.contains('VIEW_ALL_ATTENDANCE')}">
+        <a href="${pageContext.request.contextPath}/v1/employee/attendance/overview">
+            Tổng quan chấm công
+        </a>
+    </c:if>
     <c:if test="${sessionScope.userPermissions.contains('VIEW_ATTENDANCE')}">
         <a href="${pageContext.request.contextPath}/v1/employee/attendance/list">
             Xem chấm công

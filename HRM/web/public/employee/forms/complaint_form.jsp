@@ -61,6 +61,24 @@
         <form method="post" action="${pageContext.request.contextPath}/v1/employee/forms/complaint/submit"
               enctype="multipart/form-data">
             <div class="row g-3">
+                
+                <div class="col-md-4">
+                    <label class="form-label fw-semibold">Ngày làm việc <span class="text-danger">*</span></label>
+                    <input type="date" id="startDate" name="startDate" class="form-control" required
+                           value="${param.startDate}">
+                </div>
+
+                <div class="col-md-4">
+                    <label class="form-label fw-semibold">Giờ vào (Thực tế) <span class="text-danger">*</span></label>
+                    <input type="time" id="startTime" name="startTime" class="form-control" required
+                           value="${param.startTime}">
+                </div>
+
+                <div class="col-md-4">
+                    <label class="form-label fw-semibold">Giờ ra (Thực tế) <span class="text-danger">*</span></label>
+                    <input type="time" id="endTime" name="endTime" class="form-control" required
+                           value="${param.endTime}">
+                </div>
 
                 <div class="col-md-12">
                     <label class="form-label fw-semibold">Nội dung khiếu nại <span class="text-danger">*</span></label>

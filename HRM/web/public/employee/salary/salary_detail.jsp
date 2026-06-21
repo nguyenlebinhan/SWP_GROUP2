@@ -219,7 +219,7 @@
                                 <thead><tr><th>Khoản mục</th><th>Ghi chú</th><th class="text-end">Số tiền</th></tr></thead>
                                 <tbody>
                                     <tr>
-                                        <td>Gi?m tr? c� nh�n</td>
+                                        <td>Giảm trừ cá nhân</td>
                                         <td class="text-muted">Khoản này chỉ dùng để tính thuế TNCN.</td>
                                         <td class="text-end fw-bold text-primary"><fmt:formatNumber value="${personalAllowance}" type="number" groupingUsed="true" />đ</td>
                                     </tr>
