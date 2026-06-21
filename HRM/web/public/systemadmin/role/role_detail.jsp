@@ -380,8 +380,6 @@
                                         </c:if>
                                     </c:forEach>
                                 </div>
-                            </c:if>
-
                             <c:if test="${isSystemAdmin || !isSpecialRole}">
                                 <div class="perm-group-title"><i class="fa fa-shield-halved"></i> Nhân viên &amp; Phân quyền</div>
                                 <div class="row g-2 mb-1">
@@ -399,9 +397,10 @@
                                                             </c:otherwise>
                                                         </c:choose>
                                                         <c:out value="${p.permissionName}"/>
-                                                    </div>
                                                     <span class="perm-tile-code"><c:out value="${p.permissionCode}"/></span>
                                                     <div class="perm-tile-desc"><c:out value="${empty p.description ? '—' : p.description}"/></div>
+                                    <c:if test="${p.permissionCode == 'VIEW_EMPLOYEES' || p.permissionCode == 'ADD_EMPLOYEE' || p.permissionCode == 'EDIT_EMPLOYEE' || p.permissionCode == 'ADD_EMPLOYMENT_CONTRACT' || p.permissionCode == 'VIEW_DEPARTMENTS' || p.permissionCode == 'EDIT_DEPARTMENTS' || p.permissionCode == 'ASSIGN_DEPARTMENT' || p.permissionCode == 'VIEW_DEPARTMENT_EMPLOYEES_DETAIL' || p.permissionCode == 'UNASSIGN_DEPARTMENT' || p.permissionCode == 'IMPORT_ATTENDANCE' || p.permissionCode =='EDIT_ATTENDANCE' ||  p.permissionCode =='VIEW_DEPARTMENT_ATTENDANCE' || p.permissionCode == 'VIEW_ALL_ATTENDANCE'}">
+ 0021fc6ff7304a895cc73b7348b2d1b0141ab945:HRM/web/public/systemadmin/role/role_detail.jsp
                                                 </div>
                                             </div>
                                         </c:if>

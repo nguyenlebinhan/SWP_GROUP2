@@ -227,6 +227,7 @@ public class DBInitializer {
                 + "positionId INT NOT NULL,"
                 + "importFileId INT,"
                 + "status TINYINT DEFAULT 0," // 0: Đang xét, 1: Phỏng vấn, 2: Thử việc, 3: Đậu, 4: Trượt
+                + "status TINYINT DEFAULT 0," // 0: Đang xét, 1: Phỏng vấn, 2: Thử việc, 3: Đậu, 4: Trượt
                 + "createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,"
                 + "updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,"
                 + "FOREIGN KEY (departmentId) REFERENCES Departments(departmentId),"
@@ -435,6 +436,19 @@ public class DBInitializer {
         execute(conn, SQL, "CREATE ATTENDANCE_ADJUSTMENT_HISTORY TABLE SUCCESSFULLY");
     }
 
+    // Ngày lễ cấu hình động: một dòng = một khoảng lễ (startDate..endDate).
+    public void createTableHoliday(Connection conn) {
+        String SQL = "CREATE TABLE Holiday("
+                + "holidayId INT PRIMARY KEY AUTO_INCREMENT,"
+                + "holidayName NVARCHAR(255) NOT NULL,"
+                + "startDate DATE NOT NULL,"
+                + "endDate DATE NOT NULL,"
+                + "isActive TINYINT(1) NOT NULL DEFAULT 1,"
+                + "INDEX idx_holiday_range (startDate, endDate)"
+                + ")";
+        execute(conn, SQL, "CREATE HOLIDAY TABLE SUCCESSFULLY");
+    }
+
     // ==================== LƯƠNG & ĐÁNH GIÁ ====================
     public void createTablePayroll(Connection conn) {
         String SQL = "CREATE TABLE Payroll("
@@ -532,6 +546,7 @@ public class DBInitializer {
                 "Attendance_Adjustment_History",
                 "Attendance_Import_Rows",
                 "Attendance",
+                "Holiday",
                 "Application_Stage_Logs",
                 "Candidates",
                 "Uploaded_Files",
@@ -575,6 +590,7 @@ public class DBInitializer {
                 "Attendance",
                 "Attendance_Import_Rows",
                 "Attendance_Adjustment_History",
+                "Holiday",
                 "Payroll",
                 "Performance",
                 "Notifications",
@@ -602,82 +618,56 @@ public class DBInitializer {
                             break;
                         case "Permissions":
                             createTablePermissions(conn);
-                            break;
                         case "Role_Permissions":
                             createTableRolePermissions(conn);
-                            break;
                         case "Email_Templates":
                             createTableEmailTemplates(conn);
-                            break;
                         case "Positions":
                             createTablePosition(conn);
-                            break;
                         case "Departments":
                             createTableDepartments(conn);
-                            break;
                         case "Department_Roles":
                             createTableDepartmentRoles(conn);
-                            break;
                         case "Users":
                             createTableUsers(conn);
-                            break;
                         case "Employees":
                             createTableEmployees(conn);
-                            break;
                         case "Employment_Contracts":
                             createTableEmploymentContracts(conn);
-                            break;
                         case "Contract_Audit_Log":
                             createTableContractAuditLog(conn);
-                            break;
                         case "Uploaded_Files":
                             createTableUploadedFiles(conn);
-                            break;
                         case "Candidates":
                             createTableCandidates(conn);
-                            break;
                         case "Application_Stage_Logs":
                             createTableApplicationStageLogs(conn);
-                            break;
                         case "Form_Types":
                             createTableFormTypes(conn);
-                            break;
                         case "Form_Requests":
                             createTableFormRequests(conn);
-                            break;
                         case "Overtime_Details":
                             createTableOvertimeDetails(conn);
-                            break;
                         case "Overtime_Assignees":
                             createTableOvertimeAssignees(conn);
-                            break;
                         case "Leave_Form":
                             createTableLeaveForm(conn);
-                            break;
                         case "Attendance":
                             createTableAttendance(conn);
-                            break;
                         case "Attendance_Import_Rows":
                             createTableAttendanceImportRows(conn);
-                            break;
                         case "Attendance_Adjustment_History":
                             createTableAttendanceAdjustmentHistory(conn);
-                            break;
                         case "Payroll":
                             createTablePayroll(conn);
-                            break;
                         case "Performance":
                             createTablePerformance(conn);
-                            break;
                         case "Notifications":
                             createTableNotifications(conn);
-                            break;
                         case "Audit_Logs":
                             createTableAuditLogs(conn);
-                            break;
                         default:
                             LOGGER.log(Level.WARNING, "Unknown table: {0}", table);
-                            break;
                     }
                 }
             }
@@ -735,7 +725,18 @@ public class DBInitializer {
                 insertPermission(conn, "VIEW_CONTRACT_PREVIEW", "Xem hợp đồng", "Quyền xem hợp đồng hiện tại và lịch sử hợp đồng");
                 insertPermission(conn, "PERM_APPROVE_CONTRACT", "Duyệt hợp đồng", "Quyền duyệt hợp đồng lao động");
                 insertPermission(conn, "PERM_VIEW_ALL_CONTRACTS", "Xem toàn bộ hợp đồng", "Quyền xem toàn bộ lịch sử hợp đồng");
-
+                insertPermission(conn, "EDIT_DEPARTMENTS", "Chỉnh sửa phòng ban", "Quyền chỉnh sửa phòng ban ");
+                insertPermission(conn, "ASSIGN_DEPARTMENT", "Gán nhân viên vào phòng ban", "Quyền gán nhân viên vào phòng ban");
+                insertPermission(conn, "UNASSIGN_DEPARTMENT", "Xóa gán phòng ban nhân viên", "Quyền xóa gán nhân viên sang phòng ban khác");
+                insertPermission(conn, "ADD_DEPARTMENT", "Thêm phòng ban", "Quyền thêm phòng ban");
+                insertPermission(conn, "VIEW_DEPARTMENT_ATTENDANCE", "Xem chấm công phòng ban", "Quyền xem dashboard chấm công của phòng ban mình quản lý (Manager)");
+                insertPermission(conn, "VIEW_ALL_ATTENDANCE", "Xem toàn bộ chấm công", "Quyền xem dashboard chấm công của tất cả phòng ban trong toàn công ty (HR)");
+                insertPermission(conn, "IMPORT_ATTENDANCE", "Import chấm công", "Quyền import dữ liệu chấm công từ file Excel");
+                insertPermission(conn, "EDIT_ATTENDANCE", "Chỉnh sửa chấm công", "Quyền chỉnh sửa trạng thái chấm công khi kỳ chấm công chưa công khai");
+                insertPermission(conn, "VIEW_DEPARTMENT_EMPLOYEES_DETAIL", "Xem danh sách nhân viên của phòng ban khác", "Quyền xem dữ liệu nhân viên của phòng ban khác");
+                insertPermission(conn, "VIEW_ALL_FORMS", "Xem tất cả đơn", "Quyền xem toàn bộ đơn yêu cầu của mọi phòng ban (chỉ HR)");
+                insertPermission(conn, "VIEW_ALL_DEPT_FORMS", "Xem tất cả đơn của phòng ban", "Quyền xem toàn bộ đơn yêu cầu của một phòng ban cụ thể");
+                insertPermission(conn, "PROCESS_RECRUITMENT", "Xử lý tuyển dụng", "Quyền import, duyệt và gửi thông báo kết quả tuyển dụng");
             }
 
             if (countRows(conn, "Positions") == 0) {
@@ -811,6 +812,7 @@ public class DBInitializer {
             if (countRows(conn, "Form_Types") == 0) {
                 insertFormType(conn, "LEAVE", "Nghỉ phép");
                 insertFormType(conn, "COMPLAINT", "Khiếu nại");
+                insertFormType(conn, "OVERTIME", "Tăng ca");
             }
 
             if (countRows(conn, "Role_Permissions") == 0) {
