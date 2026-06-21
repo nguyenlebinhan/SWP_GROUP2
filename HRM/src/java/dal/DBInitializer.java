@@ -168,7 +168,7 @@ public class DBInitializer {
     }
 
     public void createTableEmploymentContracts(Connection conn) {
-        String SQL = "CREATE TABLE Employment_Contracts("
+        String SQL = "CREATE TABLE Employment_Contracts("   
                 + "contractId INT PRIMARY KEY AUTO_INCREMENT,"
                 + "contractCode VARCHAR(50) NOT NULL UNIQUE,"
                 + "employeeId INT NOT NULL,"
@@ -280,8 +280,10 @@ public class DBInitializer {
                 + "reason NVARCHAR(500),"
                 + "startDate DATE NULL,"
                 + "endDate DATE NULL,"
-                + "totalDays DECIMAL(4,1) NULL,"
-                + "usedDays DECIMAL(4,1) DEFAULT 0,"
+                + "startTime TIME NULL,"
+                + "endTime TIME NULL,"
+                + "totalDays INT NULL,"
+                + "usedDays INT DEFAULT 0,"
                 + "status TINYINT DEFAULT 0,"
                 + "approverId INT,"
                 + "approverNote NVARCHAR(255),"
@@ -320,25 +322,17 @@ public class DBInitializer {
         execute(conn, SQL, "CREATE OVERTIME_ASSIGNEES TABLE SUCCESSFULLY");
     }
 
-    //cache để giúp tính toán số ngày còn lại nhanh hơn
-    public void createTableLeaveForm(Connection conn) {
-        String SQL = "CREATE TABLE Leave_Form("
-                + "leaveId INT PRIMARY KEY AUTO_INCREMENT,"
+    public void createTableLeaveBalances(Connection conn) {
+        String SQL = "CREATE TABLE Leave_Balances("
+                + "balanceId INT PRIMARY KEY AUTO_INCREMENT,"
                 + "employeeId INT NOT NULL,"
-                + "formTypeId INT NOT NULL,"
-                + "formId INT NOT NULL,"
-                + "effectiveDate DATE NOT NULL,"
-                + "endDate DATE NOT NULL,"
-                + "totalDays DECIMAL(4,1) NOT NULL,"
-                + "usedDays DECIMAL(4,1) DEFAULT 0,"
-                + "createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,"
-                + "updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,"
-                + "UNIQUE KEY uq_balance (employeeId, leaveId, formTypeId),"
-                + "FOREIGN KEY (employeeId) REFERENCES Employees(employeeId),"
-                + "FOREIGN KEY (formId) REFERENCES Form_Requests(formId),"
-                + "FOREIGN KEY (formTypeId) REFERENCES Form_Types(formTypeId)"
+                + "year INT NOT NULL,"
+                + "totalAllowed INT DEFAULT 12,"
+                + "usedDays INT DEFAULT 0,"
+                + "UNIQUE KEY uq_balance (employeeId, year),"
+                + "FOREIGN KEY (employeeId) REFERENCES Employees(employeeId)"
                 + ")";
-        execute(conn, SQL, "CREATE LEAVE_BALANCE TABLE SUCCESSFULLY");
+        execute(conn, SQL, "CREATE LEAVE_BALANCES TABLE SUCCESSFULLY");
     }
     // ==================== CHẤM CÔNG ====================
 
@@ -550,7 +544,7 @@ public class DBInitializer {
                 "Application_Stage_Logs",
                 "Candidates",
                 "Uploaded_Files",
-                "Leave_Form",
+                "Leave_Balances",
                 "Overtime_Assignees",
                 "Overtime_Details",
                 "Form_Requests",
@@ -586,7 +580,7 @@ public class DBInitializer {
                 "Form_Requests",
                 "Overtime_Details",
                 "Overtime_Assignees",
-                "Leave_Form",
+                "Leave_Balances",
                 "Attendance",
                 "Attendance_Import_Rows",
                 "Attendance_Adjustment_History",
@@ -613,61 +607,33 @@ public class DBInitializer {
             for (String table : createOrder) {
                 if (enforceReset || !tableExists(conn, table)) {
                     switch (table) {
-                        case "Roles":
-                            createTableRoles(conn);
-                            break;
-                        case "Permissions":
-                            createTablePermissions(conn);
-                        case "Role_Permissions":
-                            createTableRolePermissions(conn);
-                        case "Email_Templates":
-                            createTableEmailTemplates(conn);
-                        case "Positions":
-                            createTablePosition(conn);
-                        case "Departments":
-                            createTableDepartments(conn);
-                        case "Department_Roles":
-                            createTableDepartmentRoles(conn);
-                        case "Users":
-                            createTableUsers(conn);
-                        case "Employees":
-                            createTableEmployees(conn);
-                        case "Employment_Contracts":
-                            createTableEmploymentContracts(conn);
-                        case "Contract_Audit_Log":
-                            createTableContractAuditLog(conn);
-                        case "Uploaded_Files":
-                            createTableUploadedFiles(conn);
-                        case "Candidates":
-                            createTableCandidates(conn);
-                        case "Application_Stage_Logs":
-                            createTableApplicationStageLogs(conn);
-                        case "Form_Types":
-                            createTableFormTypes(conn);
-                        case "Form_Requests":
-                            createTableFormRequests(conn);
-                        case "Overtime_Details":
-                            createTableOvertimeDetails(conn);
-                        case "Overtime_Assignees":
-                            createTableOvertimeAssignees(conn);
-                        case "Leave_Form":
-                            createTableLeaveForm(conn);
-                        case "Attendance":
-                            createTableAttendance(conn);
-                        case "Attendance_Import_Rows":
-                            createTableAttendanceImportRows(conn);
-                        case "Attendance_Adjustment_History":
-                            createTableAttendanceAdjustmentHistory(conn);
-                        case "Payroll":
-                            createTablePayroll(conn);
-                        case "Performance":
-                            createTablePerformance(conn);
-                        case "Notifications":
-                            createTableNotifications(conn);
-                        case "Audit_Logs":
-                            createTableAuditLogs(conn);
-                        default:
-                            LOGGER.log(Level.WARNING, "Unknown table: {0}", table);
+                        case "Roles":             createTableRoles(conn);             break;
+                        case "Permissions":       createTablePermissions(conn);       break;
+                        case "Role_Permissions":  createTableRolePermissions(conn);   break;
+                        case "Email_Templates":   createTableEmailTemplates(conn);    break;
+                        case "Positions":         createTablePosition(conn);          break;
+                        case "Departments":       createTableDepartments(conn);       break;
+                        case "Department_Roles":  createTableDepartmentRoles(conn);   break;
+                        case "Users":             createTableUsers(conn);             break;
+                        case "Employees":         createTableEmployees(conn);         break;
+                        case "Employment_Contracts": createTableEmploymentContracts(conn); break;
+                        case "Uploaded_Files":    createTableUploadedFiles(conn);     break;
+                        case "Candidates":        createTableCandidates(conn);        break;
+                        case "Application_Stage_Logs": createTableApplicationStageLogs(conn); break;
+                        case "Form_Types":       createTableFormTypes(conn);         break;
+                        case "Form_Requests":    createTableFormRequests(conn);     break;
+                        case "Overtime_Details": createTableOvertimeDetails(conn);  break;
+                        case "Overtime_Assignees": createTableOvertimeAssignees(conn); break;
+                        case "Leave_Balances":     createTableLeaveBalances(conn);      break;
+                        case "Attendance":        createTableAttendance(conn);        break;
+                        case "Attendance_Import_Rows":        createTableAttendanceImportRows(conn);        break;
+                        case "Attendance_Adjustment_History": createTableAttendanceAdjustmentHistory(conn); break;
+                        case "Holiday":           createTableHoliday(conn);           break;
+                        case "Payroll":           createTablePayroll(conn);           break;
+                        case "Performance":       createTablePerformance(conn);       break;
+                        case "Notifications":     createTableNotifications(conn);     break;
+                        case "Audit_Logs":        createTableAuditLogs(conn);         break;
+                        default: LOGGER.log(Level.WARNING,"Unknown table: {0}", table);     break;
                     }
                 }
             }

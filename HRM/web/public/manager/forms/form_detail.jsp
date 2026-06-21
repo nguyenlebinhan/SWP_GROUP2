@@ -129,13 +129,33 @@
 
                 <c:if test="${form.formTypeCode eq 'LEAVE'}">
                     <div class="row mt-3">
-                        <div class="col-md-6">
+                        <div class="col-md-4">
                             <div class="info-label">Ngày bắt đầu</div>
                             <div class="info-value"><fmt:formatDate value="${form.startDate}" pattern="dd/MM/yyyy" /></div>
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-md-4">
                             <div class="info-label">Ngày kết thúc</div>
                             <div class="info-value"><fmt:formatDate value="${form.endDate}" pattern="dd/MM/yyyy" /></div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="info-label">Số ngày muốn nghỉ</div>
+                            <div class="info-value">${form.totalDays} ngày</div>
+                        </div>
+                    </div>
+                </c:if>
+                <c:if test="${form.formTypeCode eq 'COMPLAINT'}">
+                    <div class="row mt-3">
+                        <div class="col-md-4">
+                            <div class="info-label">Ngày làm việc thực tế</div>
+                            <div class="info-value"><fmt:formatDate value="${form.startDate}" pattern="dd/MM/yyyy" /></div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="info-label">Giờ bắt đầu thực tế</div>
+                            <div class="info-value"><fmt:formatDate value="${form.startTime}" pattern="HH:mm" /></div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="info-label">Giờ kết thúc thực tế</div>
+                            <div class="info-value"><fmt:formatDate value="${form.endTime}" pattern="HH:mm" /></div>
                         </div>
                     </div>
                 </c:if>
