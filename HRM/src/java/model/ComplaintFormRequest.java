@@ -1,10 +1,22 @@
 package model;
 
+import java.sql.Date;
+import java.sql.Time;
+
 /**
  * Model dành riêng cho Đơn Khiếu Nại.
- * Kế thừa FormRequest, hiện tại không có trường bổ sung.
- * Tồn tại để phân biệt rõ loại đơn và dễ mở rộng sau này.
  */
 public class ComplaintFormRequest extends FormRequest {
-    // Có thể bổ sung trường riêng sau (vd: complaintCategory, targetEmployeeId...)
+    private Date startDate;
+    private Time startTime;
+    private Time endTime;
+
+    public Date getStartDate() { return startDate; }
+    public void setStartDate(Date startDate) { this.startDate = startDate; }
+
+    public Time getStartTime() { return startTime; }
+    public void setStartTime(Time startTime) { this.startTime = startTime; }
+
+    public Time getEndTime() { return endTime; }
+    public void setEndTime(Time endTime) { this.endTime = endTime; }
 }
