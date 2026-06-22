@@ -18,7 +18,6 @@ public class CandidateDAO {
         this.dbContext = new DBContext();
     }
 
-    // ==================== MAPPING ====================
     private Candidate mapCandidate(ResultSet rs) throws SQLException {
         Candidate c = new Candidate();
         c.setCandidateId(rs.getInt("candidateId"));
@@ -72,7 +71,7 @@ public class CandidateDAO {
             + "JOIN Departments d ON c.departmentId = d.departmentId "
             + "JOIN Positions p ON c.positionId = p.positionId ";
 
-    // ==================== CANDIDATE READ ====================
+    
     public List<Candidate> getByStage(String stage) {
         List<Candidate> list = new ArrayList<>();
         String sql = BASE_SELECT + "WHERE c.stage = ? ORDER BY c.createdAt DESC";
@@ -123,7 +122,6 @@ public class CandidateDAO {
         return list;
     }
 
-    // ==================== CANDIDATE WRITE ====================
     public int insert(Candidate c) {
         String sql = "INSERT INTO Candidates "
                 + "(candidateCode, fullName, email, phoneNumber, dateOfBirth, gender, "
@@ -255,8 +253,6 @@ public class CandidateDAO {
         return 0;
     }
 
-    // SENT → gọi tiếp updateStage()
-    // FAILED → báo lỗi cho HR, không đổi stage
     public boolean updateEmailStatus(int logId, String status) {
         String sql = "UPDATE Application_Stage_Logs "
                 + "SET emailStatus = ?, sentAt = ? WHERE logId = ?";

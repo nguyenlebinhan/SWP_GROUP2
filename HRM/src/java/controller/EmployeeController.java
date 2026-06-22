@@ -12,6 +12,7 @@ import dao.RoleDAO;
 import dao.UploadedFileDAO;
 import dao.UserDAO;
 import dao.LeaveBalanceDAO;
+import dao.OvertimeDAO;
 import dto.AttendanceDetailDTO;
 import dto.AttendanceImportResultDTO;
 import dto.AttendanceReportDTO;
@@ -31,6 +32,8 @@ import java.math.BigDecimal;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.sql.*;
 import java.sql.Date;
 import java.time.LocalDate;
@@ -79,6 +82,7 @@ public class EmployeeController extends HttpServlet {
     private final EmailService emailService = new EmailService();
     private final CandidateImportService candidateImportService = new CandidateImportService();
     private final PayrollService payrollService = new PayrollService();
+    private final OvertimeDAO overtimeDAO = new OvertimeDAO();
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
@@ -688,7 +692,7 @@ public class EmployeeController extends HttpServlet {
             return;
         }
         
-        java.util.List<Integer> approvedOTDays = new dao.OvertimeDAO().getApprovedOTDaysInMonth(employeeId, month, year);
+        List<Integer> approvedOTDays = overtimeDAO.getApprovedOTDaysInMonth(employeeId, month, year);
         request.setAttribute("approvedOTDays", approvedOTDays);
 
         int day = attParam(request, "day", 0);
@@ -840,7 +844,7 @@ public class EmployeeController extends HttpServlet {
         Set<String> perms = getPermissions(user);
         request.getSession().setAttribute("userPermissions", perms);
 
-        String backUrl = request.getContextPath() + "/v1/employee/attendance/list"
+        String backUrl = request.getContextPath() + "/v1/employee/attendance/detail"
                 + buildAttendanceFilterQuery(request);
 
         Integer attendanceId = parseIntOrNull(request.getParameter("id"));
@@ -854,6 +858,7 @@ public class EmployeeController extends HttpServlet {
         request.setAttribute("editLocked", isAttendanceEditLocked(attendance.getWorkDate()));
         request.setAttribute("adjustmentHistory", attendanceDAO.getAdjustmentHistory(attendanceId));
         request.setAttribute("backUrl", backUrl);
+        request.setAttribute("filterEmployeeId", trimToNull(request.getParameter("employeeId")));
         request.setAttribute("filterMonth", trimToNull(request.getParameter("month")));
         request.setAttribute("filterYear", trimToNull(request.getParameter("year")));
         request.setAttribute("filterDepartmentId", trimToNull(request.getParameter("departmentId")));
@@ -869,7 +874,7 @@ public class EmployeeController extends HttpServlet {
             return;
         }
 
-        String redirectUrl = request.getContextPath() + "/v1/employee/attendance/list"
+        String redirectUrl = request.getContextPath() + "/v1/employee/attendance/detail"
                 + buildAttendanceFilterQuery(request);
 
         Integer attendanceId = parseIntOrNull(request.getParameter("attendanceId"));
@@ -879,7 +884,6 @@ public class EmployeeController extends HttpServlet {
             return;
         }
 
-        // Mọi chỉnh sửa phải có lý do.
         String reason = trimToNull(request.getParameter("reason"));
         if (reason == null) {
             request.getSession().setAttribute("error", "Vui lêng nhập lý do chỉnh sửa chấm cóng.");
@@ -912,15 +916,11 @@ public class EmployeeController extends HttpServlet {
             return;
         }
 
-        // Kiểm tra thứ tự giờ trước khi suy trạng thái.
         if (timeIn != null && timeOut != null && timeOut.before(timeIn)) {
             request.getSession().setAttribute("error", "Giờ ra phải sau giờ vào.");
             response.sendRedirect(redirectUrl);
             return;
         }
-
-        // Trạng thái không còn do người dùng chọn: tự suy lại từ giờ vào/ra theo đúng
-        // logic import (PRESENT/LATE/ABSENT + ưu tiên HOLIDAY/WEEKEND/LEAVE).
         int status;
         try {
             status = importService.resolveStatus(attendance.getEmployeeId(),
@@ -931,10 +931,8 @@ public class EmployeeController extends HttpServlet {
             return;
         }
 
-        // Chỉ PRESENT(0) và LATE(1) có giờ làm; cón lại = 0 giờ.
         BigDecimal hoursWorked;
         if (timeIn != null && timeOut != null && (status == 0 || status == 1)) {
-            // Trừ giờ nghỉ trưa: làm đủ 08:00-17:00 -> 8 tiếng (không phải 9).
             hoursWorked = utils.WorkHoursCalculator.hoursWorked(timeIn, timeOut);
         } else {
             hoursWorked = BigDecimal.ZERO;
@@ -960,7 +958,7 @@ public class EmployeeController extends HttpServlet {
         request.getSession().setAttribute("userPermissions", perms);
 
         int month, year;
-        int departmentId = 0; // 0 = tất cả phòng ban (import gộp nhiều phòng trong 1 file)
+        int departmentId = 0; 
         try {
             month = Integer.parseInt(request.getParameter("month").trim());
             year = Integer.parseInt(request.getParameter("year").trim());
@@ -976,14 +974,10 @@ public class EmployeeController extends HttpServlet {
 
         if (month < 1 || month > 12) {
             request.setAttribute("error", "Vui lêng chọn thông hợp lệ (1-12).");
-            List<Department> activeDepartments = departmentDAO.getAllActiveDepartments();
-            request.setAttribute("departments", activeDepartments);
             request.getRequestDispatcher("/public/employee/attendance/attendance_import.jsp").forward(request, response);
         }
         if (year < 2000 || year > 2100) {
             request.setAttribute("error", "Vui lA?ng ch?n nam h?p l?");
-            List<Department> activeDepartments = departmentDAO.getAllActiveDepartments();
-            request.setAttribute("departments", activeDepartments);
             request.getRequestDispatcher("/public/employee/attendance/attendance_import.jsp").forward(request, response);
             return;
         }
@@ -991,8 +985,6 @@ public class EmployeeController extends HttpServlet {
         Part filePart = request.getPart(FILE_PART);
         if (filePart == null || filePart.getSize() == 0) {
             request.setAttribute("error", "Vui lêng chọn file Excel .xlsx để import.");
-            List<Department> activeDepartments = departmentDAO.getAllActiveDepartments();
-            request.setAttribute("departments", activeDepartments);
             request.getRequestDispatcher("/public/employee/attendance/attendance_import.jsp").forward(request, response);
             return;
         }
@@ -1000,8 +992,6 @@ public class EmployeeController extends HttpServlet {
         String submittedName = filePart.getSubmittedFileName();
         if (submittedName == null || !submittedName.toLowerCase().endsWith(".xlsx")) {
             request.setAttribute("error", "File phải có định dạng .xlsx");
-            List<Department> activeDepartments = departmentDAO.getAllActiveDepartments();
-            request.setAttribute("departments", activeDepartments);
             request.getRequestDispatcher("/public/employee/attendance/attendance_import.jsp").forward(request, response);
             return;
         }
@@ -1009,8 +999,6 @@ public class EmployeeController extends HttpServlet {
         String contentType = filePart.getContentType();
         if (contentType != null && !isAcceptableXlsxContentType(contentType)) {
             request.setAttribute("error", "Loại file không hợp lệ. Yeaua cầu file excel .xlsx ");
-            List<Department> activeDepartments = departmentDAO.getAllActiveDepartments();
-            request.setAttribute("departments", activeDepartments);
             request.getRequestDispatcher("/public/employee/attendance/attendance_import.jsp").forward(request, response);
             return;
         }
@@ -1033,8 +1021,6 @@ public class EmployeeController extends HttpServlet {
             }
         } catch (IOException e) {
             LOGGER.log(Level.SEVERE, "Cannot save uploaded attendance file", e);
-            List<Department> activeDepartments = departmentDAO.getAllActiveDepartments();
-            request.setAttribute("departments", activeDepartments);
             request.setAttribute("error", "Không thể lưu file lên mãy chủ. Vui lêng thử lại.");
             request.getRequestDispatcher("/public/employee/attendance/attendance_import.jsp").forward(request, response);
             return;
@@ -1052,8 +1038,6 @@ public class EmployeeController extends HttpServlet {
         int fileId = uploadedFileDAO.createUploadedFile(uf);
         if (fileId <= 0) {
             request.setAttribute("error", "Không thể tạo bản ghi file. Vui lêng thử lại.");
-            List<Department> activeDepartments = departmentDAO.getAllActiveDepartments();
-            request.setAttribute("departments", activeDepartments);
             request.getRequestDispatcher("/public/employee/attendance/attendance_import.jsp").forward(request, response);
             return;
         }
@@ -1066,8 +1050,6 @@ public class EmployeeController extends HttpServlet {
             uploadedFileDAO.updateImportResult(fileId, 0, 0, 0,
                     FileStatus.FILE_STATUS_FAILED.getRelatedNum(), "Không thể đọc lại file đã lưu.");
             request.setAttribute("error", "Không thể đọc file đã lưu để import.");
-            List<Department> activeDepartments = departmentDAO.getAllActiveDepartments();
-            request.setAttribute("departments", activeDepartments);
             request.getRequestDispatcher("/public/employee/attendance/attendance_import.jsp").forward(request, response);
             return;
         }
@@ -2373,6 +2355,7 @@ public class EmployeeController extends HttpServlet {
 
     private String buildAttendanceFilterQuery(HttpServletRequest request) {
         StringBuilder qs = new StringBuilder();
+        appendParamIfPresent(qs, request, "employeeId");
         appendParamIfPresent(qs, request, "month");
         appendParamIfPresent(qs, request, "year");
         appendParamIfPresent(qs, request, "departmentId");
@@ -2384,7 +2367,7 @@ public class EmployeeController extends HttpServlet {
         String value = trimToNull(request.getParameter(name));
         if (value != null) {
             qs.append(qs.length() == 0 ? '?' : '&').append(name).append('=')
-                    .append(java.net.URLEncoder.encode(value, java.nio.charset.StandardCharsets.UTF_8));
+                    .append(URLEncoder.encode(value, StandardCharsets.UTF_8));
         }
     }
 
