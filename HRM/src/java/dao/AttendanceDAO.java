@@ -19,6 +19,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import model.Attendance;
 import model.AttendanceAdjustment;
+import model.Department;
 import model.Position;
 
 /**
@@ -53,7 +54,7 @@ public class AttendanceDAO {
     }
 
     
-    public model.Department getEmployeeDepartment(int employeeId) {
+    public Department getEmployeeDepartment(int employeeId) {
         String SQL = "SELECT e.departmentId, d.departmentName "
                 + "FROM Employees e LEFT JOIN Departments d ON d.departmentId = e.departmentId "
                 + "WHERE e.employeeId = ?";
@@ -92,7 +93,7 @@ public class AttendanceDAO {
                     if (rs.wasNull() || posId <= 0) {
                         return null;
                     }
-                    model.Position pos = new model.Position();
+                    Position pos = new Position();
                     pos.setPositionId(posId);
                     pos.setPositionName(rs.getString("positionName"));
                     return pos;

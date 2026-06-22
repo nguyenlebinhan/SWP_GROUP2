@@ -19,7 +19,7 @@ public class AttendanceImportRowDAO {
 
     public int insertRow(Connection conn, int fileId, AttendanceDataDTO row) throws SQLException {
         String SQL = "INSERT INTO Attendance_Import_Rows "
-                + "(fileId, rowNumber, employeeCode, fullName,departmentName,position, workDate, timeIn, timeOut, attendanceStatus, note) "
+                + "(fileId, rowNumber, employeeCode, fullName,departmentName,positionName, workDate, timeIn, timeOut, attendanceStatus, note) "
                 + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         try (PreparedStatement ps = conn.prepareStatement(SQL, Statement.RETURN_GENERATED_KEYS)) {
             ps.setInt(1, fileId);

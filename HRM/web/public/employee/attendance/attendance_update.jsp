@@ -67,7 +67,8 @@
 
         <form method="post" action="${pageContext.request.contextPath}/v1/employee/attendance/update">
             <input type="hidden" name="attendanceId" value="${attendance.attendanceId}">
-            <%-- giữ lại bộ lọc để quay về đúng trang danh sách --%>
+            <%-- giữ lại bộ lọc để quay về đúng trang chi tiết --%>
+            <input type="hidden" name="employeeId" value="${filterEmployeeId}">
             <input type="hidden" name="month" value="${filterMonth}">
             <input type="hidden" name="year" value="${filterYear}">
             <input type="hidden" name="departmentId" value="${filterDepartmentId}">
@@ -104,7 +105,7 @@
                     </button>
                 </c:if>
                 <a href="${backUrl}" class="btn btn-secondary">
-                    <i class="fa-solid fa-arrow-left me-1"></i> Quay lại danh sách
+                    <i class="fa-solid fa-arrow-left me-1"></i> Quay lại chi tiết
                 </a>
             </div>
         </form>

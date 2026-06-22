@@ -43,8 +43,9 @@ COPY dist/HRM.war /usr/local/tomcat/webapps/ROOT.war
 #    Code đọc cấu hình qua ConfigManager: nó lấy key "db.url" rồi đổi thành
 #    biến môi trường tên "DB-URL" (viết hoa, thay '.' bằng '-').
 #    => Vì vậy tên biến phải là DB-URL / DB-USERNAME / DB-PASSWORD.
-#    Bạn có thể GHI ĐÈ các giá trị này khi chạy `docker run -e ...`
-#    hoặc trong docker-compose, KHÔNG nên hardcode mật khẩu thật ở đây.
+#    Bạn có thể GHI ĐÈ các giá trị này khi chạy `docker run -e ...`,
+#    trong docker-compose, hoặc bằng "Application settings" trên Azure.
+#    KHÔNG nên hardcode mật khẩu thật ở đây — đây chỉ là default cho local.
 # -----------------------------------------------------------------------------
 ENV DB-URL="jdbc:mysql://mysql:3306/hrm?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC"
 ENV DB-USERNAME="root"
@@ -54,6 +55,10 @@ ENV DB-PASSWORD="root"
 # 6) EXPOSE: khai báo container lắng nghe ở cổng 8080 (cổng mặc định Tomcat).
 #    Lưu ý: EXPOSE chỉ mang tính "tài liệu hoá", muốn truy cập từ ngoài
 #    vẫn phải map cổng khi chạy: `docker run -p 8080:8080 ...`
+#
+#    >>> AZURE App Service for Containers: mặc định Azure gửi request vào cổng
+#        80. Vì Tomcat nghe cổng 8080 nên BẮT BUỘC đặt app setting
+#        WEBSITES_PORT=8080 (xem AZURE-DEPLOY.md) để Azure route đúng cổng.
 # -----------------------------------------------------------------------------
 EXPOSE 8080
 
