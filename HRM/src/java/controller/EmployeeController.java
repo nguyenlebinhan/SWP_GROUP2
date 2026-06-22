@@ -462,6 +462,12 @@ public class EmployeeController extends HttpServlet {
         request.setAttribute("attendances", Paging.page(request, filtered));
         // Toàn bộ bản ghi trong tháng (dùng cho chế độ lịch)
         request.setAttribute("monthRows", monthRows);
+        
+        if (me != null) {
+            java.util.List<Integer> approvedOTDays = new dao.OvertimeDAO().getApprovedOTDaysInMonth(me.getEmployeeId(), month, year);
+            request.setAttribute("approvedOTDays", approvedOTDays);
+        }
+
         request.setAttribute("selectedMonth", month);
         request.setAttribute("selectedYear", year);
         request.setAttribute("selectedDay", day);
@@ -725,6 +731,10 @@ public class EmployeeController extends HttpServlet {
             request.getRequestDispatcher("/public/employee/attendance/attendance_detail.jsp").forward(request, response);
             return;
         }
+        
+        java.util.List<Integer> approvedOTDays = new dao.OvertimeDAO().getApprovedOTDaysInMonth(employeeId, month, year);
+        request.setAttribute("approvedOTDays", approvedOTDays);
+
         int day = attParam(request, "day", 0);
         List<Attendance> filtered = detail.getDailyRows();
         if (day >= 1 && day <= 31) {
