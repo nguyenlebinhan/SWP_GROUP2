@@ -1,5 +1,6 @@
 <%@ page contentType="text/html;charset=UTF-8" %>
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
+<%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
 <!DOCTYPE html>
 <html>
 <head>
@@ -13,15 +14,28 @@
         .stat { border-radius:12px; padding:14px 16px; text-align:center; }
         .stat .num { font-size:22px; font-weight:700; line-height:1; }
         .stat .lbl { font-size:12px; font-weight:600; margin-top:4px; }
-        .badge-s0,.st0 { background:#d1fae5; color:#065f46; }
-        .badge-s1,.st1 { background:#fef3c7; color:#92400e; }
-        .badge-s2,.st2 { background:#fee2e2; color:#991b1b; }
-        .badge-s3 { background:#e5e7eb; color:#374151; }
-        .badge-s4,.st4 { background:#dbeafe; color:#1e40af; }
-        .badge-s5,.st5 { background:#ede9fe; color:#5b21b6; }
-        .badge-s6,.st6 { background:#f3f4f6; color:#4b5563; }
+        .st0,.cl0 { background:#d1fae5; color:#065f46; }
+        .st1,.cl1 { background:#fef3c7; color:#92400e; }
+        .st2,.cl2 { background:#fee2e2; color:#991b1b; }
+        .cl3 { background:#e5e7eb; color:#374151; }
+        .st4,.cl4 { background:#dbeafe; color:#1e40af; }
+        .st5,.cl5 { background:#ede9fe; color:#5b21b6; }
+        .st6,.cl6 { background:#f3f4f6; color:#4b5563; }
         .stx { background:#eef2ff; color:#3730a3; }
-        .badge-st { padding:4px 10px; border-radius:20px; font-size:12px; font-weight:600; }
+
+        /* Calendar */
+        .cal-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:8px; }
+        .cal-dow { text-align:center; font-weight:600; color:#64748b; font-size:13px; padding:6px 0; }
+        .cal-cell { min-height:96px; border-radius:10px; border:1px solid #eef0f4; padding:8px; background:#fff; display:flex; flex-direction:column; }
+        .cal-cell.empty { background:transparent; border:none; }
+        .cal-cell.weekend { background:#fafafa; }
+        .cal-cell.today { border-color:#6366f1; box-shadow:0 0 0 2px rgba(99,102,241,.18); }
+        .cal-cell .d { font-size:13px; font-weight:700; color:#334155; }
+        .cal-cell.off-day .d { color:#cbd5e1; }
+        .cal-cell .st { margin-top:auto; font-size:11px; font-weight:600; padding:2px 8px; border-radius:10px; align-self:flex-start; }
+        .cal-cell .tm { margin-top:6px; font-size:11px; color:#475569; line-height:1.45; }
+        .cal-legend { display:flex; flex-wrap:wrap; gap:10px; }
+        .cal-legend span { font-size:12px; font-weight:600; padding:3px 10px; border-radius:10px; }
     </style>
 </head>
 <body>
@@ -54,20 +68,11 @@
         </div>
     </div>
 
-    <%-- Bộ lọc --%>
+    <%-- Bộ lọc tháng/năm --%>
     <div class="section-card">
         <form method="get" action="${pageContext.request.contextPath}/v1/employee/attendance/own-attendance"
               class="row g-3 align-items-end">
-            <div class="col-md-3">
-                <label class="form-label">Ngày</label>
-                <select name="day" class="form-select">
-                    <option value="0" ${selectedDay == 0 ? 'selected' : ''}>Tất cả ngày</option>
-                    <c:forEach var="d" begin="1" end="31">
-                        <option value="${d}" ${selectedDay == d ? 'selected' : ''}>Ngày ${d}</option>
-                    </c:forEach>
-                </select>
-            </div>
-            <div class="col-md-3">
+            <div class="col-md-4">
                 <label class="form-label">Tháng</label>
                 <select name="month" class="form-select">
                     <c:forEach var="m" begin="1" end="12">
@@ -75,7 +80,7 @@
                     </c:forEach>
                 </select>
             </div>
-            <div class="col-md-3">
+            <div class="col-md-4">
                 <label class="form-label">Năm</label>
                 <select name="year" class="form-select">
                     <c:forEach var="y" begin="2022" end="2030">
@@ -83,77 +88,94 @@
                     </c:forEach>
                 </select>
             </div>
-            <div class="col-md-3">
+            <div class="col-md-4">
                 <button type="submit" class="btn btn-primary w-100">
-                    <i class="fa-solid fa-magnifying-glass me-1"></i> Tìm kiếm
+                    <i class="fa-solid fa-magnifying-glass me-1"></i> Xem
                 </button>
             </div>
         </form>
     </div>
 
-    <%-- Bảng chi tiết --%>
+    <%-- Lịch chấm công --%>
     <div class="section-card">
-        <div class="d-flex justify-content-between align-items-center mb-2">
-            <span class="text-muted">Tổng ${totalItems} bản ghi</span>
+        <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+            <h5 class="mb-0"><i class="fa-regular fa-calendar me-2"></i>Lịch chấm công tháng ${selectedMonth}/${selectedYear}</h5>
+            <div class="cal-legend">
+                <span class="cl0">Đúng giờ</span>
+                <span class="cl1">Đi muộn</span>
+                <span class="cl4">Nghỉ phép</span>
+                <span class="cl2">Vắng mặt</span>
+                <span class="cl5">Nghỉ lễ</span>
+                <span class="cl6">Cuối tuần</span>
+            </div>
         </div>
-        <div class="table-responsive">
-            <table class="table table-hover align-middle">
-                <thead class="table-light">
-                    <tr>
-                        <th>Ngày</th>
-                        <th>Giờ vào</th>
-                        <th>Giờ ra</th>
-                        <th>Số giờ</th>
-                        <th>Trạng thái</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <c:choose>
-                        <c:when test="${empty attendances}">
-                            <tr><td colspan="5" class="text-center text-muted py-4">Không có dữ liệu chấm công.</td></tr>
-                        </c:when>
-                        <c:otherwise>
-                            <c:forEach var="a" items="${attendances}">
-                                <tr>
-                                    <td>${a.workDate}</td>
-                                    <td>${a.timeIn}</td>
-                                    <td>${a.timeOut}</td>
-                                    <td>${a.hoursWorkedLabel}</td>
-                                    <td><span class="badge-st badge-s${a.attendanceStatus}">${a.statusLabel}</span></td>
-                                </tr>
-                            </c:forEach>
-                        </c:otherwise>
-                    </c:choose>
-                </tbody>
-            </table>
+        <div class="cal-grid mb-1">
+            <div class="cal-dow">T2</div><div class="cal-dow">T3</div><div class="cal-dow">T4</div>
+            <div class="cal-dow">T5</div><div class="cal-dow">T6</div><div class="cal-dow">T7</div><div class="cal-dow">CN</div>
         </div>
-
-        <%-- Phân trang --%>
-        <c:if test="${totalPages > 1}">
-            <c:url var="pageBase" value="/v1/employee/attendance/own-attendance">
-                <c:param name="day" value="${selectedDay}" />
-                <c:param name="month" value="${selectedMonth}" />
-                <c:param name="year" value="${selectedYear}" />
-            </c:url>
-            <nav class="mt-3">
-                <ul class="pagination justify-content-center mb-0">
-                    <li class="page-item ${currentPage == 1 ? 'disabled' : ''}">
-                        <a class="page-link" href="${pageBase}&page=${currentPage - 1}">&laquo;</a>
-                    </li>
-                    <c:forEach var="p" begin="1" end="${totalPages}">
-                        <li class="page-item ${p == currentPage ? 'active' : ''}">
-                            <a class="page-link" href="${pageBase}&page=${p}">${p}</a>
-                        </li>
-                    </c:forEach>
-                    <li class="page-item ${currentPage == totalPages ? 'disabled' : ''}">
-                        <a class="page-link" href="${pageBase}&page=${currentPage + 1}">&raquo;</a>
-                    </li>
-                </ul>
-            </nav>
-        </c:if>
+        <div class="cal-grid" id="calBody"></div>
     </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    // Dữ liệu chấm công cả tháng, key = ngày trong tháng
+    var attData = {};
+    <c:forEach var="a" items="${monthRows}">
+        <fmt:formatDate value="${a.workDate}" pattern="d" var="dnum" />
+        attData[${dnum}] = {
+            status: ${a.attendanceStatus},
+            label: "${a.statusLabel}",
+            timeIn: "${a.timeIn}".substring(0,5),
+            timeOut: "${a.timeOut}".substring(0,5),
+            hours: "${a.hoursWorkedLabel}"
+        };
+    </c:forEach>
+
+    var calMonth = ${selectedMonth};
+    var calYear  = ${selectedYear};
+
+    function renderCalendar() {
+        var body = document.getElementById('calBody');
+        body.innerHTML = '';
+        var daysInMonth = new Date(calYear, calMonth, 0).getDate();
+        // getDay(): 0=CN..6=T7 -> đổi sang T2=0..CN=6
+        var firstDow = (new Date(calYear, calMonth - 1, 1).getDay() + 6) % 7;
+
+        var now = new Date();
+        var isCurMonth = (now.getFullYear() === calYear && (now.getMonth() + 1) === calMonth);
+
+        for (var i = 0; i < firstDow; i++) {
+            var e = document.createElement('div');
+            e.className = 'cal-cell empty';
+            body.appendChild(e);
+        }
+
+        for (var day = 1; day <= daysInMonth; day++) {
+            var cell = document.createElement('div');
+            cell.className = 'cal-cell';
+            var dow = (new Date(calYear, calMonth - 1, day).getDay() + 6) % 7;
+            if (dow >= 5) cell.classList.add('weekend');
+            if (isCurMonth && now.getDate() === day) cell.classList.add('today');
+
+            var rec = attData[day];
+            var html = '<div class="d">' + day + '</div>';
+            if (rec) {
+                if (rec.timeIn && rec.timeIn.length === 5 && rec.timeIn !== '00:00') {
+                    html += '<div class="tm">' + rec.timeIn
+                          + (rec.timeOut && rec.timeOut.length === 5 ? ' - ' + rec.timeOut : '')
+                          + (rec.hours ? '<br>' + rec.hours : '') + '</div>';
+                }
+                html += '<div class="st cl' + rec.status + '">' + rec.label + '</div>';
+            } else {
+                cell.classList.add('off-day');
+            }
+            cell.innerHTML = html;
+            body.appendChild(cell);
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', renderCalendar);
+</script>
 </body>
 </html>
