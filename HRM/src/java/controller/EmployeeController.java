@@ -684,7 +684,7 @@ public class EmployeeController extends HttpServlet {
             return;
         }
 
-        java.time.LocalDate now = java.time.LocalDate.now();
+        LocalDate now = LocalDate.now();
         int month = attParam(request, "month", now.getMonthValue());
         int year = attParam(request, "year", now.getYear());
         Integer departmentId = attDepartmentParam(request);
@@ -1123,9 +1123,6 @@ public class EmployeeController extends HttpServlet {
                 new Object[] { user.getUserId(), fileId, result.getTotalRows(),
                         result.getImportedRows(), result.getFailedRows() });
 
-        request.setAttribute("auditLogged", Boolean.TRUE);
-        List<Department> activeDepartments = departmentDAO.getAllActiveDepartments();
-        request.setAttribute("departments", activeDepartments);
         request.setAttribute("importResult", result);
         request.setAttribute("selectedMonth", month);
         request.setAttribute("selectedYear", year);
@@ -1725,16 +1722,6 @@ public class EmployeeController extends HttpServlet {
         response.sendRedirect(request.getContextPath() + "/v1/employee/my-profile");
     }
 
-    private boolean isBlank(String v) {
-        return v == null || v.trim().isEmpty();
-    }
-
-    private void preventBackCache(HttpServletResponse response) {
-        response.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
-        response.setHeader("Pragma", "no-cache");
-        response.setDateHeader("Expires", 0);
-
-    }
 
     private void handleUpdateEmployeeDetail(HttpServletRequest request, HttpServletResponse response,
             User user) throws ServletException, IOException {
@@ -2553,5 +2540,14 @@ public class EmployeeController extends HttpServlet {
         request.setAttribute("canViewAllSalary", perms.contains("VIEW_ALL_SALARY"));
         request.setAttribute("canExportPayroll", perms.contains("EXPORT_PAYROLL"));
     }
+    private boolean isBlank(String v) {
+        return v == null || v.trim().isEmpty();
+    }
 
+    private void preventBackCache(HttpServletResponse response) {
+        response.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+        response.setHeader("Pragma", "no-cache");
+        response.setDateHeader("Expires", 0);
+
+    }
 }
