@@ -119,6 +119,12 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script>
+    // Dữ liệu OT trong tháng
+    var otDays = [];
+    <c:forEach var="otDay" items="${approvedOTDays}">
+        otDays.push(${otDay});
+    </c:forEach>
+
     // Dữ liệu chấm công cả tháng, key = ngày trong tháng
     var attData = {};
     <c:forEach var="a" items="${monthRows}">
@@ -128,7 +134,8 @@
             label: "${a.statusLabel}",
             timeIn: "${a.timeIn}".substring(0,5),
             timeOut: "${a.timeOut}".substring(0,5),
-            hours: "${a.hoursWorkedLabel}"
+            hours: "${a.hoursWorkedLabel}",
+            isOT: otDays.includes(parseInt("${dnum}", 10))
         };
     </c:forEach>
 
@@ -159,6 +166,7 @@
             if (isCurMonth && now.getDate() === day) cell.classList.add('today');
 
             var rec = attData[day];
+            var isOtDay = otDays.includes(day);
             var html = '<div class="d">' + day + '</div>';
             if (rec) {
                 if (rec.timeIn && rec.timeIn.length === 5 && rec.timeIn !== '00:00') {
@@ -167,8 +175,14 @@
                           + (rec.hours ? '<br>' + rec.hours : '') + '</div>';
                 }
                 html += '<div class="st cl' + rec.status + '">' + rec.label + '</div>';
+                if (rec.isOT || isOtDay) {
+                    html += '<div class="mt-1"><span class="badge bg-warning text-dark px-2 py-1"><i class="fa-solid fa-fire me-1"></i>OT</span></div>';
+                }
             } else {
                 cell.classList.add('off-day');
+                if (isOtDay) {
+                    html += '<div class="mt-1"><span class="badge bg-warning text-dark px-2 py-1"><i class="fa-solid fa-fire me-1"></i>OT</span></div>';
+                }
             }
             cell.innerHTML = html;
             body.appendChild(cell);

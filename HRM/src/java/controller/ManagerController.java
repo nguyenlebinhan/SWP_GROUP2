@@ -2047,17 +2047,29 @@ public class ManagerController extends HttpServlet {
                 }
 
                 java.time.LocalDate date = java.time.LocalDate.parse(otDate);
+                java.time.LocalDate today = java.time.LocalDate.now();
+                
+                if (!date.isAfter(today)) {
+                    request.getSession().setAttribute("error", "Chỉ được phép đăng ký OT cho các ngày tiếp theo (không được đăng ký cho ngày hiện tại hoặc quá khứ).");
+                    response.sendRedirect(request.getContextPath() + "/v1/manager/forms/create-ot");
+                    return;
+                }
+
                 java.time.DayOfWeek dow = date.getDayOfWeek();
                 boolean isWeekend = (dow == java.time.DayOfWeek.SATURDAY || dow == java.time.DayOfWeek.SUNDAY);
 
-                if (!isWeekend) {
-                    java.time.LocalTime minTime = java.time.LocalTime.of(17, 0);
-                    java.time.LocalTime maxTime = java.time.LocalTime.of(19, 0);
-                    if (start.isBefore(minTime) || end.isAfter(maxTime)) {
-                        request.getSession().setAttribute("error", "Đối với ngày thường (Thứ 2 - Thứ 6), nhân viên chỉ được phép OT trong khung giờ 17:00 đến 19:00.");
-                        response.sendRedirect(request.getContextPath() + "/v1/manager/forms/create-ot");
-                        return;
-                    }
+                if (isWeekend) {
+                    request.getSession().setAttribute("error", "Không được phép đăng ký OT vào Thứ Bảy và Chủ Nhật.");
+                    response.sendRedirect(request.getContextPath() + "/v1/manager/forms/create-ot");
+                    return;
+                }
+
+                java.time.LocalTime minTime = java.time.LocalTime.of(17, 0);
+                java.time.LocalTime maxTime = java.time.LocalTime.of(19, 0);
+                if (start.isBefore(minTime) || end.isAfter(maxTime)) {
+                    request.getSession().setAttribute("error", "Nhân viên chỉ được phép OT trong khung giờ 17:00 đến 19:00.");
+                    response.sendRedirect(request.getContextPath() + "/v1/manager/forms/create-ot");
+                    return;
                 }
             } catch (Exception e) {
                 request.getSession().setAttribute("error", "Định dạng ngày/giờ không hợp lệ.");
