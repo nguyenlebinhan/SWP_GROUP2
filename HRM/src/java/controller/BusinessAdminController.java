@@ -400,7 +400,7 @@ public class BusinessAdminController extends HttpServlet {
 
     private void displayEmployeeList(HttpServletRequest request, HttpServletResponse response, User user)
             throws ServletException, IOException {
-        List<EmployeeDetailDTO> employees = employeeDAO.getAllEmployees(user.getUserId());
+        List<EmployeeDetailDTO> employees = employeeDAO.getAllEmployees();
         request.setAttribute("employees", employees);
         request.getRequestDispatcher("/public/businessadmin/employee/employee_list.jsp").forward(request, response);
     }
@@ -963,7 +963,10 @@ public class BusinessAdminController extends HttpServlet {
         Integer month = parseIntParam(monthStr);
         Integer year = parseIntParam(yearStr);
         
-        List<FormRequestDTO> forms = formRequestDAO.getAllFormRequests(day, month, year, keyword);
+        List<FormRequestDTO> forms = formRequestDAO.getAllFormRequests(day, month, year, keyword)
+                .stream()
+                .filter(f -> "OVERTIME".equals(f.getFormTypeCode()))
+                .collect(java.util.stream.Collectors.toList());
         
         request.setAttribute("forms", forms);
         request.setAttribute("filterDay", day);

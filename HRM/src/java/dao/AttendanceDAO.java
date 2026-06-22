@@ -5,6 +5,7 @@
 package dao;
 
 import dal.DBContext;
+import dto.AttendanceSummaryDTO;
 import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -18,6 +19,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import model.Attendance;
 import model.AttendanceAdjustment;
+import model.Position;
 
 /**
  *
@@ -50,10 +52,7 @@ public class AttendanceDAO {
         return -1;
     }
 
-    /**
-     * Lấy phòng ban hiện tại của nhân viên (phục vụ import gộp nhiều phòng trong 1 file).
-     * @return Department(id, name) hoặc null nếu nhân viên chưa được phân công phòng ban.
-     */
+    
     public model.Department getEmployeeDepartment(int employeeId) {
         String SQL = "SELECT e.departmentId, d.departmentName "
                 + "FROM Employees e LEFT JOIN Departments d ON d.departmentId = e.departmentId "
@@ -79,6 +78,32 @@ public class AttendanceDAO {
         return null;
     }
 
+
+    public Position getEmployeePosition(int employeeId) {
+        String SQL = "SELECT e.positionId, p.positionName "
+                + "FROM Employees e LEFT JOIN Positions p ON p.positionId = e.positionId "
+                + "WHERE e.employeeId = ?";
+        try (Connection conn = dbContext.getConnection();
+                PreparedStatement ps = conn.prepareStatement(SQL)) {
+            ps.setInt(1, employeeId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    int posId = rs.getInt("positionId");
+                    if (rs.wasNull() || posId <= 0) {
+                        return null;
+                    }
+                    model.Position pos = new model.Position();
+                    pos.setPositionId(posId);
+                    pos.setPositionName(rs.getString("positionName"));
+                    return pos;
+                }
+            }
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Cannot get position for employeeId: " + employeeId, e);
+        }
+        return null;
+    }
+
     public boolean employeeBelongsToDepartment(int employeeId, int departmentId) {
         String SQL = "SELECT 1 FROM Employees WHERE employeeId = ? AND departmentId = ? LIMIT 1";
         try (Connection conn = dbContext.getConnection();
@@ -99,12 +124,13 @@ public class AttendanceDAO {
 
     public boolean upsertAttendance(Connection conn, Attendance a) throws SQLException {
         String SQL = "INSERT INTO Attendance "
-                + "(attendanceCode, employeeId, employeeCode, fullName, departmentId, departmentName, "
+                + "(attendanceCode, employeeId, employeeCode, fullName, departmentId, departmentName, positionId, positionName, "
                 + "workDate, timeIn, timeOut, hoursWorked, attendanceStatus, fileId) "
-                + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) "
+                + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) "
                 + "ON DUPLICATE KEY UPDATE "
                 + "employeeCode = VALUES(employeeCode), fullName = VALUES(fullName), "
                 + "departmentId = VALUES(departmentId), departmentName = VALUES(departmentName), "
+                + "positionId = VALUES(positionId), positionName = VALUES(positionName), "
                 + "timeIn = VALUES(timeIn), timeOut = VALUES(timeOut), hoursWorked = VALUES(hoursWorked), "
                 + "attendanceStatus = VALUES(attendanceStatus), fileId = VALUES(fileId)";
         try (PreparedStatement ps = conn.prepareStatement(SQL)) {
@@ -118,27 +144,33 @@ public class AttendanceDAO {
                 ps.setNull(5, Types.INTEGER);
             }
             ps.setNString(6, a.getDepartmentName());
-            ps.setDate(7, a.getWorkDate());
-            if (a.getTimeIn() != null) {
-                ps.setTime(8, a.getTimeIn());
+            if (a.getPositionId() != null) {
+                ps.setInt(7, a.getPositionId());
             } else {
-                ps.setNull(8, Types.TIME);
+                ps.setNull(7, Types.INTEGER);
+            }
+            ps.setNString(8, a.getPositionName());
+            ps.setDate(9, a.getWorkDate());
+            if (a.getTimeIn() != null) {
+                ps.setTime(10, a.getTimeIn());
+            } else {
+                ps.setNull(10, Types.TIME);
             }
             if (a.getTimeOut() != null) {
-                ps.setTime(9, a.getTimeOut());
+                ps.setTime(11, a.getTimeOut());
             } else {
-                ps.setNull(9, Types.TIME);
+                ps.setNull(11, Types.TIME);
             }
             if (a.getHoursWorked() != null) {
-                ps.setBigDecimal(10, a.getHoursWorked());
+                ps.setBigDecimal(12, a.getHoursWorked());
             } else {
-                ps.setNull(10, Types.DECIMAL);
+                ps.setNull(12, Types.DECIMAL);
             }
-            ps.setInt(11, a.getAttendanceStatus());
+            ps.setInt(13, a.getAttendanceStatus());
             if (a.getFileId() != null) {
-                ps.setInt(12, a.getFileId());
+                ps.setInt(14, a.getFileId());
             } else {
-                ps.setNull(12, Types.INTEGER);
+                ps.setNull(14, Types.INTEGER);
             }
             return ps.executeUpdate() > 0;
         }
@@ -151,7 +183,7 @@ public class AttendanceDAO {
         StringBuilder sql = new StringBuilder(
                 "SELECT a.attendanceId, a.attendanceCode, a.employeeId, a.workDate, a.timeIn, a.timeOut, "
                 + "a.hoursWorked, a.attendanceStatus, a.fileId, "
-                + "a.employeeCode, a.departmentId, a.fullName, a.departmentName "
+                + "a.employeeCode, a.departmentId, a.fullName, a.departmentName, a.positionId, a.positionName "
                 + "FROM Attendance a "
                 + "WHERE 1=1 ");
 
@@ -200,7 +232,7 @@ public class AttendanceDAO {
         StringBuilder sql = new StringBuilder(
                 "SELECT a.attendanceId, a.attendanceCode, a.employeeId, a.workDate, a.timeIn, a.timeOut, "
                 + "a.hoursWorked, a.attendanceStatus, a.fileId, "
-                + "a.employeeCode, a.departmentId, a.fullName, a.departmentName "
+                + "a.employeeCode, a.departmentId, a.fullName, a.departmentName, a.positionId, a.positionName "
                 + "FROM Attendance a "
                 + "WHERE a.employeeId = ? ");
 
@@ -235,20 +267,11 @@ public class AttendanceDAO {
         return list;
     }    
 
-    /**
-     * Tổng hợp chấm công theo nhân viên trong một tháng (mỗi nhân viên một dòng).
-     * Mã trạng thái: 0=Đúng giờ, 1=Đi muộn, 2=Vắng mặt, 3=Không phép(dữ liệu cũ),
-     * 4=Nghỉ phép, 5=Nghỉ lễ, 6=Cuối tuần.
-     *
-     * Trả về các cột đếm ngày + tổng giờ làm. Riêng standardDays (số ngày công chuẩn)
-     * được AttendanceService tính theo lịch thật và gán vào DTO sau.
-     *
-     * @param departmentId null = toàn công ty; ngược lại lọc theo phòng ban.
-     */
-    public List<dto.AttendanceSummaryDTO> getMonthlySummary(Integer departmentId, int month, int year) {
+
+    public List<AttendanceSummaryDTO> getMonthlySummary(Integer departmentId, int month, int year) {
         List<dto.AttendanceSummaryDTO> list = new ArrayList<>();
         String sql =
-                "SELECT e.employeeId, e.employeeCode, u.fullName, p.positionName, d.departmentName, "
+                "SELECT a.employeeId, a.employeeCode, a.fullName, a.positionName, a.departmentName, "
                 + "COALESCE(SUM(a.hoursWorked), 0) AS workedHours, "
                 + "COALESCE(SUM(a.attendanceStatus = 0), 0) AS presentDays, "
                 + "COALESCE(SUM(a.attendanceStatus = 1), 0) AS lateDays, "
@@ -256,27 +279,20 @@ public class AttendanceDAO {
                 + "COALESCE(SUM(a.attendanceStatus IN (2,3)), 0) AS absentDays, "
                 + "COALESCE(SUM(a.attendanceStatus = 5), 0) AS holidayDays, "
                 + "COALESCE(SUM(a.attendanceStatus = 6), 0) AS weekendDays "
-                + "FROM Employees e "
-                + "JOIN Users u ON u.userId = e.userId "
-                + "LEFT JOIN Positions p ON p.positionId = e.positionId "
-                + "LEFT JOIN Departments d ON d.departmentId = e.departmentId "
-                + "LEFT JOIN Attendance a ON a.employeeId = e.employeeId "
-                + "    AND MONTH(a.workDate) = ? AND YEAR(a.workDate) = ? "
+                + "FROM Employees e JOIN Attendance a ON a.employeeId = e.employeeId "
                 + "WHERE e.status = 1 "
                 + "  AND (? IS NULL OR e.departmentId = ?) "
-                + "GROUP BY e.employeeId, e.employeeCode, u.fullName, p.positionName, d.departmentName "
-                + "ORDER BY d.departmentName, e.employeeCode";
+                + "GROUP BY a.employeeId, a.employeeCode, a.fullName, a.positionName, a.departmentName "
+                + "ORDER BY a.departmentName, e.employeeCode";
 
         try (Connection conn = dbContext.getConnection();
                 PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setInt(1, month);
-            ps.setInt(2, year);
             if (departmentId != null) {
-                ps.setInt(3, departmentId);
-                ps.setInt(4, departmentId);
+                ps.setInt(1, departmentId);
+                ps.setInt(2, departmentId);
             } else {
-                ps.setNull(3, Types.INTEGER);
-                ps.setNull(4, Types.INTEGER);
+                ps.setNull(1, Types.INTEGER);
+                ps.setNull(2, Types.INTEGER);
             }
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
@@ -311,7 +327,7 @@ public class AttendanceDAO {
         String sql =
                 "SELECT a.attendanceId, a.attendanceCode, a.employeeId, a.workDate, a.timeIn, a.timeOut, "
                 + "a.hoursWorked, a.attendanceStatus, a.fileId, "
-                + "a.employeeCode, a.departmentId, a.fullName, a.departmentName "
+                + "a.employeeCode, a.departmentId, a.fullName, a.departmentName, a.positionId, a.positionName "
                 + "FROM Attendance a "
                 + "WHERE a.employeeId = ? AND MONTH(a.workDate) = ? AND YEAR(a.workDate) = ? "
                 + "ORDER BY a.workDate ASC";
@@ -334,7 +350,7 @@ public class AttendanceDAO {
     public Attendance getAttendanceById(int attendanceId) {
         String sql = "SELECT a.attendanceId, a.attendanceCode, a.employeeId, a.workDate, a.timeIn, a.timeOut, "
                 + "a.hoursWorked, a.attendanceStatus, a.fileId, "
-                + "a.employeeCode, a.departmentId, a.fullName, a.departmentName "
+                + "a.employeeCode, a.departmentId, a.fullName, a.departmentName, a.positionId, a.positionName "
                 + "FROM Attendance a "
                 + "WHERE a.attendanceId = ?";
         try (Connection conn = dbContext.getConnection();
@@ -354,7 +370,7 @@ public class AttendanceDAO {
     public Attendance getAttendanceByDate(int employeeId, java.sql.Date workDate) {
         String sql = "SELECT a.attendanceId, a.attendanceCode, a.employeeId, a.workDate, a.timeIn, a.timeOut, "
                 + "a.hoursWorked, a.attendanceStatus, a.fileId, "
-                + "a.employeeCode, a.departmentId, a.fullName, a.departmentName "
+                + "a.employeeCode, a.departmentId, a.fullName, a.departmentName, a.positionId, a.positionName "
                 + "FROM Attendance a "
                 + "WHERE a.employeeId = ? AND a.workDate = ?";
         try (Connection conn = dbContext.getConnection();
@@ -488,17 +504,15 @@ public class AttendanceDAO {
     private String formatHoursLabel(Time timeIn, Time timeOut, BigDecimal hours) {
         long minutes;
         if (timeIn != null && timeOut != null) {
-            minutes = (timeOut.getTime() - timeIn.getTime()) / 60000L;
+            // Trừ giờ nghỉ trưa để khớp số giờ làm thực tế đã lưu.
+            minutes = utils.WorkHoursCalculator.workedMinutes(timeIn, timeOut);
         } else if (hours != null) {
             minutes = hours.multiply(BigDecimal.valueOf(60))
                     .setScale(0, java.math.RoundingMode.HALF_UP).longValue();
         } else {
             return "-";
         }
-        if (minutes < 0) {
-            minutes = 0;
-        }
-        return (minutes / 60) + "h" + String.format("%02d", minutes % 60) + "m";
+        return utils.WorkHoursCalculator.label(minutes);
     }
 
     /** Nhãn trạng thái tiếng Việt cho lịch sử chỉnh sửa. */
@@ -532,6 +546,9 @@ public class AttendanceDAO {
         a.setDepartmentId(rs.wasNull() ? null : departmentId);
         a.setFullName(rs.getNString("fullName"));
         a.setDepartmentName(rs.getNString("departmentName"));
+        int positionId = rs.getInt("positionId");
+        a.setPositionId(rs.wasNull() ? null : positionId);
+        a.setPositionName(rs.getNString("positionName"));
         return a;
     }
 }

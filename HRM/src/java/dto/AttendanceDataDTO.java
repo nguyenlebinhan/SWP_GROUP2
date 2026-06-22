@@ -13,6 +13,7 @@ public class AttendanceDataDTO {
     private String employeeCode;
     private String fullName;
     private String departmentName;
+    private String position;
     private String workDate;
     private String timeIn;
     private String timeOut;
@@ -22,17 +23,20 @@ public class AttendanceDataDTO {
     public AttendanceDataDTO() {
     }
 
-    public AttendanceDataDTO(int rowNumber, String employeeCode, String fullName, String departmentName, String workDate, String timeIn, String timeOut, String attendanceStatus, String note) {
+    public AttendanceDataDTO(int rowNumber, String employeeCode, String fullName, String departmentName, String position, String workDate, String timeIn, String timeOut, String attendanceStatus, String note) {
         this.rowNumber = rowNumber;
         this.employeeCode = employeeCode;
         this.fullName = fullName;
         this.departmentName = departmentName;
+        this.position = position;
         this.workDate = workDate;
         this.timeIn = timeIn;
         this.timeOut = timeOut;
         this.attendanceStatus = attendanceStatus;
         this.note = note;
     }
+
+
 
     public int getRowNumber() {
         return rowNumber;
@@ -104,6 +108,14 @@ public class AttendanceDataDTO {
 
     public void setNote(String note) {
         this.note = note;
+    }
+
+    public String getPosition() {
+        return position;
+    }
+
+    public void setPosition(String position) {
+        this.position = position;
     }
         
     

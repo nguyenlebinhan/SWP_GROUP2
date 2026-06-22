@@ -551,9 +551,7 @@ public class ManagerController extends HttpServlet {
     }
 
     // ===================== Attendance Dashboard (Overview / Detail / Export) =====================
-    /**
-     * Manager chỉ xem chấm công của phòng ban mình quản lý.
-     */
+
     private Integer resolveManagerDepartmentId(User user) {
         EmployeeDetailDTO manager = employeeDAO.getEmployeeByUserId(user.getUserId());
         if (manager == null || manager.getDepartmentId() <= 0) {
@@ -728,7 +726,7 @@ public class ManagerController extends HttpServlet {
 
         Set<String> perms = getPermissions(user);
         request.getSession().setAttribute("userPermissions", perms);
-        List<EmployeeDetailDTO> employees = employeeDAO.getAllEmployees(user.getUserId());
+        List<EmployeeDetailDTO> employees = employeeDAO.getAllEmployees();
         request.setAttribute("employees", employees);
         setPermissionFlags(request, perms);
         request.getRequestDispatcher("/public/manager/employee_info/employee_list.jsp").forward(request, response);
@@ -780,7 +778,7 @@ public class ManagerController extends HttpServlet {
 
         Set<String> perms = getPermissions(user);
         request.getSession().setAttribute("userPermissions", perms);
-        request.setAttribute("employees", employeeDAO.getAllEmployees(user.getUserId()));
+        request.setAttribute("employees", employeeDAO.getAllEmployees());
         setPermissionFlags(request, perms);
         request.getRequestDispatcher("/public/manager/contract/add_contract.jsp").forward(request, response);
     }
@@ -1298,7 +1296,7 @@ public class ManagerController extends HttpServlet {
 
         if (code == null || type == null || isBlank(employeeParam) || isBlank(startDate) || isBlank(salaryParam)) {
             request.setAttribute("error", "Vui lêng nhập đầy đủ mã hợp đồng, nhân viên, loại hợp đồng, ngày bắt đầu và lương.");
-            request.setAttribute("employees", employeeDAO.getAllEmployees(user.getUserId()));
+            request.setAttribute("employees", employeeDAO.getAllEmployees());
             setPermissionFlags(request, getPermissions(user));
             request.getRequestDispatcher("/public/manager/contract/add_contract.jsp").forward(request, response);
             return;
@@ -1312,7 +1310,7 @@ public class ManagerController extends HttpServlet {
             contract.setSalary(new BigDecimal(salaryParam));
         } catch (IllegalArgumentException e) {
             request.setAttribute("error", "Dữ liệu hợp đồng không hợp lệ.");
-            request.setAttribute("employees", employeeDAO.getAllEmployees(user.getUserId()));
+            request.setAttribute("employees", employeeDAO.getAllEmployees());
             setPermissionFlags(request, getPermissions(user));
             request.getRequestDispatcher("/public/manager/contract/add_contract.jsp").forward(request, response);
             return;
@@ -1320,7 +1318,7 @@ public class ManagerController extends HttpServlet {
 
         if (!isValidContractType(type) || contract.getSalary().compareTo(BigDecimal.ZERO) < 0) {
             request.setAttribute("error", "Loại hợp đồng hoặc lương không hợp lệ.");
-            request.setAttribute("employees", employeeDAO.getAllEmployees(user.getUserId()));
+            request.setAttribute("employees", employeeDAO.getAllEmployees());
             setPermissionFlags(request, getPermissions(user));
             request.getRequestDispatcher("/public/manager/contract/add_contract.jsp").forward(request, response);
             return;
@@ -1328,7 +1326,7 @@ public class ManagerController extends HttpServlet {
 
         if (employeeDAO.getEmployeeById(contract.getEmployeeId()) == null) {
             request.setAttribute("error", "Nhân viên được chọn không tồn tại.");
-            request.setAttribute("employees", employeeDAO.getAllEmployees(user.getUserId()));
+            request.setAttribute("employees", employeeDAO.getAllEmployees());
             setPermissionFlags(request, getPermissions(user));
             request.getRequestDispatcher("/public/manager/contract/add_contract.jsp").forward(request, response);
             return;
@@ -1336,7 +1334,7 @@ public class ManagerController extends HttpServlet {
 
         if (contractDAO.hasActiveContract(contract.getEmployeeId())) {
             request.setAttribute("error", "Hợp đồng của nhân viên vẫn cón hiệu lực");
-            request.setAttribute("employees", employeeDAO.getAllEmployees(user.getUserId()));
+            request.setAttribute("employees", employeeDAO.getAllEmployees());
             setPermissionFlags(request, getPermissions(user));
             request.getRequestDispatcher("/public/manager/contract/add_contract.jsp").forward(request, response);
             return;
@@ -1344,7 +1342,7 @@ public class ManagerController extends HttpServlet {
 
         if (contract.getEndDate() != null && contract.getEndDate().before(contract.getStartDate())) {
             request.setAttribute("error", "Ngày kết thúc không được trước ngày bắt đầu.");
-            request.setAttribute("employees", employeeDAO.getAllEmployees(user.getUserId()));
+            request.setAttribute("employees", employeeDAO.getAllEmployees());
             setPermissionFlags(request, getPermissions(user));
             request.getRequestDispatcher("/public/manager/contract/add_contract.jsp").forward(request, response);
             return;
@@ -1362,7 +1360,7 @@ public class ManagerController extends HttpServlet {
             response.sendRedirect(request.getContextPath() + "/v1/manager/contract/preview?employeeId=" + contract.getEmployeeId());
         } else {
             request.setAttribute("error", "Thêm hợp đồng thất bại. Mã hợp đồng có thể đã tồn tại.");
-            request.setAttribute("employees", employeeDAO.getAllEmployees(user.getUserId()));
+            request.setAttribute("employees", employeeDAO.getAllEmployees());
             setPermissionFlags(request, getPermissions(user));
             request.getRequestDispatcher("/public/manager/contract/add_contract.jsp").forward(request, response);
         }
@@ -1993,17 +1991,29 @@ public class ManagerController extends HttpServlet {
                 }
 
                 java.time.LocalDate date = java.time.LocalDate.parse(otDate);
+                java.time.LocalDate today = java.time.LocalDate.now();
+                
+                if (!date.isAfter(today)) {
+                    request.getSession().setAttribute("error", "Chỉ được phép đăng ký OT cho các ngày tiếp theo (không được đăng ký cho ngày hiện tại hoặc quá khứ).");
+                    response.sendRedirect(request.getContextPath() + "/v1/manager/forms/create-ot");
+                    return;
+                }
+
                 java.time.DayOfWeek dow = date.getDayOfWeek();
                 boolean isWeekend = (dow == java.time.DayOfWeek.SATURDAY || dow == java.time.DayOfWeek.SUNDAY);
 
-                if (!isWeekend) {
-                    java.time.LocalTime minTime = java.time.LocalTime.of(17, 0);
-                    java.time.LocalTime maxTime = java.time.LocalTime.of(19, 0);
-                    if (start.isBefore(minTime) || end.isAfter(maxTime)) {
-                        request.getSession().setAttribute("error", "Đối với ngày thường (Thứ 2 - Thứ 6), nhân viên chỉ được phép OT trong khung giờ 17:00 đến 19:00.");
-                        response.sendRedirect(request.getContextPath() + "/v1/manager/forms/create-ot");
-                        return;
-                    }
+                if (isWeekend) {
+                    request.getSession().setAttribute("error", "Không được phép đăng ký OT vào Thứ Bảy và Chủ Nhật.");
+                    response.sendRedirect(request.getContextPath() + "/v1/manager/forms/create-ot");
+                    return;
+                }
+
+                java.time.LocalTime minTime = java.time.LocalTime.of(17, 0);
+                java.time.LocalTime maxTime = java.time.LocalTime.of(19, 0);
+                if (start.isBefore(minTime) || end.isAfter(maxTime)) {
+                    request.getSession().setAttribute("error", "Nhân viên chỉ được phép OT trong khung giờ 17:00 đến 19:00.");
+                    response.sendRedirect(request.getContextPath() + "/v1/manager/forms/create-ot");
+                    return;
                 }
             } catch (Exception e) {
                 request.getSession().setAttribute("error", "Định dạng ngày/giờ không hợp lệ.");

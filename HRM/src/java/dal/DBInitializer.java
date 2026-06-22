@@ -156,12 +156,8 @@ public class DBInitializer {
                 + "skills NVARCHAR(255),"
                 + "experience NVARCHAR(255),"
                 + "degree NVARCHAR(100),"
-//                + "hireDate DATE,"
-//                + "probationEndDate DATE,"
                 + "status TINYINT DEFAULT 1,"        // 0: Inactive, 1: Active, 2: On Leave
                 + "managerId INT,"
-//                + "nationalId VARCHAR(20),"          // CCCD/CMND
-//                + "contractType VARCHAR(50),"        // Full-time, Part-time, Thử việc
                 + "startDate DATE,"
                 + "createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,"
                 + "updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,"
@@ -354,7 +350,9 @@ public class DBInitializer {
                 + "attendanceCode VARCHAR(50) NOT NULL UNIQUE,"
                 + "employeeId INT NOT NULL,"
                 + "employeeCode VARCHAR(50),"         
-                + "fullName NVARCHAR(100),"           
+                + "fullName NVARCHAR(100)," 
+                + "positionId INT,"
+                + "positionName VARCHAR(100),"
                 + "departmentId INT,"                
                 + "departmentName NVARCHAR(100),"     
                 + "workDate DATE NOT NULL,"
@@ -387,12 +385,13 @@ public class DBInitializer {
                 + "employeeCode VARCHAR(50),"
                 + "fullName NVARCHAR(100),"
                 + "departmentName NVARCHAR(100),"
+                + "position VARCHAR(100),"
                 + "workDate VARCHAR(50),"
                 + "timeIn VARCHAR(20),"
                 + "timeOut VARCHAR(20),"
                 + "attendanceStatus VARCHAR(30),"
                 + "note NVARCHAR(255),"
-                + "validateStatus TINYINT DEFAULT 0," // 0: lỗi/bị từ chối, 1: hợp lệ đã merge vào Attendance
+                + "validateStatus TINYINT DEFAULT 0," 
                 + "errorMessage NVARCHAR(500),"
                 + "createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,"
                 + "FOREIGN KEY (fileId) REFERENCES Uploaded_Files(fileId)"
@@ -400,7 +399,6 @@ public class DBInitializer {
         execute(conn, SQL, "CREATE ATTENDANCE_IMPORT_ROWS TABLE SUCCESSFULLY");
     }
 
-    // Lịch sử chỉnh sửa chấm công: ai sửa, sửa gì, lý do.
     public void createTableAttendanceAdjustmentHistory(Connection conn) {
         String SQL = "CREATE TABLE Attendance_Adjustment_History("
                 + "adjustmentId INT PRIMARY KEY AUTO_INCREMENT,"
@@ -416,7 +414,6 @@ public class DBInitializer {
         execute(conn, SQL, "CREATE ATTENDANCE_ADJUSTMENT_HISTORY TABLE SUCCESSFULLY");
     }
 
-    // Ngày lễ cấu hình động: một dòng = một khoảng lễ (startDate..endDate).
     public void createTableHoliday(Connection conn) {
         String SQL = "CREATE TABLE Holiday("
                 + "holidayId INT PRIMARY KEY AUTO_INCREMENT,"
@@ -429,7 +426,6 @@ public class DBInitializer {
         execute(conn, SQL, "CREATE HOLIDAY TABLE SUCCESSFULLY");
     }
 
-    // ==================== LƯƠNG & ĐÁNH GIÁ ====================
 
     public void createTablePayroll(Connection conn) {
         String SQL = "CREATE TABLE Payroll("
@@ -672,8 +668,6 @@ public class DBInitializer {
                 insertPermission(conn,"EXPORT_PAYROLL","Xuất bảng lương","Quyền xuất bảng lương ra Excel");
                 
             }
-            insertPermission(conn,"APPROVE_PAYROLL","Duyệt bảng lương","Quyền duyệt bảng lương trước khi thanh toán");
-            insertPermission(conn,"EXPORT_PAYROLL","Xuất bảng lương","Quyền xuất bảng lương ra Excel");
 
             if (countRows(conn, "Positions") == 0) {
                 insertPosition(conn, "Thực tập sinh",          1, "Sinh viên thực tập tại công ty");

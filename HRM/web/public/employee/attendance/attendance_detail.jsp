@@ -12,17 +12,29 @@
         body { background: #f5f6fa; font-family: 'Segoe UI', sans-serif; }
         .main { margin-left: 250px; padding: 25px; }
         .section-card { background:#fff; border-radius:14px; box-shadow:0 2px 12px rgba(0,0,0,0.07); padding:24px; margin-bottom:24px; }
-        .att-table th { background:#0B0E2A; color:#fff; font-size:13px; font-weight:600; }
-        .att-table td { vertical-align:middle; font-size:14px; }
         .badge-st { padding:4px 12px; border-radius:20px; font-size:12px; font-weight:600; }
-        .badge-s0 { background:#d1fae5; color:#065f46; }
-        .badge-s1 { background:#fef3c7; color:#92400e; }
-        .badge-s2 { background:#fee2e2; color:#991b1b; }
-        .badge-s3 { background:#e5e7eb; color:#374151; }
-        .badge-s4 { background:#dbeafe; color:#1e40af; }
-        .badge-s5 { background:#ede9fe; color:#5b21b6; }
-        .badge-s6 { background:#f3f4f6; color:#4b5563; }
+        .badge-s0,.cl0 { background:#d1fae5; color:#065f46; }
+        .badge-s1,.cl1 { background:#fef3c7; color:#92400e; }
+        .badge-s2,.cl2 { background:#fee2e2; color:#991b1b; }
+        .badge-s3,.cl3 { background:#e5e7eb; color:#374151; }
+        .badge-s4,.cl4 { background:#dbeafe; color:#1e40af; }
+        .badge-s5,.cl5 { background:#ede9fe; color:#5b21b6; }
+        .badge-s6,.cl6 { background:#f3f4f6; color:#4b5563; }
         .hdr-chip { background:#f1f5f9; border-radius:10px; padding:8px 14px; font-size:13px; font-weight:600; color:#334155; }
+
+        /* Calendar */
+        .cal-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:8px; }
+        .cal-dow { text-align:center; font-weight:600; color:#64748b; font-size:13px; padding:6px 0; }
+        .cal-cell { min-height:96px; border-radius:10px; border:1px solid #eef0f4; padding:8px; background:#fff; display:flex; flex-direction:column; }
+        .cal-cell.empty { background:transparent; border:none; }
+        .cal-cell.weekend { background:#fafafa; }
+        .cal-cell.today { border-color:#6366f1; box-shadow:0 0 0 2px rgba(99,102,241,.18); }
+        .cal-cell .d { font-size:13px; font-weight:700; color:#334155; }
+        .cal-cell.off-day .d { color:#cbd5e1; }
+        .cal-cell .st { margin-top:auto; font-size:11px; font-weight:600; padding:2px 8px; border-radius:10px; align-self:flex-start; }
+        .cal-cell .tm { margin-top:6px; font-size:11px; color:#475569; line-height:1.45; }
+        .cal-legend { display:flex; flex-wrap:wrap; gap:10px; }
+        .cal-legend span { font-size:12px; font-weight:600; padding:3px 10px; border-radius:10px; }
     </style>
 </head>
 <body>
@@ -32,7 +44,7 @@
 <div class="main">
     <jsp:include page="${topbarPath}">
         <jsp:param name="title" value="Chi tiết chấm công" />
-        <jsp:param name="backUrl" value="/v1/employee/attendance/overview" />        
+        <jsp:param name="backUrl" value="/v1/employee/attendance/overview" />
     </jsp:include>
 
     <c:set var="deptParam" value="${empty selectedDepartmentId ? 0 : selectedDepartmentId}" />
@@ -69,19 +81,10 @@
     </div>
 
     <div class="section-card">
-        <form method="get" action="${baseUrl}/detail" class="row g-3 align-items-end mb-3">
+        <form method="get" action="${baseUrl}/detail" class="row g-3 align-items-end mb-0">
             <input type="hidden" name="employeeId" value="${sm.employeeId}" />
             <input type="hidden" name="departmentId" value="${deptParam}" />
-            <div class="col-md-3">
-                <label class="form-label">Ngày</label>
-                <select name="day" class="form-select">
-                    <option value="0" ${selectedDay == 0 ? 'selected' : ''}>Tất cả ngày</option>
-                    <c:forEach var="d" begin="1" end="31">
-                        <option value="${d}" ${selectedDay == d ? 'selected' : ''}>Ngày ${d}</option>
-                    </c:forEach>
-                </select>
-            </div>
-            <div class="col-md-3">
+            <div class="col-md-5">
                 <label class="form-label">Tháng</label>
                 <select name="month" class="form-select">
                     <c:forEach var="m" begin="1" end="12">
@@ -89,7 +92,7 @@
                     </c:forEach>
                 </select>
             </div>
-            <div class="col-md-3">
+            <div class="col-md-5">
                 <label class="form-label">Năm</label>
                 <select name="year" class="form-select">
                     <c:forEach var="y" begin="2022" end="2030">
@@ -97,64 +100,109 @@
                     </c:forEach>
                 </select>
             </div>
-            <div class="col-md-3">
-                <button type="submit" class="btn btn-primary w-100"><i class="fa-solid fa-magnifying-glass me-1"></i> Tìm kiếm</button>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-primary w-100"><i class="fa-solid fa-magnifying-glass me-1"></i> Xem</button>
             </div>
         </form>
+    </div>
 
-        <div class="text-muted mb-2">Tổng ${totalItems} bản ghi</div>
-        <div class="table-responsive">
-            <table class="table table-hover align-middle att-table">
-                <thead>
-                    <tr>
-                        <th>Ngày</th>
-                        <th>Thứ</th>
-                        <th>Giờ vào</th>
-                        <th>Giờ ra</th>
-                        <th>Số giờ</th>
-                        <th>Trạng thái</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <c:forEach var="a" items="${pagedRows}">
-                        <tr>
-                            <td><fmt:formatDate value="${a.workDate}" pattern="dd/MM/yyyy" /></td>
-                            <td><fmt:formatDate value="${a.workDate}" pattern="EEE" /></td>
-                            <td>${a.timeIn != null ? a.timeIn : '–'}</td>
-                            <td>${a.timeOut != null ? a.timeOut : '–'}</td>
-                            <td>${not empty a.hoursWorkedLabel ? a.hoursWorkedLabel : '–'}</td>
-                            <td><span class="badge-st badge-s${a.attendanceStatus}">${a.statusLabel}</span></td>
-                        </tr>
-                    </c:forEach>
-                    <c:if test="${empty pagedRows}">
-                        <tr><td colspan="6" class="text-center text-muted py-4">Không có dữ liệu chấm công.</td></tr>
-                    </c:if>
-                </tbody>
-            </table>
+    <%-- Lịch chấm công --%>
+    <div class="section-card">
+        <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+            <h5 class="mb-0"><i class="fa-regular fa-calendar me-2"></i>Lịch chấm công tháng ${selectedMonth}/${selectedYear}</h5>
+            <div class="cal-legend">
+                <span class="cl0">Đúng giờ</span>
+                <span class="cl1">Đi muộn</span>
+                <span class="cl4">Nghỉ phép</span>
+                <span class="cl2">Vắng mặt</span>
+                <span class="cl5">Nghỉ lễ</span>
+                <span class="cl6">Cuối tuần</span>
+            </div>
         </div>
-
-        <c:if test="${totalPages > 1}">
-            <c:set var="pageBase" value="${baseUrl}/detail?employeeId=${sm.employeeId}&departmentId=${deptParam}&day=${selectedDay}&month=${selectedMonth}&year=${selectedYear}" />
-            <nav class="mt-3">
-                <ul class="pagination justify-content-center mb-0">
-                    <li class="page-item ${currentPage == 1 ? 'disabled' : ''}">
-                        <a class="page-link" href="${pageBase}&page=${currentPage - 1}">&laquo;</a>
-                    </li>
-                    <c:forEach var="p" begin="1" end="${totalPages}">
-                        <li class="page-item ${p == currentPage ? 'active' : ''}">
-                            <a class="page-link" href="${pageBase}&page=${p}">${p}</a>
-                        </li>
-                    </c:forEach>
-                    <li class="page-item ${currentPage == totalPages ? 'disabled' : ''}">
-                        <a class="page-link" href="${pageBase}&page=${currentPage + 1}">&raquo;</a>
-                    </li>
-                </ul>
-            </nav>
-        </c:if>
+        <div class="cal-grid mb-1">
+            <div class="cal-dow">T2</div><div class="cal-dow">T3</div><div class="cal-dow">T4</div>
+            <div class="cal-dow">T5</div><div class="cal-dow">T6</div><div class="cal-dow">T7</div><div class="cal-dow">CN</div>
+        </div>
+        <div class="cal-grid" id="calBody"></div>
     </div>
     </c:if>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<c:if test="${empty error}">
+<script>
+    // Dữ liệu OT trong tháng
+    var otDays = [];
+    <c:forEach var="otDay" items="${approvedOTDays}">
+        otDays.push(${otDay});
+    </c:forEach>
+
+    // Dữ liệu chấm công cả tháng, key = ngày trong tháng
+    var attData = {};
+    <c:forEach var="a" items="${detail.dailyRows}">
+        <fmt:formatDate value="${a.workDate}" pattern="d" var="dnum" />
+        attData[${dnum}] = {
+            status: ${a.attendanceStatus},
+            label: "${a.statusLabel}",
+            timeIn: "${a.timeIn}".substring(0,5),
+            timeOut: "${a.timeOut}".substring(0,5),
+            hours: "${a.hoursWorkedLabel}",
+            isOT: otDays.includes(parseInt("${dnum}", 10))
+        };
+    </c:forEach>
+
+    var calMonth = ${selectedMonth};
+    var calYear  = ${selectedYear};
+
+    function renderCalendar() {
+        var body = document.getElementById('calBody');
+        body.innerHTML = '';
+        var daysInMonth = new Date(calYear, calMonth, 0).getDate();
+        // getDay(): 0=CN..6=T7 -> đổi sang T2=0..CN=6
+        var firstDow = (new Date(calYear, calMonth - 1, 1).getDay() + 6) % 7;
+
+        var now = new Date();
+        var isCurMonth = (now.getFullYear() === calYear && (now.getMonth() + 1) === calMonth);
+
+        for (var i = 0; i < firstDow; i++) {
+            var e = document.createElement('div');
+            e.className = 'cal-cell empty';
+            body.appendChild(e);
+        }
+
+        for (var day = 1; day <= daysInMonth; day++) {
+            var cell = document.createElement('div');
+            cell.className = 'cal-cell';
+            var dow = (new Date(calYear, calMonth - 1, day).getDay() + 6) % 7;
+            if (dow >= 5) cell.classList.add('weekend');
+            if (isCurMonth && now.getDate() === day) cell.classList.add('today');
+
+            var rec = attData[day];
+            var isOtDay = otDays.includes(day);
+            var html = '<div class="d">' + day + '</div>';
+            if (rec) {
+                if (rec.timeIn && rec.timeIn.length === 5 && rec.timeIn !== '00:00') {
+                    html += '<div class="tm">' + rec.timeIn
+                          + (rec.timeOut && rec.timeOut.length === 5 ? ' - ' + rec.timeOut : '')
+                          + (rec.hours ? '<br>' + rec.hours : '') + '</div>';
+                }
+                html += '<div class="st cl' + rec.status + '">' + rec.label + '</div>';
+                if (rec.isOT || isOtDay) {
+                    html += '<div class="mt-1"><span class="badge bg-warning text-dark px-2 py-1"><i class="fa-solid fa-fire me-1"></i>OT</span></div>';
+                }
+            } else {
+                cell.classList.add('off-day');
+                if (isOtDay) {
+                    html += '<div class="mt-1"><span class="badge bg-warning text-dark px-2 py-1"><i class="fa-solid fa-fire me-1"></i>OT</span></div>';
+                }
+            }
+            cell.innerHTML = html;
+            body.appendChild(cell);
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', renderCalendar);
+</script>
+</c:if>
 </body>
 </html>
