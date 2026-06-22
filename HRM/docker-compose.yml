@@ -5,14 +5,14 @@ services:
     image: mysql:8.0
     container_name: hrm_mysql
     environment:
-      - MYSQL_ROOT_PASSWORD=REMOVED_DB_PASSWORD 
-      - MYSQL_DATABASE=hrm
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+      - MYSQL_DATABASE=${MYSQL_DATABASE}
     ports:
       - "3306:3306"
     volumes:
       - mysql-data:/var/lib/mysql
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-pREMOVED_DB_PASSWORD"] 
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-p${MYSQL_ROOT_PASSWORD}"]
       interval: 10s
       timeout: 5s
       retries: 10
@@ -21,16 +21,16 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: hrm-app    
+    container_name: hrm-app
     ports:
       - "8080:8080"
     depends_on:
       db:
-        condition: service_healthy 
+        condition: service_healthy
     environment:
       - DB_URL=jdbc:mysql://db:3306/hrm?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Ho_Chi_Minh&characterEncoding=UTF-8
-      - DB_USERNAME=root
-      - DB_PASSWORD=REMOVED_DB_PASSWORD
+      - DB_USERNAME=${DB_USERNAME}
+      - DB_PASSWORD=${DB_PASSWORD}
 
 volumes:
   mysql-data:
