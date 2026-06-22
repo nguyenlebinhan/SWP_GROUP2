@@ -214,4 +214,28 @@ public class OvertimeDAO {
         }
         return list;
     }
+    public List<Integer> getApprovedOTDaysInMonth(int employeeId, int month, int year) {
+        List<Integer> list = new ArrayList<>();
+        String sql = "SELECT DAY(od.otDate) as otDay " +
+                     "FROM Form_Requests fr " +
+                     "JOIN Overtime_Details od ON fr.formId = od.formId " +
+                     "JOIN Overtime_Assignees oa ON fr.formId = oa.formId " +
+                     "WHERE oa.employeeId = ? " +
+                     "AND fr.status = 1 " + // 1 = Approved
+                     "AND MONTH(od.otDate) = ? " +
+                     "AND YEAR(od.otDate) = ?";
+        try (Connection conn = dbContext.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, employeeId);
+            ps.setInt(2, month);
+            ps.setInt(3, year);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    list.add(rs.getInt("otDay"));
+                }
+            }
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Cannot get approved OT days", e);
+        }
+        return list;
+    }
 }

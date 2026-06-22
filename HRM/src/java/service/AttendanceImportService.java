@@ -15,10 +15,10 @@ import dto.AttendanceImportResultDTO;
 import enums.AttendanceStatus;
 import enums.FileStatus;
 import exception.InvalidFormatException;
+import exception.RowValidationException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.sql.Connection;
 import java.sql.Date;
 import java.sql.SQLException;
@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import model.Attendance;
+import model.Position;
 import utils.ExcelAttendanceParser;
 
 public class AttendanceImportService {
@@ -173,14 +174,13 @@ public class AttendanceImportService {
 
         BigDecimal hoursWorked;
         if (timeIn != null && timeOut != null) {
-            long diffMillis = timeOut.getTime() - timeIn.getTime();
-            if (diffMillis < 0) {
+            if (timeOut.getTime() - timeIn.getTime() < 0) {
                 throw new RowValidationException("timeOut phải sau timeIn.");
             }
-            hoursWorked = new BigDecimal(diffMillis)
-                    .divide(new BigDecimal(3600000), 2, RoundingMode.HALF_UP);
+            
+            hoursWorked = utils.WorkHoursCalculator.hoursWorked(timeIn, timeOut);
         } else {
-            // vắng / nghỉ / lễ / cuối tuần: không có giờ làm
+            
             hoursWorked = BigDecimal.ZERO;
         }
 
@@ -189,9 +189,6 @@ public class AttendanceImportService {
             throw new RowValidationException("employeeCode không tồn tại: " + employeeCode);
         }
 
-        // Xác định phòng ban lưu cho bản ghi này.
-        //  - departmentId > 0: import theo 1 phòng -> nhân viên phải thuộc đúng phòng đó.
-        //  - departmentId <= 0: import gộp tất cả phòng trong 1 file -> tự suy phòng thật của nhân viên.
         int effectiveDeptId;
         String effectiveDeptName;
         if (departmentId > 0) {
@@ -211,7 +208,8 @@ public class AttendanceImportService {
             effectiveDeptName = dep.getDepartmentName();
         }
 
-        // Suy trạng thái gốc từ giờ vào/ra, rồi áp thứ tự ưu tiên nghiệp vụ.
+        Position position = attendanceDAO.getEmployeePosition(employeeId);
+
         AttendanceStatus baseStatus = deriveStatus(timeIn, timeOut);
         AttendanceStatus finalStatus = determineFinalStatus(baseStatus, employeeId, workDate, conn);
 
@@ -222,6 +220,10 @@ public class AttendanceImportService {
         att.setFullName(trimToNull(ad.getFullName()));
         att.setDepartmentId(effectiveDeptId);
         att.setDepartmentName(effectiveDeptName);
+        if (position != null) {
+            att.setPositionId(position.getPositionId());
+            att.setPositionName(position.getPositionName());
+        }
         att.setWorkDate(workDate);
         att.setTimeIn(timeIn);
         att.setTimeOut(timeOut);
@@ -246,10 +248,7 @@ public class AttendanceImportService {
         }
     }
 
-    /**
-     * Suy trạng thái cuối cùng cho MỘT bản ghi (dùng cho luồng sửa tay chấm công).
-     * Tự mở connection riêng để đọc Holiday / đơn nghỉ; áp đúng thứ tự ưu tiên như khi import.
-     */
+
     public AttendanceStatus resolveStatus(int employeeId, Date workDate, Time timeIn, Time timeOut)
             throws SQLException {
         AttendanceStatus base = deriveStatus(timeIn, timeOut);
@@ -258,10 +257,7 @@ public class AttendanceImportService {
         }
     }
 
-    /**
-     * Suy trạng thái gốc CHỈ từ giờ vào/ra.
-     * Thiếu một trong hai mốc giờ => ABSENT; vào sau 08:00 => LATE; còn lại PRESENT.
-     */
+
     private AttendanceStatus deriveStatus(Time timeIn, Time timeOut) {
         if (timeIn == null || timeOut == null) {
             return AttendanceStatus.ABSENT;
@@ -272,11 +268,6 @@ public class AttendanceImportService {
         return AttendanceStatus.PRESENT;
     }
 
-    /**
-     * Áp thứ tự ưu tiên. Chỉ chuyển đổi khi trạng thái gốc là ABSENT;
-     * PRESENT/LATE (đi làm thực tế) luôn được giữ nguyên.
-     * Ưu tiên khi ABSENT: HOLIDAY > WEEKEND > LEAVE > ABSENT.
-     */
     private AttendanceStatus determineFinalStatus(AttendanceStatus base, int employeeId,
             Date workDate, Connection conn) throws SQLException {
         if (base == AttendanceStatus.PRESENT || base == AttendanceStatus.LATE) {
@@ -312,9 +303,4 @@ public class AttendanceImportService {
         return t.isEmpty() ? null : t;
     }
 
-    private static class RowValidationException extends Exception {
-        RowValidationException(String message) {
-            super(message);
-        }
-    }
 }

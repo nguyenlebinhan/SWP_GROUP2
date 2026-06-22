@@ -24,6 +24,7 @@ public class AttendanceExcelExporter {
         "Attendance Rate (%)"
     };
 
+    
     public void write(AttendanceReportDTO report, OutputStream os) throws IOException {
         try (XSSFWorkbook wb = new XSSFWorkbook()) {
             Sheet sheet = wb.createSheet("Attendance");
@@ -43,14 +44,12 @@ public class AttendanceExcelExporter {
             headerStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
             headerStyle.setAlignment(HorizontalAlignment.CENTER);
 
-            // Dòng tiêu đề báo cáo
             Row titleRow = sheet.createRow(0);
             Cell titleCell = titleRow.createCell(0);
             titleCell.setCellValue("Báo cáo chấm công - " + report.getScopeTitle()
                     + " - Tháng " + report.getMonth() + "/" + report.getYear());
             titleCell.setCellStyle(titleStyle);
 
-            // Dòng header bảng
             Row headerRow = sheet.createRow(2);
             for (int i = 0; i < HEADERS.length; i++) {
                 Cell c = headerRow.createCell(i);

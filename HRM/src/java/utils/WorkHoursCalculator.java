@@ -1,0 +1,54 @@
+/*
+ * Tính giờ làm thực tế có trừ giờ nghỉ trưa.
+ */
+package utils;
+
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.sql.Time;
+
+
+public final class WorkHoursCalculator {
+
+    private static final Time LUNCH_START = Time.valueOf("12:00:00");
+    private static final Time LUNCH_END = Time.valueOf("13:00:00");
+
+    private WorkHoursCalculator() {
+    }
+
+    public static long workedMinutes(Time timeIn, Time timeOut) {
+        if (timeIn == null || timeOut == null) {
+            return 0;
+        }
+        long grossMillis = timeOut.getTime() - timeIn.getTime();
+        if (grossMillis <= 0) {
+            return 0;
+        }
+        long lunchMillis = overlapMillis(timeIn, timeOut, LUNCH_START, LUNCH_END);
+        long netMillis = grossMillis - lunchMillis;
+        if (netMillis < 0) {
+            netMillis = 0;
+        }
+        return netMillis / 60000L;
+    }
+
+
+    public static BigDecimal hoursWorked(Time timeIn, Time timeOut) {
+        long minutes = workedMinutes(timeIn, timeOut);
+        return new BigDecimal(minutes).divide(new BigDecimal(60), 2, RoundingMode.HALF_UP);
+    }
+
+
+    public static String label(long minutes) {
+        if (minutes < 0) {
+            minutes = 0;
+        }
+        return (minutes / 60) + "h" + String.format("%02d", minutes % 60) + "m";
+    }
+
+    private static long overlapMillis(Time aStart, Time aEnd, Time bStart, Time bEnd) {
+        long start = Math.max(aStart.getTime(), bStart.getTime());
+        long end = Math.min(aEnd.getTime(), bEnd.getTime());
+        return Math.max(0L, end - start);
+    }
+}
