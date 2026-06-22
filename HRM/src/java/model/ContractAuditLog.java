@@ -17,6 +17,7 @@ public class ContractAuditLog {
     private Timestamp changeDate;
     private String actionReason;
     private int employeeId; // Joined from Employment_Contracts
+    private String employeeName; // Joined from Employees table
 
     public ContractAuditLog() {}
 
@@ -39,4 +40,6 @@ public class ContractAuditLog {
     public void setActionReason(String actionReason) { this.actionReason = actionReason; }
     public int getEmployeeId() { return employeeId; }
     public void setEmployeeId(int employeeId) { this.employeeId = employeeId; }
+    public String getEmployeeName() { return employeeName; }
+    public void setEmployeeName(String employeeName) { this.employeeName = employeeName; }
 }

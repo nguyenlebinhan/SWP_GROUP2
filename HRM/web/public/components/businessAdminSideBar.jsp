@@ -1,5 +1,5 @@
-<%@ page contentType="text/html;charset=UTF-8" %>
-<%@ taglib prefix="c" uri="jakarta.tags.core" %>
+﻿<%@ page contentType="text/html;charset=UTF-8" %>
+<%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
 
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
 
@@ -57,3 +57,4 @@
             <a href="${pageContext.request.contextPath}/v1/auth/logout"><i class="fa fa-right-from-bracket"></i> Đăng xuất</a>
           
 </div>
+

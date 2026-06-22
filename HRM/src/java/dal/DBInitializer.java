@@ -573,6 +573,7 @@ public class DBInitializer {
                 "Users",
                 "Employees",
                 "Employment_Contracts",
+                "Contract_Audit_Log",
                 "Uploaded_Files",
                 "Candidates",
                 "Application_Stage_Logs",
@@ -617,6 +618,7 @@ public class DBInitializer {
                         case "Users":             createTableUsers(conn);             break;
                         case "Employees":         createTableEmployees(conn);         break;
                         case "Employment_Contracts": createTableEmploymentContracts(conn); break;
+                        case "Contract_Audit_Log": createTableContractAuditLog(conn); break;
                         case "Uploaded_Files":    createTableUploadedFiles(conn);     break;
                         case "Candidates":        createTableCandidates(conn);        break;
                         case "Application_Stage_Logs": createTableApplicationStageLogs(conn); break;
