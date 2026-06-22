@@ -26,10 +26,32 @@ public class Attendance {
     private String fullName;
     private Integer departmentId;
     private String departmentName;
+    private Integer positionId;
+    private String positionName;
     private boolean editable;
 
     public Attendance() {
     }
+
+    public Attendance(int attendanceId, String attendanceCode, int employeeId, Date workDate, Time timeIn, Time timeOut, BigDecimal hoursWorked, int attendanceStatus, Integer fileId, String employeeCode, String fullName, Integer departmentId, String departmentName, Integer positionId, String positionName, boolean editable) {
+        this.attendanceId = attendanceId;
+        this.attendanceCode = attendanceCode;
+        this.employeeId = employeeId;
+        this.workDate = workDate;
+        this.timeIn = timeIn;
+        this.timeOut = timeOut;
+        this.hoursWorked = hoursWorked;
+        this.attendanceStatus = attendanceStatus;
+        this.fileId = fileId;
+        this.employeeCode = employeeCode;
+        this.fullName = fullName;
+        this.departmentId = departmentId;
+        this.departmentName = departmentName;
+        this.positionId = positionId;
+        this.positionName = positionName;
+        this.editable = editable;
+    }
+
 
     public int getAttendanceId() {
         return attendanceId;
@@ -147,15 +169,27 @@ public class Attendance {
         this.editable = editable;
     }
 
-    /**
-     * Hiển thị số giờ làm dạng "8h50m". Ưu tiên tính trực tiếp từ giờ vào/giờ ra cho
-     * chính xác (không phụ thuộc làm tròn của cột DECIMAL hoursWorked); nếu thiếu giờ
-     * vào/ra thì suy từ hoursWorked đã lưu.
-     */
+    public Integer getPositionId() {
+        return positionId;
+    }
+
+    public void setPositionId(Integer positionId) {
+        this.positionId = positionId;
+    }
+
+    public String getPositionName() {
+        return positionName;
+    }
+
+    public void setPositionName(String positionName) {
+        this.positionName = positionName;
+    }
+    
+    
     public String getHoursWorkedLabel() {
         long minutes;
         if (timeIn != null && timeOut != null) {
-            // Trừ giờ nghỉ trưa để khớp số giờ làm thực tế đã lưu.
+           
             minutes = utils.WorkHoursCalculator.workedMinutes(timeIn, timeOut);
         } else if (hoursWorked != null) {
             minutes = hoursWorked.multiply(BigDecimal.valueOf(60))
