@@ -11,6 +11,7 @@ import jakarta.servlet.ServletContextEvent;
 import jakarta.servlet.ServletContextListener;
 import jakarta.servlet.annotation.WebListener;
 import java.util.logging.*;
+
 /**
  *
  * @author ADMIN
@@ -37,4 +38,3 @@ public class AppListener implements ServletContextListener{
     
     
 }
-
