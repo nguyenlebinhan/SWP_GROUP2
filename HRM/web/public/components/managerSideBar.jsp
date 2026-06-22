@@ -125,6 +125,12 @@
     </a>
 
     <div class="nav-section">Chấm công</div>
+    <c:if test="${sessionScope.userPermissions.contains('VIEW_DEPARTMENT_ATTENDANCE') || sessionScope.userPermissions.contains('VIEW_ALL_ATTENDANCE')}">
+        <a href="${pageContext.request.contextPath}/v1/manager/attendance/overview"
+           class="${pageContext.request.servletPath == '/public/shared/attendance/attendance_overview.jsp' || pageContext.request.servletPath == '/public/shared/attendance/attendance_detail.jsp' ? 'active' : ''}">
+            Tổng quan chấm công
+        </a>
+    </c:if>
     <a href="${pageContext.request.contextPath}/v1/manager/attendance/own-attendance"
        class="${pageContext.request.servletPath == '/public/manager/own_attendance.jsp' ? 'active' : ''}">
         Chấm công của tôi
