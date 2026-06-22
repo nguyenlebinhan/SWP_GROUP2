@@ -295,7 +295,7 @@ public class EmployeeController extends HttpServlet {
 
         Set<String> perms = getPermissions(user);
         request.getSession().setAttribute("userPermissions", perms);
-        List<EmployeeDetailDTO> employees = employeeDAO.getAllEmployees(user.getUserId());
+        List<EmployeeDetailDTO> employees = employeeDAO.getAllEmployees();
         request.setAttribute("employees", employees);
         setPermissionFlags(request, perms);
         request.getRequestDispatcher("/public/employee/employee_info/employee_list.jsp").forward(request, response);
@@ -369,7 +369,7 @@ public class EmployeeController extends HttpServlet {
 
         Set<String> perms = getPermissions(user);
         request.getSession().setAttribute("userPermissions", perms);
-        request.setAttribute("employees", employeeDAO.getAllEmployees(user.getUserId()));
+        request.setAttribute("employees", employeeDAO.getAllEmployees());
         setPermissionFlags(request, perms);
         request.getRequestDispatcher("/public/employee/contract/add_contract.jsp").forward(request, response);
     }
@@ -459,8 +459,10 @@ public class EmployeeController extends HttpServlet {
             filtered = monthRows;
         }
 
-        // Phân trang
+        // Phân trang (dùng cho chế độ danh sách)
         request.setAttribute("attendances", Paging.page(request, filtered));
+        // Toàn bộ bản ghi trong tháng (dùng cho chế độ lịch)
+        request.setAttribute("monthRows", monthRows);
         request.setAttribute("selectedMonth", month);
         request.setAttribute("selectedYear", year);
         request.setAttribute("selectedDay", day);
@@ -1565,7 +1567,7 @@ public class EmployeeController extends HttpServlet {
         if (code == null || type == null || isBlank(employeeParam) || isBlank(startDate) || isBlank(salaryParam)) {
             request.setAttribute("error",
                     "Vui lêng nhập đầy đủ mã hợp đồng, nhân viên, loại hợp đồng, ngày bắt đầu và lương.");
-            request.setAttribute("employees", employeeDAO.getAllEmployees(user.getUserId()));
+            request.setAttribute("employees", employeeDAO.getAllEmployees());
             setPermissionFlags(request, getPermissions(user));
             request.getRequestDispatcher("/public/employee/contract/add_contract.jsp").forward(request, response);
             return;
@@ -1579,7 +1581,7 @@ public class EmployeeController extends HttpServlet {
             contract.setSalary(new BigDecimal(salaryParam));
         } catch (IllegalArgumentException e) {
             request.setAttribute("error", "Dữ liệu hợp đồng không hợp lệ.");
-            request.setAttribute("employees", employeeDAO.getAllEmployees(user.getUserId()));
+            request.setAttribute("employees", employeeDAO.getAllEmployees());
             setPermissionFlags(request, getPermissions(user));
             request.getRequestDispatcher("/public/employee/contract/add_contract.jsp").forward(request, response);
             return;
@@ -1587,7 +1589,7 @@ public class EmployeeController extends HttpServlet {
 
         if (!isValidContractType(type) || contract.getSalary().compareTo(BigDecimal.ZERO) < 0) {
             request.setAttribute("error", "Loại hợp đồng hoặc lương không hợp lệ.");
-            request.setAttribute("employees", employeeDAO.getAllEmployees(user.getUserId()));
+            request.setAttribute("employees", employeeDAO.getAllEmployees());
             setPermissionFlags(request, getPermissions(user));
             request.getRequestDispatcher("/public/employee/contract/add_contract.jsp").forward(request, response);
             return;
@@ -1595,7 +1597,7 @@ public class EmployeeController extends HttpServlet {
 
         if (employeeDAO.getEmployeeById(contract.getEmployeeId()) == null) {
             request.setAttribute("error", "Nhân viên được chọn không tồn tại.");
-            request.setAttribute("employees", employeeDAO.getAllEmployees(user.getUserId()));
+            request.setAttribute("employees", employeeDAO.getAllEmployees());
             setPermissionFlags(request, getPermissions(user));
             request.getRequestDispatcher("/public/employee/contract/add_contract.jsp").forward(request, response);
             return;
@@ -1603,7 +1605,7 @@ public class EmployeeController extends HttpServlet {
 
         if (contractDAO.hasActiveContract(contract.getEmployeeId())) {
             request.setAttribute("error", "Hợp đồng của nhân viên vẫn cón hiệu lực");
-            request.setAttribute("employees", employeeDAO.getAllEmployees(user.getUserId()));
+            request.setAttribute("employees", employeeDAO.getAllEmployees());
             setPermissionFlags(request, getPermissions(user));
             request.getRequestDispatcher("/public/employee/contract/add_contract.jsp").forward(request, response);
             return;
@@ -1611,7 +1613,7 @@ public class EmployeeController extends HttpServlet {
 
         if (contract.getEndDate() != null && contract.getEndDate().before(contract.getStartDate())) {
             request.setAttribute("error", "Ngày kết thúc không được trước ngày bắt đầu.");
-            request.setAttribute("employees", employeeDAO.getAllEmployees(user.getUserId()));
+            request.setAttribute("employees", employeeDAO.getAllEmployees());
             setPermissionFlags(request, getPermissions(user));
             request.getRequestDispatcher("/public/employee/contract/add_contract.jsp").forward(request, response);
             return;
@@ -1630,7 +1632,7 @@ public class EmployeeController extends HttpServlet {
                     request.getContextPath() + "/v1/employee/contract/preview?employeeId=" + contract.getEmployeeId());
         } else {
             request.setAttribute("error", "Thêm hợp đồng thất bại. Mã hợp đồng có thể đã tồn tại.");
-            request.setAttribute("employees", employeeDAO.getAllEmployees(user.getUserId()));
+            request.setAttribute("employees", employeeDAO.getAllEmployees());
             setPermissionFlags(request, getPermissions(user));
             request.getRequestDispatcher("/public/employee/contract/add_contract.jsp").forward(request, response);
         }
