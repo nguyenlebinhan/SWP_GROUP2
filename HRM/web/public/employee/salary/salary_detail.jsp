@@ -153,28 +153,14 @@
                             </div>
                             <div class="d-flex align-items-center gap-2 flex-wrap">
                                 <c:choose>
-
-                                    <c:when test="${p.status == 3}"><span class="status-badge status-paid">HR đã duyệt</span></c:when>
-
-                                    <c:when test="${p.status == 1}"><span class="status-badge status-approved">Chờ HR duyệt</span></c:when>
-
-                                    <c:when test="${p.status == 2}"><span class="status-badge status-pending">Nhân viên báo sai</span></c:when>
-
-                                    <c:when test="${p.status == 4}"><span class="status-badge status-pending">HR chưa duyệt</span></c:when>
-
-                                    <c:otherwise><span class="status-badge status-pending">Chờ nhân viên xác nhận</span></c:otherwise>
-
+                                    <c:when test="${p.status == 1}">
+                                        <span class="status-badge status-paid">HR đã duyệt</span>
+                                    </c:when>
+                                    <c:otherwise>
+                                        <span class="status-badge status-pending">Chờ duyệt</span>
+                                    </c:otherwise>
                                 </c:choose>
-                                <c:if test="${p.status == 1 && canApprovePayroll}">
-                                    <form method="post" action="${pageContext.request.contextPath}/v1/employee/salary/approve" class="m-0">
-                                        <input type="hidden" name="payrollId" value="${p.payrollId}">
-                                        <button type="submit" class="btn btn-success"
-                                                onclick="return confirm('Xác nhận HR duyệt bảng lương này?');">
-                                            <i class="fa-solid fa-check me-1"></i> Duyệt
-                                        </button>
-                                    </form>
-                                </c:if>
-                            </div>
+                                                            </div>
                         </div>
                     </div>
 
@@ -185,33 +171,6 @@
                         <div class="summary-card"><div class="summary-label">Thực lĩnh</div><div class="summary-value orange"><fmt:formatNumber value="${p.netSalary}" type="number" groupingUsed="true" />đ</div></div>
                     </div>
 
-                    <c:if test="${p.status == 1 && canApprovePayroll}">
-                        <div class="panel">
-                            <h5 class="fw-bold mb-3">HR chưa duyệt</h5>
-                            <form method="post" action="${pageContext.request.contextPath}/v1/employee/salary/reject" class="row g-3">
-                                <input type="hidden" name="payrollId" value="${p.payrollId}">
-                                <div class="col-md-12">
-                                    <label class="form-label fw-semibold">Lý do chưa duyệt <span class="text-danger">*</span></label>
-                                    <textarea name="rejectNote" class="form-control" rows="3" required
-                                              placeholder="Ghi r� l� do d? HR/nh�n vi�n ki?m tra l?i..."></textarea>
-                                </div>
-                                <div class="col-md-12">
-                                    <button type="submit" class="btn btn-outline-danger"
-                                            onclick="return confirm('Xác nhận chưa duyệt bảng lương này?');">
-                                        <i class="fa-solid fa-xmark me-1"></i> Chưa duyệt
-                                    </button>
-                                </div>
-                            </form>
-                        </div>
-                    </c:if>
-
-                    <c:if test="${p.status == 4 && not empty p.rejectNote}">
-                        <div class="panel">
-                            <h5 class="fw-bold mb-2">Lý do HR chưa duyệt</h5>
-                            <div class="text-danger"><c:out value="${p.rejectNote}" /></div>
-                        </div>
-                    </c:if>
-
                     <div class="panel">
                         <h5 class="fw-bold mb-3">Cách tính lương</h5>
                         <div class="table-responsive">
@@ -219,7 +178,7 @@
                                 <thead><tr><th>Khoản mục</th><th>Ghi chú</th><th class="text-end">Số tiền</th></tr></thead>
                                 <tbody>
                                     <tr>
-                                        <td>Gi?m tr? c� nh�n</td>
+                                        <td>Giảm trừ cá nhân</td>
                                         <td class="text-muted">Khoản này chỉ dùng để tính thuế TNCN.</td>
                                         <td class="text-end fw-bold text-primary"><fmt:formatNumber value="${personalAllowance}" type="number" groupingUsed="true" />đ</td>
                                     </tr>

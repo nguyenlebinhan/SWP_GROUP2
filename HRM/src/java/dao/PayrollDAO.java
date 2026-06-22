@@ -25,9 +25,12 @@ public class PayrollDAO {
         this.dbContext = new DBContext();
     }
 
+    // ── Lưu / lấy ─────────────────────────────────────────────────────────────
+
     public int saveOrUpdatePayroll(Payroll payroll) {
         try (Connection conn = dbContext.getConnection()) {
-            Integer existingId = findPayrollId(conn, payroll.getEmployeeId(), payroll.getPeriodStart(), payroll.getPeriodEnd());
+            Integer existingId = findPayrollId(conn, payroll.getEmployeeId(),
+                    payroll.getPeriodStart(), payroll.getPeriodEnd());
             if (existingId != null) {
                 payroll.setPayrollId(existingId);
                 return updatePayroll(conn, payroll) ? existingId : -1;
@@ -95,7 +98,7 @@ public class PayrollDAO {
 
     public Payroll getPayrollByEmployeeAndPeriod(int employeeId, Date periodStart, Date periodEnd) {
         String SQL = basePayrollSelect()
-                + " WHERE employeeId = ? AND periodStart = ? AND periodEnd = ? "
+                + " WHERE employeeId = ? AND periodStart = ? AND periodEnd = ?"
                 + " ORDER BY payrollId DESC LIMIT 1";
         try (Connection conn = dbContext.getConnection();
                 PreparedStatement ps = conn.prepareStatement(SQL)) {
@@ -133,11 +136,9 @@ public class PayrollDAO {
                 + "    ORDER BY ec2.contractId DESC LIMIT 1 "
                 + ") "
                 + "WHERE p.periodStart = ? AND p.periodEnd = ? ");
-
         List<Object> params = new ArrayList<>();
         params.add(periodStart);
         params.add(periodEnd);
-
         if (departmentId != null) {
             sql.append("AND p.departmentId = ? ");
             params.add(departmentId);
@@ -147,7 +148,6 @@ public class PayrollDAO {
             params.add(status);
         }
         sql.append("ORDER BY d.departmentName, e.employeeCode");
-
         try (Connection conn = dbContext.getConnection();
                 PreparedStatement ps = conn.prepareStatement(sql.toString())) {
             for (int i = 0; i < params.size(); i++) {
@@ -171,6 +171,70 @@ public class PayrollDAO {
         return list;
     }
 
+    // ── Duyệt tổng (0 → 1) ────────────────────────────────────────────────────
+
+    public int approveAllPendingPayroll(Date periodStart, Date periodEnd, Integer departmentId,
+            int approvedByUserId, Integer excludeEmployeeId) {
+        StringBuilder sql = new StringBuilder(
+                "UPDATE Payroll "
+                + "SET status = 1, approvedBy = ?, approvedAt = CURRENT_TIMESTAMP "
+                + "WHERE periodStart = ? AND periodEnd = ? AND status = 0 ");
+        List<Object> params = new ArrayList<>();
+        params.add(approvedByUserId);
+        params.add(periodStart);
+        params.add(periodEnd);
+        if (departmentId != null) {
+            sql.append("AND departmentId = ? ");
+            params.add(departmentId);
+        }
+        if (excludeEmployeeId != null) {
+            sql.append("AND employeeId != ? ");
+            params.add(excludeEmployeeId);
+        }
+        try (Connection conn = dbContext.getConnection();
+                PreparedStatement ps = conn.prepareStatement(sql.toString())) {
+            for (int i = 0; i < params.size(); i++) {
+                ps.setObject(i + 1, params.get(i));
+            }
+            return ps.executeUpdate();
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Cannot bulk approve payroll for period", e);
+        }
+        return 0;
+    }
+
+    public int countPendingApproval(Date periodStart, Date periodEnd, Integer departmentId,
+            Integer excludeEmployeeId) {
+        StringBuilder sql = new StringBuilder(
+                "SELECT COUNT(*) FROM Payroll "
+                + "WHERE periodStart = ? AND periodEnd = ? AND status = 0 ");
+        List<Object> params = new ArrayList<>();
+        params.add(periodStart);
+        params.add(periodEnd);
+        if (departmentId != null) {
+            sql.append("AND departmentId = ? ");
+            params.add(departmentId);
+        }
+        if (excludeEmployeeId != null) {
+            sql.append("AND employeeId != ? ");
+            params.add(excludeEmployeeId);
+        }
+        try (Connection conn = dbContext.getConnection();
+                PreparedStatement ps = conn.prepareStatement(sql.toString())) {
+            for (int i = 0; i < params.size(); i++) {
+                ps.setObject(i + 1, params.get(i));
+            }
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next() ? rs.getInt(1) : 0;
+            }
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Cannot count pending approval payroll", e);
+        }
+        return 0;
+    }
+
+    // ── Generic status update (giữ lại, không gây hại) ────────────────────────
+
     public boolean updatePayrollStatus(int payrollId, int status) {
         String SQL = "UPDATE Payroll SET status = ? WHERE payrollId = ?";
         try (Connection conn = dbContext.getConnection();
@@ -184,91 +248,7 @@ public class PayrollDAO {
         return false;
     }
 
-    public boolean approvePayroll(int payrollId, int approvedBy) {
-        String SQL = "UPDATE Payroll "
-                + "SET status = 3, approvedBy = ?, approvedAt = CURRENT_TIMESTAMP, rejectNote = NULL "
-                + "WHERE payrollId = ? AND status = 1";
-        try (Connection conn = dbContext.getConnection();
-                PreparedStatement ps = conn.prepareStatement(SQL)) {
-            ps.setInt(1, approvedBy);
-            ps.setInt(2, payrollId);
-            return ps.executeUpdate() > 0;
-        } catch (SQLException e) {
-            LOGGER.log(Level.SEVERE, "Cannot approve payrollId: " + payrollId, e);
-        }
-        return false;
-    }
-
-    public boolean confirmPayrollByEmployee(int payrollId, int userId) {
-        String SQL = "UPDATE Payroll "
-                + "SET status = 1, employeeConfirmedBy = ?, employeeConfirmedAt = CURRENT_TIMESTAMP "
-                + "WHERE payrollId = ? AND status = 0";
-        try (Connection conn = dbContext.getConnection();
-                PreparedStatement ps = conn.prepareStatement(SQL)) {
-            ps.setInt(1, userId);
-            ps.setInt(2, payrollId);
-            return ps.executeUpdate() > 0;
-        } catch (SQLException e) {
-            LOGGER.log(Level.SEVERE, "Cannot confirm payrollId: " + payrollId, e);
-        }
-        return false;
-    }
-
-    public boolean reportPayrollWrongInfo(int payrollId, int userId) {
-        String SQL = "UPDATE Payroll "
-                + "SET status = 2, employeeConfirmedBy = ?, employeeConfirmedAt = CURRENT_TIMESTAMP "
-                + "WHERE payrollId = ? AND status = 0";
-        try (Connection conn = dbContext.getConnection();
-                PreparedStatement ps = conn.prepareStatement(SQL)) {
-            ps.setInt(1, userId);
-            ps.setInt(2, payrollId);
-            return ps.executeUpdate() > 0;
-        } catch (SQLException e) {
-            LOGGER.log(Level.SEVERE, "Cannot mark payroll wrong info for payrollId: " + payrollId, e);
-        }
-        return false;
-    }
-
-    public boolean rejectPayrollByHr(int payrollId, int approvedBy, String rejectNote) {
-        String SQL = "UPDATE Payroll "
-                + "SET status = 4, approvedBy = ?, approvedAt = CURRENT_TIMESTAMP, rejectNote = ? "
-                + "WHERE payrollId = ? AND status = 1";
-        try (Connection conn = dbContext.getConnection();
-                PreparedStatement ps = conn.prepareStatement(SQL)) {
-            ps.setInt(1, approvedBy);
-            ps.setNString(2, rejectNote);
-            ps.setInt(3, payrollId);
-            return ps.executeUpdate() > 0;
-        } catch (SQLException e) {
-            LOGGER.log(Level.SEVERE, "Cannot reject payrollId: " + payrollId, e);
-        }
-        return false;
-    }
-
-    public int updatePayrollStatusByPeriod(Date periodStart, Date periodEnd, Integer departmentId,
-            int currentStatus, int newStatus) {
-        StringBuilder sql = new StringBuilder(
-                "UPDATE Payroll SET status = ? WHERE periodStart = ? AND periodEnd = ? AND status = ? ");
-        List<Object> params = new ArrayList<>();
-        params.add(newStatus);
-        params.add(periodStart);
-        params.add(periodEnd);
-        params.add(currentStatus);
-        if (departmentId != null) {
-            sql.append("AND departmentId = ? ");
-            params.add(departmentId);
-        }
-        try (Connection conn = dbContext.getConnection();
-                PreparedStatement ps = conn.prepareStatement(sql.toString())) {
-            for (int i = 0; i < params.size(); i++) {
-                ps.setObject(i + 1, params.get(i));
-            }
-            return ps.executeUpdate();
-        } catch (SQLException e) {
-            LOGGER.log(Level.SEVERE, "Cannot update payroll status by period", e);
-        }
-        return 0;
-    }
+    // ── Private helpers ────────────────────────────────────────────────────────
 
     private Integer findPayrollId(Connection conn, int employeeId, Date periodStart, Date periodEnd)
             throws SQLException {
@@ -290,8 +270,8 @@ public class PayrollDAO {
                 + "(periodStart, periodEnd, employeeId, positionId, departmentId, workingDays, hoursWorked, "
                 + "baseSalary, allowance, bonus, overtimePay, penalty, grossSalary, "
                 + "insuranceDeduction, personalIncomeTax, netSalary, note, status, "
-                + "employeeConfirmedBy, employeeConfirmedAt, approvedBy, approvedAt, rejectNote) "
-                + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                + "approvedBy, approvedAt) "
+                + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         try (PreparedStatement ps = conn.prepareStatement(SQL, Statement.RETURN_GENERATED_KEYS)) {
             bindPayroll(ps, payroll, false);
             int rows = ps.executeUpdate();
@@ -310,7 +290,7 @@ public class PayrollDAO {
                 + "workingDays = ?, hoursWorked = ?, baseSalary = ?, allowance = ?, bonus = ?, "
                 + "overtimePay = ?, penalty = ?, grossSalary = ?, insuranceDeduction = ?, personalIncomeTax = ?, "
                 + "netSalary = ?, note = ?, status = ?, "
-                + "employeeConfirmedBy = ?, employeeConfirmedAt = ?, approvedBy = ?, approvedAt = ?, rejectNote = ? "
+                + "approvedBy = ?, approvedAt = ? "
                 + "WHERE payrollId = ?";
         try (PreparedStatement ps = conn.prepareStatement(SQL)) {
             bindPayroll(ps, payroll, true);
@@ -341,21 +321,15 @@ public class PayrollDAO {
         setBigDecimal(ps, 16, p.getNetSalary());
         ps.setNString(17, p.getNote());
         ps.setInt(18, p.getStatus());
-        if (p.getEmployeeConfirmedBy() != null) {
-            ps.setInt(19, p.getEmployeeConfirmedBy());
+        
+        if (p.getApprovedBy() != null) {
+            ps.setInt(19, p.getApprovedBy());
         } else {
             ps.setNull(19, Types.INTEGER);
         }
-        ps.setTimestamp(20, p.getEmployeeConfirmedAt());
-        if (p.getApprovedBy() != null) {
-            ps.setInt(21, p.getApprovedBy());
-        } else {
-            ps.setNull(21, Types.INTEGER);
-        }
-        ps.setTimestamp(22, p.getApprovedAt());
-        ps.setNString(23, p.getRejectNote());
+        ps.setTimestamp(20, p.getApprovedAt());
         if (includeIdAtEnd) {
-            ps.setInt(24, p.getPayrollId());
+            ps.setInt(21, p.getPayrollId());
         }
     }
 
@@ -371,7 +345,7 @@ public class PayrollDAO {
         return "SELECT payrollId, periodStart, periodEnd, employeeId, positionId, departmentId, "
                 + "workingDays, hoursWorked, baseSalary, allowance, bonus, overtimePay, penalty, "
                 + "grossSalary, insuranceDeduction, personalIncomeTax, netSalary, note, status, "
-                + "employeeConfirmedBy, employeeConfirmedAt, approvedBy, approvedAt, rejectNote, "
+                + "approvedBy, approvedAt, "
                 + "createdAt, updatedAt FROM Payroll";
     }
 
@@ -397,13 +371,9 @@ public class PayrollDAO {
         p.setNetSalary(rs.getBigDecimal("netSalary"));
         p.setNote(rs.getNString("note"));
         p.setStatus(rs.getInt("status"));
-        int employeeConfirmedBy = rs.getInt("employeeConfirmedBy");
-        p.setEmployeeConfirmedBy(rs.wasNull() ? null : employeeConfirmedBy);
-        p.setEmployeeConfirmedAt(rs.getTimestamp("employeeConfirmedAt"));
         int approvedBy = rs.getInt("approvedBy");
         p.setApprovedBy(rs.wasNull() ? null : approvedBy);
         p.setApprovedAt(rs.getTimestamp("approvedAt"));
-        p.setRejectNote(rs.getNString("rejectNote"));
         p.setCreatedAt(rs.getTimestamp("createdAt"));
         p.setUpdatedAt(rs.getTimestamp("updatedAt"));
         return p;

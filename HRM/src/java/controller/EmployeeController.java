@@ -246,20 +246,11 @@ public class EmployeeController extends HttpServlet {
             case "/recruitment-import":
                 handleImportCandidates(request, response, user);
                 break;
-            case "/salary/approve":
-                handleApprovePayroll(request, response, user);
-                break;
-            case "/salary/reject":
-                handleRejectPayroll(request, response, user);
-                break;
             case "/salary/generate":
                 handleGeneratePayroll(request, response, user);
                 break;
-            case "/salary/confirm-own":
-                handleConfirmOwnPayroll(request, response, user);
-                break;
-            case "/salary/report-own":
-                handleReportOwnPayroll(request, response, user);
+            case "/salary/approve-all":
+                handleApproveAllPayroll(request, response, user);
                 break;
             default:
                 response.sendRedirect(request.getContextPath() + "/v1/employee/dashboard");
@@ -428,14 +419,27 @@ public class EmployeeController extends HttpServlet {
         java.math.BigDecimal worked = java.math.BigDecimal.ZERO;
         for (Attendance a : monthRows) {
             switch (a.getAttendanceStatus()) {
-                case 0: summary.setPresentDays(summary.getPresentDays() + 1); break;
-                case 1: summary.setLateDays(summary.getLateDays() + 1); break;
-                case 4: summary.setLeaveDays(summary.getLeaveDays() + 1); break;
+                case 0:
+                    summary.setPresentDays(summary.getPresentDays() + 1);
+                    break;
+                case 1:
+                    summary.setLateDays(summary.getLateDays() + 1);
+                    break;
+                case 4:
+                    summary.setLeaveDays(summary.getLeaveDays() + 1);
+                    break;
                 case 2:
-                case 3: summary.setAbsentDays(summary.getAbsentDays() + 1); break;
-                case 5: summary.setHolidayDays(summary.getHolidayDays() + 1); break;
-                case 6: summary.setWeekendDays(summary.getWeekendDays() + 1); break;
-                default: break;
+                case 3:
+                    summary.setAbsentDays(summary.getAbsentDays() + 1);
+                    break;
+                case 5:
+                    summary.setHolidayDays(summary.getHolidayDays() + 1);
+                    break;
+                case 6:
+                    summary.setWeekendDays(summary.getWeekendDays() + 1);
+                    break;
+                default:
+                    break;
             }
             if (a.getHoursWorked() != null) {
                 worked = worked.add(a.getHoursWorked());
@@ -473,7 +477,6 @@ public class EmployeeController extends HttpServlet {
         request.setAttribute("selectedDay", day);
         request.getRequestDispatcher("/public/employee/attendance/own_attendance_list.jsp").forward(request, response);
     }
-
 
     private void displayOwnSalary(HttpServletRequest request, HttpServletResponse response,
             User user) throws ServletException, IOException {
@@ -522,6 +525,12 @@ public class EmployeeController extends HttpServlet {
         request.setAttribute("selectedDepartmentId", departmentId);
         request.setAttribute("departments", departmentDAO.getAllActiveDepartments());
         request.setAttribute("canExportPayroll", payrollService.canExportPayroll(user));
+        boolean canApproveAll = payrollService.canApprovePayroll(user);
+        request.setAttribute("canApprovePayroll", canApproveAll);
+        if (canApproveAll) {
+            int pendingCount = payrollService.countPendingApprovalForPeriod(user, period[0], period[1], departmentId);
+            request.setAttribute("pendingApprovalCount", pendingCount);
+        }
         request.getRequestDispatcher("/public/employee/salary/salary_list.jsp").forward(request, response);
     }
 
@@ -543,8 +552,6 @@ public class EmployeeController extends HttpServlet {
             request.setAttribute("salaryError", "Không tìm thấy bảng lương cần xem chi tiết.");
         }
         request.setAttribute("payrollPreview", payrollPreview);
-        request.setAttribute("canApprovePayroll", payrollId != null
-                && payrollService.getPayrollApprovalError(user, payrollId) == null);
         request.getRequestDispatcher("/public/employee/salary/salary_detail.jsp").forward(request, response);
     }
 
@@ -565,43 +572,32 @@ public class EmployeeController extends HttpServlet {
         }
     }
 
-    private void handleApprovePayroll(HttpServletRequest request, HttpServletResponse response,
+    private void handleApproveAllPayroll(HttpServletRequest request, HttpServletResponse response,
             User user) throws IOException {
-        Integer payrollId = parseIntOrNull(request.getParameter("payrollId"));
-        if (payrollId == null) {
-            request.getSession().setAttribute("error", "Không tìm thấy bảng lương cần duyệt.");
-            response.sendRedirect(request.getContextPath() + "/v1/employee/salary/all");
+        if (!payrollService.canApprovePayroll(user)) {
+            request.getSession().setAttribute("error", "Bạn không có quyền duyệt bảng lương.");
+            response.sendRedirect(request.getContextPath() + "/v1/employee/dashboard");
             return;
         }
-        String approvalError = payrollService.getPayrollApprovalError(user, payrollId);
-        if (approvalError == null && payrollService.approvePayroll(user, payrollId)) {
-            request.getSession().setAttribute("success", "Đã duyệt bảng lương.");
-        } else {
-            request.getSession().setAttribute("error", approvalError == null
-                    ? "Không thể duyệt bảng lương này."
-                    : approvalError);
-        }
-        response.sendRedirect(request.getContextPath() + "/v1/employee/salary/detail?id=" + payrollId);
-    }
+        int[] period = parseSalaryPeriod(request);
+        Integer departmentId = parseIntOrNull(request.getParameter("departmentId"));
 
-    private void handleRejectPayroll(HttpServletRequest request, HttpServletResponse response,
-            User user) throws IOException {
-        Integer payrollId = parseIntOrNull(request.getParameter("payrollId"));
-        String rejectNote = request.getParameter("rejectNote");
-        if (payrollId == null) {
-            request.getSession().setAttribute("error", "Không tìm thấy bảng lương cần xử lý.");
-            response.sendRedirect(request.getContextPath() + "/v1/employee/salary/all");
-            return;
-        }
-        String rejectionError = payrollService.getPayrollRejectionError(user, payrollId, rejectNote);
-        if (rejectionError == null && payrollService.rejectPayroll(user, payrollId, rejectNote)) {
-            request.getSession().setAttribute("success", "Đã đánh dấu bảng lương chưa được duyệt.");
+        int approvedCount = payrollService.approveAllPayrollForPeriod(user, period[0], period[1], departmentId);
+        if (approvedCount > 0) {
+            request.getSession().setAttribute("success",
+                    "Đã duyệt " + approvedCount + " bảng lương cho kỳ lương "
+                    + String.format("%02d/%d", period[1], period[0]) + ".");
         } else {
-            request.getSession().setAttribute("error", rejectionError == null
-                    ? "Không thể từ chối bảng lương này."
-                    : rejectionError);
+            request.getSession().setAttribute("error",
+                    "Không có bảng lương nào đang chờ duyệt để xử lý (hoặc tất cả đều là lương của chính bạn).");
         }
-        response.sendRedirect(request.getContextPath() + "/v1/employee/salary/detail?id=" + payrollId);
+
+        StringBuilder url = new StringBuilder(request.getContextPath() + "/v1/employee/salary/all");
+        url.append("?month=").append(period[1]).append("&year=").append(period[0]);
+        if (departmentId != null) {
+            url.append("&departmentId=").append(departmentId);
+        }
+        response.sendRedirect(url.toString());
     }
 
     private void handleGeneratePayroll(HttpServletRequest request, HttpServletResponse response,
@@ -618,46 +614,6 @@ public class EmployeeController extends HttpServlet {
         response.sendRedirect(request.getContextPath() + "/v1/employee/salary/all?month=" + period[1]
                 + "&year=" + period[0]
                 + (departmentId == null ? "" : "&departmentId=" + departmentId));
-    }
-
-    private void handleConfirmOwnPayroll(HttpServletRequest request, HttpServletResponse response,
-            User user) throws IOException {
-        Integer payrollId = parseIntOrNull(request.getParameter("payrollId"));
-        if (payrollId == null) {
-            request.getSession().setAttribute("error", "Không tìm thấy bảng lương cần xác nhận.");
-            response.sendRedirect(request.getContextPath() + "/v1/employee/salary/own");
-            return;
-        }
-        int[] period = parseSalaryPeriod(request);
-        String error = payrollService.getOwnPayrollActionError(user, payrollId);
-        if (error == null && payrollService.confirmOwnPayroll(user, payrollId)) {
-            request.getSession().setAttribute("success", "Đã xác nhận bảng lương cá nhân.");
-        } else {
-            request.getSession().setAttribute("error", error == null ? "Không thể xác nhận bảng lương này." : error);
-        }
-        response.sendRedirect(request.getContextPath() + "/v1/employee/salary/own?month=" + period[1]
-                + "&year=" + period[0]);
-    }
-
-    private void handleReportOwnPayroll(HttpServletRequest request, HttpServletResponse response,
-            User user) throws IOException {
-        Integer payrollId = parseIntOrNull(request.getParameter("payrollId"));
-        if (payrollId == null) {
-            request.getSession().setAttribute("error", "Không tìm thấy bảng lương cần báo sai.");
-            response.sendRedirect(request.getContextPath() + "/v1/employee/salary/own");
-            return;
-        }
-        int[] period = parseSalaryPeriod(request);
-        String error = payrollService.getOwnPayrollActionError(user, payrollId);
-        if (error == null && payrollService.reportOwnPayrollWrongInfo(user, payrollId)) {
-            String reason = java.net.URLEncoder.encode("Bảng lương payrollId=" + payrollId
-                    + " chưa đúng thông tin, vui lòng kiểm tra lại.", java.nio.charset.StandardCharsets.UTF_8);
-            response.sendRedirect(request.getContextPath() + "/v1/employee/forms/complaint/new?reason=" + reason);
-        } else {
-            request.getSession().setAttribute("error", error == null ? "Không thể báo sai bảng lương này." : error);
-            response.sendRedirect(request.getContextPath() + "/v1/employee/salary/own?month=" + period[1]
-                    + "&year=" + period[0]);
-        }
     }
 
     private int attParam(HttpServletRequest request, String name, int defaultValue) {
@@ -689,8 +645,8 @@ public class EmployeeController extends HttpServlet {
         int year = attParam(request, "year", now.getYear());
         Integer departmentId = attDepartmentParam(request);
 
-        java.util.List<dto.AttendanceSummaryDTO> summaries =
-                attendanceService.getMonthlySummaries(departmentId, month, year);
+        java.util.List<dto.AttendanceSummaryDTO> summaries
+                = attendanceService.getMonthlySummaries(departmentId, month, year);
         request.setAttribute("summaries", summaries);
         request.setAttribute("pagedSummaries", Paging.page(request, summaries));
         request.setAttribute("departments", departmentDAO.getAllActiveDepartments());
@@ -753,8 +709,6 @@ public class EmployeeController extends HttpServlet {
         request.setAttribute("selectedYear", year);
         request.getRequestDispatcher("/public/employee/attendance/attendance_detail.jsp").forward(request, response);
     }
-
-
 
     private void exportAttendanceReport(HttpServletRequest request, HttpServletResponse response,
             User user) throws ServletException, IOException {
@@ -875,7 +829,6 @@ public class EmployeeController extends HttpServlet {
         request.getSession().setAttribute("userPermissions", perms);
         request.getRequestDispatcher("/public/employee/attendance/attendance_import.jsp").forward(request, response);
     }
-
 
     private void displayUpdateAttendanceForm(HttpServletRequest request, HttpServletResponse response,
             User user) throws ServletException, IOException {
@@ -1120,8 +1073,8 @@ public class EmployeeController extends HttpServlet {
         }
         result.setFileName(uf.getFileName());
         LOGGER.log(Level.INFO, "Attendance import done by userId={0}: fileId={1}, total={2}, imported={3}, failed={4}",
-                new Object[] { user.getUserId(), fileId, result.getTotalRows(),
-                        result.getImportedRows(), result.getFailedRows() });
+                new Object[]{user.getUserId(), fileId, result.getTotalRows(),
+                    result.getImportedRows(), result.getFailedRows()});
 
         request.setAttribute("importResult", result);
         request.setAttribute("selectedMonth", month);
@@ -1235,7 +1188,7 @@ public class EmployeeController extends HttpServlet {
             }
         }
 
-        LOGGER.log(Level.INFO, "Employee assigned: userId={0} → deptId={1}", new Object[] { userId, departmentId });
+        LOGGER.log(Level.INFO, "Employee assigned: userId={0} → deptId={1}", new Object[]{userId, departmentId});
 
         request.getSession().setAttribute("success", "Phân cóng nhân viên vào phòng ban thành cóng.");
         response.sendRedirect(request.getContextPath() + "/v1/employee/dashboard");
@@ -1361,7 +1314,7 @@ public class EmployeeController extends HttpServlet {
             departmentDAO.replaceDepartmentRoles(newDeptId, roleIds);
         }
 
-        LOGGER.log(Level.INFO, "Department created: code={0} by userId={1}", new Object[] { code, user.getUserId() });
+        LOGGER.log(Level.INFO, "Department created: code={0} by userId={1}", new Object[]{code, user.getUserId()});
         request.getSession().setAttribute("success", "Thêm phòng ban \"" + name.trim() + "\" thành cóng.");
         response.sendRedirect(request.getContextPath() + "/v1/employee/dashboard");
     }
@@ -1828,7 +1781,6 @@ public class EmployeeController extends HttpServlet {
         request.getRequestDispatcher("/public/employee/forms/all_form_list.jsp").forward(request, response);
     }
 
-
     private void displayFormDetail(HttpServletRequest request, HttpServletResponse response, User user)
             throws ServletException, IOException {
         String formIdRaw = request.getParameter("id");
@@ -1909,11 +1861,9 @@ public class EmployeeController extends HttpServlet {
         request.getRequestDispatcher("/public/employee/forms/complaint_form.jsp").forward(request, response);
     }
 
-
-
     private void handleLeaveFormSubmit(HttpServletRequest request, HttpServletResponse response, User user)
             throws ServletException, IOException {
-        
+
         FormType ft = formTypeDAO.getByCode("LEAVE");
         if (ft == null) {
             request.getSession().setAttribute("error", "Loại đơn LEAVE không tồn tại.");
@@ -1971,10 +1921,10 @@ public class EmployeeController extends HttpServlet {
         int currentYear = LocalDate.now().getYear();
         LeaveBalance lb = leaveBalanceDAO.getLeaveBalance(me.getEmployeeId(), currentYear);
         int remaining = 0;
-        if(lb != null) {
+        if (lb != null) {
             remaining = lb.getRemainingDays();
         }
-        if(totalDays > remaining) {
+        if (totalDays > remaining) {
             request.setAttribute("error", "Số ngày nghỉ vượt quá số ngày phép còn lại (" + remaining + " ngày).");
             setPermissionFlags(request, getPermissions(user));
             request.getRequestDispatcher("/public/employee/forms/leave_form.jsp").forward(request, response);
@@ -1997,7 +1947,7 @@ public class EmployeeController extends HttpServlet {
             if (submitted != null && !submitted.isEmpty()) {
                 String ext = submitted.contains(".") ? submitted.substring(submitted.lastIndexOf('.')).toLowerCase()
                         : "";
-                String[] allowed = { ".xlsx", ".pdf", ".docx", ".doc", ".xls", ".jpg", ".png", ".zip" };
+                String[] allowed = {".xlsx", ".pdf", ".docx", ".doc", ".xls", ".jpg", ".png", ".zip"};
                 boolean ok = false;
                 for (String a : allowed) {
                     if (a.equals(ext)) {
@@ -2113,7 +2063,7 @@ public class EmployeeController extends HttpServlet {
             if (submitted != null && !submitted.isEmpty()) {
                 String ext = submitted.contains(".") ? submitted.substring(submitted.lastIndexOf('.')).toLowerCase()
                         : "";
-                String[] allowed = { ".xlsx", ".pdf", ".docx", ".doc", ".xls", ".jpg", ".png", ".zip" };
+                String[] allowed = {".xlsx", ".pdf", ".docx", ".doc", ".xls", ".jpg", ".png", ".zip"};
                 boolean ok = false;
                 for (String a : allowed) {
                     if (a.equals(ext)) {
@@ -2513,6 +2463,7 @@ public class EmployeeController extends HttpServlet {
         String role = roleDAO.getRoleByUserId(user.getUserId());
         return role.contains("HR");
     }
+
     private Integer attDepartmentParam(HttpServletRequest request) {
         int id = attParam(request, "departmentId", 0);
         return id > 0 ? id : null;

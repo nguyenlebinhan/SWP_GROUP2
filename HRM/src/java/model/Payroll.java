@@ -23,12 +23,9 @@ public class Payroll {
     private BigDecimal personalIncomeTax;
     private BigDecimal netSalary;
     private String note;
-    private int status;
-    private Integer employeeConfirmedBy;
-    private Timestamp employeeConfirmedAt;
+    private int status;//0 va 1
     private Integer approvedBy;
     private Timestamp approvedAt;
-    private String rejectNote;
     private Timestamp createdAt;
     private Timestamp updatedAt;
 
@@ -186,23 +183,7 @@ public class Payroll {
     public void setStatus(int status) {
         this.status = status;
     }
-
-    public Integer getEmployeeConfirmedBy() {
-        return employeeConfirmedBy;
-    }
-
-    public void setEmployeeConfirmedBy(Integer employeeConfirmedBy) {
-        this.employeeConfirmedBy = employeeConfirmedBy;
-    }
-
-    public Timestamp getEmployeeConfirmedAt() {
-        return employeeConfirmedAt;
-    }
-
-    public void setEmployeeConfirmedAt(Timestamp employeeConfirmedAt) {
-        this.employeeConfirmedAt = employeeConfirmedAt;
-    }
-
+    
     public Integer getApprovedBy() {
         return approvedBy;
     }
@@ -217,14 +198,6 @@ public class Payroll {
 
     public void setApprovedAt(Timestamp approvedAt) {
         this.approvedAt = approvedAt;
-    }
-
-    public String getRejectNote() {
-        return rejectNote;
-    }
-
-    public void setRejectNote(String rejectNote) {
-        this.rejectNote = rejectNote;
     }
 
     public Timestamp getCreatedAt() {
