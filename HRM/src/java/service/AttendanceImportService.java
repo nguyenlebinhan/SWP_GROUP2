@@ -6,7 +6,6 @@ package service;
 
 import dal.DBContext;
 import dao.AttendanceDAO;
-import dao.AttendanceImportRowDAO;
 import dao.FormRequestDAO;
 import dao.HolidayDAO;
 import dao.UploadedFileDAO;
@@ -39,7 +38,6 @@ public class AttendanceImportService {
 
     private final DBContext dbContext;
     private final AttendanceDAO attendanceDAO;
-    private final AttendanceImportRowDAO importRowDAO;
     private final UploadedFileDAO uploadedFileDAO;
     private final HolidayDAO holidayDAO;
     private final FormRequestDAO formRequestDAO;
@@ -48,7 +46,6 @@ public class AttendanceImportService {
     public AttendanceImportService() {
         this.dbContext = new DBContext();
         this.attendanceDAO = new AttendanceDAO();
-        this.importRowDAO = new AttendanceImportRowDAO();
         this.uploadedFileDAO = new UploadedFileDAO();
         this.holidayDAO = new HolidayDAO();
         this.formRequestDAO = new FormRequestDAO();
@@ -86,19 +83,15 @@ public class AttendanceImportService {
             try {
                 int imported = 0;
                 for (AttendanceDataDTO ad : attendanceDataDTOs) {
-                    int rowId = importRowDAO.insertRow(conn, fileId, ad);
                     try {
                         Attendance att = buildAndValidate(conn, ad, departmentId, month, year, fileId);
                         if (attendanceDAO.upsertAttendance(conn, att)) {
-                            importRowDAO.markRow(conn, rowId, true, null);
                             imported++;
                         } else {
-                            importRowDAO.markRow(conn, rowId, false, "Lưu dữ liệu thất bại (lỗi cơ sở dữ liệu).");
                             result.addError(ad.getRowNumber(), ad.getEmployeeCode(),
                                     "Lưu dữ liệu thất bại (lỗi cơ sở dữ liệu).");
                         }
                     } catch (RowValidationException e) {
-                        importRowDAO.markRow(conn, rowId, false, e.getMessage());
                         result.addError(ad.getRowNumber(), ad.getEmployeeCode(), e.getMessage());
                     }
                 }

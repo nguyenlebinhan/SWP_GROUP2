@@ -377,28 +377,6 @@ public class DBInitializer {
     }
 
 
-    public void createTableAttendanceImportRows(Connection conn) {
-        String SQL = "CREATE TABLE Attendance_Import_Rows("
-                + "importRowId INT PRIMARY KEY AUTO_INCREMENT,"
-                + "fileId INT NOT NULL,"
-                + "rowNumber INT NOT NULL,"
-                + "employeeCode VARCHAR(50),"
-                + "fullName NVARCHAR(100),"
-                + "departmentName NVARCHAR(100),"
-                + "positionName VARCHAR(100),"
-                + "workDate VARCHAR(50),"
-                + "timeIn VARCHAR(20),"
-                + "timeOut VARCHAR(20),"
-                + "attendanceStatus VARCHAR(30),"
-                + "note NVARCHAR(255),"
-                + "validateStatus TINYINT DEFAULT 0," 
-                + "errorMessage NVARCHAR(500),"
-                + "createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,"
-                + "FOREIGN KEY (fileId) REFERENCES Uploaded_Files(fileId)"
-                + ")";
-        execute(conn, SQL, "CREATE ATTENDANCE_IMPORT_ROWS TABLE SUCCESSFULLY");
-    }
-
     public void createTableAttendanceAdjustmentHistory(Connection conn) {
         String SQL = "CREATE TABLE Attendance_Adjustment_History("
                 + "adjustmentId INT PRIMARY KEY AUTO_INCREMENT,"
@@ -511,7 +489,6 @@ public class DBInitializer {
                 "Notifications",
                 "Payroll",
                 "Attendance_Adjustment_History",
-                "Attendance_Import_Rows",
                 "Attendance",
                 "Holiday",
                 "Application_Stage_Logs",
@@ -554,7 +531,6 @@ public class DBInitializer {
                 "Overtime_Assignees",
                 "Leave_Balances",
                 "Attendance",
-                "Attendance_Import_Rows",
                 "Attendance_Adjustment_History",
                 "Holiday",
                 "Payroll",
@@ -597,7 +573,6 @@ public class DBInitializer {
                         case "Overtime_Assignees": createTableOvertimeAssignees(conn); break;
                         case "Leave_Balances":     createTableLeaveBalances(conn);      break;
                         case "Attendance":        createTableAttendance(conn);        break;
-                        case "Attendance_Import_Rows":        createTableAttendanceImportRows(conn);        break;
                         case "Attendance_Adjustment_History": createTableAttendanceAdjustmentHistory(conn); break;
                         case "Holiday":           createTableHoliday(conn);           break;
                         case "Payroll":           createTablePayroll(conn);           break;
