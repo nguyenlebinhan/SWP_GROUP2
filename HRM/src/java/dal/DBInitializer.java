@@ -451,42 +451,19 @@ public class DBInitializer {
                 + "personalIncomeTax DECIMAL(15,2) DEFAULT 0,"
                 + "netSalary DECIMAL(15,2) DEFAULT 0,"
                 + "note NVARCHAR(1000),"
-                + "employeeConfirmedBy INT,"
-                + "employeeConfirmedAt DATETIME,"
                 + "approvedBy INT,"
                 + "approvedAt DATETIME,"
-                + "rejectNote NVARCHAR(500),"
-                + "status TINYINT DEFAULT 0,"        // 0: Chờ nhân viên xác nhận, 1: Chờ HR duyệt, 2: Nhân viên báo sai, 3: HR duyệt, 4: HR từ chối
+                + "status TINYINT DEFAULT 0,"        // 0: Chờ nhân viên xác nhận, 1: HR duyệt
                 + "createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,"
                 + "updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,"
                 + "FOREIGN KEY (employeeId) REFERENCES Employees(employeeId),"
                 + "FOREIGN KEY (departmentId) REFERENCES Departments(departmentId),"
                 + "FOREIGN KEY (positionId) REFERENCES Positions(positionId),"
-                + "FOREIGN KEY (employeeConfirmedBy) REFERENCES Users(userId),"
                 + "FOREIGN KEY (approvedBy) REFERENCES Users(userId)"
                 + ")";
         execute(conn, SQL, "CREATE PAYROLL TABLE SUCCESSFULLY");
     }
 
-    public void createTablePerformance(Connection conn) {
-        String SQL = "CREATE TABLE Performance("
-                + "performanceId INT PRIMARY KEY AUTO_INCREMENT,"
-                + "departmentId INT NOT NULL,"
-                + "employeeId INT NOT NULL,"
-                + "positionId INT NOT NULL,"
-                + "evaluatorId INT NOT NULL,"
-                + "evaluationDate DATE NOT NULL,"
-                + "content NVARCHAR(500),"
-                + "result VARCHAR(20),"              // EXCELLENT / GOOD / AVERAGE / POOR
-                + "createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,"
-                + "updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,"
-                + "FOREIGN KEY (departmentId) REFERENCES Departments(departmentId),"
-                + "FOREIGN KEY (employeeId) REFERENCES Employees(employeeId),"
-                + "FOREIGN KEY (evaluatorId) REFERENCES Employees(employeeId),"
-                + "FOREIGN KEY (positionId) REFERENCES Positions(positionId)"
-                + ")";
-        execute(conn, SQL, "CREATE PERFORMANCE TABLE SUCCESSFULLY");
-    }
 
     // ==================== THÔNG BÁO & AUDIT ====================
 
@@ -536,7 +513,6 @@ public class DBInitializer {
             String[] dropOrder = {
                 "Audit_Logs",
                 "Notifications",
-                "Performance",
                 "Payroll",
                 "Attendance_Adjustment_History",
                 "Attendance_Import_Rows",
@@ -586,7 +562,6 @@ public class DBInitializer {
                 "Attendance_Adjustment_History",
                 "Holiday",
                 "Payroll",
-                "Performance",
                 "Notifications",
                 "Audit_Logs"
             };
@@ -630,7 +605,6 @@ public class DBInitializer {
                         case "Attendance_Adjustment_History": createTableAttendanceAdjustmentHistory(conn); break;
                         case "Holiday":           createTableHoliday(conn);           break;
                         case "Payroll":           createTablePayroll(conn);           break;
-                        case "Performance":       createTablePerformance(conn);       break;
                         case "Notifications":     createTableNotifications(conn);     break;
                         case "Audit_Logs":        createTableAuditLogs(conn);         break;
                         default: LOGGER.log(Level.WARNING,"Unknown table: {0}", table);     break;
@@ -704,7 +678,7 @@ public class DBInitializer {
             if (countRows(conn, "Positions") == 0) {
                 insertPosition(conn, "Thực tập sinh",          1, "Sinh viên thực tập tại công ty");
                 insertPosition(conn, "Nhân viên chính thức",   2, "Hỗ trợ công việc hành chính");
-                insertPosition(conn, "Trưởng phòng ",   3, "Quản lý toàn bộ hoạt động của phòng ban");
+                insertPosition(conn, "Trưởng phòng",   3, "Quản lý toàn bộ hoạt động của phòng ban");
             }
 
 
@@ -874,7 +848,6 @@ public class DBInitializer {
     }
 
 
-
     private void execute(Connection conn, String sql, String label) {
         try (Statement stmt = conn.createStatement()) {
             stmt.execute(sql);
@@ -916,18 +889,10 @@ public class DBInitializer {
         if (!columnExists(conn, "Payroll", "approvedBy")) {
             execute(conn, "ALTER TABLE Payroll ADD COLUMN approvedBy INT", "ADD PAYROLL APPROVED BY COLUMN");
         }
-        if (!columnExists(conn, "Payroll", "employeeConfirmedBy")) {
-            execute(conn, "ALTER TABLE Payroll ADD COLUMN employeeConfirmedBy INT", "ADD PAYROLL EMPLOYEE CONFIRMED BY COLUMN");
-        }
-        if (!columnExists(conn, "Payroll", "employeeConfirmedAt")) {
-            execute(conn, "ALTER TABLE Payroll ADD COLUMN employeeConfirmedAt DATETIME", "ADD PAYROLL EMPLOYEE CONFIRMED AT COLUMN");
-        }
         if (!columnExists(conn, "Payroll", "approvedAt")) {
             execute(conn, "ALTER TABLE Payroll ADD COLUMN approvedAt DATETIME", "ADD PAYROLL APPROVED AT COLUMN");
         }
-        if (!columnExists(conn, "Payroll", "rejectNote")) {
-            execute(conn, "ALTER TABLE Payroll ADD COLUMN rejectNote NVARCHAR(500)", "ADD PAYROLL REJECT NOTE COLUMN");
-        }
+        
     }
 
     private int countRows(Connection conn, String tableName) throws SQLException {
