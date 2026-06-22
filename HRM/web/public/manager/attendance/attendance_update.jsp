@@ -28,10 +28,10 @@
 </head>
 <body>
 
-<jsp:include page="${empty sidebarPage ? '/public/components/employeeSideBar.jsp' : sidebarPage}" />
+<jsp:include page="${empty sidebarPage ? '/public/components/managerSideBar.jsp' : sidebarPage}" />
 
 <div class="main">
-    <jsp:include page="${empty topbarPage ? '/public/components/employeeTopBar.jsp' : topbarPage}">
+    <jsp:include page="${empty topbarPage ? '/public/components/managerTopBar.jsp' : topbarPage}">
         <jsp:param name="title" value="Sửa dữ liệu chấm công" />
     </jsp:include>
 

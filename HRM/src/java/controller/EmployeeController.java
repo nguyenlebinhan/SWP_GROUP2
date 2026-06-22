@@ -151,6 +151,7 @@ public class EmployeeController extends HttpServlet {
                 break;
             case "/salary/export":
                 exportSalary(request, response, user);
+                break;
             case "/attendance/overview":
                 displayAttendanceOverview(request, response, user);
                 break;
