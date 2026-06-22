@@ -385,7 +385,7 @@ public class DBInitializer {
                 + "employeeCode VARCHAR(50),"
                 + "fullName NVARCHAR(100),"
                 + "departmentName NVARCHAR(100),"
-                + "position VARCHAR(100),"
+                + "positionName VARCHAR(100),"
                 + "workDate VARCHAR(50),"
                 + "timeIn VARCHAR(20),"
                 + "timeOut VARCHAR(20),"
