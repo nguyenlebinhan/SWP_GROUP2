@@ -162,6 +162,11 @@
                 <a href="${pageContext.request.contextPath}/v1/employee/my-profile" class="admin-dropdown-item">
                     <i class="fa-solid fa-user-gear"></i> Hồ sơ của tôi
                 </a>
+                <c:if test="${sessionScope.userPermissions.contains('VIEW_OWN_SALARY')}">
+                    <a href="${pageContext.request.contextPath}/v1/employee/salary/own" class="admin-dropdown-item">
+                        <i class="fa-solid fa-wallet"></i> Lương của tôi
+                    </a>
+                </c:if>
                 <a href="${pageContext.request.contextPath}/v1/auth/logout" class="admin-dropdown-item logout">
                     <i class="fa-solid fa-right-from-bracket"></i> Đăng xuất
                 </a>
@@ -169,3 +174,6 @@
         </div>
     </div>
 </div>
+
+
+
