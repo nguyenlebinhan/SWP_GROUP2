@@ -108,7 +108,7 @@
         <p>
             Người lao động được trả mức lương
             <span class="field"><fmt:formatNumber value="${contract.salary}" type="number" groupingUsed="true"/></span>
-            đồng mỗi tháng, thanh toán theo kỳ lương tiêu chuẩn của Người sử dụng lao động.
+            đồng mỗi tháng, thanh toán theo tháng lương tiêu chuẩn của Người sử dụng lao động.
             Các khoản thuế, bảo hiểm và khấu trừ bắt buộc sẽ được thực hiện theo quy định hiện hành.
         </p>
 
@@ -163,7 +163,7 @@
         <p>Hợp đồng này được điều chỉnh bởi pháp luật Việt Nam và các quy định có liên quan.</p>
 
         <h2>15. Hiệu lực từng phần.</h2>
-        <p>Nếu bất kỳ điều khoản nào của Hợp đồng bị tuyên vô hiệu hoặc không thể thực thi, các điều khoản còn lại vẫn tiếp tục có hiệu lực.</p>
+        <p>Nếu bất tháng điều khoản nào của Hợp đồng bị tuyên vô hiệu hoặc không thể thực thi, các điều khoản còn lại vẫn tiếp tục có hiệu lực.</p>
 
         <h2>16. Chữ ký.</h2>
         <p>Hai bên xác nhận đã đọc, hiểu và đồng ý ký kết Hợp đồng này vào ngày ghi ở phần đầu Hợp đồng.</p>

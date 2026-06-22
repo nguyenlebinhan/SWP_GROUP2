@@ -132,7 +132,7 @@
         </a>
     </c:if>
     <a href="${pageContext.request.contextPath}/v1/manager/attendance/own-attendance"
-       class="${pageContext.request.servletPath == '/public/manager/own_attendance.jsp' ? 'active' : ''}">
+       class="${pageContext.request.servletPath == '/public/manager/own_attendance_list.jsp' ? 'active' : ''}">
         Chấm công của tôi
     </a>
     <a href="${pageContext.request.contextPath}/v1/manager/attendance/my-department-attendance"
@@ -141,13 +141,23 @@
     </a>
 
     <c:if test="${sessionScope.userPermissions.contains('IMPORT_ATTENDANCE')}">
-        <a href="${pageContext.request.contextPath}/v1/employee/attendance/import">
+        <a href="${pageContext.request.contextPath}/v1/manager/attendance/import">
             Import chấm công
         </a>
     </c:if>
     <c:if test="${sessionScope.userPermissions.contains('VIEW_ATTENDANCE')}">
-        <a href="${pageContext.request.contextPath}/v1/employee/attendance/list">
+        <a href="${pageContext.request.contextPath}/v1/manager/attendance/list">
             Xem chấm công toàn công ty
         </a>
     </c:if>
+
+
+    <c:if test="${sessionScope.userPermissions.contains('VIEW_ALL_SALARY')}">
+        <div class="nav-section">Lương</div>
+        <a href="${pageContext.request.contextPath}/v1/manager/salary/all"
+           class="${pageContext.request.servletPath == '/public/manager/salary/salary_list.jsp' ? 'active' : ''}">
+            Xem bảng lương
+        </a>
+    </c:if>
 </div>
+

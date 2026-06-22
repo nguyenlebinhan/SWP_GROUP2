@@ -435,6 +435,7 @@ public class DBInitializer {
         String SQL = "CREATE TABLE Payroll("
                 + "payrollId INT PRIMARY KEY AUTO_INCREMENT,"
                 + "periodStart DATE NOT NULL,"
+                + "periodEnd DATE NOT NULL,"
                 + "employeeId INT NOT NULL,"
                 + "positionId INT NOT NULL,"
                 + "departmentId INT,"
@@ -443,15 +444,26 @@ public class DBInitializer {
                 + "baseSalary DECIMAL(15,2) DEFAULT 0,"
                 + "allowance DECIMAL(15,2) DEFAULT 0,"
                 + "bonus DECIMAL(15,2) DEFAULT 0,"
-                + "taxDeduction DECIMAL(15,2) DEFAULT 0,"
+                + "overtimePay DECIMAL(15,2) DEFAULT 0,"
+                + "penalty DECIMAL(15,2) DEFAULT 0,"
+                + "grossSalary DECIMAL(15,2) DEFAULT 0,"
                 + "insuranceDeduction DECIMAL(15,2) DEFAULT 0,"
+                + "personalIncomeTax DECIMAL(15,2) DEFAULT 0,"
                 + "netSalary DECIMAL(15,2) DEFAULT 0,"
-                + "status TINYINT DEFAULT 0,"        // 0: Chờ duyệt, 1: Đã duyệt, 2: Đã chuyển khoản
+                + "note NVARCHAR(1000),"
+                + "employeeConfirmedBy INT,"
+                + "employeeConfirmedAt DATETIME,"
+                + "approvedBy INT,"
+                + "approvedAt DATETIME,"
+                + "rejectNote NVARCHAR(500),"
+                + "status TINYINT DEFAULT 0,"        // 0: Chờ nhân viên xác nhận, 1: Chờ HR duyệt, 2: Nhân viên báo sai, 3: HR duyệt, 4: HR từ chối
                 + "createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,"
                 + "updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,"
                 + "FOREIGN KEY (employeeId) REFERENCES Employees(employeeId),"
                 + "FOREIGN KEY (departmentId) REFERENCES Departments(departmentId),"
-                + "FOREIGN KEY (positionId) REFERENCES Positions(positionId)"
+                + "FOREIGN KEY (positionId) REFERENCES Positions(positionId),"
+                + "FOREIGN KEY (employeeConfirmedBy) REFERENCES Users(userId),"
+                + "FOREIGN KEY (approvedBy) REFERENCES Users(userId)"
                 + ")";
         execute(conn, SQL, "CREATE PAYROLL TABLE SUCCESSFULLY");
     }
@@ -465,7 +477,7 @@ public class DBInitializer {
                 + "evaluatorId INT NOT NULL,"
                 + "evaluationDate DATE NOT NULL,"
                 + "content NVARCHAR(500),"
-                + "result NVARCHAR(100),"            // Xuất sắc / Tốt / Trung bình / Yếu
+                + "result VARCHAR(20),"              // EXCELLENT / GOOD / AVERAGE / POOR
                 + "createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,"
                 + "updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,"
                 + "FOREIGN KEY (departmentId) REFERENCES Departments(departmentId),"
@@ -538,6 +550,7 @@ public class DBInitializer {
                 "Overtime_Details",
                 "Form_Requests",
                 "Form_Types",
+                "Employment_Contracts",
                 "Employees",
                 "Users",
                 "Department_Roles",
@@ -559,6 +572,7 @@ public class DBInitializer {
                 "Department_Roles",
                 "Users",
                 "Employees",
+                "Employment_Contracts",
                 "Uploaded_Files",
                 "Candidates",
                 "Application_Stage_Logs",
@@ -627,6 +641,7 @@ public class DBInitializer {
             execute(conn, "SET FOREIGN_KEY_CHECKS=1", "ENABLE FK CHECKS AFTER CREATE");
             LOGGER.log(Level.INFO, "Đã kích hoạt lại toàn bộ kiểm tra khóa ngoại hệ thống.");
 
+            ensurePayrollApprovalColumns(conn);
             insertInitialData(conn);
             LOGGER.log(Level.INFO,"Database initialized successfully!");
 
@@ -672,13 +687,19 @@ public class DBInitializer {
                 insertPermission(conn,"VIEW_DEPARTMENT_ATTENDANCE","Xem chấm công phòng ban","Quyền xem dashboard chấm công của phòng ban mình quản lý (Manager)");
                 insertPermission(conn,"VIEW_ALL_ATTENDANCE","Xem toàn bộ chấm công","Quyền xem dashboard chấm công của tất cả phòng ban trong toàn công ty (HR)");
                 insertPermission(conn,"IMPORT_ATTENDANCE","Import chấm công","Quyền import dữ liệu chấm công từ file Excel");
-                insertPermission(conn,"EDIT_ATTENDANCE","Chỉnh sửa chấm công","Quyền chỉnh sửa trạng thái chấm công khi kỳ chấm công chưa công khai");                
+                insertPermission(conn,"EDIT_ATTENDANCE","Chỉnh sửa chấm công","Quyền chỉnh sửa trạng thái chấm công khi tháng chấm công chưa công khai");                
                 insertPermission(conn,"VIEW_DEPARTMENT_EMPLOYEES_DETAIL","Xem danh sách nhân viên của phòng ban khác","Quyền xem dữ liệu nhân viên của phòng ban khác");
                 insertPermission(conn,"VIEW_ALL_FORMS","Xem tất cả đơn","Quyền xem toàn bộ đơn yêu cầu của mọi phòng ban (chỉ HR)");
                 insertPermission(conn,"VIEW_ALL_DEPT_FORMS","Xem tất cả đơn của phòng ban","Quyền xem toàn bộ đơn yêu cầu của một phòng ban cụ thể");
                 insertPermission(conn,"PROCESS_RECRUITMENT","Xử lý tuyển dụng","Quyền import, duyệt và gửi thông báo kết quả tuyển dụng");
+                insertPermission(conn,"VIEW_ALL_SALARY","Xem tất cả lương nhân viên","Quyền xem lương của tất cả nhân viên");
+                insertPermission(conn,"VIEW_OWN_SALARY","Xem lương cá nhân","Quyền xem, gửi đơn khiếu nại về lương của cá nhân");
+                insertPermission(conn,"APPROVE_PAYROLL","Duyệt bảng lương","Quyền duyệt bảng lương trước khi thanh toán");
+                insertPermission(conn,"EXPORT_PAYROLL","Xuất bảng lương","Quyền xuất bảng lương ra Excel");
                 
             }
+            insertPermission(conn,"APPROVE_PAYROLL","Duyệt bảng lương","Quyền duyệt bảng lương trước khi thanh toán");
+            insertPermission(conn,"EXPORT_PAYROLL","Xuất bảng lương","Quyền xuất bảng lương ra Excel");
 
             if (countRows(conn, "Positions") == 0) {
                 insertPosition(conn, "Thực tập sinh",          1, "Sinh viên thực tập tại công ty");
@@ -764,7 +785,7 @@ public class DBInitializer {
     }
 
     private void insertPermission(Connection conn, String code, String name, String description) throws SQLException {
-        String sql = "INSERT INTO Permissions (permissionCode, permissionName, description) VALUES (?, ?, ?)";
+        String sql = "INSERT IGNORE INTO Permissions (permissionCode, permissionName, description) VALUES (?, ?, ?)";
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, code);
             ps.setString(2, name);
@@ -878,6 +899,34 @@ public class DBInitializer {
         DatabaseMetaData meta = conn.getMetaData();
         try (ResultSet rs = meta.getTables(null, null, tableName, new String[]{"TABLE"})) {
             return rs.next();
+        }
+    }
+
+    private boolean columnExists(Connection conn, String tableName, String columnName) throws SQLException {
+        DatabaseMetaData meta = conn.getMetaData();
+        try (ResultSet rs = meta.getColumns(null, null, tableName, columnName)) {
+            return rs.next();
+        }
+    }
+
+    private void ensurePayrollApprovalColumns(Connection conn) throws SQLException {
+        if (!tableExists(conn, "Payroll")) {
+            return;
+        }
+        if (!columnExists(conn, "Payroll", "approvedBy")) {
+            execute(conn, "ALTER TABLE Payroll ADD COLUMN approvedBy INT", "ADD PAYROLL APPROVED BY COLUMN");
+        }
+        if (!columnExists(conn, "Payroll", "employeeConfirmedBy")) {
+            execute(conn, "ALTER TABLE Payroll ADD COLUMN employeeConfirmedBy INT", "ADD PAYROLL EMPLOYEE CONFIRMED BY COLUMN");
+        }
+        if (!columnExists(conn, "Payroll", "employeeConfirmedAt")) {
+            execute(conn, "ALTER TABLE Payroll ADD COLUMN employeeConfirmedAt DATETIME", "ADD PAYROLL EMPLOYEE CONFIRMED AT COLUMN");
+        }
+        if (!columnExists(conn, "Payroll", "approvedAt")) {
+            execute(conn, "ALTER TABLE Payroll ADD COLUMN approvedAt DATETIME", "ADD PAYROLL APPROVED AT COLUMN");
+        }
+        if (!columnExists(conn, "Payroll", "rejectNote")) {
+            execute(conn, "ALTER TABLE Payroll ADD COLUMN rejectNote NVARCHAR(500)", "ADD PAYROLL REJECT NOTE COLUMN");
         }
     }
 

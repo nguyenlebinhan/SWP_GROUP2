@@ -111,4 +111,13 @@
     <a href="${pageContext.request.contextPath}/v1/employee/attendance/own-attendance">
         Chấm công của tôi
     </a>
+
+    <c:if test="${sessionScope.userPermissions.contains('VIEW_ALL_SALARY')}">
+        <div class="nav-section">Lương</div>
+        <a href="${pageContext.request.contextPath}/v1/employee/salary/all"
+           class="${pageContext.request.servletPath == '/public/employee/salary/salary_list.jsp' ? 'active' : ''}">
+            Xem bảng lương
+        </a>
+    </c:if>
 </div>
+
