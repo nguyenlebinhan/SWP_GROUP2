@@ -8,7 +8,6 @@ import dal.DBContext;
 import dto.EmployeeDetailDTO;
 import dto.PayrollDetailDTO;
 import dto.PayrollPreviewDTO;
-import enums.PerformanceResult;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.math.BigDecimal;
@@ -36,11 +35,8 @@ import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
 public class PayrollService {
 
-    public static final int STATUS_PENDING_EMPLOYEE_CONFIRMATION = 0;
-    public static final int STATUS_PENDING_HR_APPROVAL = 1;
-    public static final int STATUS_EMPLOYEE_REPORTED = 2;
-    public static final int STATUS_HR_APPROVED = 3;
-    public static final int STATUS_HR_REJECTED = 4;
+    public static final int STATUS_PENDING_APPROVAL = 0;
+    public static final int STATUS_APPROVED = 1;
 
     public static final String PERMISSION_VIEW_ALL_SALARY = "VIEW_ALL_SALARY";
     public static final String PERMISSION_VIEW_OWN_SALARY = "VIEW_OWN_SALARY";
@@ -73,6 +69,8 @@ public class PayrollService {
         this.auditLogService = new AuditLogService();
     }
 
+    // ── Quyền ──────────────────────────────────────────────────────────────────
+
     public boolean canViewOwnSalary(User user) {
         return user != null && getPermissions(user).contains(PERMISSION_VIEW_OWN_SALARY);
     }
@@ -96,6 +94,8 @@ public class PayrollService {
                 && getPermissions(user).contains(PERMISSION_EXPORT_PAYROLL);
     }
 
+    // ── Xem lương ──────────────────────────────────────────────────────────────
+
     public PayrollPreviewDTO getOwnPayroll(User user, int year, int month) {
         if (!canViewOwnSalary(user)) {
             return null;
@@ -104,11 +104,7 @@ public class PayrollService {
         if (me == null) {
             return null;
         }
-        PayrollPreviewDTO saved = getSavedPayrollPreviewForEmployee(me.getEmployeeId(), year, month);
-        if (saved != null) {
-            return saved;
-        }
-        return null;
+        return getSavedPayrollPreviewForEmployee(me.getEmployeeId(), year, month);
     }
 
     public List<PayrollPreviewDTO> getAllPayrollForHr(User user, int year, int month, Integer departmentId) {
@@ -120,10 +116,7 @@ public class PayrollService {
         List<PayrollPreviewDTO> saved = payrollDAO.getPayrollPreviews(start, end, departmentId, null);
         markInvalidSavedPayrolls(saved);
         saved.addAll(getPayrollGenerationIssues(year, month, departmentId, saved));
-        if (!saved.isEmpty()) {
-            return saved;
-        }
-        return new ArrayList<>();
+        return saved;
     }
 
     private void markInvalidSavedPayrolls(List<PayrollPreviewDTO> payrolls) {
@@ -132,7 +125,8 @@ public class PayrollService {
             if (payroll == null) {
                 continue;
             }
-            if ((payroll.getNetSalary() != null && payroll.getNetSalary().signum() < 0) || (payroll.getBaseSalary() != null && payroll.getBaseSalary().signum() < 0)) {
+            if ((payroll.getNetSalary() != null && payroll.getNetSalary().signum() < 0)
+                    || (payroll.getBaseSalary() != null && payroll.getBaseSalary().signum() < 0)) {
                 preview.setGenerationError("Bảng lương đang chưa thể tạo ra. Cần kiểm tra lại dữ liệu nguồn...");
             }
         }
@@ -149,96 +143,36 @@ public class PayrollService {
         return preview;
     }
 
-    public boolean approvePayroll(User user, int payrollId) {
-        if (getPayrollApprovalError(user, payrollId) != null) {
-            return false;
-        }
-        boolean approved = payrollDAO.approvePayroll(payrollId, user.getUserId());
-        if (approved) {
-            auditPayroll(user, "APPROVE_PAYROLL", payrollId, "status=1",
-                    "status=3; approvedBy=" + user.getUserId(), "SUCCESS");
-        }
-        return approved;
-    }
+    // ── Duyệt tổng (0 → 1) ────────────────────────────────────────────────────
 
-    public boolean rejectPayroll(User user, int payrollId, String rejectNote) {
-        if (getPayrollRejectionError(user, payrollId, rejectNote) != null) {
-            return false;
-        }
-        boolean rejected = payrollDAO.rejectPayrollByHr(payrollId, user.getUserId(), rejectNote.trim());
-        if (rejected) {
-            auditPayroll(user, "REJECT_PAYROLL", payrollId, "status=1",
-                    "status=4; approvedBy=" + user.getUserId(), "SUCCESS");
-        }
-        return rejected;
-    }
-
-    public boolean confirmOwnPayroll(User user, int payrollId) {
-        if (getOwnPayrollActionError(user, payrollId) != null) {
-            return false;
-        }
-        boolean confirmed = payrollDAO.confirmPayrollByEmployee(payrollId, user.getUserId());
-        if (confirmed) {
-            auditPayroll(user, "CONFIRM_OWN_PAYROLL", payrollId, "status=0",
-                    "status=1; employeeConfirmedBy=" + user.getUserId(), "SUCCESS");
-        }
-        return confirmed;
-    }
-
-    public boolean reportOwnPayrollWrongInfo(User user, int payrollId) {
-        if (getOwnPayrollActionError(user, payrollId) != null) {
-            return false;
-        }
-        boolean reported = payrollDAO.reportPayrollWrongInfo(payrollId, user.getUserId());
-        if (reported) {
-            auditPayroll(user, "REPORT_PAYROLL_WRONG_INFO", payrollId, "status=0",
-                    "status=2; employeeConfirmedBy=" + user.getUserId(), "SUCCESS");
-        }
-        return reported;
-    }
-
-    public String getPayrollApprovalError(User user, int payrollId) {
+    public int approveAllPayrollForPeriod(User user, int year, int month, Integer departmentId) {
         if (!canApprovePayroll(user)) {
-            return "Bạn không có quyền duyệt bảng lương.";
+            return 0;
         }
-        Payroll payroll = payrollDAO.getPayrollById(payrollId);
-        if (payroll == null) {
-            return "Không tìm thấy bảng lương cần duyệt.";
-        }
-        if (payroll.getStatus() != STATUS_PENDING_HR_APPROVAL) {
-            return "Chỉ bảng lương đang chờ duyệt mới được duyệt.";
-        }
-        EmployeeDetailDTO approver = employeeDAO.getEmployeeByUserId(user.getUserId());
-        if (approver != null && payroll.getEmployeeId() == approver.getEmployeeId()) {
-            return "Không thể tự duyệt bảng lương của chính mình.";
-        }
-        return null;
+        Date start = toPeriodStart(year, month);
+        Date end = toPeriodEnd(year, month);
+
+        int approvedCount = payrollDAO.approveAllPendingPayroll(start, end, departmentId,
+                user.getUserId(), null);
+
+        auditPayroll(user, "APPROVE_ALL_PAYROLL", null, "status=0",
+                "status=1; approvedBy=" + user.getUserId()
+                + "; period=" + String.format("%04d-%02d", year, month)
+                + "; departmentId=" + departmentId
+                + "; approvedCount=" + approvedCount, "SUCCESS");
+        return approvedCount;
     }
 
-    public String getPayrollRejectionError(User user, int payrollId, String rejectNote) {
-        if (rejectNote == null || rejectNote.trim().isEmpty()) {
-            return "Vui lòng nhập lý do khi HR chưa duyệt bảng lương.";
+    public int countPendingApprovalForPeriod(User user, int year, int month, Integer departmentId) {
+        if (!canApprovePayroll(user)) {
+            return 0;
         }
-        return getPayrollApprovalError(user, payrollId);
+        Date start = toPeriodStart(year, month);
+        Date end = toPeriodEnd(year, month);
+        return payrollDAO.countPendingApproval(start, end, departmentId, null);
     }
 
-    public String getOwnPayrollActionError(User user, int payrollId) {
-        if (!canViewOwnSalary(user)) {
-            return "Bạn không có quyền xác nhận bảng lương cá nhân.";
-        }
-        Payroll payroll = payrollDAO.getPayrollById(payrollId);
-        if (payroll == null) {
-            return "Không tìm thấy bảng lương cần xử lý.";
-        }
-        EmployeeDetailDTO me = employeeDAO.getEmployeeByUserId(user.getUserId());
-        if (me == null || payroll.getEmployeeId() != me.getEmployeeId()) {
-            return "Bạn chỉ được xử lý bảng lương của chính mình.";
-        }
-        if (payroll.getStatus() != STATUS_PENDING_EMPLOYEE_CONFIRMATION) {
-            return "Chỉ bảng lương đang chờ nhân viên xác nhận mới được xử lý.";
-        }
-        return null;
-    }
+    // ── Export ─────────────────────────────────────────────────────────────────
 
     public void exportPayrollWorkbook(User user, int year, int month, Integer departmentId, OutputStream out)
             throws IOException {
@@ -254,7 +188,6 @@ public class PayrollService {
             for (int i = 0; i < headers.length; i++) {
                 header.createCell(i).setCellValue(headers[i]);
             }
-
             int rowIndex = 1;
             for (PayrollPreviewDTO preview : payrolls) {
                 if (preview.isGenerationBlocked() || preview.getPayroll() == null) {
@@ -291,6 +224,139 @@ public class PayrollService {
                 + "; departmentId=" + departmentId
                 + "; rows=" + exportedRows, allowed ? "SUCCESS" : "DENIED");
     }
+
+    // ── Generate ───────────────────────────────────────────────────────────────
+
+    public List<PayrollPreviewDTO> generatePayrollForAll(int year, int month, Integer departmentId, boolean save) {
+        List<PayrollPreviewDTO> result = new ArrayList<>();
+        try (Connection conn = dbContext.getConnection()) {
+            List<EmployeePayrollBase> employees = getActiveEmployeesWithContracts(conn, year, month, departmentId);
+            for (EmployeePayrollBase employee : employees) {
+                PayrollPreviewDTO preview = calculatePayroll(conn, employee, year, month);
+                if (save && preview.getPayroll() != null && !preview.isGenerationBlocked()) {
+                    int payrollId = saveGeneratedPayrollIfEditable(preview.getPayroll());
+                    preview.getPayroll().setPayrollId(payrollId);
+                }
+                result.add(preview);
+            }
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Cannot generate payroll for period " + year + "-" + month, e);
+        }
+        return result;
+    }
+
+    public PayrollPreviewDTO generatePayrollForEmployee(int employeeId, int year, int month, boolean save) {
+        try (Connection conn = dbContext.getConnection()) {
+            EmployeePayrollBase employee = getActiveEmployeeWithContract(conn, employeeId, year, month);
+            if (employee == null) {
+                return null;
+            }
+            PayrollPreviewDTO preview = calculatePayroll(conn, employee, year, month);
+            if (save && preview.getPayroll() != null && !preview.isGenerationBlocked()) {
+                int payrollId = saveGeneratedPayrollIfEditable(preview.getPayroll());
+                preview.getPayroll().setPayrollId(payrollId);
+            }
+            return preview;
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Cannot generate payroll for employeeId: " + employeeId, e);
+        }
+        return null;
+    }
+
+    public int saveGeneratedPayrollForPeriod(int year, int month, Integer departmentId) {
+        int saved = 0;
+        for (PayrollPreviewDTO preview : generatePayrollForAll(year, month, departmentId, true)) {
+            if (preview.getPayroll() != null && !preview.isGenerationBlocked()) {
+                saved++;
+            }
+        }
+        return saved;
+    }
+
+    private int saveGeneratedPayrollIfEditable(Payroll payroll) {
+        Payroll existing = payrollDAO.getPayrollByEmployeeAndPeriod(
+                payroll.getEmployeeId(), payroll.getPeriodStart(), payroll.getPeriodEnd());
+        if (existing != null && existing.getStatus() != STATUS_PENDING_APPROVAL) {
+            return existing.getPayrollId();
+        }
+        return payrollDAO.saveOrUpdatePayroll(payroll);
+    }
+
+    // ── Tính lương ─────────────────────────────────────────────────────────────
+
+    private PayrollPreviewDTO calculatePayroll(Connection conn, EmployeePayrollBase employee, int year, int month)
+            throws SQLException {
+        if (employee.contractSalary == null || employee.contractSalary.signum() <= 0) {
+            return buildGenerationErrorPreview(employee, "Chưa có hợp đồng active hoặc lương hợp đồng hợp lệ.");
+        }
+
+        Date periodStart = toPeriodStart(year, month);
+        Date periodEnd = toPeriodEnd(year, month);
+        YearMonth ym = YearMonth.of(year, month);
+        int standardWorkingDays = countStandardWorkingDays(ym);
+        if (standardWorkingDays <= 0) {
+            return buildGenerationErrorPreview(employee, "Tháng lương không có ngày làm việc chuẩn.");
+        }
+
+        BigDecimal dailyRate = divideMoney(employee.contractSalary, new BigDecimal(standardWorkingDays));
+        BigDecimal minuteRate = divideMoney(dailyRate, WORKING_HOURS_PER_DAY.multiply(MINUTES_PER_HOUR));
+        AttendanceSummary attendance = getAttendanceSummary(conn, employee.employeeId, year, month, dailyRate, minuteRate);
+        if (attendance.recordCount == 0) {
+            return buildGenerationErrorPreview(employee, "Chưa có dữ liệu chấm công trong tháng lương này.");
+        }
+
+        OvertimeSummary overtime = getOvertimeSummary(conn, employee.employeeId, year, month, dailyRate);
+        BigDecimal attendanceBonus = attendance.lateMinutes == 0 && attendance.unauthorizedAbsentDays == 0
+                ? employee.contractSalary.multiply(new BigDecimal("0.03"))
+                : ZERO;
+        BigDecimal baseSalary = dailyRate.multiply(new BigDecimal(attendance.paidWorkingDays));
+        BigDecimal bonus = attendanceBonus;
+        BigDecimal penalty = attendance.latePenalty.add(attendance.unauthorizedAbsentPenalty);
+        BigDecimal grossSalary = baseSalary.add(bonus).add(overtime.overtimePay).subtract(penalty);
+        BigDecimal insuranceDeduction = employee.contractSalary.multiply(
+                SOCIAL_INSURANCE_RATE.add(HEALTH_INSURANCE_RATE).add(UNEMPLOYMENT_INSURANCE_RATE));
+        BigDecimal taxableIncome = grossSalary.subtract(insuranceDeduction).subtract(PERSONAL_ALLOWANCE);
+        if (taxableIncome.signum() < 0) {
+            taxableIncome = ZERO;
+        }
+        BigDecimal personalIncomeTax = calculatePersonalIncomeTax(taxableIncome);
+        BigDecimal netSalary = grossSalary.subtract(insuranceDeduction).subtract(personalIncomeTax);
+        if (netSalary.signum() < 0) {
+            return buildGenerationErrorPreview(employee, "Dữ liệu chưa thể tạo ra. Cần kiểm tra lại dữ liệu nguồn...");
+        }
+
+        Payroll payroll = new Payroll();
+        payroll.setPeriodStart(periodStart);
+        payroll.setPeriodEnd(periodEnd);
+        payroll.setEmployeeId(employee.employeeId);
+        payroll.setPositionId(employee.positionId);
+        payroll.setDepartmentId(employee.departmentId);
+        payroll.setWorkingDays(attendance.paidWorkingDays);
+        payroll.setHoursWorked(scale(attendance.hoursWorked));
+        payroll.setBaseSalary(scale(baseSalary));
+        payroll.setAllowance(ZERO);
+        payroll.setBonus(scale(bonus));
+        payroll.setOvertimePay(scale(overtime.overtimePay));
+        payroll.setPenalty(scale(penalty));
+        payroll.setGrossSalary(scale(grossSalary));
+        payroll.setInsuranceDeduction(scale(insuranceDeduction));
+        payroll.setPersonalIncomeTax(scale(personalIncomeTax));
+        payroll.setNetSalary(scale(netSalary));
+        payroll.setStatus(STATUS_PENDING_APPROVAL);
+        payroll.setNote(buildPayrollNote(attendance, overtime));
+
+        PayrollPreviewDTO preview = new PayrollPreviewDTO();
+        preview.setPayroll(payroll);
+        preview.setEmployeeCode(employee.employeeCode);
+        preview.setFullName(employee.fullName);
+        preview.setDepartmentName(employee.departmentName);
+        preview.setPositionName(employee.positionName);
+        preview.setContractSalary(employee.contractSalary);
+        preview.setDetails(buildDetails(payroll, attendance, overtime, attendanceBonus));
+        return preview;
+    }
+
+    // ── Helpers nội bộ ─────────────────────────────────────────────────────────
 
     private void auditPayroll(User user, String action, Integer recordId, String oldValue,
             String newValue, String status) {
@@ -344,7 +410,8 @@ public class PayrollService {
         }
         sql.append("ORDER BY d.departmentName, e.employeeCode");
 
-        try (Connection conn = dbContext.getConnection(); PreparedStatement ps = conn.prepareStatement(sql.toString())) {
+        try (Connection conn = dbContext.getConnection();
+                PreparedStatement ps = conn.prepareStatement(sql.toString())) {
             ps.setInt(1, year);
             ps.setInt(2, month);
             ps.setDate(3, toPeriodEnd(year, month));
@@ -392,145 +459,6 @@ public class PayrollService {
         return issues;
     }
 
-    private String[] payrollHeaders() {
-        return new String[]{
-            "employeeCode", "fullName", "departmentName", "positionName",
-            "workingDays", "hoursWorked", "baseSalary", "allowance", "bonus",
-            "overtimePay", "penalty", "grossSalary", "insuranceDeduction",
-            "personalIncomeTax", "netSalary", "status", "note"
-        };
-    }
-
-    public List<PayrollPreviewDTO> generatePayrollForAll(int year, int month, Integer departmentId, boolean save) {
-        List<PayrollPreviewDTO> result = new ArrayList<>();
-        try (Connection conn = dbContext.getConnection()) {
-            List<EmployeePayrollBase> employees = getActiveEmployeesWithContracts(conn, year, month, departmentId);
-            for (EmployeePayrollBase employee : employees) {
-                PayrollPreviewDTO preview = calculatePayroll(conn, employee, year, month);
-                if (save && preview.getPayroll() != null && !preview.isGenerationBlocked()) {
-                    int payrollId = saveGeneratedPayrollIfEditable(preview.getPayroll());
-                    preview.getPayroll().setPayrollId(payrollId);
-                }
-                result.add(preview);
-            }
-        } catch (SQLException e) {
-            LOGGER.log(Level.SEVERE, "Cannot generate payroll for period " + year + "-" + month, e);
-        }
-        return result;
-    }
-
-    public PayrollPreviewDTO generatePayrollForEmployee(int employeeId, int year, int month, boolean save) {
-        try (Connection conn = dbContext.getConnection()) {
-            EmployeePayrollBase employee = getActiveEmployeeWithContract(conn, employeeId, year, month);
-            if (employee == null) {
-                return null;
-            }
-            PayrollPreviewDTO preview = calculatePayroll(conn, employee, year, month);
-            if (save && preview.getPayroll() != null && !preview.isGenerationBlocked()) {
-                int payrollId = saveGeneratedPayrollIfEditable(preview.getPayroll());
-                preview.getPayroll().setPayrollId(payrollId);
-            }
-            return preview;
-        } catch (SQLException e) {
-            LOGGER.log(Level.SEVERE, "Cannot generate payroll for employeeId: " + employeeId, e);
-        }
-        return null;
-    }
-
-    public int saveGeneratedPayrollForPeriod(int year, int month, Integer departmentId) {
-        int saved = 0;
-        for (PayrollPreviewDTO preview : generatePayrollForAll(year, month, departmentId, true)) {
-            if (preview.getPayroll() != null && !preview.isGenerationBlocked()) {
-                saved++;
-            }
-        }
-        return saved;
-    }
-
-    private int saveGeneratedPayrollIfEditable(Payroll payroll) {
-        Payroll existing = payrollDAO.getPayrollByEmployeeAndPeriod(
-                payroll.getEmployeeId(), payroll.getPeriodStart(), payroll.getPeriodEnd());
-        if (existing != null && existing.getStatus() != STATUS_PENDING_EMPLOYEE_CONFIRMATION) {
-            return existing.getPayrollId();
-        }
-        return payrollDAO.saveOrUpdatePayroll(payroll);
-    }
-
-    private PayrollPreviewDTO calculatePayroll(Connection conn, EmployeePayrollBase employee, int year, int month)
-            throws SQLException {
-        if (employee.contractSalary == null || employee.contractSalary.signum() <= 0) {
-            return buildGenerationErrorPreview(employee, "Chưa có hợp đồng active hoặc lương hợp đồng hợp lệ.");
-        }
-
-        Date periodStart = toPeriodStart(year, month);
-        Date periodEnd = toPeriodEnd(year, month);
-        YearMonth ym = YearMonth.of(year, month);
-        int standardWorkingDays = countStandardWorkingDays(ym);
-        if (standardWorkingDays <= 0) {
-            return buildGenerationErrorPreview(employee, "Tháng lương không có ngày làm việc chuẩn.");
-        }
-
-        BigDecimal dailyRate = divideMoney(employee.contractSalary, new BigDecimal(standardWorkingDays));
-        BigDecimal minuteRate = divideMoney(dailyRate, WORKING_HOURS_PER_DAY.multiply(MINUTES_PER_HOUR));
-        AttendanceSummary attendance = getAttendanceSummary(conn, employee.employeeId, year, month, dailyRate, minuteRate);
-        if (attendance.recordCount == 0) {
-            return buildGenerationErrorPreview(employee, "Chưa có dữ liệu chấm công trong tháng lương này.");
-        }
-
-        OvertimeSummary overtime = getOvertimeSummary(conn, employee.employeeId, year, month, dailyRate);
-        BigDecimal attendanceBonus = attendance.lateMinutes == 0 && attendance.unauthorizedAbsentDays == 0
-                ? employee.contractSalary.multiply(new BigDecimal("0.03"))
-                : ZERO;
-        BigDecimal performanceBonus = calculatePerformanceBonus(conn, employee.employeeId, year, month,
-                employee.contractSalary);
-        BigDecimal baseSalary = dailyRate.multiply(new BigDecimal(attendance.paidWorkingDays));
-        BigDecimal bonus = attendanceBonus.add(performanceBonus);
-        BigDecimal penalty = attendance.latePenalty.add(attendance.unauthorizedAbsentPenalty);
-        BigDecimal grossSalary = baseSalary.add(bonus).add(overtime.overtimePay).subtract(penalty);
-        BigDecimal insuranceDeduction = employee.contractSalary.multiply(
-                SOCIAL_INSURANCE_RATE.add(HEALTH_INSURANCE_RATE).add(UNEMPLOYMENT_INSURANCE_RATE));
-        BigDecimal taxableIncome = grossSalary.subtract(insuranceDeduction).subtract(PERSONAL_ALLOWANCE);
-        if (taxableIncome.signum() < 0) {
-            taxableIncome = ZERO;
-        }
-        BigDecimal personalIncomeTax = calculatePersonalIncomeTax(taxableIncome);
-        BigDecimal netSalary = grossSalary.subtract(insuranceDeduction).subtract(personalIncomeTax);
-        if (netSalary.signum() < 0) {
-            return buildGenerationErrorPreview(employee,
-                    "Dữ liệu chưa thể tạo ra. Cần kiểm tra lại dữ liệu nguồn...");
-        }
-
-        Payroll payroll = new Payroll();
-        payroll.setPeriodStart(periodStart);
-        payroll.setPeriodEnd(periodEnd);
-        payroll.setEmployeeId(employee.employeeId);
-        payroll.setPositionId(employee.positionId);
-        payroll.setDepartmentId(employee.departmentId);
-        payroll.setWorkingDays(attendance.paidWorkingDays);
-        payroll.setHoursWorked(scale(attendance.hoursWorked));
-        payroll.setBaseSalary(scale(baseSalary));
-        payroll.setAllowance(ZERO);
-        payroll.setBonus(scale(bonus));
-        payroll.setOvertimePay(scale(overtime.overtimePay));
-        payroll.setPenalty(scale(penalty));
-        payroll.setGrossSalary(scale(grossSalary));
-        payroll.setInsuranceDeduction(scale(insuranceDeduction));
-        payroll.setPersonalIncomeTax(scale(personalIncomeTax));
-        payroll.setNetSalary(scale(netSalary));
-        payroll.setStatus(STATUS_PENDING_EMPLOYEE_CONFIRMATION);
-        payroll.setNote(buildPayrollNote(attendance, overtime));
-
-        PayrollPreviewDTO preview = new PayrollPreviewDTO();
-        preview.setPayroll(payroll);
-        preview.setEmployeeCode(employee.employeeCode);
-        preview.setFullName(employee.fullName);
-        preview.setDepartmentName(employee.departmentName);
-        preview.setPositionName(employee.positionName);
-        preview.setContractSalary(employee.contractSalary);
-        preview.setDetails(buildDetails(payroll, attendance, overtime, attendanceBonus, performanceBonus));
-        return preview;
-    }
-
     private PayrollPreviewDTO buildGenerationErrorPreview(EmployeePayrollBase employee, String error) {
         PayrollPreviewDTO preview = new PayrollPreviewDTO();
         Payroll payroll = new Payroll();
@@ -548,7 +476,7 @@ public class PayrollService {
     }
 
     private List<PayrollDetailDTO> buildDetails(Payroll payroll, AttendanceSummary attendance,
-            OvertimeSummary overtime, BigDecimal attendanceBonus, BigDecimal performanceBonus) {
+            OvertimeSummary overtime, BigDecimal attendanceBonus) {
         List<PayrollDetailDTO> details = new ArrayList<>();
         details.add(new PayrollDetailDTO("BASE_SALARY", "Lương cơ bản", PayrollDetailDTO.TYPE_EARNING,
                 payroll.getBaseSalary(), "Ngày công được tính: " + payroll.getWorkingDays()));
@@ -556,8 +484,6 @@ public class PayrollService {
                 payroll.getOvertimePay(), "Giờ tăng ca được duyệt: " + scale(overtime.overtimeHours)));
         details.add(new PayrollDetailDTO("ATTENDANCE_BONUS", "Thưởng chuyên cần", PayrollDetailDTO.TYPE_EARNING,
                 scale(attendanceBonus), null));
-        details.add(new PayrollDetailDTO("PERFORMANCE_BONUS", "Thưởng hiệu suất", PayrollDetailDTO.TYPE_EARNING,
-                scale(performanceBonus), null));
         details.add(new PayrollDetailDTO("LATE_PENALTY", "Phạt đi muộn", PayrollDetailDTO.TYPE_DEDUCTION,
                 scale(attendance.latePenalty), "Số phút đi muộn: " + attendance.lateMinutes));
         details.add(new PayrollDetailDTO("ABSENT_PENALTY", "Phạt vắng không phép",
@@ -619,7 +545,8 @@ public class PayrollService {
                             int lateMinutes = Math.max(0,
                                     (int) java.time.Duration.between(STANDARD_START_TIME, timeIn).toMinutes());
                             summary.lateMinutes += lateMinutes;
-                            summary.latePenalty = summary.latePenalty.add(minuteRate.multiply(new BigDecimal(lateMinutes)));
+                            summary.latePenalty = summary.latePenalty.add(
+                                    minuteRate.multiply(new BigDecimal(lateMinutes)));
                         }
                     }
                 }
@@ -681,24 +608,6 @@ public class PayrollService {
         return summary;
     }
 
-    private BigDecimal calculatePerformanceBonus(Connection conn, int employeeId, int year, int month,
-            BigDecimal contractSalary) throws SQLException {
-        String SQL = "SELECT result FROM Performance "
-                + "WHERE employeeId = ? AND YEAR(evaluationDate) = ? AND MONTH(evaluationDate) = ? "
-                + "ORDER BY evaluationDate DESC, performanceId DESC LIMIT 1";
-        try (PreparedStatement ps = conn.prepareStatement(SQL)) {
-            ps.setInt(1, employeeId);
-            ps.setInt(2, year);
-            ps.setInt(3, month);
-            try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) {
-                    return contractSalary.multiply(PerformanceResult.fromCode(rs.getString("result")).getBonusRate());
-                }
-            }
-        }
-        return ZERO;
-    }
-
     private BigDecimal calculatePersonalIncomeTax(BigDecimal taxableIncome) {
         BigDecimal remaining = scale(taxableIncome);
         BigDecimal tax = ZERO;
@@ -741,14 +650,6 @@ public class PayrollService {
         return count;
     }
 
-    private BigDecimal moneyOrZero(BigDecimal value) {
-        return value == null ? ZERO : value;
-    }
-
-    private void setNumeric(Row row, int column, BigDecimal value) {
-        row.createCell(column).setCellValue(moneyOrZero(value).doubleValue());
-    }
-
     private List<EmployeePayrollBase> getActiveEmployeesWithContracts(Connection conn, int year, int month,
             Integer departmentId) throws SQLException {
         List<EmployeePayrollBase> list = new ArrayList<>();
@@ -765,7 +666,6 @@ public class PayrollService {
             sql.append("AND e.departmentId = ? ");
         }
         sql.append("ORDER BY d.departmentName, e.employeeCode");
-
         try (PreparedStatement ps = conn.prepareStatement(sql.toString())) {
             ps.setDate(1, toPeriodEnd(year, month));
             ps.setDate(2, toPeriodStart(year, month));
@@ -826,6 +726,15 @@ public class PayrollService {
         return base;
     }
 
+    private String[] payrollHeaders() {
+        return new String[]{
+            "employeeCode", "fullName", "departmentName", "positionName",
+            "workingDays", "hoursWorked", "baseSalary", "allowance", "bonus",
+            "overtimePay", "penalty", "grossSalary", "insuranceDeduction",
+            "personalIncomeTax", "netSalary", "status", "note"
+        };
+    }
+
     private Date toPeriodStart(int year, int month) {
         return Date.valueOf(YearMonth.of(year, month).atDay(1));
     }
@@ -837,13 +746,10 @@ public class PayrollService {
 
     private BigDecimal overtimeMultiplier(int dayType) {
         switch (dayType) {
-            case 2:
-                return new BigDecimal("2.0");
-            case 3:
-                return new BigDecimal("3.0");
+            case 2: return new BigDecimal("2.0");
+            case 3: return new BigDecimal("3.0");
             case 1:
-            default:
-                return new BigDecimal("1.5");
+            default: return new BigDecimal("1.5");
         }
     }
 
@@ -853,6 +759,14 @@ public class PayrollService {
 
     private BigDecimal scale(BigDecimal value) {
         return value == null ? ZERO : value.setScale(2, RoundingMode.HALF_UP);
+    }
+
+    private BigDecimal moneyOrZero(BigDecimal value) {
+        return value == null ? ZERO : value;
+    }
+
+    private void setNumeric(Row row, int column, BigDecimal value) {
+        row.createCell(column).setCellValue(moneyOrZero(value).doubleValue());
     }
 
     private String buildPayrollNote(AttendanceSummary attendance, OvertimeSummary overtime) {
@@ -872,8 +786,9 @@ public class PayrollService {
         return role != null && role.contains("HR");
     }
 
-    private static class EmployeePayrollBase {
+    // ── Inner classes ──────────────────────────────────────────────────────────
 
+    private static class EmployeePayrollBase {
         int employeeId;
         String employeeCode;
         int positionId;
@@ -885,7 +800,6 @@ public class PayrollService {
     }
 
     private static class AttendanceSummary {
-
         int recordCount;
         int paidWorkingDays;
         int paidLeaveDays;
@@ -899,7 +813,6 @@ public class PayrollService {
     }
 
     private static class OvertimeSummary {
-
         BigDecimal overtimeHours = BigDecimal.ZERO;
         BigDecimal overtimePay = BigDecimal.ZERO;
     }
