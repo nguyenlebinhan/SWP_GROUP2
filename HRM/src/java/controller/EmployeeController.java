@@ -28,7 +28,6 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 import jakarta.servlet.http.Part;
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -864,7 +863,6 @@ public class EmployeeController extends HttpServlet {
         }
         Set<String> perms = getPermissions(user);
         request.getSession().setAttribute("userPermissions", perms);
-        request.setAttribute("departments", departmentDAO.getAllActiveDepartments());
         request.getRequestDispatcher("/public/employee/attendance/attendance_import.jsp").forward(request, response);
     }
 
@@ -973,9 +971,8 @@ public class EmployeeController extends HttpServlet {
         // Chỉ PRESENT(0) và LATE(1) có giờ làm; cón lại = 0 giờ.
         BigDecimal hoursWorked;
         if (timeIn != null && timeOut != null && (status == 0 || status == 1)) {
-            long diffMillis = timeOut.getTime() - timeIn.getTime();
-            hoursWorked = new BigDecimal(diffMillis)
-                    .divide(new BigDecimal(3600000), 2, RoundingMode.HALF_UP);
+            // Trừ giờ nghỉ trưa: làm đủ 08:00-17:00 -> 8 tiếng (không phải 9).
+            hoursWorked = utils.WorkHoursCalculator.hoursWorked(timeIn, timeOut);
         } else {
             hoursWorked = BigDecimal.ZERO;
         }

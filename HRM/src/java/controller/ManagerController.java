@@ -607,9 +607,7 @@ public class ManagerController extends HttpServlet {
     }
 
     // ===================== Attendance Dashboard (Overview / Detail / Export) =====================
-    /**
-     * Manager chỉ xem chấm công của phòng ban mình quản lý.
-     */
+
     private Integer resolveManagerDepartmentId(User user) {
         EmployeeDetailDTO manager = employeeDAO.getEmployeeByUserId(user.getUserId());
         if (manager == null || manager.getDepartmentId() <= 0) {
