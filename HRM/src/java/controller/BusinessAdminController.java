@@ -963,7 +963,10 @@ public class BusinessAdminController extends HttpServlet {
         Integer month = parseIntParam(monthStr);
         Integer year = parseIntParam(yearStr);
         
-        List<FormRequestDTO> forms = formRequestDAO.getAllFormRequests(day, month, year, keyword);
+        List<FormRequestDTO> forms = formRequestDAO.getAllFormRequests(day, month, year, keyword)
+                .stream()
+                .filter(f -> "OVERTIME".equals(f.getFormTypeCode()))
+                .collect(java.util.stream.Collectors.toList());
         
         request.setAttribute("forms", forms);
         request.setAttribute("filterDay", day);
