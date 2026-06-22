@@ -8,6 +8,10 @@ package exception;
  *
  * @author ADMIN
  */
-public class RowValidationException {
+public class RowValidationException extends RuntimeException {
+
+    public RowValidationException(String message) {
+        super(message);
+    }
     
 }
