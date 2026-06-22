@@ -62,7 +62,7 @@
             <div class="d-flex gap-2 flex-wrap">
                 <c:if test="${sessionScope.userPermissions.contains('IMPORT_ATTENDANCE')}">
                     <a class="btn btn-primary"
-                       href="${pageContext.request.contextPath}/v1/employee/attendance/import">
+                       href="${pageContext.request.contextPath}/v1/manager/attendance/import">
                         <i class="fa-solid fa-file-import me-1"></i> Import chấm công
                     </a>
                 </c:if>

@@ -1,6 +1,7 @@
 package controller;
 
 import dao.*;
+import dto.AttendanceImportResultDTO;
 import dto.CandidateImportResultDTO;
 import dto.EmployeeDTO;
 import dto.EmployeeDetailDTO;
@@ -8,6 +9,7 @@ import dto.PayrollPreviewDTO;
 import dto.FormRequestDTO;
 import dto.LeaveFormRequestDTO;
 import dto.ComplaintFormRequestDTO;
+import enums.FileStatus;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.MultipartConfig;
 import jakarta.servlet.http.HttpServlet;
@@ -45,6 +47,7 @@ import model.UploadedFile;
 import model.User;
 import service.CandidateImportService;
 import service.EmailService;
+import service.AttendanceImportService;
 import service.PayrollService;
 import dal.DBContext;
 import utils.AttendanceExcelExporter;
@@ -74,8 +77,10 @@ public class ManagerController extends HttpServlet {
     private static final UploadedFileDAO uploadedFileDAO = new UploadedFileDAO();
     private static final CandidateImportService candidateImportService = new CandidateImportService();
     private static final EmailService emailService = new EmailService();
+    private static final AttendanceImportService importService = new AttendanceImportService();
     private static final PayrollService payrollService = new PayrollService();
     private static final String UPLOAD_DIR = "uploads";
+    private static final String ATTENDANCE_FILE_PART = "attendanceFile";
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
@@ -149,6 +154,9 @@ public class ManagerController extends HttpServlet {
                 break;
             case "/attendance/export":
                 exportAttendanceReport(request, response, user);
+                break;
+            case "/attendance/import":
+                displayImportForm(request, response, user);
                 break;
             case "/attendance/own-attendance":
                 displayOwnAttendance(request, response, user);
@@ -239,6 +247,9 @@ public class ManagerController extends HttpServlet {
                 break;
             case "/forms/cancel-ot":
                 handleCancelOT(request, response, user);
+                break;
+            case "/attendance/import":
+                handleImportAttendance(request, response, user);
                 break;
             case "/salary/approve":
                 handleApprovePayroll(request, response, user);
@@ -407,7 +418,7 @@ public class ManagerController extends HttpServlet {
         request.setAttribute("attendances", attendances);
         request.setAttribute("selectedMonth", month);
         request.setAttribute("selectedYear", year);
-        request.getRequestDispatcher("/public/manager/attendance/own_attendance.jsp").forward(request, response);
+        request.getRequestDispatcher("/public/manager/attendance/own_attendance_list.jsp").forward(request, response);
     }
 
     private void displayOwnSalary(HttpServletRequest request, HttpServletResponse response,
@@ -418,7 +429,7 @@ public class ManagerController extends HttpServlet {
 
         if (!payrollService.canViewOwnSalary(user)) {
             request.getSession().setAttribute("error", "Bạn không có quyền xem lương cá nhân.");
-            response.sendRedirect(request.getContextPath() + "/v1/employee/dashboard");
+            response.sendRedirect(request.getContextPath() + "/v1/manager/dashboard");
             return;
         }
 
@@ -430,7 +441,7 @@ public class ManagerController extends HttpServlet {
         request.setAttribute("payrollPreview", payrollPreview);
         request.setAttribute("selectedYear", period[0]);
         request.setAttribute("selectedMonth", period[1]);
-        request.getRequestDispatcher("/public/employee/salary/own_salary.jsp").forward(request, response);
+        request.getRequestDispatcher("/public/manager/salary/own_salary.jsp").forward(request, response);
     }
 
     private void displayAllSalary(HttpServletRequest request, HttpServletResponse response,
@@ -441,7 +452,7 @@ public class ManagerController extends HttpServlet {
 
         if (!payrollService.canViewAllSalary(user)) {
             request.getSession().setAttribute("error", "Bạn không có quyền xem bảng lương tất cả nhân viên.");
-            response.sendRedirect(request.getContextPath() + "/v1/employee/dashboard");
+            response.sendRedirect(request.getContextPath() + "/v1/manager/dashboard");
             return;
         }
 
@@ -457,7 +468,7 @@ public class ManagerController extends HttpServlet {
         request.setAttribute("selectedDepartmentId", departmentId);
         request.setAttribute("departments", departmentDAO.getAllActiveDepartments());
         request.setAttribute("canExportPayroll", payrollService.canExportPayroll(user));
-        request.getRequestDispatcher("/public/employee/salary/salary_list.jsp").forward(request, response);
+        request.getRequestDispatcher("/public/manager/salary/salary_list.jsp").forward(request, response);
     }
 
     private void displaySalaryDetail(HttpServletRequest request, HttpServletResponse response,
@@ -468,7 +479,7 @@ public class ManagerController extends HttpServlet {
 
         if (!payrollService.canViewAllSalary(user)) {
             request.getSession().setAttribute("error", "Bạn không có quyền xem chi tiết bảng lương.");
-            response.sendRedirect(request.getContextPath() + "/v1/employee/dashboard");
+            response.sendRedirect(request.getContextPath() + "/v1/manager/dashboard");
             return;
         }
 
@@ -480,14 +491,14 @@ public class ManagerController extends HttpServlet {
         request.setAttribute("payrollPreview", payrollPreview);
         request.setAttribute("canApprovePayroll", payrollId != null
                 && payrollService.getPayrollApprovalError(user, payrollId) == null);
-        request.getRequestDispatcher("/public/employee/salary/salary_detail.jsp").forward(request, response);
+        request.getRequestDispatcher("/public/manager/salary/salary_detail.jsp").forward(request, response);
     }
 
     private void exportSalary(HttpServletRequest request, HttpServletResponse response,
             User user) throws IOException {
         if (!payrollService.canExportPayroll(user)) {
             request.getSession().setAttribute("error", "Bạn không có quyền xuất bảng lương.");
-            response.sendRedirect(request.getContextPath() + "/v1/employee/dashboard");
+            response.sendRedirect(request.getContextPath() + "/v1/manager/dashboard");
             return;
         }
         int[] period = parseSalaryPeriod(request);
@@ -505,7 +516,7 @@ public class ManagerController extends HttpServlet {
         Integer payrollId = parseIntOrNull(request.getParameter("payrollId"));
         if (payrollId == null) {
             request.getSession().setAttribute("error", "Không tìm thấy bảng lương cần duyệt.");
-            response.sendRedirect(request.getContextPath() + "/v1/employee/salary/all");
+            response.sendRedirect(request.getContextPath() + "/v1/manager/salary/all");
             return;
         }
         String approvalError = payrollService.getPayrollApprovalError(user, payrollId);
@@ -516,7 +527,7 @@ public class ManagerController extends HttpServlet {
                     ? "Không thể duyệt bảng lương này."
                     : approvalError);
         }
-        response.sendRedirect(request.getContextPath() + "/v1/employee/salary/detail?id=" + payrollId);
+        response.sendRedirect(request.getContextPath() + "/v1/manager/salary/detail?id=" + payrollId);
     }
 
     private void handleRejectPayroll(HttpServletRequest request, HttpServletResponse response,
@@ -525,7 +536,7 @@ public class ManagerController extends HttpServlet {
         String rejectNote = request.getParameter("rejectNote");
         if (payrollId == null) {
             request.getSession().setAttribute("error", "Không tìm thấy bảng lương cần xử lý.");
-            response.sendRedirect(request.getContextPath() + "/v1/employee/salary/all");
+            response.sendRedirect(request.getContextPath() + "/v1/manager/salary/all");
             return;
         }
         String rejectionError = payrollService.getPayrollRejectionError(user, payrollId, rejectNote);
@@ -536,21 +547,21 @@ public class ManagerController extends HttpServlet {
                     ? "Không thể từ chối bảng lương này."
                     : rejectionError);
         }
-        response.sendRedirect(request.getContextPath() + "/v1/employee/salary/detail?id=" + payrollId);
+        response.sendRedirect(request.getContextPath() + "/v1/manager/salary/detail?id=" + payrollId);
     }
 
     private void handleGeneratePayroll(HttpServletRequest request, HttpServletResponse response,
             User user) throws IOException {
         if (!payrollService.canViewAllSalary(user)) {
             request.getSession().setAttribute("error", "Bạn không có quyền tạo bảng lương.");
-            response.sendRedirect(request.getContextPath() + "/v1/employee/dashboard");
+            response.sendRedirect(request.getContextPath() + "/v1/manager/dashboard");
             return;
         }
         int[] period = parseSalaryPeriod(request);
         Integer departmentId = parseIntOrNull(request.getParameter("departmentId"));
         int generated = payrollService.saveGeneratedPayrollForPeriod(period[0], period[1], departmentId);
         request.getSession().setAttribute("success", "Đã tạo bảng lương cho " + generated + " nhân sự.");
-        response.sendRedirect(request.getContextPath() + "/v1/employee/salary/all?month=" + period[1]
+        response.sendRedirect(request.getContextPath() + "/v1/manager/salary/all?month=" + period[1]
                 + "&year=" + period[0]
                 + (departmentId == null ? "" : "&departmentId=" + departmentId));
     }
@@ -560,7 +571,7 @@ public class ManagerController extends HttpServlet {
         Integer payrollId = parseIntOrNull(request.getParameter("payrollId"));
         if (payrollId == null) {
             request.getSession().setAttribute("error", "Không tìm thấy bảng lương cần xác nhận.");
-            response.sendRedirect(request.getContextPath() + "/v1/employee/salary/own");
+            response.sendRedirect(request.getContextPath() + "/v1/manager/salary/own");
             return;
         }
         int[] period = parseSalaryPeriod(request);
@@ -570,7 +581,7 @@ public class ManagerController extends HttpServlet {
         } else {
             request.getSession().setAttribute("error", error == null ? "Không thể xác nhận bảng lương này." : error);
         }
-        response.sendRedirect(request.getContextPath() + "/v1/employee/salary/own?month=" + period[1]
+        response.sendRedirect(request.getContextPath() + "/v1/manager/salary/own?month=" + period[1]
                 + "&year=" + period[0]);
     }
 
@@ -579,7 +590,7 @@ public class ManagerController extends HttpServlet {
         Integer payrollId = parseIntOrNull(request.getParameter("payrollId"));
         if (payrollId == null) {
             request.getSession().setAttribute("error", "Không tìm thấy bảng lương cần báo sai.");
-            response.sendRedirect(request.getContextPath() + "/v1/employee/salary/own");
+            response.sendRedirect(request.getContextPath() + "/v1/manager/salary/own");
             return;
         }
         int[] period = parseSalaryPeriod(request);
@@ -587,10 +598,10 @@ public class ManagerController extends HttpServlet {
         if (error == null && payrollService.reportOwnPayrollWrongInfo(user, payrollId)) {
             String reason = java.net.URLEncoder.encode("Bảng lương payrollId=" + payrollId
                     + " chưa đúng thông tin, vui lòng kiểm tra lại.", java.nio.charset.StandardCharsets.UTF_8);
-            response.sendRedirect(request.getContextPath() + "/v1/employee/forms/complaint/new?reason=" + reason);
+            response.sendRedirect(request.getContextPath() + "/v1/manager/forms/complaint/new?reason=" + reason);
         } else {
             request.getSession().setAttribute("error", error == null ? "Không thể báo sai bảng lương này." : error);
-            response.sendRedirect(request.getContextPath() + "/v1/employee/salary/own?month=" + period[1]
+            response.sendRedirect(request.getContextPath() + "/v1/manager/salary/own?month=" + period[1]
                     + "&year=" + period[0]);
         }
     }
@@ -1470,10 +1481,155 @@ public class ManagerController extends HttpServlet {
 
     private String sanitizeFileName(String name) {
         if (name == null) {
-            return "candidates.xlsx";
+            return "upload.xlsx";
         }
         String base = Paths.get(name).getFileName().toString();
         return base.replaceAll("[\\r\\n]", "");
+    }
+
+    private void displayImportForm(HttpServletRequest request, HttpServletResponse response,
+            User user) throws ServletException, IOException {
+        if (!isHrStaff(user) || !hasPermission(user, "IMPORT_ATTENDANCE")) {
+            request.getSession().setAttribute("error", "Bạn không có quyền import chấm công.");
+            response.sendRedirect(request.getContextPath() + "/v1/manager/dashboard");
+            return;
+        }
+        Set<String> perms = getPermissions(user);
+        request.getSession().setAttribute("userPermissions", perms);
+        setPermissionFlags(request, perms);
+        request.setAttribute("departments", departmentDAO.getAllActiveDepartments());
+        request.getRequestDispatcher("/public/manager/attendance/attendance_import.jsp").forward(request, response);
+    }
+
+    private void handleImportAttendance(HttpServletRequest request, HttpServletResponse response,
+            User user) throws ServletException, IOException {
+        if (!isHrStaff(user) || !hasPermission(user, "IMPORT_ATTENDANCE")) {
+            request.getSession().setAttribute("error", "Bạn không có quyền import file chấm công.");
+            response.sendRedirect(request.getContextPath() + "/v1/manager/dashboard");
+            return;
+        }
+        Set<String> perms = getPermissions(user);
+        request.getSession().setAttribute("userPermissions", perms);
+        setPermissionFlags(request, perms);
+
+        int month;
+        int year;
+        int departmentId = 0;
+        try {
+            month = Integer.parseInt(request.getParameter("month").trim());
+            year = Integer.parseInt(request.getParameter("year").trim());
+            String rawDept = request.getParameter("departmentId");
+            if (rawDept != null && !rawDept.trim().isEmpty()) {
+                departmentId = Integer.parseInt(rawDept.trim());
+            }
+        } catch (NumberFormatException e) {
+            request.getSession().setAttribute("error", "Dữ liệu tháng, năm hoặc phòng ban không hợp lệ.");
+            response.sendRedirect(request.getContextPath() + "/v1/manager/attendance/import");
+            return;
+        }
+
+        if (month < 1 || month > 12) {
+            forwardImportError(request, response, "Vui lòng chọn tháng hợp lệ (1-12).", month, year, departmentId);
+            return;
+        }
+        if (year < 2000 || year > 2100) {
+            forwardImportError(request, response, "Vui lòng chọn năm hợp lệ.", month, year, departmentId);
+            return;
+        }
+
+        Part filePart = request.getPart(ATTENDANCE_FILE_PART);
+        if (filePart == null || filePart.getSize() == 0) {
+            forwardImportError(request, response, "Vui lòng chọn file Excel .xlsx để import.", month, year, departmentId);
+            return;
+        }
+
+        String submittedName = filePart.getSubmittedFileName();
+        if (submittedName == null || !submittedName.toLowerCase().endsWith(".xlsx")) {
+            forwardImportError(request, response, "File phải có định dạng .xlsx.", month, year, departmentId);
+            return;
+        }
+
+        String contentType = filePart.getContentType();
+        if (contentType != null && !isAcceptableXlsxContentType(contentType)) {
+            forwardImportError(request, response, "Loại file không hợp lệ. Yêu cầu file Excel .xlsx.", month, year, departmentId);
+            return;
+        }
+
+        EmployeeDetailDTO employee = employeeDAO.getEmployeeByUserId(user.getUserId());
+        Integer submittedEmployeeId = (employee != null) ? employee.getEmployeeId() : null;
+        int fileDepartmentId = (departmentId > 0)
+                ? departmentId
+                : (employee != null ? employee.getDepartmentId() : 0);
+
+        String uploadPath = getServletContext().getRealPath("/" + UPLOAD_DIR);
+        Path savedPath;
+        String serverFileName = "ATT_" + departmentId
+                + "_" + month + "_" + year + "_" + System.currentTimeMillis()
+                + "_" + UUID.randomUUID().toString().substring(0, 8) + ".xlsx";
+        try {
+            Path dir = Paths.get(uploadPath);
+            Files.createDirectories(dir);
+            savedPath = dir.resolve(serverFileName);
+            try (InputStream is = filePart.getInputStream()) {
+                Files.copy(is, savedPath);
+            }
+        } catch (IOException e) {
+            LOGGER.log(Level.SEVERE, "Cannot save uploaded attendance file", e);
+            forwardImportError(request, response, "Không thể lưu file lên máy chủ. Vui lòng thử lại.", month, year, departmentId);
+            return;
+        }
+
+        UploadedFile uf = new UploadedFile();
+        uf.setFileCode("UPF-" + System.currentTimeMillis());
+        uf.setFileType("ATTENDANCE");
+        uf.setDepartmentId(fileDepartmentId);
+        uf.setEmployeeId(submittedEmployeeId);
+        uf.setFileUrl(UPLOAD_DIR + "/" + serverFileName);
+        uf.setFileName(sanitizeFileName(submittedName));
+        uf.setMonth(month);
+        uf.setYear(year);
+        int fileId = uploadedFileDAO.createUploadedFile(uf);
+        if (fileId <= 0) {
+            forwardImportError(request, response, "Không thể tạo bản ghi file. Vui lòng thử lại.", month, year, departmentId);
+            return;
+        }
+
+        AttendanceImportResultDTO result;
+        try (InputStream is = Files.newInputStream(savedPath)) {
+            result = importService.importAttendance(is, departmentId, month, year, fileId);
+        } catch (IOException e) {
+            LOGGER.log(Level.SEVERE, "Cannot read saved attendance file", e);
+            uploadedFileDAO.updateImportResult(fileId, 0, 0, 0,
+                    FileStatus.FILE_STATUS_FAILED.getRelatedNum(), "Không thể đọc lại file đã lưu.");
+            forwardImportError(request, response, "Không thể đọc file đã lưu để import.", month, year, departmentId);
+            return;
+        }
+
+        result.setFileName(uf.getFileName());
+        request.setAttribute("auditLogged", Boolean.TRUE);
+        request.setAttribute("departments", departmentDAO.getAllActiveDepartments());
+        request.setAttribute("importResult", result);
+        request.setAttribute("selectedMonth", month);
+        request.setAttribute("selectedYear", year);
+        request.setAttribute("selectedDepartmentId", departmentId);
+        request.getRequestDispatcher("/public/manager/attendance/attendance_import.jsp").forward(request, response);
+    }
+
+    private void forwardImportError(HttpServletRequest request, HttpServletResponse response,
+            String message, int month, int year, int departmentId) throws ServletException, IOException {
+        request.setAttribute("error", message);
+        request.setAttribute("departments", departmentDAO.getAllActiveDepartments());
+        request.setAttribute("selectedMonth", month);
+        request.setAttribute("selectedYear", year);
+        request.setAttribute("selectedDepartmentId", departmentId);
+        request.getRequestDispatcher("/public/manager/attendance/attendance_import.jsp").forward(request, response);
+    }
+
+    private boolean isAcceptableXlsxContentType(String contentType) {
+        String ct = contentType.toLowerCase();
+        return ct.contains("openxmlformats-officedocument.spreadsheetml.sheet")
+                || ct.contains("application/octet-stream")
+                || ct.contains("application/zip");
     }
 
     private void displayAllForms(HttpServletRequest request, HttpServletResponse response, User user) throws ServletException, IOException {

@@ -132,7 +132,7 @@
         </a>
     </c:if>
     <a href="${pageContext.request.contextPath}/v1/manager/attendance/own-attendance"
-       class="${pageContext.request.servletPath == '/public/manager/own_attendance.jsp' ? 'active' : ''}">
+       class="${pageContext.request.servletPath == '/public/manager/own_attendance_list.jsp' ? 'active' : ''}">
         Chấm công của tôi
     </a>
     <a href="${pageContext.request.contextPath}/v1/manager/attendance/my-department-attendance"

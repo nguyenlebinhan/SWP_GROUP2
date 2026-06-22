@@ -21,12 +21,12 @@
 </head>
 <body>
 
-<jsp:include page="${empty sidebarPage ? '/public/components/employeeSideBar.jsp' : sidebarPage}" />
+<jsp:include page="${empty sidebarPage ? '/public/components/managerSideBar.jsp' : sidebarPage}" />
 
 <div class="main">
-    <jsp:include page="${empty topbarPage ? '/public/components/employeeTopBar.jsp' : topbarPage}">
+    <jsp:include page="${empty topbarPage ? '/public/components/managerTopBar.jsp' : topbarPage}">
         <jsp:param name="title" value="Import chấm công" />
-        <jsp:param name="backUrl" value="/v1/employee/attendance-list"/>
+        <jsp:param name="backUrl" value="/v1/manager/attendance/overview"/>
     </jsp:include>
 
     <c:if test="${not empty error}">
@@ -38,7 +38,7 @@
 
     <div class="section-card">
         <h5 class="mb-3"><i class="fa-solid fa-file-import me-2"></i>Import dữ liệu chấm công từ Excel (.xlsx)</h5>
-        <form method="post" action="${pageContext.request.contextPath}/v1/employee/attendance-import"
+        <form method="post" action="${pageContext.request.contextPath}/v1/manager/attendance/import"
               enctype="multipart/form-data">
             <div class="row g-3">
                 <div class="col-md-3">
@@ -137,7 +137,7 @@
                 </div>
             </c:if>
 
-            <a href="${pageContext.request.contextPath}/v1/employee/attendance-list?month=${selectedMonth}&year=${selectedYear}"
+            <a href="${pageContext.request.contextPath}/v1/manager/attendance/overview?month=${selectedMonth}&year=${selectedYear}"
                class="btn btn-outline-primary btn-sm">
                 <i class="fa-solid fa-table me-1"></i> Xem dữ liệu chấm công
             </a>
