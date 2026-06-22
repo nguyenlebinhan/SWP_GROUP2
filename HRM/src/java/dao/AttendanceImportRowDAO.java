@@ -19,19 +19,20 @@ public class AttendanceImportRowDAO {
 
     public int insertRow(Connection conn, int fileId, AttendanceDataDTO row) throws SQLException {
         String SQL = "INSERT INTO Attendance_Import_Rows "
-                + "(fileId, rowNumber, employeeCode, fullName, departmentName, workDate, timeIn, timeOut, attendanceStatus, note) "
-                + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                + "(fileId, rowNumber, employeeCode, fullName,departmentName,position, workDate, timeIn, timeOut, attendanceStatus, note) "
+                + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         try (PreparedStatement ps = conn.prepareStatement(SQL, Statement.RETURN_GENERATED_KEYS)) {
             ps.setInt(1, fileId);
             ps.setInt(2, row.getRowNumber());
             ps.setString(3, row.getEmployeeCode());
             ps.setNString(4, row.getFullName());
             ps.setNString(5, row.getDepartmentName());
-            ps.setString(6, row.getWorkDate());
-            ps.setString(7, row.getTimeIn());
-            ps.setString(8, row.getTimeOut());
-            ps.setString(9, row.getAttendanceStatus());
-            ps.setNString(10, row.getNote());
+            ps.setString(6,row.getPosition());
+            ps.setString(7, row.getWorkDate());
+            ps.setString(8, row.getTimeIn());
+            ps.setString(9, row.getTimeOut());
+            ps.setString(10, row.getAttendanceStatus());
+            ps.setNString(11, row.getNote());
             ps.executeUpdate();
             try (ResultSet rs = ps.getGeneratedKeys()) {
                 return rs.next() ? rs.getInt(1) : -1;
