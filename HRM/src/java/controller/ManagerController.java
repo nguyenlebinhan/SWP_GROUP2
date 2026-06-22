@@ -541,7 +541,6 @@ public class ManagerController extends HttpServlet {
         request.getRequestDispatcher("/public/manager/attendance/attendance_detail.jsp").forward(request, response);
     }
 
-
     private void exportAttendanceReport(HttpServletRequest request, HttpServletResponse response,
             User user) throws ServletException, IOException {
         Set<String> perms = getPermissions(user);
@@ -652,7 +651,23 @@ public class ManagerController extends HttpServlet {
             request.setAttribute("pendingContracts", contractDAO.getPendingContracts());
         } catch (java.sql.SQLException e) {
             LOGGER.log(java.util.logging.Level.SEVERE, "Error fetching pending contracts", e);
-            request.setAttribute("error", "Khong the tai danh sach hop dong cho duyet.");
+            if (request.getAttribute("error") == null) {
+                request.setAttribute("error", "Khong the tai danh sach hop dong cho duyet.");
+            }
+        }
+        // Flash Message Transfer: Session -> Request (single display only)
+        HttpSession flashSession = request.getSession(false);
+        if (flashSession != null) {
+            Object flashSuccess = flashSession.getAttribute("success");
+            if (flashSuccess != null) {
+                request.setAttribute("success", flashSuccess);
+                flashSession.removeAttribute("success");
+            }
+            Object flashError = flashSession.getAttribute("error");
+            if (flashError != null && request.getAttribute("error") == null) {
+                request.setAttribute("error", flashError);
+                flashSession.removeAttribute("error");
+            }
         }
         setPermissionFlags(request, getPermissions(user));
         request.getRequestDispatcher("/public/manager/contract/contract_pending_list.jsp").forward(request, response);
@@ -2155,91 +2170,88 @@ public class ManagerController extends HttpServlet {
         request.getRequestDispatcher("/public/manager/department/reassign_department.jsp").forward(request, response);
     }
 
-
     private void handleApproveContract(HttpServletRequest request, HttpServletResponse response,
             User user) throws ServletException, IOException {
         preventBackCache(response);
-        response.setContentType("application/json;charset=UTF-8");
         if (!isHrStaff(user)) {
-            response.setStatus(HttpServletResponse.SC_FORBIDDEN);
-            response.getWriter().write("{\"error\":\"Chỉ HR Manager được duyệt hợp đồng.\"}");
+            request.getSession().setAttribute("error", "Chỉ HR Manager được duyệt hợp đồng.");
+            response.sendRedirect(request.getContextPath() + "/v1/manager/contract/pending");
             return;
         }
         String role = roleDAO.getRoleByUserId(user.getUserId());
         if (!"HRManager".equals(role)) {
-            response.setStatus(HttpServletResponse.SC_FORBIDDEN);
-            response.getWriter().write("{\"error\":\"Chỉ HR Manager được duyệt hợp đồng.\"}");
+            request.getSession().setAttribute("error", "Chỉ HR Manager được duyệt hợp đồng.");
+            response.sendRedirect(request.getContextPath() + "/v1/manager/contract/pending");
             return;
         }
         String contractIdParam = request.getParameter("contractId");
         if (contractIdParam == null) {
-            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-            response.getWriter().write("{\"error\":\"Missing contractId.\"}");
+            request.getSession().setAttribute("error", "Missing contractId.");
+            response.sendRedirect(request.getContextPath() + "/v1/manager/contract/pending");
             return;
         }
         int contractId;
         try { contractId = Integer.parseInt(contractIdParam); }
         catch (NumberFormatException e) {
-            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-            response.getWriter().write("{\"error\":\"Invalid contractId.\"}");
+            request.getSession().setAttribute("error", "Invalid contractId.");
+            response.sendRedirect(request.getContextPath() + "/v1/manager/contract/pending");
             return;
         }
         ContractOperationResult result = contractService.approveContract(contractId, user.getUserId());
         if (result.isSuccess()) {
-            response.setStatus(HttpServletResponse.SC_OK);
-            response.getWriter().write("{\"success\":true,\"message\":\"Hợp đồng đã được duyệt thành công.\"}");
+            request.getSession().setAttribute("success", "Hợp đồng đã được duyệt thành công.");
+            response.sendRedirect(request.getContextPath() + "/v1/manager/contract/pending");
         } else {
-            response.setStatus(HttpServletResponse.SC_CONFLICT);
             String msg = switch (result.getErrorCode()) {
                 case ContractOperationResult.INVALID_STATUS -> "Không thể duyệt. Hợp đồng không ở trạng thái Chờ duyệt.";
                 case ContractOperationResult.SQL_ERROR -> "Lỗi cơ sở dữ liệu.";
                 default -> "Thao tác thất bại: " + result.getErrorCode();
             };
-            response.getWriter().write("{\"success\":false,\"errorCode\":\"" + result.getErrorCode() + "\",\"message\":\"" + msg + "\"}");
+            request.getSession().setAttribute("error", msg);
+            response.sendRedirect(request.getContextPath() + "/v1/manager/contract/pending");
         }
     }
 
     private void handleRejectContract(HttpServletRequest request, HttpServletResponse response,
             User user) throws ServletException, IOException {
         preventBackCache(response);
-        response.setContentType("application/json;charset=UTF-8");
         if (!isHrStaff(user)) {
-            response.setStatus(HttpServletResponse.SC_FORBIDDEN);
-            response.getWriter().write("{\"error\":\"Chỉ HR Manager được từ chối hợp đồng.\"}");
+            request.getSession().setAttribute("error", "Chỉ HR Manager được từ chối hợp đồng.");
+            response.sendRedirect(request.getContextPath() + "/v1/manager/contract/pending");
             return;
         }
         String role = roleDAO.getRoleByUserId(user.getUserId());
         if (!"HRManager".equals(role)) {
-            response.setStatus(HttpServletResponse.SC_FORBIDDEN);
-            response.getWriter().write("{\"error\":\"Chỉ HR Manager được từ chối hợp đồng.\"}");
+            request.getSession().setAttribute("error", "Chỉ HR Manager được từ chối hợp đồng.");
+            response.sendRedirect(request.getContextPath() + "/v1/manager/contract/pending");
             return;
         }
         String contractIdParam = request.getParameter("contractId");
         String reason = request.getParameter("reason");
         if (contractIdParam == null || reason == null || reason.trim().isEmpty()) {
-            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-            response.getWriter().write("{\"error\":\"Missing contractId or reason.\"}");
+            request.getSession().setAttribute("error", "Missing contractId or reason.");
+            response.sendRedirect(request.getContextPath() + "/v1/manager/contract/pending");
             return;
         }
         int contractId;
         try { contractId = Integer.parseInt(contractIdParam); }
         catch (NumberFormatException e) {
-            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-            response.getWriter().write("{\"error\":\"Invalid contractId.\"}");
+            request.getSession().setAttribute("error", "Invalid contractId.");
+            response.sendRedirect(request.getContextPath() + "/v1/manager/contract/pending");
             return;
         }
         ContractOperationResult result = contractService.rejectContract(contractId, user.getUserId(), reason.trim());
         if (result.isSuccess()) {
-            response.setStatus(HttpServletResponse.SC_OK);
-            response.getWriter().write("{\"success\":true,\"message\":\"Hợp đồng đã được từ chối.\"}");
+            request.getSession().setAttribute("success", "Hợp đồng đã được từ chối.");
+            response.sendRedirect(request.getContextPath() + "/v1/manager/contract/pending");
         } else {
-            response.setStatus(HttpServletResponse.SC_CONFLICT);
             String msg = switch (result.getErrorCode()) {
                 case ContractOperationResult.INVALID_STATUS -> "Không thể từ chối. Hợp đồng không ở trạng thái Chờ duyệt.";
                 case ContractOperationResult.SQL_ERROR -> "Lỗi cơ sở dữ liệu.";
                 default -> "Thao tác thất bại: " + result.getErrorCode();
             };
-            response.getWriter().write("{\"success\":false,\"errorCode\":\"" + result.getErrorCode() + "\",\"message\":\"" + msg + "\"}");
+            request.getSession().setAttribute("error", msg);
+            response.sendRedirect(request.getContextPath() + "/v1/manager/contract/pending");
         }
     }
 
@@ -2347,6 +2359,9 @@ public class ManagerController extends HttpServlet {
         request.setAttribute("keyword", keyword);
         request.setAttribute("employeeId", targetEmpId);
         request.setAttribute("deptId", deptId);
+        // Add departments for filter dropdown
+        request.setAttribute("departments", departmentDAO.getAllActiveDepartments());
+        
         request.getRequestDispatcher("/public/manager/contract/manager_contract_history.jsp").forward(request, response);
     }
 

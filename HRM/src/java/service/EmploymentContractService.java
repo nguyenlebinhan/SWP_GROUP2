@@ -194,7 +194,7 @@ public class EmploymentContractService {
                 return new ContractOperationResult(false, "NOT_FOUND", "Khong tim thay hop dong.");
             }
 
-            if (!ContractStatus.PENDING_APPROVAL.name().equals(contract.getStatus())) {
+            if (contract.getStatus() != ContractStatus.PENDING_APPROVAL) {
                 conn.rollback();
                 return new ContractOperationResult(false, "INVALID_STATUS", "Hop dong khong o trang thai cho duyet.");
             }

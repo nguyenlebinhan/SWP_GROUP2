@@ -22,6 +22,7 @@ public class EmploymentContract {
     private String employeeFullName;
     private String employeeCode;
     private int createdBy;
+    private String createdByName;
     private Date createdAt;
     private Date updatedAt;
 
@@ -182,6 +183,14 @@ public class EmploymentContract {
 
     public void setCreatedBy(int createdBy) {
         this.createdBy = createdBy;
+    }
+
+    public String getCreatedByName() {
+        return createdByName;
+    }
+
+    public void setCreatedByName(String createdByName) {
+        this.createdByName = createdByName;
     }
 
     public Date getCreatedAt() {

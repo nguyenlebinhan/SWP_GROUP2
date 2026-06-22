@@ -120,10 +120,12 @@ public class EmploymentContractDAO {
      * Used by scheduler flow for thread-safe re-fetching.
      */
     public EmploymentContract getContractById(Connection conn, int contractId) {
-        String SQL = "SELECT contractId, contractCode, employeeId, contractType, signedDate, effectiveDate, "
-                + "endDate, actualEndDate, salary, status, note, previousContractId, terminationReason, "
-                + "rejectionReason, createdBy, createdAt, updatedAt "
-                + "FROM Employment_Contracts WHERE contractId = ?";
+        String SQL = "SELECT ec.*, e.employeeCode, u.fullName, creatorUser.fullName AS createdByName "
+                + "FROM Employment_Contracts ec "
+                + "LEFT JOIN Employees e ON ec.employeeId = e.employeeId "
+                + "LEFT JOIN Users u ON e.userId = u.userId "
+                + "LEFT JOIN Users creatorUser ON ec.createdBy = creatorUser.userId "
+                + "WHERE ec.contractId = ?";
         try (PreparedStatement ps = conn.prepareStatement(SQL)) {
             ps.setInt(1, contractId);
             try (ResultSet rs = ps.executeQuery()) {
@@ -644,7 +646,7 @@ public class EmploymentContractDAO {
         StringBuilder sql = new StringBuilder(
             "SELECT la.LogId, la.ContractId, la.OldStatus, la.NewStatus, "
             + "la.ChangedBy, la.ChangeDate, la.ActionReason, "
-            + "u.userName AS changedByName, ec.employeeId "
+            + "u.userName AS changedByName, ec.employeeId, e.fullName AS employeeName "
             + "FROM Contract_Audit_Log la "
             + "JOIN Employment_Contracts ec ON la.ContractId = ec.contractId "
             + "JOIN Users u ON la.ChangedBy = u.userId "
@@ -689,6 +691,7 @@ public class EmploymentContractDAO {
                     log.setChangeDate(rs.getTimestamp("ChangeDate"));
                     log.setActionReason(rs.getString("ActionReason"));
                     log.setEmployeeId(rs.getInt("employeeId"));
+                    log.setEmployeeName(rs.getString("employeeName"));
                     logs.add(log);
                 }
             }
@@ -748,6 +751,9 @@ public class EmploymentContractDAO {
             contract.setEmployeeCode(rs.getString("employeeCode"));
         } catch (SQLException ignored) {}
         contract.setCreatedBy(rs.getInt("createdBy"));
+        try {
+            contract.setCreatedByName(rs.getString("createdByName"));
+        } catch (SQLException ignored) {}
         contract.setCreatedAt(rs.getDate("createdAt"));
         contract.setUpdatedAt(rs.getDate("updatedAt"));
         return contract;
