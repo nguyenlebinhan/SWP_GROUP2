@@ -21,7 +21,6 @@ import model.Employee;
 import model.User;
 import dto.EmployeeDTO;
 import dto.EmployeeDetailDTO;
-
 /**
  *
  * @author admin
@@ -71,7 +70,7 @@ public class EmployeeDAO {
         return 0;
     }
 
-    public List<EmployeeDetailDTO> getAllEmployees() {
+    public List<EmployeeDetailDTO> getAllEmployees(int userId) {
         List<EmployeeDetailDTO> list = new ArrayList<>();
         String SQL = "SELECT e.employeeId, e.employeeCode, e.userId, e.departmentId, e.positionId, "
                 + "e.phoneNumber, e.skills, e.experience, e.degree, e.status, e.managerId, "
@@ -82,9 +81,11 @@ public class EmployeeDAO {
                 + "LEFT JOIN Departments d ON d.departmentId = e.departmentId "
                 + "LEFT JOIN Positions p ON p.positionId = e.positionId "
                 + "JOIN Roles r on r.roleId = u.roleId "
+                + "WHERE e.userId != ? "
                 + "ORDER BY e.employeeId DESC";
         try (Connection conn = dbContext.getConnection();
                 PreparedStatement ps = conn.prepareStatement(SQL)) {
+            ps.setInt(1, userId);
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
                     list.add(mapEmployeeDTO(rs));
@@ -621,7 +622,6 @@ public class EmployeeDAO {
         }
         return false;
     }
-
 
     public boolean unassignEmployee(int employeeId) {
         LOGGER.log(Level.INFO, "Unassigning employeeId={0} from department", employeeId);

@@ -27,7 +27,6 @@ public class DBInitializer {
         this.dbContext = new DBContext();
     }
 
-
     public void createTableRoles(Connection conn) {
         String SQL = "CREATE TABLE Roles("
                 + "roleId INT PRIMARY KEY AUTO_INCREMENT,"
@@ -131,11 +130,11 @@ public class DBInitializer {
                 + "departmentName NVARCHAR(150) NOT NULL UNIQUE,"
                 + "description NVARCHAR(500),"
                 + "managerId INT,"
-//                + "maxHeadCount INT,"
-                + "status TINYINT DEFAULT 1,"        // 0: Inactive, 1: Active
-//                + "region NVARCHAR(100),"
-//                + "budget DECIMAL(15,2),"
-//                + "foundedDate DATE,"
+                + "maxHeadCount INT,"
+                + "status TINYINT DEFAULT 1," // 0: Inactive, 1: Active
+                //                + "region NVARCHAR(100),"
+                //                + "budget DECIMAL(15,2),"
+                //                + "foundedDate DATE,"
                 + "createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,"
                 + "updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,"
                 + "FOREIGN KEY (managerId) REFERENCES Employees(employeeId)"
@@ -175,18 +174,39 @@ public class DBInitializer {
                 + "contractCode VARCHAR(50) NOT NULL UNIQUE,"
                 + "employeeId INT NOT NULL,"
                 + "contractType VARCHAR(50) NOT NULL,"
-                + "startDate DATE NOT NULL,"
+                + "signedDate DATE,"
+                + "effectiveDate DATE NOT NULL,"
                 + "endDate DATE NULL,"
+                + "actualEndDate DATE NULL,"
                 + "salary DECIMAL(15,2) NOT NULL DEFAULT 0,"
-                + "status TINYINT DEFAULT 1,"
+                + "status VARCHAR(50) DEFAULT 'DRAFT',"
                 + "note NVARCHAR(500),"
+                + "previousContractId INT,"
+                + "terminationReason NVARCHAR(255),"
+                + "rejectionReason NVARCHAR(255),"
                 + "createdBy INT,"
                 + "createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,"
                 + "updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,"
                 + "FOREIGN KEY (employeeId) REFERENCES Employees(employeeId),"
+                + "FOREIGN KEY (previousContractId) REFERENCES Employment_Contracts(contractId),"
                 + "FOREIGN KEY (createdBy) REFERENCES Users(userId)"
                 + ")";
         execute(conn, SQL, "CREATE EMPLOYMENT_CONTRACTS TABLE SUCCESSFULLY");
+    }
+
+    public void createTableContractAuditLog(Connection conn) {
+        String SQL = "CREATE TABLE Contract_Audit_Log("
+                + "logId INT PRIMARY KEY AUTO_INCREMENT,"
+                + "contractId INT NOT NULL,"
+                + "oldStatus VARCHAR(50),"
+                + "newStatus VARCHAR(50),"
+                + "changedBy INT NOT NULL,"
+                + "changeDate TIMESTAMP DEFAULT CURRENT_TIMESTAMP,"
+                + "actionReason NVARCHAR(255),"
+                + "FOREIGN KEY (contractId) REFERENCES Employment_Contracts(contractId),"
+                + "FOREIGN KEY (changedBy) REFERENCES Users(userId)"
+                + ")";
+        execute(conn, SQL, "CREATE CONTRACT_AUDIT_LOG TABLE SUCCESSFULLY");
     }
 
     public void createTableCandidates(Connection conn) {
@@ -207,7 +227,8 @@ public class DBInitializer {
                 + "departmentId INT NOT NULL,"
                 + "positionId INT NOT NULL,"
                 + "importFileId INT,"
-                + "status TINYINT DEFAULT 0,"        // 0: Đang xét, 1: Phỏng vấn, 2: Thử việc, 3: Đậu, 4: Trượt
+                + "status TINYINT DEFAULT 0," // 0: Đang xét, 1: Phỏng vấn, 2: Thử việc, 3: Đậu, 4: Trượt
+                + "status TINYINT DEFAULT 0," // 0: Đang xét, 1: Phỏng vấn, 2: Thử việc, 3: Đậu, 4: Trượt
                 + "createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,"
                 + "updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,"
                 + "FOREIGN KEY (departmentId) REFERENCES Departments(departmentId),"
@@ -218,7 +239,6 @@ public class DBInitializer {
     }
 
     // ==================== NGHỈ PHÉP ====================
-
     public void createTableApplicationStageLogs(Connection conn) {
         String SQL = "CREATE TABLE Application_Stage_Logs("
                 + "logId INT PRIMARY KEY AUTO_INCREMENT,"
@@ -376,7 +396,28 @@ public class DBInitializer {
         execute(conn, SQL, "CREATE ATTENDANCE TABLE SUCCESSFULLY");
     }
 
+    public void createTableAttendanceImportRows(Connection conn) {
+        String SQL = "CREATE TABLE Attendance_Import_Rows("
+                + "importRowId INT PRIMARY KEY AUTO_INCREMENT,"
+                + "fileId INT NOT NULL,"
+                + "rowNumber INT NOT NULL,"
+                + "employeeCode VARCHAR(50),"
+                + "fullName NVARCHAR(100),"
+                + "departmentName NVARCHAR(100),"
+                + "workDate VARCHAR(50),"
+                + "timeIn VARCHAR(20),"
+                + "timeOut VARCHAR(20),"
+                + "attendanceStatus VARCHAR(30),"
+                + "note NVARCHAR(255),"
+                + "validateStatus TINYINT DEFAULT 0," // 0: lỗi/bị từ chối, 1: hợp lệ đã merge vào Attendance
+                + "errorMessage NVARCHAR(500),"
+                + "createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,"
+                + "FOREIGN KEY (fileId) REFERENCES Uploaded_Files(fileId)"
+                + ")";
+        execute(conn, SQL, "CREATE ATTENDANCE_IMPORT_ROWS TABLE SUCCESSFULLY");
+    }
 
+    // Lịch sử chỉnh sửa chấm công: ai sửa, sửa gì, lý do.
     public void createTableAttendanceAdjustmentHistory(Connection conn) {
         String SQL = "CREATE TABLE Attendance_Adjustment_History("
                 + "adjustmentId INT PRIMARY KEY AUTO_INCREMENT,"
@@ -403,7 +444,6 @@ public class DBInitializer {
                 + ")";
         execute(conn, SQL, "CREATE HOLIDAY TABLE SUCCESSFULLY");
     }
-
 
     public void createTablePayroll(Connection conn) {
         String SQL = "CREATE TABLE Payroll("
@@ -438,9 +478,27 @@ public class DBInitializer {
         execute(conn, SQL, "CREATE PAYROLL TABLE SUCCESSFULLY");
     }
 
+    public void createTablePerformance(Connection conn) {
+        String SQL = "CREATE TABLE Performance("
+                + "performanceId INT PRIMARY KEY AUTO_INCREMENT,"
+                + "departmentId INT NOT NULL,"
+                + "employeeId INT NOT NULL,"
+                + "positionId INT NOT NULL,"
+                + "evaluatorId INT NOT NULL,"
+                + "evaluationDate DATE NOT NULL,"
+                + "content NVARCHAR(500),"
+                + "result NVARCHAR(100)," // Xuất sắc / Tốt / Trung bình / Yếu
+                + "createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,"
+                + "updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,"
+                + "FOREIGN KEY (departmentId) REFERENCES Departments(departmentId),"
+                + "FOREIGN KEY (employeeId) REFERENCES Employees(employeeId),"
+                + "FOREIGN KEY (evaluatorId) REFERENCES Employees(employeeId),"
+                + "FOREIGN KEY (positionId) REFERENCES Positions(positionId)"
+                + ")";
+        execute(conn, SQL, "CREATE PERFORMANCE TABLE SUCCESSFULLY");
+    }
 
     // ==================== THÔNG BÁO & AUDIT ====================
-
     public void createTableNotifications(Connection conn) {
         String SQL = "CREATE TABLE Notifications("
                 + "notificationId INT PRIMARY KEY AUTO_INCREMENT,"
@@ -476,19 +534,20 @@ public class DBInitializer {
     }
 
     // ==================== KHỞI TẠO ====================
-
     public void initializeDatabase(boolean enforceReset) {
         try (Connection conn = dbContext.getConnection()) {
             if (conn == null) {
-                LOGGER.log(Level.SEVERE,"Cannot get database connection!");
+                LOGGER.log(Level.SEVERE, "Cannot get database connection!");
                 return;
             }
 
             String[] dropOrder = {
                 "Audit_Logs",
                 "Notifications",
+                "Performance",
                 "Payroll",
                 "Attendance_Adjustment_History",
+                "Attendance_Import_Rows",
                 "Attendance",
                 "Holiday",
                 "Application_Stage_Logs",
@@ -499,6 +558,7 @@ public class DBInitializer {
                 "Overtime_Details",
                 "Form_Requests",
                 "Form_Types",
+                "Contract_Audit_Log",
                 "Employment_Contracts",
                 "Employees",
                 "Users",
@@ -522,6 +582,7 @@ public class DBInitializer {
                 "Users",
                 "Employees",
                 "Employment_Contracts",
+                "Contract_Audit_Log",
                 "Uploaded_Files",
                 "Candidates",
                 "Application_Stage_Logs",
@@ -531,15 +592,17 @@ public class DBInitializer {
                 "Overtime_Assignees",
                 "Leave_Balances",
                 "Attendance",
+                "Attendance_Import_Rows",
                 "Attendance_Adjustment_History",
                 "Holiday",
                 "Payroll",
+                "Performance",
                 "Notifications",
                 "Audit_Logs"
             };
 
             if (enforceReset) {
-                LOGGER.log(Level.INFO,"Enforce reset: Dropping all tables...");
+                LOGGER.log(Level.INFO, "Enforce reset: Dropping all tables...");
                 execute(conn, "SET FOREIGN_KEY_CHECKS=0", "DISABLE FK CHECKS FOR DROP");
                 for (String table : dropOrder) {
                     dropTable(conn, table);
@@ -564,6 +627,7 @@ public class DBInitializer {
                         case "Users":             createTableUsers(conn);             break;
                         case "Employees":         createTableEmployees(conn);         break;
                         case "Employment_Contracts": createTableEmploymentContracts(conn); break;
+                        case "Contract_Audit_Log": createTableContractAuditLog(conn); break;
                         case "Uploaded_Files":    createTableUploadedFiles(conn);     break;
                         case "Candidates":        createTableCandidates(conn);        break;
                         case "Application_Stage_Logs": createTableApplicationStageLogs(conn); break;
@@ -573,9 +637,11 @@ public class DBInitializer {
                         case "Overtime_Assignees": createTableOvertimeAssignees(conn); break;
                         case "Leave_Balances":     createTableLeaveBalances(conn);      break;
                         case "Attendance":        createTableAttendance(conn);        break;
+                        case "Attendance_Import_Rows":        createTableAttendanceImportRows(conn);        break;
                         case "Attendance_Adjustment_History": createTableAttendanceAdjustmentHistory(conn); break;
                         case "Holiday":           createTableHoliday(conn);           break;
                         case "Payroll":           createTablePayroll(conn);           break;
+                        case "Performance":       createTablePerformance(conn);       break;
                         case "Notifications":     createTableNotifications(conn);     break;
                         case "Audit_Logs":        createTableAuditLogs(conn);         break;
                         default: LOGGER.log(Level.WARNING,"Unknown table: {0}", table);     break;
@@ -601,61 +667,69 @@ public class DBInitializer {
         try {
             if (countRows(conn, "Roles") == 0) {
                 LOGGER.info("Starting to seed initial data...");
-                insertRole(conn, "SA",  "SystemAdmin",   "Người quản trị hệ thống và đưa ra các quyền hạn với user account");
-                insertRole(conn, "BA",  "BusinessAdmin", "Người quản trị nghiệp vụ và công việc");
-                insertRole(conn, "HM",  "HRManager",     "Quản lý phòng Nhân sự");
-                insertRole(conn, "HE",  "HREmployee",    "Nhân viên phòng Nhân sự");
-                insertRole(conn, "ITM", "ITManager",     "Quản lý phòng Công nghệ thông tin");
-                insertRole(conn, "ITE", "ITEmployee",    "Nhân viên phòng Công nghệ thông tin");
-                insertRole(conn, "FIM", "FIManager",     "Quản lý phòng Tài chính");
-                insertRole(conn, "FIE", "FIEmployee",    "Nhân viên phòng Tài chính");
+                insertRole(conn, "SA", "SystemAdmin", "Người quản trị hệ thống và đưa ra các quyền hạn với user account");
+                insertRole(conn, "BA", "BusinessAdmin", "Người quản trị nghiệp vụ và công việc");
+                insertRole(conn, "HM", "HRManager", "Quản lý phòng Nhân sự");
+                insertRole(conn, "HE", "HREmployee", "Nhân viên phòng Nhân sự");
+                insertRole(conn, "ITM", "ITManager", "Quản lý phòng Công nghệ thông tin");
+                insertRole(conn, "ITE", "ITEmployee", "Nhân viên phòng Công nghệ thông tin");
+                insertRole(conn, "FIM", "FIManager", "Quản lý phòng Tài chính");
+                insertRole(conn, "FIE", "FIEmployee", "Nhân viên phòng Tài chính");
             }
 
             if (countRows(conn, "Permissions") == 0) {
-                insertPermission(conn, "VIEW_USERS",       "Xem người dùng",         "Quyền xem danh sách và chi tiết người dùng");
-                insertPermission(conn, "ADD_USER",         "Thêm người dùng",         "Quyền thêm mới người dùng");
-                insertPermission(conn, "EDIT_USER",        "Sửa người dùng",          "Quyền chỉnh sửa thông tin người dùng");
-                insertPermission(conn, "DELETE_USER",      "Xóa người dùng",          "Quyền xóa / vô hiệu hóa người dùng");
-                insertPermission(conn, "VIEW_ROLES",       "Xem vai trò",             "Quyền xem danh sách và chi tiết vai trò");
-                insertPermission(conn, "ADD_ROLE",         "Thêm vai trò",            "Quyền thêm mới vai trò");
-                insertPermission(conn, "EDIT_ROLE",        "Sửa vai trò",             "Quyền chỉnh sửa thông tin vai trò");
-                insertPermission(conn, "DELETE_ROLE",      "Xóa vai trò",             "Quyền xóa vai trò");
-                insertPermission(conn, "MANAGE_PERMISSIONS","Quản lý phân quyền",     "Quyền gán / thu hồi quyền cho vai trò");
-                insertPermission(conn, "VIEW_EMPLOYEES",   "Xem nhân viên",              "Quyền xem danh sách nhân viên");
-                insertPermission(conn, "ADD_EMPLOYEE","Thêm nhân viên",     "Quyền thêm nhân viên");
-                insertPermission(conn, "EDIT_EMPLOYEE","Chỉnh sửa nhân viên",     "Quyền chỉnh sửa nhân viên");
+                insertPermission(conn, "VIEW_USERS", "Xem người dùng", "Quyền xem danh sách và chi tiết người dùng");
+                insertPermission(conn, "ADD_USER", "Thêm người dùng", "Quyền thêm mới người dùng");
+                insertPermission(conn, "EDIT_USER", "Sửa người dùng", "Quyền chỉnh sửa thông tin người dùng");
+                insertPermission(conn, "DELETE_USER", "Xóa người dùng", "Quyền xóa / vô hiệu hóa người dùng");
+                insertPermission(conn, "VIEW_ROLES", "Xem vai trò", "Quyền xem danh sách và chi tiết vai trò");
+                insertPermission(conn, "ADD_ROLE", "Thêm vai trò", "Quyền thêm mới vai trò");
+                insertPermission(conn, "EDIT_ROLE", "Sửa vai trò", "Quyền chỉnh sửa thông tin vai trò");
+                insertPermission(conn, "DELETE_ROLE", "Xóa vai trò", "Quyền xóa vai trò");
+                insertPermission(conn, "MANAGE_PERMISSIONS", "Quản lý phân quyền", "Quyền gán / thu hồi quyền cho vai trò");
+                insertPermission(conn, "VIEW_EMPLOYEES", "Xem nhân viên", "Quyền xem danh sách nhân viên");
+                insertPermission(conn, "ADD_EMPLOYEE", "Thêm nhân viên", "Quyền thêm nhân viên");
+                insertPermission(conn, "EDIT_EMPLOYEE", "Chỉnh sửa nhân viên", "Quyền chỉnh sửa nhân viên");
                 insertPermission(conn, "ADD_EMPLOYMENT_CONTRACT", "Thêm hợp đồng lao động", "Quyền thêm hợp đồng lao động cho nhân viên");
-                insertPermission(conn, "EDIT_DEPARTMENTS","Chỉnh sửa phòng ban",     "Quyền chỉnh sửa phòng ban ");
-                insertPermission(conn, "ASSIGN_DEPARTMENT","Gán nhân viên vào phòng ban",     "Quyền gán nhân viên vào phòng ban");
-                insertPermission(conn, "UNASSIGN_DEPARTMENT","Xóa gán phòng ban nhân viên",     "Quyền xóa gán nhân viên sang phòng ban khác");
-                insertPermission(conn,"ADD_DEPARTMENT","Thêm phòng ban","Quyền thêm phòng ban");
-                insertPermission(conn,"VIEW_DEPARTMENT_ATTENDANCE","Xem chấm công phòng ban","Quyền xem dashboard chấm công của phòng ban mình quản lý (Manager)");
-                insertPermission(conn,"VIEW_ALL_ATTENDANCE","Xem toàn bộ chấm công","Quyền xem dashboard chấm công của tất cả phòng ban trong toàn công ty (HR)");
-                insertPermission(conn,"IMPORT_ATTENDANCE","Import chấm công","Quyền import dữ liệu chấm công từ file Excel");
-                insertPermission(conn,"EDIT_ATTENDANCE","Chỉnh sửa chấm công","Quyền chỉnh sửa trạng thái chấm công khi tháng chấm công chưa công khai");                
-                insertPermission(conn,"VIEW_DEPARTMENT_EMPLOYEES_DETAIL","Xem danh sách nhân viên của phòng ban khác","Quyền xem dữ liệu nhân viên của phòng ban khác");
-                insertPermission(conn,"VIEW_ALL_FORMS","Xem tất cả đơn","Quyền xem toàn bộ đơn yêu cầu của mọi phòng ban (chỉ HR)");
-                insertPermission(conn,"VIEW_ALL_DEPT_FORMS","Xem tất cả đơn của phòng ban","Quyền xem toàn bộ đơn yêu cầu của một phòng ban cụ thể");
-                insertPermission(conn,"PROCESS_RECRUITMENT","Xử lý tuyển dụng","Quyền import, duyệt và gửi thông báo kết quả tuyển dụng");
-                insertPermission(conn,"VIEW_ALL_SALARY","Xem tất cả lương nhân viên","Quyền xem lương của tất cả nhân viên");
-                insertPermission(conn,"VIEW_OWN_SALARY","Xem lương cá nhân","Quyền xem, gửi đơn khiếu nại về lương của cá nhân");
-                insertPermission(conn,"APPROVE_PAYROLL","Duyệt bảng lương","Quyền duyệt bảng lương trước khi thanh toán");
-                insertPermission(conn,"EXPORT_PAYROLL","Xuất bảng lương","Quyền xuất bảng lương ra Excel");
-                
+                insertPermission(conn, "EDIT_DEPARTMENTS", "Chỉnh sửa phòng ban", "Quyền chỉnh sửa phòng ban ");
+                insertPermission(conn, "ASSIGN_DEPARTMENT", "Gán nhân viên vào phòng ban", "Quyền gán nhân viên vào phòng ban");
+                insertPermission(conn, "UNASSIGN_DEPARTMENT", "Xóa gán phòng ban nhân viên", "Quyền xóa gán nhân viên sang phòng ban khác");
+                insertPermission(conn, "ADD_DEPARTMENT", "Thêm phòng ban", "Quyền thêm phòng ban");
+                insertPermission(conn, "VIEW_ATTENDANCE", "Xem chấm công", "Quyền xem dữ liệu chấm công (Manager: theo phòng mình; Employee: của bản thân)");
+                insertPermission(conn, "IMPORT_ATTENDANCE", "Import chấm công", "Quyền import dữ liệu chấm công từ file Excel");
+                insertPermission(conn, "EDIT_ATTENDANCE", "Chỉnh sửa chấm công", "Quyền chỉnh sửa trạng thái chấm công khi kỳ chấm công chưa công khai");
+                insertPermission(conn, "VIEW_DEPARTMENT_EMPLOYEES_DETAIL", "Xem danh sách nhân viên của phòng ban khác", "Quyền xem dữ liệu nhân viên của phòng ban khác");
+                insertPermission(conn, "VIEW_ALL_FORMS", "Xem tất cả đơn", "Quyền xem toàn bộ đơn yêu cầu của mọi phòng ban (chỉ HR)");
+                insertPermission(conn, "VIEW_ALL_DEPT_FORMS", "Xem tất cả đơn của phòng ban", "Quyền xem toàn bộ đơn yêu cầu của một phòng ban cụ thể");
+                insertPermission(conn, "PROCESS_RECRUITMENT", "Xử lý tuyển dụng", "Quyền import, duyệt và gửi thông báo kết quả tuyển dụng");
+                insertPermission(conn, "VIEW_CONTRACT_PREVIEW", "Xem hợp đồng", "Quyền xem hợp đồng hiện tại và lịch sử hợp đồng");
+                insertPermission(conn, "PERM_APPROVE_CONTRACT", "Duyệt hợp đồng", "Quyền duyệt hợp đồng lao động");
+                insertPermission(conn, "PERM_VIEW_ALL_CONTRACTS", "Xem toàn bộ hợp đồng", "Quyền xem toàn bộ lịch sử hợp đồng");
+                insertPermission(conn, "EDIT_DEPARTMENTS", "Chỉnh sửa phòng ban", "Quyền chỉnh sửa phòng ban ");
+                insertPermission(conn, "ASSIGN_DEPARTMENT", "Gán nhân viên vào phòng ban", "Quyền gán nhân viên vào phòng ban");
+                insertPermission(conn, "UNASSIGN_DEPARTMENT", "Xóa gán phòng ban nhân viên", "Quyền xóa gán nhân viên sang phòng ban khác");
+                insertPermission(conn, "ADD_DEPARTMENT", "Thêm phòng ban", "Quyền thêm phòng ban");
+                insertPermission(conn, "VIEW_DEPARTMENT_ATTENDANCE", "Xem chấm công phòng ban", "Quyền xem dashboard chấm công của phòng ban mình quản lý (Manager)");
+                insertPermission(conn, "VIEW_ALL_ATTENDANCE", "Xem toàn bộ chấm công", "Quyền xem dashboard chấm công của tất cả phòng ban trong toàn công ty (HR)");
+                insertPermission(conn, "IMPORT_ATTENDANCE", "Import chấm công", "Quyền import dữ liệu chấm công từ file Excel");
+                insertPermission(conn, "EDIT_ATTENDANCE", "Chỉnh sửa chấm công", "Quyền chỉnh sửa trạng thái chấm công khi kỳ chấm công chưa công khai");
+                insertPermission(conn, "VIEW_DEPARTMENT_EMPLOYEES_DETAIL", "Xem danh sách nhân viên của phòng ban khác", "Quyền xem dữ liệu nhân viên của phòng ban khác");
+                insertPermission(conn, "VIEW_ALL_FORMS", "Xem tất cả đơn", "Quyền xem toàn bộ đơn yêu cầu của mọi phòng ban (chỉ HR)");
+                insertPermission(conn, "VIEW_ALL_DEPT_FORMS", "Xem tất cả đơn của phòng ban", "Quyền xem toàn bộ đơn yêu cầu của một phòng ban cụ thể");
+                insertPermission(conn, "PROCESS_RECRUITMENT", "Xử lý tuyển dụng", "Quyền import, duyệt và gửi thông báo kết quả tuyển dụng");
             }
 
             if (countRows(conn, "Positions") == 0) {
-                insertPosition(conn, "Thực tập sinh",          1, "Sinh viên thực tập tại công ty");
-                insertPosition(conn, "Nhân viên chính thức",   2, "Hỗ trợ công việc hành chính");
-                insertPosition(conn, "Trưởng phòng",   3, "Quản lý toàn bộ hoạt động của phòng ban");
+                insertPosition(conn, "Thực tập sinh", 1, "Sinh viên thực tập tại công ty");
+                insertPosition(conn, "Nhân viên chính thức", 2, "Hỗ trợ công việc hành chính");
+                insertPosition(conn, "Trưởng phòng ", 3, "Quản lý toàn bộ hoạt động của phòng ban");
             }
-
 
             if (countRows(conn, "Departments") == 0) {
 
-                insertDepartment(conn, "IT",  "Phòng Công nghệ thông tin", "Phát triển và vận hành hệ thống phần mềm");
-                insertDepartment(conn, "HR",  "Phòng Nhân sự",             "Tuyển dụng, đào tạo và quản lý nhân viên");
-                insertDepartment(conn, "FI", "Phòng Tài chính",           "Quản lý ngân sách và kế toán");
+                insertDepartment(conn, "IT", "Phòng Công nghệ thông tin", "Phát triển và vận hành hệ thống phần mềm");
+                insertDepartment(conn, "HR", "Phòng Nhân sự", "Tuyển dụng, đào tạo và quản lý nhân viên");
+                insertDepartment(conn, "FI", "Phòng Tài chính", "Quản lý ngân sách và kế toán");
             }
 
             if (countRows(conn, "Users") == 0) {
@@ -688,15 +762,15 @@ public class DBInitializer {
             if (countRows(conn, "Employees") == 0) {
                 // departmentId: 1=IT, 2=HR, 3=FI | positionId: 1=Thực tập sinh, 2=Nhân viên, 3=Trưởng phòng
                 // IT — userId 6,7,8
-                insertEmployee(conn, "EMP001", 6,  1, 3, "0901000001", "Java, SQL, Spring Boot", "5 năm phát triển web",    "Kỹ sư CNTT");
-                insertEmployee(conn, "EMP002", 7,  1, 2, "0901000002", "React, TypeScript",      "2 năm frontend",          "Cử nhân CNTT");
-                insertEmployee(conn, "EMP003", 8,  1, 1, "0901000003", "DevOps, Docker",         "1 năm vận hành",          "Cử nhân CNTT");
+                insertEmployee(conn, "EMP001", 6, 1, 3, "0901000001", "Java, SQL, Spring Boot", "5 năm phát triển web", "Kỹ sư CNTT");
+                insertEmployee(conn, "EMP002", 7, 1, 2, "0901000002", "React, TypeScript", "2 năm frontend", "Cử nhân CNTT");
+                insertEmployee(conn, "EMP003", 8, 1, 1, "0901000003", "DevOps, Docker", "1 năm vận hành", "Cử nhân CNTT");
                 // HR — userId 9,10
-                insertEmployee(conn, "EMP004", 9,  2, 3, "0901000004", "Tuyển dụng, HRIS",       "6 năm nhân sự",           "Cử nhân Quản trị nhân lực");
-                insertEmployee(conn, "EMP005", 10, 2, 2, "0901000005", "Đào tạo, C&B",           "3 năm C&B",               "Cử nhân Kinh tế");
+                insertEmployee(conn, "EMP004", 9, 2, 3, "0901000004", "Tuyển dụng, HRIS", "6 năm nhân sự", "Cử nhân Quản trị nhân lực");
+                insertEmployee(conn, "EMP005", 10, 2, 2, "0901000005", "Đào tạo, C&B", "3 năm C&B", "Cử nhân Kinh tế");
                 // FI — userId 11,12
-                insertEmployee(conn, "EMP006", 11, 3, 3, "0901000006", "Kế toán, MISA, Excel",   "8 năm kế toán tài chính", "Cử nhân Kế toán");
-                insertEmployee(conn, "EMP007", 12, 3, 2, "0901000007", "Thuế, kiểm toán",        "2 năm tài chính",         "Cử nhân Tài chính");
+                insertEmployee(conn, "EMP006", 11, 3, 3, "0901000006", "Kế toán, MISA, Excel", "8 năm kế toán tài chính", "Cử nhân Kế toán");
+                insertEmployee(conn, "EMP007", 12, 3, 2, "0901000007", "Thuế, kiểm toán", "2 năm tài chính", "Cử nhân Tài chính");
             }
 
             if (countRows(conn, "Department_Roles") == 0) {
@@ -716,12 +790,23 @@ public class DBInitializer {
             }
 
             if (countRows(conn, "Form_Types") == 0) {
-                insertFormType(conn, "LEAVE",     "Nghỉ phép");
+                insertFormType(conn, "LEAVE", "Nghỉ phép");
                 insertFormType(conn, "COMPLAINT", "Khiếu nại");
-                insertFormType(conn, "OVERTIME",  "Tăng ca");
+                insertFormType(conn, "OVERTIME", "Tăng ca");
             }
 
-            LOGGER.log(Level.INFO,"Seeding completed successfully.");
+            if (countRows(conn, "Role_Permissions") == 0) {
+                // HR Employee (HE) permissions
+                insertRolePermission(conn, "HE", "ADD_EMPLOYMENT_CONTRACT");
+                insertRolePermission(conn, "HE", "VIEW_CONTRACT_PREVIEW");
+                // HR Manager (HM) permissions
+                insertRolePermission(conn, "HM", "ADD_EMPLOYMENT_CONTRACT");
+                insertRolePermission(conn, "HM", "VIEW_CONTRACT_PREVIEW");
+                insertRolePermission(conn, "HM", "PERM_APPROVE_CONTRACT");
+                insertRolePermission(conn, "HM", "PERM_VIEW_ALL_CONTRACTS");
+            }
+
+            LOGGER.log(Level.INFO, "Seeding completed successfully.");
         } catch (SQLException e) {
             LOGGER.log(Level.SEVERE, "Cannot insert initial data", e);
         }
@@ -746,7 +831,6 @@ public class DBInitializer {
         }
     }
 
-
     private void insertPosition(Connection conn, String name, int level, String description) throws SQLException {
         String sql = "INSERT INTO Positions (positionName, level, description) VALUES (?, ?, ?)";
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -757,8 +841,7 @@ public class DBInitializer {
         }
     }
 
-
-    private void insertRole(Connection conn, String code, String name,String description) throws SQLException {
+    private void insertRole(Connection conn, String code, String name, String description) throws SQLException {
         String sql = "INSERT INTO Roles (roleCode, roleName, description) VALUES (?, ?, ?)";
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, code);
@@ -771,19 +854,27 @@ public class DBInitializer {
     private int insertUser(Connection conn, String username, String e, String p, String fn, String d, String a, int r) throws SQLException {
         String sql = "INSERT INTO Users (username, email, password, fullName, dob, address, roleId) VALUES (?, ?, ?, ?, ?, ?, ?)";
         try (PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
-            ps.setString(1, username); ps.setString(2, e); ps.setString(3, p); ps.setString(4, fn); ps.setDate(5, java.sql.Date.valueOf(d)); ps.setString(6, a); ps.setInt(7, r);
+            ps.setString(1, username);
+            ps.setString(2, e);
+            ps.setString(3, p);
+            ps.setString(4, fn);
+            ps.setDate(5, java.sql.Date.valueOf(d));
+            ps.setString(6, a);
+            ps.setInt(7, r);
             ps.executeUpdate();
-            try (ResultSet rs = ps.getGeneratedKeys()) { return rs.next() ? rs.getInt(1) : 0; }
+            try (ResultSet rs = ps.getGeneratedKeys()) {
+                return rs.next() ? rs.getInt(1) : 0;
+            }
         }
     }
 
     private void insertDepartment(Connection conn, String code, String name, String description) throws SQLException {
-    String sql = "INSERT INTO Departments (departmentCode, departmentName, description, managerId) VALUES (?, ?, ?, NULL)";
-    try (PreparedStatement ps = conn.prepareStatement(sql)) {
-        ps.setString(1, code);
-        ps.setNString(2, name);
-        ps.setNString(3, description);
-        ps.executeUpdate();
+        String sql = "INSERT INTO Departments (departmentCode, departmentName, description, managerId) VALUES (?, ?, ?, NULL)";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, code);
+            ps.setNString(2, name);
+            ps.setNString(3, description);
+            ps.executeUpdate();
         }
     }
 
@@ -796,10 +887,21 @@ public class DBInitializer {
         }
     }
 
+    private void insertRolePermission(Connection conn, String roleCode, String permissionCode) throws SQLException {
+        String sql = "INSERT IGNORE INTO Role_Permissions (roleId, permissionId) "
+                + "SELECT r.roleId, p.permissionId FROM Roles r, Permissions p "
+                + "WHERE r.roleCode = ? AND p.permissionCode = ?";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, roleCode);
+            ps.setString(2, permissionCode);
+            ps.executeUpdate();
+        }
+    }
+
     private int insertEmployee(Connection conn, String code, int userId, int deptId, int posId,
-                                String phone, String skills, String experience, String degree) throws SQLException {
+            String phone, String skills, String experience, String degree) throws SQLException {
         String sql = "INSERT INTO Employees (employeeCode, userId, departmentId, positionId, phoneNumber, skills, experience, degree) "
-                   + "VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+                + "VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
         try (PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             ps.setString(1, code);
             ps.setInt(2, userId);
@@ -816,7 +918,6 @@ public class DBInitializer {
         }
     }
 
-
     private void execute(Connection conn, String sql, String label) {
         try (Statement stmt = conn.createStatement()) {
             stmt.execute(sql);
@@ -831,9 +932,9 @@ public class DBInitializer {
     private void dropTable(Connection conn, String tableName) {
         try (Statement stmt = conn.createStatement()) {
             stmt.execute("DROP TABLE IF EXISTS " + tableName);
-            LOGGER.log(Level.INFO,"DROPPED TABLE:{0} ", tableName);
+            LOGGER.log(Level.INFO, "DROPPED TABLE:{0} ", tableName);
         } catch (SQLException e) {
-            LOGGER.log(Level.SEVERE,"COULD NOT DROP {0} : {1}" ,new Object[]{tableName,e.getMessage()});
+            LOGGER.log(Level.SEVERE, "COULD NOT DROP {0} : {1}", new Object[]{tableName, e.getMessage()});
         }
     }
 

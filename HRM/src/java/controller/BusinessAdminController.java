@@ -400,7 +400,7 @@ public class BusinessAdminController extends HttpServlet {
 
     private void displayEmployeeList(HttpServletRequest request, HttpServletResponse response, User user)
             throws ServletException, IOException {
-        List<EmployeeDetailDTO> employees = employeeDAO.getAllEmployees();
+        List<EmployeeDetailDTO> employees = employeeDAO.getAllEmployees(user.getUserId());
         request.setAttribute("employees", employees);
         request.getRequestDispatcher("/public/businessadmin/employee/employee_list.jsp").forward(request, response);
     }

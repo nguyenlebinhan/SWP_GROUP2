@@ -16,7 +16,6 @@ public class Position {
     private String description;
 
     public Position() {}
-
     public Position(int positionId, String positionName, int level, String description) {
         this.positionId = positionId;
         this.positionName = positionName;

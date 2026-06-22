@@ -25,7 +25,6 @@ import service.EmailService;
 import utils.ConfigManager;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-
 /**
  *
  * @author ADMIN
@@ -38,7 +37,6 @@ public class AuthController extends HttpServlet {
     private static final EmailService emailService = new EmailService();
     private static final ConfigManager configManager = ConfigManager.getInstance();
     private static final HttpClient httpClient = HttpClient.newHttpClient();
-
     /**
      * Processes requests for both HTTP <code>GET</code> and <code>POST</code>
      * methods.

@@ -10,7 +10,6 @@
     <head>
         <title>HRM Admin Dashboard</title>
 
-        <!-- Bootstrap -->
         <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
 
 
@@ -21,7 +20,6 @@
                 font-family:Segoe UI;
             }
 
-            /* ===== MAIN ===== */
 
             .main{
                 margin-left:250px;
@@ -61,17 +59,16 @@
 
     <body>
 
-        <!-- ================= SIDEBAR ================= -->
+
             <jsp:include page="/public/components/systemAdminSideBar.jsp" />
 
-        <!-- ================= MAIN ================= -->
+
         <div class="main">
             <jsp:include page="/public/components/systemAdminTopBar.jsp">
                 <jsp:param name="title" value="Dashboard" />
             </jsp:include>
 
 
-            <!-- ===== STATS ===== -->
             <div class="row g-4">
 
                 <div class="col-md-3">
@@ -81,32 +78,13 @@
                     </div>
                 </div>
 
-<!--                <div class="col-md-3">
-                    <div class="card card-stat p-4">
-                        <h2>115</h2>
-                        <p>Đang làm việc</p>
-                    </div>
-                </div>
 
-                <div class="col-md-3">
-                    <div class="card card-stat p-4">
-                        <h2>8</h2>
-                        <p>Nghỉ phép hôm nay</p>
-                    </div>
-                </div>
-
-                <div class="col-md-3">
-                    <div class="card card-stat p-4">
-                        <h2>12</h2>
-                        <p>Phòng ban</p>
-                    </div>
-                </div>-->
 
             </div>
-            <!-- ===== CHART + EMPLOYEE ===== -->
+
             <div class="row mt-4">
 
-                <!-- Chart -->
+
                 <div class="col-md-8">
                     <div class="chart-box">
                         <h5>Biểu đồ nhân viên theo phòng ban</h5>
@@ -114,7 +92,6 @@
                     </div>
                 </div>
 
-                <!-- Latest Employees -->
                 <div class="col-md-4">
                     <div class="chart-box">
                         <h5>Nhân viên mới nhất</h5>
@@ -148,7 +125,6 @@
 
 
 
-        <!-- ================= CHART SCRIPT ================= -->
 
 
     </body>

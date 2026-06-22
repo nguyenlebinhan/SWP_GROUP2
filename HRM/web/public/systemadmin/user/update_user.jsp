@@ -171,7 +171,6 @@
         </div>
     </c:if>
 
-    <!-- Form -->
     <form action="${pageContext.request.contextPath}/v1/systemadmin/update-user" method="POST">
         <div class="card">
             <div class="card-body p-4">
@@ -203,7 +202,6 @@
                     </div>
                 </div>
 
-                <!-- Thông tin cá nhân -->
                 <div class="section-label">Thông tin cá nhân</div>
                 <div class="row g-3 mb-4">
                     <div class="col-md-6">
@@ -244,7 +242,6 @@
                     </div>
                 </div>
 
-                <!-- Actions -->
                 <div class="d-flex gap-3 pt-2">
                     <button type="submit" class="btn-save">
                         Cập nhật người dùng

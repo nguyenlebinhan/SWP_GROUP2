@@ -17,7 +17,6 @@
                 padding: 30px;
             }
 
-            /* ── Search bar ── */
             .search-bar {
                 display: flex;
                 gap: 10px;
@@ -77,7 +76,6 @@
                 background: #f3f4f6;
             }
 
-            /* ── Table ── */
             .table thead th {
                 font-weight: 600;
                 font-size: 13px;
@@ -162,7 +160,6 @@
                 color: white;
             }
 
-            /* ── Pagination ── */
             .pagination-wrap {
                 display: flex;
                 justify-content: space-between;
@@ -213,7 +210,6 @@
                 <jsp:param name="title" value="Quản lý người dùng" />
             </jsp:include>
 
-            <%-- Flash messages --%>
             <c:if test="${not empty sessionScope.success}">
                 <div class="alert alert-success alert-flash alert-dismissible fade show">
                     ${sessionScope.success}
@@ -229,14 +225,12 @@
                 <c:remove var="error" scope="session"/>
             </c:if>
 
-            <%-- Top action row --%>
             <div class="d-flex justify-content-end mb-3">
                 <a href="${pageContext.request.contextPath}/v1/systemadmin/add-user" class="btn-add">
                     + Thêm người dùng
                 </a>
             </div>
 
-            <%-- Search & filter bar --%>
             <form method="get"
                   action="${pageContext.request.contextPath}/v1/systemadmin/user-list"
                   class="search-bar">
@@ -260,7 +254,6 @@
                 </a>
             </form>
 
-            <%-- Table --%>
             <div class="card">
                 <div class="card-body p-0">
                     <table class="table mb-0">
@@ -287,7 +280,6 @@
                                 <c:otherwise>
                                     <c:forEach var="u" items="${list}" varStatus="loop">
                                         <tr>
-                                            <%-- Số thứ tự theo trang --%>
                                             <td style="color:#9ca3af;font-size:13px">
                                                 ${loop.index + 1}
                                             </td>
@@ -341,7 +333,6 @@
                         </tbody>
                     </table>
 
-                    <%-- Pagination --%>
                     <c:if test="${totalPages >= 1}">
                         <div class="pagination-wrap">
                             <span class="total-label">

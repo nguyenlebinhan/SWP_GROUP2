@@ -78,7 +78,6 @@ public class UploadedFileDAO {
         return false;
     }
 
-
     public boolean updateImportResult(Connection conn, int fileId, int totalRows, int importedRows,
             int failedRows, int status, String note) throws SQLException {
         String SQL = "UPDATE Uploaded_Files SET totalRows = ?, importedRows = ?, failedRows = ?, "

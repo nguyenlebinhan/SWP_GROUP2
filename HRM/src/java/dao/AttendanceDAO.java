@@ -320,7 +320,6 @@ public class AttendanceDAO {
         return list;
     }
 
-
     public List<Attendance> getDailyAttendance(int employeeId, int month, int year) {
         List<Attendance> list = new ArrayList<>();
         String sql =

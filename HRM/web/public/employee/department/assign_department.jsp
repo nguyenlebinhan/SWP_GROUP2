@@ -54,7 +54,6 @@
             background: #f1f5f9;
         }
 
-        /* Horizontal form */
         .h-form-row {
             display: grid;
             align-items: start;
@@ -208,7 +207,7 @@
                     </div>
                     <h6 class="fw-bold mb-2">Tất cả người dùng đã được phân công</h6>
                     <p class="text-muted small mb-3">Không còn người dùng nào chưa có hồ sơ nhân viên.</p>
-                    <a href="${pageContext.request.contextPath}/v1/employee/employee-list"
+                    <a href="${pageContext.request.contextPath}/v1/employee/employee_info/list"
                        class="btn btn-outline-primary btn-sm">
                         <i class="fa-solid fa-list me-1"></i>Xem danh sách nhân viên
                     </a>
@@ -249,7 +248,6 @@
                         </div>
                     </div>
 
-                    <%-- Phòng ban + Vị trí --%>
                     <div class="h-form-row cols-2">
                         <div class="h-label">
                             Phòng ban <span class="required-dot"></span>
@@ -279,7 +277,7 @@
                         <button type="submit" class="btn btn-submit">
                             <i class="fa-solid fa-check"></i> Xác nhận phân công
                         </button>
-                        <a href="${pageContext.request.contextPath}/v1/employee/employee-list"
+                        <a href="${pageContext.request.contextPath}/v1/employee/employee_info/list"
                            class="btn-cancel">
                             <i class="fa-solid fa-xmark"></i> Hủy
                         </a>

@@ -3,7 +3,6 @@ package dto;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 
-
 public class AttendanceSummaryDTO {
 
     private int employeeId;
@@ -32,11 +31,9 @@ public class AttendanceSummaryDTO {
                 : workedHours.setScale(0, RoundingMode.HALF_UP).intValue();
     }
 
-
     public String getWorkedVsStandard() {
         return getWorkedHoursRounded() + " / " + getStandardHours();
     }
-
 
     public int getAttendanceRate() {
         if (standardDays <= 0) {
