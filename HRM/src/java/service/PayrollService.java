@@ -632,10 +632,11 @@ public class PayrollService {
             BigDecimal dailyRate) throws SQLException {
         OvertimeSummary summary = new OvertimeSummary();
         BigDecimal hourlyRate = divideMoney(dailyRate, WORKING_HOURS_PER_DAY);
-        String SQL = "SELECT od.startTime, od.endTime, od.dayType "
+        String SQL = "SELECT od.startTime, od.endTime, od.dayType, a.timeIn, a.timeOut "
                 + "FROM Overtime_Assignees oa "
                 + "JOIN Overtime_Details od ON od.formId = oa.formId "
                 + "JOIN Form_Requests fr ON fr.formId = oa.formId "
+                + "LEFT JOIN Attendance a ON a.employeeId = oa.employeeId AND a.workDate = od.otDate "
                 + "WHERE oa.employeeId = ? AND fr.status = 1 AND YEAR(od.otDate) = ? AND MONTH(od.otDate) = ?";
         try (PreparedStatement ps = conn.prepareStatement(SQL)) {
             ps.setInt(1, employeeId);
@@ -643,10 +644,34 @@ public class PayrollService {
             ps.setInt(3, month);
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
-                    LocalTime start = rs.getTime("startTime").toLocalTime();
-                    LocalTime end = rs.getTime("endTime").toLocalTime();
-                    BigDecimal hours = new BigDecimal(java.time.Duration.between(start, end).toMinutes())
-                            .divide(MINUTES_PER_HOUR, 2, RoundingMode.HALF_UP);
+                    java.sql.Time tIn = rs.getTime("timeIn");
+                    java.sql.Time tOut = rs.getTime("timeOut");
+                    
+                    if (tIn == null || tOut == null) {
+                        continue;
+                    }
+
+                    LocalTime approvedStart = rs.getTime("startTime").toLocalTime();
+                    LocalTime approvedEnd = rs.getTime("endTime").toLocalTime();
+                    LocalTime actualIn = tIn.toLocalTime();
+                    LocalTime actualOut = tOut.toLocalTime();
+
+                    LocalTime validStart = approvedStart.isAfter(actualIn) ? approvedStart : actualIn;
+                    LocalTime validEnd = approvedEnd.isBefore(actualOut) ? approvedEnd : actualOut;
+
+                    if (!validEnd.isAfter(validStart)) {
+                        continue;
+                    }
+
+                    long workedMinutes = java.time.Duration.between(validStart, validEnd).toMinutes();
+                    long validBlocks = workedMinutes / 30;
+                    double validHours = (validBlocks * 30) / 60.0;
+                    
+                    if (validHours <= 0) {
+                        continue;
+                    }
+
+                    BigDecimal hours = new BigDecimal(String.valueOf(validHours)).setScale(2, RoundingMode.HALF_UP);
                     BigDecimal pay = hourlyRate.multiply(hours).multiply(overtimeMultiplier(rs.getInt("dayType")));
                     summary.overtimeHours = summary.overtimeHours.add(hours);
                     summary.overtimePay = summary.overtimePay.add(pay);
