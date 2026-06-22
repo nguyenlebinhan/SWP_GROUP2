@@ -129,12 +129,12 @@
 
             <c:if test="${not empty sessionScope.success}">
                 <div class="alert alert-success"><i class="fa-solid fa-circle-check me-2"></i>${sessionScope.success}</div>
-                <c:remove var="success" scope="session" />
-            </c:if>
-            <c:if test="${not empty sessionScope.error}">
+                    <c:remove var="success" scope="session" />
+                </c:if>
+                <c:if test="${not empty sessionScope.error}">
                 <div class="alert alert-danger"><i class="fa-solid fa-circle-xmark me-2"></i>${sessionScope.error}</div>
-                <c:remove var="error" scope="session" />
-            </c:if>
+                    <c:remove var="error" scope="session" />
+                </c:if>
 
             <div class="period-pill"><i class="fa-solid fa-calendar-days"></i> Tháng lương: Tháng ${selectedMonth}/${selectedYear}</div>
 
@@ -188,31 +188,13 @@
                             </div>
                             <div class="d-flex align-items-center gap-2 flex-wrap">
                                 <c:choose>
-                                    <c:when test="${p.status == 3}"><span class="status-badge status-paid">HR đã duyệt</span></c:when>
-                                    <c:when test="${p.status == 1}"><span class="status-badge status-approved">Chờ HR duyệt</span></c:when>
-                                    <c:when test="${p.status == 2}"><span class="status-badge status-pending">Đã báo sai thông tin</span></c:when>
-                                    <c:when test="${p.status == 4}"><span class="status-badge status-pending">HR chưa duyệt</span></c:when>
-                                    <c:otherwise><span class="status-badge status-pending">Chờ bạn xác nhận</span></c:otherwise>
+                                    <c:when test="${row.payroll.status == 1}">
+                                        <span class="status-badge status-paid">HR đã duyệt</span>
+                                    </c:when>
+                                    <c:otherwise>
+                                        <span class="status-badge status-pending">Chờ duyệt</span>
+                                    </c:otherwise>
                                 </c:choose>
-                                <c:if test="${p.status == 0}">
-                                    <form method="post" action="${pageContext.request.contextPath}/v1/employee/salary/confirm-own" class="m-0">
-                                        <input type="hidden" name="payrollId" value="${p.payrollId}">
-                                        <input type="hidden" name="month" value="${selectedMonth}">
-                                        <input type="hidden" name="year" value="${selectedYear}">
-                                        <button type="submit" class="btn btn-success btn-sm"
-                                                onclick="return confirm('Xác nhận bảng lương này là đúng?');">
-                                            <i class="fa-solid fa-check me-1"></i> Duyệt
-                                        </button>
-                                    </form>
-                                    <form method="post" action="${pageContext.request.contextPath}/v1/employee/salary/report-own" class="m-0">
-                                        <input type="hidden" name="payrollId" value="${p.payrollId}">
-                                        <input type="hidden" name="month" value="${selectedMonth}">
-                                        <input type="hidden" name="year" value="${selectedYear}">
-                                        <button type="submit" class="btn btn-outline-danger btn-sm">
-                                            <i class="fa-solid fa-triangle-exclamation me-1"></i> Chưa đúng thông tin
-                                        </button>
-                                    </form>
-                                </c:if>
                             </div>
                         </div>
                         <div class="table-responsive">
@@ -220,7 +202,7 @@
                                 <thead><tr><th>Khoản mục</th><th>Ghi chú</th><th class="text-end">Số tiền</th></tr></thead>
                                 <tbody>
                                     <tr>
-                                        <td>Gi?m tr? c� nh�n</td>
+                                        <td>Giảm trừ cá nhân</td>
                                         <td class="text-muted">Khoản này chỉ dùng để tính thuế TNCN.</td>
                                         <td class="text-end fw-bold text-primary">
                                             <fmt:formatNumber value="${personalAllowance}" type="number" groupingUsed="true" />đ
