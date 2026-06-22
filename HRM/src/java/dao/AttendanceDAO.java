@@ -488,17 +488,15 @@ public class AttendanceDAO {
     private String formatHoursLabel(Time timeIn, Time timeOut, BigDecimal hours) {
         long minutes;
         if (timeIn != null && timeOut != null) {
-            minutes = (timeOut.getTime() - timeIn.getTime()) / 60000L;
+            // Trừ giờ nghỉ trưa để khớp số giờ làm thực tế đã lưu.
+            minutes = utils.WorkHoursCalculator.workedMinutes(timeIn, timeOut);
         } else if (hours != null) {
             minutes = hours.multiply(BigDecimal.valueOf(60))
                     .setScale(0, java.math.RoundingMode.HALF_UP).longValue();
         } else {
             return "-";
         }
-        if (minutes < 0) {
-            minutes = 0;
-        }
-        return (minutes / 60) + "h" + String.format("%02d", minutes % 60) + "m";
+        return utils.WorkHoursCalculator.label(minutes);
     }
 
     /** Nhãn trạng thái tiếng Việt cho lịch sử chỉnh sửa. */

@@ -18,7 +18,6 @@ import exception.InvalidFormatException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.sql.Connection;
 import java.sql.Date;
 import java.sql.SQLException;
@@ -173,12 +172,11 @@ public class AttendanceImportService {
 
         BigDecimal hoursWorked;
         if (timeIn != null && timeOut != null) {
-            long diffMillis = timeOut.getTime() - timeIn.getTime();
-            if (diffMillis < 0) {
+            if (timeOut.getTime() - timeIn.getTime() < 0) {
                 throw new RowValidationException("timeOut phải sau timeIn.");
             }
-            hoursWorked = new BigDecimal(diffMillis)
-                    .divide(new BigDecimal(3600000), 2, RoundingMode.HALF_UP);
+            // Trừ giờ nghỉ trưa: làm đủ 08:00-17:00 -> 8 tiếng (không phải 9).
+            hoursWorked = utils.WorkHoursCalculator.hoursWorked(timeIn, timeOut);
         } else {
             // vắng / nghỉ / lễ / cuối tuần: không có giờ làm
             hoursWorked = BigDecimal.ZERO;

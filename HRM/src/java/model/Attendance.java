@@ -155,19 +155,15 @@ public class Attendance {
     public String getHoursWorkedLabel() {
         long minutes;
         if (timeIn != null && timeOut != null) {
-            minutes = (timeOut.getTime() - timeIn.getTime()) / 60000L;
+            // Trừ giờ nghỉ trưa để khớp số giờ làm thực tế đã lưu.
+            minutes = utils.WorkHoursCalculator.workedMinutes(timeIn, timeOut);
         } else if (hoursWorked != null) {
             minutes = hoursWorked.multiply(BigDecimal.valueOf(60))
                     .setScale(0, java.math.RoundingMode.HALF_UP).longValue();
         } else {
             return "";
         }
-        if (minutes < 0) {
-            minutes = 0;
-        }
-        long h = minutes / 60;
-        long m = minutes % 60;
-        return h + "h" + String.format("%02d", m) + "m";
+        return utils.WorkHoursCalculator.label(minutes);
     }
 
     public String getStatusLabel() {
