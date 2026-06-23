@@ -170,7 +170,6 @@
 
         <form action="${pageContext.request.contextPath}/v1/employee/update-department"
               method="post" id="updateDeptForm" novalidate>
-            
             <input type="hidden" name="departmentId" value="${department.departmentId}">
 
             <div class="section-title">Thông tin bắt buộc</div>

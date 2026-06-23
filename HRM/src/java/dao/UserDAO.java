@@ -19,7 +19,6 @@ import java.util.List;
 import java.util.UUID;
 import java.util.logging.*;
 import model.User;
-
 /**
  *
  * @author ADMIN

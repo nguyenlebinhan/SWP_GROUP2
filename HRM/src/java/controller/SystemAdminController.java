@@ -18,7 +18,6 @@ import java.util.logging.*;
 import model.*;
 import service.*;
 import java.util.*;
-
 /**
  *
  * @author ADMIN
@@ -109,7 +108,6 @@ public class SystemAdminController extends HttpServlet {
             case "/audit-logs":
                 displayAuditLogs(request, response);
                 break;
-
             default:
                 response.sendRedirect(request.getContextPath() + "/");
                 break;
@@ -632,6 +630,14 @@ public class SystemAdminController extends HttpServlet {
             return;
         }
 
+        // Lấy roleCode từ roleId
+        Role roleToUpdate = roleDAO.getRoleById(roleId);
+        if (roleToUpdate != null && ("SA".equalsIgnoreCase(roleToUpdate.getRoleCode()) || "BA".equalsIgnoreCase(roleToUpdate.getRoleCode()))) {
+            request.getSession().setAttribute("error", "Không thể chỉnh sửa quyền của vai trò System Admin hoặc Business Admin.");
+            response.sendRedirect(request.getContextPath() + "/v1/systemadmin/role-list");
+            return;
+        }
+
         String[] permissionValues = request.getParameterValues("permissionIds");
         List<Integer> permissionIds = new ArrayList<>();
         if (permissionValues != null) {
@@ -646,6 +652,14 @@ public class SystemAdminController extends HttpServlet {
         } else {
             LOGGER.log(Level.INFO, "Role permissions updated: roleId={0}, count={1}", new Object[]{roleId, permissionIds.size()});
             request.getSession().setAttribute("success", "Cập nhật quyền cho vai trò thành công");
+            
+            HttpSession session = request.getSession(false);
+            User currentUser = (session != null) ? (User) session.getAttribute("user") : null;
+            if (currentUser != null) {
+                Set<String> freshPermissions = permissionDAO.getPermissionCodeByUserId(currentUser.getUserId());
+                session.setAttribute("permissions", freshPermissions);
+                LOGGER.log(Level.INFO, "Session permissions refreshed for userId: {0}", currentUser.getUserId());
+            }
         }
         response.sendRedirect(request.getContextPath() + "/v1/systemadmin/role-list");
     }

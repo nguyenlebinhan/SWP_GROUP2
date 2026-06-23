@@ -3,7 +3,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Phân công phòng ban - HRM</title>
+    <title>Chuyển phòng ban - HRM</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
     <style>
@@ -29,8 +29,8 @@
         .page-header-icon {
             width: 48px; height: 48px;
             border-radius: 12px;
-            background: #dbeafe;
-            color: #2563eb;
+            background: #fef3c7;
+            color: #d97706;
             display: flex; align-items: center; justify-content: center;
             font-size: 20px;
             flex-shrink: 0;
@@ -122,7 +122,7 @@
         }
 
         .btn-submit {
-            background: #2563eb;
+            background: #d97706;
             border: none;
             border-radius: 8px;
             padding: 10px 24px;
@@ -131,7 +131,7 @@
             color: white;
             display: flex; align-items: center; gap: 8px;
         }
-        .btn-submit:hover { background: #1d4ed8; color: white; }
+        .btn-submit:hover { background: #b45309; color: white; }
 
         .btn-cancel {
             background: white;
@@ -152,10 +152,10 @@
         }
         .empty-state-icon {
             width: 72px; height: 72px;
-            background: #d1fae5;
+            background: #fef3c7;
             border-radius: 50%;
             display: flex; align-items: center; justify-content: center;
-            font-size: 28px; color: #059669;
+            font-size: 28px; color: #d97706;
             margin: 0 auto 16px;
         }
     </style>
@@ -166,7 +166,7 @@
 
 <div class="main">
     <jsp:include page="/public/components/employeeTopBar.jsp">
-        <jsp:param name="title" value="Phân công phòng ban" />
+        <jsp:param name="title" value="Chuyển phòng ban" />
         <jsp:param name="backUrl" value="/v1/employee/dashboard" />
     </jsp:include>
 
@@ -185,28 +185,14 @@
     </c:if>
 
     <div class="page-card">
-
-        <div class="page-header">
-            <div class="page-header-icon">
-                <i class="fa-solid fa-arrow-right-to-bracket"></i>
-            </div>
-            <div>
-                <h5 class="fw-bold mb-1" style="color:#0f172a">Phân công nhân viên vào phòng ban</h5>
-                <p class="text-muted mb-0" style="font-size:13px">
-                    Chọn nhân viên chưa được phân công, gán vào phòng ban và vị trí.
-                    Vai trò của nhân viên phải phù hợp với phòng ban; nếu không khớp hệ thống sẽ báo lỗi và yêu cầu đổi vai trò trước.
-                </p>
-            </div>
-        </div>
-
         <c:choose>
-            <c:when test="${empty availableEmployees}">
+            <c:when test="${empty assignedEmployees}">
                 <div class="empty-state">
                     <div class="empty-state-icon">
-                        <i class="fa-solid fa-user-check"></i>
+                        <i class="fa-solid fa-users-slash"></i>
                     </div>
-                    <h6 class="fw-bold mb-2">Tất cả người dùng đã được phân công</h6>
-                    <p class="text-muted small mb-3">Không còn người dùng nào chưa có hồ sơ nhân viên.</p>
+                    <h6 class="fw-bold mb-2">Chưa có nhân viên nào để chuyển</h6>
+                    <p class="text-muted small mb-3">Không có nhân viên nào đã được phân công phòng ban.</p>
                     <a href="${pageContext.request.contextPath}/v1/employee/employee_info/list"
                        class="btn btn-outline-primary btn-sm">
                         <i class="fa-solid fa-list me-1"></i>Xem danh sách nhân viên
@@ -214,43 +200,51 @@
                 </div>
             </c:when>
             <c:otherwise>
-                <form action="${pageContext.request.contextPath}/v1/employee/department/assign"
-                      method="post" id="assignForm" novalidate>
+                <form action="${pageContext.request.contextPath}/v1/employee/reassign-department"
+                      method="post" id="reassignForm" novalidate>
 
                     <div class="section-title">Thông tin bắt buộc</div>
 
                     <div class="h-form-row cols-1">
                         <div class="h-label">
-                            Người dùng <span class="required-dot"></span>
+                            Nhân viên <span class="required-dot"></span>
                         </div>
                         <div class="h-field">
-                            <select class="form-select" id="userId" name="userId"
-                                    required onchange="onUserChange(this)">
-                                <option value="">— Chọn người dùng —</option>
-                                <c:forEach var="u" items="${availableEmployees}">
-                                    <option value="${u.userId}"
-                                            data-email="${u.email}"
-                                            data-role="${u.roleName}">
-                                        ${u.fullName} &nbsp;(${u.username})
+                            <select class="form-select" id="employeeId" name="employeeId"
+                                    required onchange="onEmployeeChange(this)">
+                                <option value="">— Chọn nhân viên —</option>
+                                <c:forEach var="emp" items="${assignedEmployees}">
+                                    <option value="${emp.employeeId}"
+                                            data-email="${emp.email}"
+                                            data-role="${emp.roleName}"
+                                            data-dept="${emp.departmentName}"
+                                            data-deptid="${emp.departmentId}"
+                                            ${selectedEmployeeId == emp.employeeId ? 'selected' : ''}>
+                                        ${emp.fullName} &nbsp;(${emp.employeeCode})
                                     </option>
                                 </c:forEach>
                             </select>
-                            <div id="userInfoBox" class="user-info-box">
+                            <div id="empInfoBox" class="user-info-box">
                                 <span class="user-info-item">
                                     <i class="fa-regular fa-envelope"></i>
-                                    <span id="uEmail">—</span>
+                                    <span id="eEmail">—</span>
                                 </span>
                                 <span class="user-info-item">
                                     <i class="fa-solid fa-shield-halved"></i>
-                                    Vai trò: <strong id="uRole">—</strong>
+                                    Vai trò: <strong id="eRole">—</strong>
+                                </span>
+                                <span class="user-info-item">
+                                    <i class="fa-solid fa-sitemap"></i>
+                                    Phòng ban hiện tại: <strong id="eDept">—</strong>
                                 </span>
                             </div>
                         </div>
                     </div>
 
+
                     <div class="h-form-row cols-2">
                         <div class="h-label">
-                            Phòng ban <span class="required-dot"></span>
+                            Phòng ban mới <span class="required-dot"></span>
                         </div>
                         <div class="h-field">
                             <select class="form-select" id="departmentId" name="departmentId" required>
@@ -275,7 +269,7 @@
 
                     <div class="action-bar">
                         <button type="submit" class="btn btn-submit">
-                            <i class="fa-solid fa-check"></i> Xác nhận phân công
+                            <i class="fa-solid fa-right-left"></i> Xác nhận chuyển phòng
                         </button>
                         <a href="${pageContext.request.contextPath}/v1/employee/employee_info/list"
                            class="btn-cancel">
@@ -295,18 +289,42 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-    function onUserChange(select) {
-        const box  = document.getElementById('userInfoBox');
+    function onEmployeeChange(select) {
+        const box  = document.getElementById('empInfoBox');
         const opt  = select.options[select.selectedIndex];
         const role = (select.value && opt.dataset.role) ? opt.dataset.role : '';
         if (select.value) {
-            document.getElementById('uEmail').textContent = opt.dataset.email || '—';
-            document.getElementById('uRole').textContent  = role || '—';
+            document.getElementById('eEmail').textContent = opt.dataset.email || '—';
+            document.getElementById('eRole').textContent  = role || '—';
+            document.getElementById('eDept').textContent  = opt.dataset.dept || '—';
             box.classList.add('visible');
+            hideCurrentDepartment(opt.dataset.deptid);
         } else {
             box.classList.remove('visible');
+            showAllDepartments();
         }
         filterPositionsByRole(role);
+    }
+
+    function hideCurrentDepartment(currentDeptId) {
+        const deptSelect = document.getElementById('departmentId');
+        for (const o of deptSelect.options) {
+            if (!o.value) continue;
+            const isCurrent = o.value === currentDeptId;
+            o.hidden = isCurrent;
+            o.disabled = isCurrent;
+            if (isCurrent && o.selected) {
+                deptSelect.value = '';
+            }
+        }
+    }
+
+    function showAllDepartments() {
+        const deptSelect = document.getElementById('departmentId');
+        for (const o of deptSelect.options) {
+            o.hidden = false;
+            o.disabled = false;
+        }
     }
 
     function filterPositionsByRole(role) {
@@ -319,9 +337,9 @@
             const level = parseInt(o.dataset.level, 10);
             let hide = false;
             if (employeeOnly) {
-                hide = level >= 3;        
+                hide = level >= 3;
             } else if (managerOnly) {
-                hide = level < 3;         
+                hide = level < 3;
             }
             o.hidden = hide;
             o.disabled = hide;
@@ -331,14 +349,22 @@
         }
     }
 
-    document.getElementById('assignForm').addEventListener('submit', function (e) {
+    document.getElementById('reassignForm').addEventListener('submit', function (e) {
         const missing = [];
-        if (!document.getElementById('userId').value)       missing.push('Người dùng');
-        if (!document.getElementById('departmentId').value) missing.push('Phòng ban');
+        if (!document.getElementById('employeeId').value)   missing.push('Nhân viên');
+        if (!document.getElementById('departmentId').value) missing.push('Phòng ban mới');
         if (!document.getElementById('positionId').value)   missing.push('Vị trí');
         if (missing.length) {
             e.preventDefault();
             alert('Vui lòng chọn: ' + missing.join(', ') + '.');
+        }
+    });
+
+
+    document.addEventListener('DOMContentLoaded', function () {
+        const sel = document.getElementById('employeeId');
+        if (sel && sel.value) {
+            onEmployeeChange(sel);
         }
     });
 </script>

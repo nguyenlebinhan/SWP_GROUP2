@@ -10,7 +10,6 @@
     <head>
         <title>HRM Admin Dashboard</title>
 
-        <!-- Bootstrap -->
         <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
 
 
@@ -21,7 +20,6 @@
                 font-family:Segoe UI;
             }
 
-            /* ===== MAIN ===== */
 
             .main{
                 margin-left:250px;
@@ -61,10 +59,10 @@
 
     <body>
 
-        <!-- ================= SIDEBAR ================= -->
+
         <jsp:include page="/public/components/businessAdminSideBar.jsp" />
-        
-        <!-- ================= MAIN ================= -->
+
+
         <div class="main">
             <jsp:include page="/public/components/businessAdminTopBar.jsp">
                 <jsp:param name="title" value="Dashboard" />
@@ -72,7 +70,6 @@
         <div class="main">
 
 
-            <!-- ===== STATS ===== -->
             <div class="row g-4">
 
                 <div class="col-md-3">
@@ -95,6 +92,9 @@
 
 
 
+
+        </div>
+        </div>
 
     </body>
 </html>

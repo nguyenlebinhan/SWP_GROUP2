@@ -241,7 +241,6 @@ public class AttendanceImportService {
         }
     }
 
-
     public AttendanceStatus resolveStatus(int employeeId, Date workDate, Time timeIn, Time timeOut)
             throws SQLException {
         AttendanceStatus base = deriveStatus(timeIn, timeOut);
@@ -249,7 +248,6 @@ public class AttendanceImportService {
             return determineFinalStatus(base, employeeId, workDate, conn);
         }
     }
-
 
     private AttendanceStatus deriveStatus(Time timeIn, Time timeOut) {
         if (timeIn == null || timeOut == null) {

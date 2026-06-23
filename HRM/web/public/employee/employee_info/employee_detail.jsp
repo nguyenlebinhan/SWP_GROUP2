@@ -26,7 +26,7 @@
 <div class="main">
     <jsp:include page="/public/components/employeeTopBar.jsp">
         <jsp:param name="title" value="Chi tiết nhân viên" />
-        <jsp:param name="backUrl" value="/v1/employee/employee-list" />
+        <jsp:param name="backUrl" value="/v1/employee/employee/list" />
     </jsp:include>
 
     <c:if test="${not empty sessionScope.success}">
@@ -70,7 +70,7 @@
             </div>
             <div class="d-flex gap-2">
                 <c:if test="${canEditEmployee}">
-                    <a class="btn btn-outline-primary btn-sm" href="${pageContext.request.contextPath}/v1/employee/update-employee?id=${employee.employeeId}">
+                    <a class="btn btn-outline-primary btn-sm" href="${pageContext.request.contextPath}/v1/employee/employee_info/update?id=${employee.employeeId}">
                         <i class="fa-solid fa-pen me-1"></i>Chỉnh sửa
                     </a>
                 </c:if>

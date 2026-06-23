@@ -89,6 +89,7 @@
         </a>
     </c:if>
 
+    <div class="nav-section">Đơn từ</div>
     <c:if test="${sessionScope.userPermissions.contains('APPROVE_LEAVE')}">
         <a href="${pageContext.request.contextPath}/v1/manager/leave-requests">
             Đơn nghỉ phép
@@ -105,7 +106,25 @@
         </a>
     </c:if>
 
+    <div class="nav-section">Hợp đồng lao động</div>
+    <c:if test="${sessionScope.userPermissions.contains('ADD_EMPLOYMENT_CONTRACT')}">
+        <a href="${pageContext.request.contextPath}/v1/manager/contract/add">
+            <i class="fas fa-file-contract"></i> Tạo hợp đồng
+        </a>
+    </c:if>
+    <c:if test="${sessionScope.userPermissions.contains('PERM_APPROVE_CONTRACT')}">
+        <a href="${pageContext.request.contextPath}/v1/manager/contract/pending">
+            <i class="fas fa-check-circle"></i> Duyệt hợp đồng
+        </a>
+    </c:if>
+    <c:if test="${sessionScope.userPermissions.contains('VIEW_CONTRACT_PREVIEW')}">
+        <a href="${pageContext.request.contextPath}/v1/manager/contract/history">
+            <i class="fas fa-history"></i> Lịch sử hợp đồng
+        </a>
+    </c:if>
+
     <c:if test="${sessionScope.userPermissions.contains('VIEW_LEAVE_BALANCE')}">
+        <div class="nav-section">Ngày phép</div>
         <a href="${pageContext.request.contextPath}/v1/manager/leave-balances">
             Ngày phép
         </a>
