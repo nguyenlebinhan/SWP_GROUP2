@@ -89,7 +89,6 @@
             </div>
 
             <c:choose>
-                <%-- Guard Condition: Empty History --%>
                 <c:when test="${empty contractHistory}">
                     <div class="alert alert-info shadow-sm" role="alert">
                         <i class="fa-solid fa-circle-info me-2"></i>
@@ -97,7 +96,6 @@
                     </div>
                 </c:when>
 
-                <%-- Render Timeline --%>
                 <c:otherwise>
                     <div class="timeline">
                         <c:forEach var="contract" items="${contractHistory}" varStatus="loop">
@@ -153,7 +151,6 @@
                                             </div>
                                         </div>
 
-                                        <%-- Status Badge --%>
                                         <c:choose>
                                             <c:when test="${contract.status == 'ACTIVE'}">
                                                 <span class="badge bg-success badge-custom">Đang hiệu lực</span>
@@ -190,7 +187,6 @@
                                         </div>
                                     </div>
 
-                                    <%-- Early Termination Alert --%>
                                     <c:if test="${contract.status == 'TERMINATED' or not empty contract.terminationReason}">
                                         <div class="termination-alert">
                                             <i class="fa-solid fa-triangle-exclamation me-1"></i>

@@ -1,8 +1,6 @@
 package model;
 
-/**
- * Error codes for Employment Contract business operations.
- */
+
 public enum ContractErrorCode {
     OVERLAP_DETECTED,
     INVALID_EFFECTIVE_DATE,

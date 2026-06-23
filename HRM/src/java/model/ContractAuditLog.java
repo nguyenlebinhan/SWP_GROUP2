@@ -2,10 +2,6 @@ package model;
 
 import java.sql.Timestamp;
 
-/**
- * Audit log entry for contract state transitions.
- * Records every status change with actor, timestamp, and reason.
- */
 public class ContractAuditLog {
 
     private int logId;
@@ -13,11 +9,11 @@ public class ContractAuditLog {
     private String oldStatus;
     private String newStatus;
     private int changedBy;
-    private String changedByName; // Joined from Users table
+    private String changedByName; 
     private Timestamp changeDate;
     private String actionReason;
-    private int employeeId; // Joined from Employment_Contracts
-    private String employeeName; // Joined from Employees table
+    private int employeeId; 
+    private String employeeName; 
 
     public ContractAuditLog() {}
 

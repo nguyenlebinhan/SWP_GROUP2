@@ -26,11 +26,9 @@ public class EmploymentContract {
     private Date createdAt;
     private Date updatedAt;
 
-    // No-args constructor
     public EmploymentContract() {
     }
 
-    // Full constructor (excludes audit fields: contractId, createdAt, updatedAt)
     public EmploymentContract(String contractCode, int employeeId, ContractType contractType,
             Date signedDate, Date effectiveDate, Date endDate,
             BigDecimal salary, ContractStatus status, String note,
@@ -218,23 +216,10 @@ public class EmploymentContract {
         return this.contractType == ContractType.INDEFINITE;
     }
 
-    /**
-     * Helper: Get the effective end date of the contract. Prioritizes
-     * actualEndDate (termination date) over the planned endDate.
-     *
-     * @return ActualEndDate if exists, otherwise EndDate
-     */
     public Date getActualContractEndDate() {
         return (actualEndDate != null) ? actualEndDate : endDate;
     }
 
-    /**
-     * Calculate contract duration in months from EffectiveDate to EndDate.
-     * Returns null if EndDate is null (INDEFINITE contract) or EffectiveDate is
-     * null.
-     *
-     * @return duration in months, or null if cannot calculate
-     */
     public Integer getDurationMonths() {
         if (effectiveDate == null || endDate == null) {
             return null;
@@ -256,12 +241,6 @@ public class EmploymentContract {
         return Math.max(0, months);
     }
 
-    /**
-     * Basic model validation. INDEFINITE -> endDate must be null. Other types
-     * -> endDate must not be null.
-     *
-     * @throws IllegalArgumentException if validation fails
-     */
     public void validate() {
         if (contractType == null) {
             throw new IllegalArgumentException("Contract type cannot be null.");

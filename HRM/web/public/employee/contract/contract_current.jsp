@@ -54,7 +54,6 @@
 
         <div class="container-fluid mt-4">
             <c:choose>
-                <%-- Guard Condition: If activeContract is NULL --%>
                 <c:when test="${empty activeContract}">
                     <div class="alert alert-info d-flex align-items-center shadow-sm" role="alert">
                         <i class="fa-solid fa-circle-info me-3 fs-4"></i>
@@ -64,7 +63,6 @@
                     </div>
                 </c:when>
 
-                <%-- PENDING_ACTIVATION: Show as upcoming contract --%>
                 <c:when test="${activeContract.status == 'PENDING_ACTIVATION'}">
                     <div class="alert alert-warning d-flex align-items-center shadow-sm" role="alert">
                         <i class="fa-solid fa-clock me-3 fs-4"></i>
@@ -72,7 +70,6 @@
                             <strong>Hợp đồng sắp có hiệu lực.</strong> Hợp đồng này sẽ có hiệu lực từ ngày <strong><fmt:formatDate value="${activeContract.effectiveDate}" pattern="dd/MM/yyyy" /></strong>.
                         </div>
                     </div>
-                    <%-- Render contract detail --%>
                     <div class="row justify-content-center mt-3">
                         <div class="col-lg-8">
                             <div class="card contract-profile-card">
@@ -118,7 +115,6 @@
                     </div>
                 </c:when>
 
-                <%-- Render Active Contract Profile --%>
                 <c:otherwise>
                     <div class="row justify-content-center">
                         <div class="col-lg-8">
@@ -150,7 +146,6 @@
                                             </div>
                                         </div>
                                         
-                                        <%-- Column 2 --%>
                                         <div class="col-md-6">
                                             <div class="data-row">
                                                 <div class="info-label">Mức lương cơ bản</div>
