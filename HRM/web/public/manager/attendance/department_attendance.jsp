@@ -1,5 +1,6 @@
 <%@ page contentType="text/html;charset=UTF-8" %>
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
+<%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
 <!DOCTYPE html>
 <html>
 <head>
@@ -23,8 +24,6 @@
         .badge-s4 { background:#dbeafe; color:#1e40af; }
         .badge-s5 { background:#ede9fe; color:#5b21b6; }
         .badge-s6 { background:#f3f4f6; color:#4b5563; }
-        .badge-private { background:#fef3c7; color:#92400e; }
-        .badge-public  { background:#d1fae5; color:#065f46; }
         .badge-st { padding:4px 10px; border-radius:20px; font-size:12px; font-weight:600; }
     </style>
 </head>
@@ -85,33 +84,35 @@
                         <th>Giờ ra</th>
                         <th>Số giờ</th>
                         <th>Trạng thái</th>
-                        <th>Tháng</th>
                     </tr>
                 </thead>
                 <tbody>
                     <c:choose>
                         <c:when test="${empty attendances}">
-                            <tr><td colspan="8" class="text-center text-muted py-4">Không có dữ liệu chấm công.</td></tr>
+                            <tr><td colspan="7" class="text-center text-muted py-4">Không có dữ liệu chấm công.</td></tr>
                         </c:when>
                         <c:otherwise>
                             <c:forEach var="a" items="${attendances}">
                                 <tr>
                                     <td>${a.employeeCode}</td>
                                     <td><c:out value="${a.fullName}" /></td>
-                                    <td>${a.workDate}</td>
-                                    <td>${a.timeIn}</td>
-                                    <td>${a.timeOut}</td>
-                                    <td><c:out value="${a.hoursWorked}" /></td>
-                                    <td>
-                                        <span class="badge-st badge-s${a.attendanceStatus}">${a.statusLabel}</span>
-                                    </td>
+                                    <td><fmt:formatDate value="${a.workDate}" pattern="dd/MM/yyyy" /></td>
+                                    <td>${a.timeIn != null ? a.timeIn : '–'}</td>
+                                    <td>${a.timeOut != null ? a.timeOut : '–'}</td>
+                                    <td>${not empty a.hoursWorkedLabel ? a.hoursWorkedLabel : '–'}</td>
                                     <td>
                                         <c:choose>
-                                            <c:when test="${a.periodStatus == 1}">
-                                                <span class="badge-st badge-public">Công khai</span>
+                                            <%-- Vắng mặt vào ngày nghỉ lễ: chỉ hiển thị nhãn nghỉ lễ --%>
+                                            <c:when test="${a.holiday && a.attendanceStatus == 2}">
+                                                <span class="badge-st badge-s5"><i class="fa-solid fa-calendar-day me-1"></i>Nghỉ lễ</span>
+                                            </c:when>
+                                            <%-- Đúng giờ / đi muộn vào ngày nghỉ lễ: hiển thị trạng thái kèm nhãn nghỉ lễ --%>
+                                            <c:when test="${a.holiday && (a.attendanceStatus == 0 || a.attendanceStatus == 1)}">
+                                                <span class="badge-st badge-s${a.attendanceStatus}">${a.statusLabel}</span>
+                                                <span class="badge-st badge-s5 ms-1"><i class="fa-solid fa-calendar-day me-1"></i>Nghỉ lễ</span>
                                             </c:when>
                                             <c:otherwise>
-                                                <span class="badge-st badge-private">Riêng tư</span>
+                                                <span class="badge-st badge-s${a.attendanceStatus}">${a.statusLabel}</span>
                                             </c:otherwise>
                                         </c:choose>
                                     </td>

@@ -29,6 +29,7 @@ public class Attendance {
     private Integer positionId;
     private String positionName;
     private boolean editable;
+    private boolean holiday;        // ngày này có trùng kỳ nghỉ lễ đang active hay không
 
     public Attendance() {
     }
@@ -198,6 +199,14 @@ public class Attendance {
             return "";
         }
         return utils.WorkHoursCalculator.label(minutes);
+    }
+
+    public boolean isHoliday() {
+        return holiday;
+    }
+
+    public void setHoliday(boolean holiday) {
+        this.holiday = holiday;
     }
 
     public String getStatusLabel() {

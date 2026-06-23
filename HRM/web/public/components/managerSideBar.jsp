@@ -155,7 +155,7 @@
         Chấm công của tôi
     </a>
     <a href="${pageContext.request.contextPath}/v1/manager/attendance/my-department-attendance"
-       class="${pageContext.request.servletPath == '/public/manager/department_attendance.jsp' ? 'active' : ''}">
+       class="${pageContext.request.servletPath == '/public/manager/attendance/department_attendance.jsp' ? 'active' : ''}">
         Chấm công phòng ban
     </a>
 

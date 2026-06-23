@@ -119,19 +119,18 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-    // Dữ liệu OT trong tháng
     var otDays = [];
     <c:forEach var="otDay" items="${approvedOTDays}">
         otDays.push(${otDay});
     </c:forEach>
-
-    // Dữ liệu chấm công cả tháng, key = ngày trong tháng
+            
     var attData = {};
     <c:forEach var="a" items="${monthRows}">
         <fmt:formatDate value="${a.workDate}" pattern="d" var="dnum" />
         attData[${dnum}] = {
             status: ${a.attendanceStatus},
             label: "${a.statusLabel}",
+            isHoliday: ${a.holiday},
             timeIn: "${a.timeIn}".substring(0,5),
             timeOut: "${a.timeOut}".substring(0,5),
             hours: "${a.hoursWorkedLabel}",
@@ -146,7 +145,6 @@
         var body = document.getElementById('calBody');
         body.innerHTML = '';
         var daysInMonth = new Date(calYear, calMonth, 0).getDate();
-        // getDay(): 0=CN..6=T7 -> đổi sang T2=0..CN=6
         var firstDow = (new Date(calYear, calMonth - 1, 1).getDay() + 6) % 7;
 
         var now = new Date();
@@ -174,7 +172,14 @@
                           + (rec.timeOut && rec.timeOut.length === 5 ? ' - ' + rec.timeOut : '')
                           + (rec.hours ? '<br>' + rec.hours : '') + '</div>';
                 }
-                html += '<div class="st cl' + rec.status + '">' + rec.label + '</div>';
+                if (rec.isHoliday && rec.status === 2) {
+                    html += '<div class="st cl5">Nghỉ lễ</div>';
+                } else if (rec.isHoliday && (rec.status === 0 || rec.status === 1)) {
+                    html += '<div class="st cl' + rec.status + '">' + rec.label + '</div>';
+                    html += '<div class="st cl5 mt-1">Nghỉ lễ</div>';
+                } else {
+                    html += '<div class="st cl' + rec.status + '">' + rec.label + '</div>';
+                }
                 if (rec.isOT || isOtDay) {
                     html += '<div class="mt-1"><span class="badge bg-warning text-dark px-2 py-1"><i class="fa-solid fa-fire me-1"></i>OT</span></div>';
                 }

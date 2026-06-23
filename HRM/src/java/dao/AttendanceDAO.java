@@ -185,7 +185,9 @@ public class AttendanceDAO {
         StringBuilder sql = new StringBuilder(
                 "SELECT a.attendanceId, a.attendanceCode, a.employeeId, a.workDate, a.timeIn, a.timeOut, "
                 + "a.hoursWorked, a.attendanceStatus, a.fileId, "
-                + "a.employeeCode, a.departmentId, a.fullName, a.departmentName, a.positionId, a.positionName "
+                + "a.employeeCode, a.departmentId, a.fullName, a.departmentName, a.positionId, a.positionName, "
+                + "EXISTS(SELECT 1 FROM Holiday h WHERE h.isActive = 1 "
+                + "AND a.workDate BETWEEN h.startDate AND h.endDate) AS isHoliday "
                 + "FROM Attendance a "
                 + "WHERE 1=1 ");
 
@@ -219,7 +221,9 @@ public class AttendanceDAO {
             }
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
-                    list.add(mapAttendance(rs));
+                    Attendance a = mapAttendance(rs);
+                    a.setHoliday(rs.getBoolean("isHoliday"));
+                    list.add(a);
                 }
             }
         } catch (SQLException e) {
@@ -227,8 +231,8 @@ public class AttendanceDAO {
         }
         return list;
     }
-    
-    
+
+
     public List<Attendance> getAttendanceListByEmployeeId(int employeeId, Integer month, Integer year) {
         List<Attendance> list = new ArrayList<>();
         StringBuilder sql = new StringBuilder(
@@ -325,7 +329,9 @@ public class AttendanceDAO {
         String sql =
                 "SELECT a.attendanceId, a.attendanceCode, a.employeeId, a.workDate, a.timeIn, a.timeOut, "
                 + "a.hoursWorked, a.attendanceStatus, a.fileId, "
-                + "a.employeeCode, a.departmentId, a.fullName, a.departmentName, a.positionId, a.positionName "
+                + "a.employeeCode, a.departmentId, a.fullName, a.departmentName, a.positionId, a.positionName, "
+                + "EXISTS(SELECT 1 FROM Holiday h WHERE h.isActive = 1 "
+                + "AND a.workDate BETWEEN h.startDate AND h.endDate) AS isHoliday "
                 + "FROM Attendance a "
                 + "WHERE a.employeeId = ? AND MONTH(a.workDate) = ? AND YEAR(a.workDate) = ? "
                 + "ORDER BY a.workDate ASC";
@@ -336,7 +342,9 @@ public class AttendanceDAO {
             ps.setInt(3, year);
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
-                    list.add(mapAttendance(rs));
+                    Attendance a = mapAttendance(rs);
+                    a.setHoliday(rs.getBoolean("isHoliday"));
+                    list.add(a);
                 }
             }
         } catch (SQLException e) {

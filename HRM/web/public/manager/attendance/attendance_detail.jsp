@@ -101,57 +101,25 @@
                 <button type="submit" class="btn btn-primary w-100"><i class="fa-solid fa-magnifying-glass me-1"></i> Tìm kiếm</button>
             </div>
         </form>
-
-        <div class="text-muted mb-2">Tổng ${totalItems} bản ghi</div>
-        <div class="table-responsive">
-            <table class="table table-hover align-middle att-table">
-                <thead>
-                    <tr>
-                        <th>Ngày</th>
-                        <th>Thứ</th>
-                        <th>Giờ vào</th>
-                        <th>Giờ ra</th>
-                        <th>Số giờ</th>
-                        <th>Trạng thái</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <c:forEach var="a" items="${pagedRows}">
-                        <tr>
-                            <td><fmt:formatDate value="${a.workDate}" pattern="dd/MM/yyyy" /></td>
-                            <td><fmt:formatDate value="${a.workDate}" pattern="EEE" /></td>
-                            <td>${a.timeIn != null ? a.timeIn : '–'}</td>
-                            <td>${a.timeOut != null ? a.timeOut : '–'}</td>
-                            <td>${not empty a.hoursWorkedLabel ? a.hoursWorkedLabel : '–'}</td>
-                            <td><span class="badge-st badge-s${a.attendanceStatus}">${a.statusLabel}</span></td>
-                        </tr>
-                    </c:forEach>
-                    <c:if test="${empty pagedRows}">
-                        <tr><td colspan="6" class="text-center text-muted py-4">Không có dữ liệu chấm công.</td></tr>
-                    </c:if>
-                </tbody>
-            </table>
-        </div>
-
-        <c:if test="${totalPages > 1}">
-            <c:set var="pageBase" value="${baseUrl}/detail?employeeId=${sm.employeeId}&departmentId=${deptParam}&day=${selectedDay}&month=${selectedMonth}&year=${selectedYear}" />
-            <nav class="mt-3">
-                <ul class="pagination justify-content-center mb-0">
-                    <li class="page-item ${currentPage == 1 ? 'disabled' : ''}">
-                        <a class="page-link" href="${pageBase}&page=${currentPage - 1}">&laquo;</a>
-                    </li>
-                    <c:forEach var="p" begin="1" end="${totalPages}">
-                        <li class="page-item ${p == currentPage ? 'active' : ''}">
-                            <a class="page-link" href="${pageBase}&page=${p}">${p}</a>
-                        </li>
-                    </c:forEach>
-                    <li class="page-item ${currentPage == totalPages ? 'disabled' : ''}">
-                        <a class="page-link" href="${pageBase}&page=${currentPage + 1}">&raquo;</a>
-                    </li>
-                </ul>
-            </nav>
-        </c:if>
     </div>
+    <div class="section-card">
+        <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+            <h5 class="mb-0"><i class="fa-regular fa-calendar me-2"></i>Lịch chấm công tháng ${selectedMonth}/${selectedYear}</h5>
+            <div class="cal-legend">
+                <span class="cl0">Đúng giờ</span>
+                <span class="cl1">Đi muộn</span>
+                <span class="cl4">Nghỉ phép</span>
+                <span class="cl2">Vắng mặt</span>
+                <span class="cl5">Nghỉ lễ</span>
+                <span class="cl6">Cuối tuần</span>
+            </div>
+        </div>
+        <div class="cal-grid mb-1">
+            <div class="cal-dow">T2</div><div class="cal-dow">T3</div><div class="cal-dow">T4</div>
+            <div class="cal-dow">T5</div><div class="cal-dow">T6</div><div class="cal-dow">T7</div><div class="cal-dow">CN</div>
+        </div>
+        <div class="cal-grid" id="calBody"></div>
+    </div>                    
     </c:if>
 </div>
 
