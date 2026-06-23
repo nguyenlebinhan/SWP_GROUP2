@@ -200,7 +200,7 @@
                 if (rec.isOT || isOtDay) {
                     html += '<div class="mt-1"><span class="badge bg-warning text-dark px-2 py-1">OT</span></div>';
                 }
-                if (canEditAttendance && rec.id) {
+                if (canEditAttendance && rec.id ) {
                     var editUrl = ctxPath + '/v1/employee/attendance/update?id=' + rec.id
                             + '&employeeId=' + attEmpId
                             + '&month=' + calMonth + '&year=' + calYear

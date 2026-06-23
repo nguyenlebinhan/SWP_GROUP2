@@ -407,7 +407,7 @@ public class EmployeeController extends HttpServlet {
         java.time.LocalDate now = java.time.LocalDate.now();
         int month = attParam(request, "month", now.getMonthValue());
         int year = attParam(request, "year", now.getYear());
-        int day = attParam(request, "day", 0); // 0 = tất cả ngày trong tháng
+        int day = attParam(request, "day", 0); 
 
         EmployeeDetailDTO me = employeeDAO.getEmployeeByUserId(user.getUserId());
         List<Attendance> monthRows = (me != null)
@@ -448,7 +448,6 @@ public class EmployeeController extends HttpServlet {
         summary.setStandardDays(attendanceService.standardWorkingDays(month, year));
         request.setAttribute("summary", summary);
 
-        // Lọc theo ngày (nếu có chọn)
         List<Attendance> filtered;
         if (day >= 1 && day <= 31) {
             filtered = new java.util.ArrayList<>();
@@ -461,9 +460,7 @@ public class EmployeeController extends HttpServlet {
             filtered = monthRows;
         }
 
-        // Phân trang (dùng cho chế độ danh sách)
         request.setAttribute("attendances", Paging.page(request, filtered));
-        // Toàn bộ bản ghi trong tháng (dùng cho chế độ lịch)
         request.setAttribute("monthRows", monthRows);
         
         if (me != null) {
