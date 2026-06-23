@@ -80,11 +80,10 @@ public class UploadedFileDAO {
 
     /**
      * Updates the import result on the caller-supplied transaction connection. This MUST
-     * be used while an import transaction is still open on {@code conn}: inserting child
-     * rows into Attendance_Import_Rows takes an FK shared lock on this Uploaded_Files row,
-     * so updating it through a separate connection would block on that lock and fail with
-     * "Lock wait timeout exceeded". Reusing {@code conn} keeps lock owner and updater on
-     * the same transaction.
+     * be used while an import transaction is still open on {@code conn}: updating the row
+     * through a separate connection would block on locks held by the open transaction and
+     * fail with "Lock wait timeout exceeded". Reusing {@code conn} keeps lock owner and
+     * updater on the same transaction.
      */
     public boolean updateImportResult(Connection conn, int fileId, int totalRows, int importedRows,
             int failedRows, int status, String note) throws SQLException {
