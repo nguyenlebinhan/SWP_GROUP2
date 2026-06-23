@@ -25,7 +25,12 @@
         /* Calendar */
         .cal-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:8px; }
         .cal-dow { text-align:center; font-weight:600; color:#64748b; font-size:13px; padding:6px 0; }
-        .cal-cell { min-height:96px; border-radius:10px; border:1px solid #eef0f4; padding:8px; background:#fff; display:flex; flex-direction:column; }
+        .cal-cell { position:relative; min-height:96px; border-radius:10px; border:1px solid #eef0f4; padding:8px; background:#fff; display:flex; flex-direction:column; }
+        .att-edit { position:absolute; top:6px; right:6px; width:24px; height:24px; display:flex; align-items:center; justify-content:center;
+                    border-radius:6px; background:#eef2ff; color:#4f46e5; font-size:12px; text-decoration:none;
+                    opacity:0; transition:opacity .15s ease, background .15s ease; }
+        .att-edit:hover { background:#4f46e5; color:#fff; }
+        .cal-cell:hover .att-edit { opacity:1; }
         .cal-cell.empty { background:transparent; border:none; }
         .cal-cell.weekend { background:#fafafa; }
         .cal-cell.today { border-color:#6366f1; box-shadow:0 0 0 2px rgba(99,102,241,.18); }
@@ -142,6 +147,7 @@
     <c:forEach var="a" items="${detail.dailyRows}">
         <fmt:formatDate value="${a.workDate}" pattern="d" var="dnum" />
         attData[${dnum}] = {
+            id: ${a.attendanceId},
             status: ${a.attendanceStatus},
             label: "${a.statusLabel}",
             timeIn: "${a.timeIn}".substring(0,5),
@@ -153,6 +159,10 @@
 
     var calMonth = ${selectedMonth};
     var calYear  = ${selectedYear};
+    var canEditAttendance = ${canEditAttendance ? 'true' : 'false'};
+    var ctxPath  = "${pageContext.request.contextPath}";
+    var attEmpId = ${sm.employeeId};
+    var attDeptId = ${deptParam};
 
     function renderCalendar() {
         var body = document.getElementById('calBody');
@@ -190,6 +200,14 @@
                 if (rec.isOT || isOtDay) {
                     html += '<div class="mt-1"><span class="badge bg-warning text-dark px-2 py-1">OT</span></div>';
                 }
+                if (canEditAttendance && rec.id) {
+                    var editUrl = ctxPath + '/v1/employee/attendance/update?id=' + rec.id
+                            + '&employeeId=' + attEmpId
+                            + '&month=' + calMonth + '&year=' + calYear
+                            + '&departmentId=' + attDeptId;
+                    html += '<a href="' + editUrl + '" class="att-edit" title="Sửa chấm công">'
+                          + '<i class="fa-solid fa-pen"></i></a>';
+                }                
             } else {
                 cell.classList.add('off-day');
                 if (isOtDay) {
