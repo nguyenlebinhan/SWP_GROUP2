@@ -318,10 +318,6 @@ public class AttendanceDAO {
         return list;
     }
 
-    /**
-     * Danh sách chấm công theo ngày của một nhân viên trong một tháng,
-     * sắp xếp TĂNG dần theo ngày (phục vụ màn Attendance Detail).
-     */
     public List<Attendance> getDailyAttendance(int employeeId, int month, int year) {
         List<Attendance> list = new ArrayList<>();
         String sql =
@@ -500,11 +496,9 @@ public class AttendanceDAO {
                 + "; Trạng thái=" + statusLabelOf(status);
     }
 
-    /** Nhãn giờ làm dạng "8h30m" (ưu tiên tính từ giờ vào/ra, nếu thiếu thì suy từ hoursWorked). */
     private String formatHoursLabel(Time timeIn, Time timeOut, BigDecimal hours) {
         long minutes;
         if (timeIn != null && timeOut != null) {
-            // Trừ giờ nghỉ trưa để khớp số giờ làm thực tế đã lưu.
             minutes = utils.WorkHoursCalculator.workedMinutes(timeIn, timeOut);
         } else if (hours != null) {
             minutes = hours.multiply(BigDecimal.valueOf(60))
@@ -515,7 +509,6 @@ public class AttendanceDAO {
         return utils.WorkHoursCalculator.label(minutes);
     }
 
-    /** Nhãn trạng thái tiếng Việt cho lịch sử chỉnh sửa. */
     private String statusLabelOf(int status) {
         switch (status) {
             case 0: return "Đúng giờ";

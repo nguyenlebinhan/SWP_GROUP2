@@ -414,7 +414,6 @@ public class EmployeeController extends HttpServlet {
                 ? attendanceDAO.getDailyAttendance(me.getEmployeeId(), month, year)
                 : new java.util.ArrayList<>();
 
-        // Tổng hợp toàn tháng (không phụ thuộc lọc theo ngày)
         dto.AttendanceSummaryDTO summary = new dto.AttendanceSummaryDTO();
         java.math.BigDecimal worked = java.math.BigDecimal.ZERO;
         for (Attendance a : monthRows) {
