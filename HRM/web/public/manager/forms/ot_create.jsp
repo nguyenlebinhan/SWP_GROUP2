@@ -65,12 +65,14 @@
                         <input type="date" name="otDate" class="form-control" required>
                     </div>
                     <div class="col-md-4">
-                        <label class="form-label fw-bold">Thời gian bắt đầu <span class="text-danger">*</span></label>
-                        <input type="time" name="startTime" class="form-control" required>
+                        <label class="form-label fw-bold">Thời gian bắt đầu</label>
+                        <input type="text" readonly class="form-control-plaintext fw-bold text-primary fs-5" value="17:00">
+                        <input type="hidden" name="startTime" value="17:00">
                     </div>
                     <div class="col-md-4">
-                        <label class="form-label fw-bold">Thời gian kết thúc <span class="text-danger">*</span></label>
-                        <input type="time" name="endTime" class="form-control" required>
+                        <label class="form-label fw-bold">Thời gian kết thúc</label>
+                        <input type="text" readonly class="form-control-plaintext fw-bold text-primary fs-5" value="19:00">
+                        <input type="hidden" name="endTime" value="19:00">
                     </div>
                     
                     <div class="col-md-4">
