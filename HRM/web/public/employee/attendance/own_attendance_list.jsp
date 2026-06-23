@@ -176,12 +176,12 @@
                 }
                 html += '<div class="st cl' + rec.status + '">' + rec.label + '</div>';
                 if (rec.isOT || isOtDay) {
-                    html += '<div class="mt-1"><span class="badge bg-warning text-dark px-2 py-1"><i class="fa-solid fa-fire me-1"></i>OT</span></div>';
+                    html += '<div class="mt-1"><span class="badge bg-warning text-dark px-2 py-1">OT</span></div>';
                 }
             } else {
                 cell.classList.add('off-day');
                 if (isOtDay) {
-                    html += '<div class="mt-1"><span class="badge bg-warning text-dark px-2 py-1"><i class="fa-solid fa-fire me-1"></i>OT</span></div>';
+                    html += '<div class="mt-1"><span class="badge bg-warning text-dark px-2 py-1">OT</span></div>';
                 }
             }
             cell.innerHTML = html;
