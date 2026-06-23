@@ -535,7 +535,8 @@ public class PayrollService {
                     summary.hoursWorked = summary.hoursWorked.add(hours);
 
                     if (status == 2) {
-                        summary.unpaidLeaveDays++;
+                        summary.paidLeaveDays++;
+                        summary.paidWorkingDays++;                        
                     } else if (status == 3) {
                         summary.unauthorizedAbsentDays++;
                         summary.unauthorizedAbsentPenalty
