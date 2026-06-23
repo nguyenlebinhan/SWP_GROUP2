@@ -280,41 +280,77 @@ public class PayrollService {
     // ── Tính lương ─────────────────────────────────────────────────────────────
     private PayrollPreviewDTO calculatePayroll(Connection conn, EmployeePayrollBase employee, int year, int month)
             throws SQLException {
+
         if (employee.contractSalary == null || employee.contractSalary.signum() <= 0) {
             return buildGenerationErrorPreview(employee, "Chưa có hợp đồng active hoặc lương hợp đồng hợp lệ.");
         }
 
         Date periodStart = toPeriodStart(year, month);
         Date periodEnd = toPeriodEnd(year, month);
+
         YearMonth ym = YearMonth.of(year, month);
         int standardWorkingDays = countStandardWorkingDays(ym);
+
         if (standardWorkingDays <= 0) {
             return buildGenerationErrorPreview(employee, "Tháng lương không có ngày làm việc chuẩn.");
         }
 
         BigDecimal dailyRate = divideMoney(employee.contractSalary, new BigDecimal(standardWorkingDays));
         BigDecimal minuteRate = divideMoney(dailyRate, WORKING_HOURS_PER_DAY.multiply(MINUTES_PER_HOUR));
-        AttendanceSummary attendance = getAttendanceSummary(conn, employee.employeeId, year, month, dailyRate, minuteRate);
+
+        AttendanceSummary attendance
+                = getAttendanceSummary(conn, employee.employeeId, year, month, dailyRate, minuteRate);
+
         if (attendance.recordCount == 0) {
             return buildGenerationErrorPreview(employee, "Chưa có dữ liệu chấm công trong tháng lương này.");
         }
 
-        OvertimeSummary overtime = getOvertimeSummary(conn, employee.employeeId, year, month, dailyRate);
-        BigDecimal attendanceBonus = attendance.lateMinutes == 0 && attendance.unauthorizedAbsentDays == 0
-                ? employee.contractSalary.multiply(new BigDecimal("0.03"))
-                : ZERO;
-        BigDecimal baseSalary = dailyRate.multiply(new BigDecimal(attendance.paidWorkingDays));
+        OvertimeSummary overtime
+                = getOvertimeSummary(conn, employee.employeeId, year, month, dailyRate);
+
+        BigDecimal attendanceBonus = attendance.lateMinutes == 0
+                && attendance.unauthorizedAbsentDays == 0
+                        ? employee.contractSalary.multiply(new BigDecimal("0.03"))
+                        : ZERO;
+
+        BigDecimal baseSalary
+                = dailyRate.multiply(new BigDecimal(attendance.paidWorkingDays));
+
         BigDecimal bonus = attendanceBonus;
-        BigDecimal penalty = attendance.latePenalty.add(attendance.unauthorizedAbsentPenalty);
-        BigDecimal grossSalary = baseSalary.add(bonus).add(overtime.overtimePay).subtract(penalty);
+
+        // Penalty dùng để hiển thị:
+        // - latePenalty: phạt đi muộn, có trừ thật vào lương
+        // - unauthorizedAbsentPenalty: tiền mất do nghỉ không phép, chỉ hiển thị
+        BigDecimal penalty = attendance.latePenalty
+                .add(attendance.unauthorizedAbsentPenalty);
+
+        // Gross chỉ trừ latePenalty.
+        // Không trừ unauthorizedAbsentPenalty nữa vì nghỉ không phép đã làm giảm paidWorkingDays.
+        BigDecimal grossSalary = baseSalary
+                .add(bonus)
+                .add(overtime.overtimePay)
+                .subtract(attendance.latePenalty);
+
         BigDecimal insuranceDeduction = employee.contractSalary.multiply(
-                SOCIAL_INSURANCE_RATE.add(HEALTH_INSURANCE_RATE).add(UNEMPLOYMENT_INSURANCE_RATE));
-        BigDecimal taxableIncome = grossSalary.subtract(insuranceDeduction).subtract(PERSONAL_ALLOWANCE);
+                SOCIAL_INSURANCE_RATE
+                        .add(HEALTH_INSURANCE_RATE)
+                        .add(UNEMPLOYMENT_INSURANCE_RATE)
+        );
+
+        BigDecimal taxableIncome = grossSalary
+                .subtract(insuranceDeduction)
+                .subtract(PERSONAL_ALLOWANCE);
+
         if (taxableIncome.signum() < 0) {
             taxableIncome = ZERO;
         }
+
         BigDecimal personalIncomeTax = calculatePersonalIncomeTax(taxableIncome);
-        BigDecimal netSalary = grossSalary.subtract(insuranceDeduction).subtract(personalIncomeTax);
+
+        BigDecimal netSalary = grossSalary
+                .subtract(insuranceDeduction)
+                .subtract(personalIncomeTax);
+
         if (netSalary.signum() < 0) {
             return buildGenerationErrorPreview(employee, "Dữ liệu chưa thể tạo ra. Cần kiểm tra lại dữ liệu nguồn...");
         }
@@ -347,6 +383,7 @@ public class PayrollService {
         preview.setPositionName(employee.positionName);
         preview.setContractSalary(employee.contractSalary);
         preview.setDetails(buildDetails(payroll, attendance, overtime, attendanceBonus));
+
         return preview;
     }
 
@@ -512,7 +549,8 @@ public class PayrollService {
         AttendanceSummary summary = new AttendanceSummary();
 
         String SQL = "SELECT attendanceStatus, COALESCE(hoursWorked, 0) AS hoursWorked, timeIn, workDate "
-                + "FROM Attendance WHERE employeeId = ? AND YEAR(workDate) = ? AND MONTH(workDate) = ?";
+                + "FROM Attendance "
+                + "WHERE employeeId = ? AND YEAR(workDate) = ? AND MONTH(workDate) = ?";
 
         try (PreparedStatement ps = conn.prepareStatement(SQL)) {
             ps.setInt(1, employeeId);
@@ -531,33 +569,38 @@ public class PayrollService {
                     }
 
                     int status = rs.getInt("attendanceStatus");
+
                     BigDecimal hours = moneyOrZero(rs.getBigDecimal("hoursWorked"));
                     summary.hoursWorked = summary.hoursWorked.add(hours);
 
-                    if (status == 2) {
+                    if (status == 0) {
+                        summary.paidWorkingDays++;
+
+                    } else if (status == 1) {
+                        summary.paidWorkingDays++;
+                        summary.lateCount++;
+
+                        LocalTime timeIn = rs.getTime("timeIn") == null
+                                ? STANDARD_START_TIME
+                                : rs.getTime("timeIn").toLocalTime();
+
+                        int lateMinutes = Math.max(0,
+                                (int) java.time.Duration.between(STANDARD_START_TIME, timeIn).toMinutes());
+
+                        summary.lateMinutes += lateMinutes;
+                        summary.latePenalty = summary.latePenalty.add(
+                                minuteRate.multiply(new BigDecimal(lateMinutes)));
+
+                    } else if (status == 4) {
+                        // Nghỉ phép có lương
                         summary.paidLeaveDays++;
-                        summary.paidWorkingDays++;                        
-                    } else if (status == 3) {
+                        summary.paidWorkingDays++;
+
+                    } else if (status == 2 || status == 3) {
+                        // Vắng mặt / Không phép: không cộng công
                         summary.unauthorizedAbsentDays++;
                         summary.unauthorizedAbsentPenalty
                                 = summary.unauthorizedAbsentPenalty.add(dailyRate);
-                    } else {
-                        summary.paidWorkingDays++;
-
-                        if (status == 1) {
-                            summary.lateCount++;
-
-                            LocalTime timeIn = rs.getTime("timeIn") == null
-                                    ? STANDARD_START_TIME
-                                    : rs.getTime("timeIn").toLocalTime();
-
-                            int lateMinutes = Math.max(0,
-                                    (int) java.time.Duration.between(STANDARD_START_TIME, timeIn).toMinutes());
-
-                            summary.lateMinutes += lateMinutes;
-                            summary.latePenalty = summary.latePenalty.add(
-                                    minuteRate.multiply(new BigDecimal(lateMinutes)));
-                        }
                     }
                 }
             }
