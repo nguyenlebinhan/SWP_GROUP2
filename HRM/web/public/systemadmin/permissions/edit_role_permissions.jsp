@@ -299,6 +299,24 @@
                             </c:forEach>
                         </div>
                         
+                        <%-- Nhóm: Hợp đồng lao động --%>
+                        <div class="group-title">Hợp đồng lao động</div>
+                        <div class="row g-3 mb-2">
+                            <c:forEach var="p" items="${allPermissions}">
+                                <c:if test="${p.permissionCode == 'PERM_APPROVE_CONTRACT' || p.permissionCode == 'ADD_EMPLOYMENT_CONTRACT' || p.permissionCode == 'VIEW_CONTRACT_PREVIEW' }">
+                                    <div class="col-md-3">
+                                        <label class="perm-card ${assignedPermissionIds.contains(p.permissionId) ? 'selected' : ''}">
+                                            <input type="checkbox" name="permissionIds" value="${p.permissionId}" ${assignedPermissionIds.contains(p.permissionId) ? 'checked' : ''}/>
+
+                                            <div class="perm-name"><c:out value="${p.permissionName}"/></div>
+                                            <div><span class="perm-code"><c:out value="${p.permissionCode}"/></span></div>
+                                            <div class="perm-desc"><c:out value="${empty p.description ? '—' : p.description}"/></div>
+                                        </label>
+                                    </div>
+                                </c:if>
+                            </c:forEach>
+                        </div>
+                        
                         <div class="d-flex gap-3 pt-2 border-top">
                             <button type="submit" class="btn-save mt-3">
                                 Lưu phân quyền
@@ -316,8 +334,8 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-    // Checkbox nằm trong <label> nên click vào card đã tự toggle checkbox.
-    // Chỉ lắng nghe sự kiện change để đồng bộ giao diện (tránh double-toggle làm mất giá trị).
+
+
     document.querySelectorAll('#permForm input[type=checkbox]').forEach(function (cb) {
         cb.addEventListener('change', function () {
             this.closest('label').classList.toggle('selected', this.checked);

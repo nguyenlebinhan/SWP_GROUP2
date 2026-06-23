@@ -73,7 +73,6 @@
         <jsp:param name="title" value="Quản lý Phòng ban" />
     </jsp:include>
 
-    <%-- Flash messages --%>
     <c:if test="${not empty success}">
         <div class="alert alert-success alert-flash alert-dismissible fade show" role="alert">
             ${success}
@@ -87,7 +86,6 @@
         </div>
     </c:if>
 
-    <%-- Stats summary --%>
     <div class="row g-3 mb-4">
         <div class="col-md-3">
             <div class="dept-card p-4 d-flex align-items-center gap-3">
@@ -106,7 +104,6 @@
                     
                 </div>
                 <div>
-                    <%-- Đếm dept active --%>
                     <c:set var="activeCount" value="0" />
                     <c:forEach var="d" items="${departments}">
                         <c:if test="${d.status == 1}"><c:set var="activeCount" value="${activeCount + 1}" /></c:if>
@@ -144,7 +141,6 @@
         </div>
     </div>
 
-    <%-- Bảng phòng ban --%>
     <div class="dept-card">
         <div class="p-4 border-bottom d-flex justify-content-between align-items-center">
             <h5 class="mb-0 fw-bold" style="color:#0B0E2A;">
@@ -255,12 +251,10 @@
     </div>
 </div>
 
-<%-- Form ẩn để POST unassign --%>
 <form id="unassignForm" method="post" action="${pageContext.request.contextPath}/v1/businessadmin/department/unassign">
     <input type="hidden" name="departmentId" id="unassignDeptId" />
 </form>
 
-<%-- Modal xác nhận unassign --%>
 <div class="modal fade" id="unassignModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content" style="border-radius:16px;border:none;">

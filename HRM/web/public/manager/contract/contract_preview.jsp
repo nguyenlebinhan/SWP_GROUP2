@@ -65,8 +65,10 @@
         <h1>Hợp Đồng Lao Động</h1>
 
         <p>
-            Hợp đồng lao động này ("Hợp đồng") được lập ngày
-            <span class="field"><fmt:formatDate value="${contract.startDate}" pattern="dd/MM/yyyy"/></span>,
+            Hợp đồng lao động này ("Hợp đồng") được ký ngày
+            <span class="field"><fmt:formatDate value="${contract.signedDate}" pattern="dd/MM/yyyy"/></span>,
+            có hiệu lực từ ngày
+            <span class="field"><fmt:formatDate value="${contract.effectiveDate}" pattern="dd/MM/yyyy"/></span>,
             giữa <span class="field">Công ty HRM</span>, có địa chỉ tại
             <span class="field">Địa chỉ công ty</span> ("Người sử dụng lao động"), và
             <span class="field"><c:out value="${employee.fullName}"/></span>,
@@ -85,7 +87,7 @@
         <h2>2. Thời hạn hợp đồng.</h2>
         <p>
             Hợp đồng bắt đầu có hiệu lực từ ngày
-            <span class="field"><fmt:formatDate value="${contract.startDate}" pattern="dd/MM/yyyy"/></span>.
+            <span class="field"><fmt:formatDate value="${contract.effectiveDate}" pattern="dd/MM/yyyy"/></span>.
             Loại hợp đồng:
             <span class="field"><c:out value="${contract.contractType}"/></span>.
         </p>
@@ -108,7 +110,7 @@
         <p>
             Người lao động được trả mức lương
             <span class="field"><fmt:formatNumber value="${contract.salary}" type="number" groupingUsed="true"/></span>
-            đồng mỗi tháng, thanh toán theo tháng lương tiêu chuẩn của Người sử dụng lao động.
+            đồng mỗi tháng, thanh toán theo kỳ lương tiêu chuẩn của Người sử dụng lao động.
             Các khoản thuế, bảo hiểm và khấu trừ bắt buộc sẽ được thực hiện theo quy định hiện hành.
         </p>
 
@@ -163,7 +165,7 @@
         <p>Hợp đồng này được điều chỉnh bởi pháp luật Việt Nam và các quy định có liên quan.</p>
 
         <h2>15. Hiệu lực từng phần.</h2>
-        <p>Nếu bất tháng điều khoản nào của Hợp đồng bị tuyên vô hiệu hoặc không thể thực thi, các điều khoản còn lại vẫn tiếp tục có hiệu lực.</p>
+        <p>Nếu bất kỳ điều khoản nào của Hợp đồng bị tuyên vô hiệu hoặc không thể thực thi, các điều khoản còn lại vẫn tiếp tục có hiệu lực.</p>
 
         <h2>16. Chữ ký.</h2>
         <p>Hai bên xác nhận đã đọc, hiểu và đồng ý ký kết Hợp đồng này vào ngày ghi ở phần đầu Hợp đồng.</p>
@@ -174,14 +176,7 @@
                 <div class="signature-box"></div>
                 <p>Chữ ký</p>
                 <p>Họ tên/Chức danh: <span class="field">Đại diện Công ty HRM</span></p>
-                <p>Ngày ký: <span class="muted-line">________________</span></p>
-            </div>
-            <div>
-                <p><strong>Người lao động:</strong></p>
-                <div class="signature-box"></div>
-                <p>Chữ ký</p>
-                <p>Họ tên: <span class="field"><c:out value="${employee.fullName}"/></span></p>
-                <p>Ngày ký: <span class="muted-line">________________</span></p>
+                <p>Ngày ký: <span class="field"><fmt:formatDate value="${contract.signedDate}" pattern="dd/MM/yyyy"/></span></p>
             </div>
         </div>
 
