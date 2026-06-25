@@ -36,6 +36,9 @@ public class AttendanceImportService {
 
     private static final Time WORK_START = Time.valueOf("08:00:00");
 
+    /** Giờ kết thúc ca chuẩn. Khi không có đơn OT được duyệt, giờ ra bị giới hạn ở mốc này. */
+    private static final Time WORK_END = Time.valueOf("17:00:00");
+
     /** Số giờ làm chuẩn trong một ngày. Khi không có đơn OT được duyệt, giờ công bị giới hạn tối đa ở mức này. */
     private static final BigDecimal STANDARD_HOURS = new BigDecimal("8.00");
 
@@ -56,20 +59,6 @@ public class AttendanceImportService {
         this.overtimeDAO = new dao.OvertimeDAO();
         this.parser = new ExcelAttendanceParser();
     }
-
-    /**
-     * Giới hạn giờ công ở mức 8 tiếng chuẩn nếu nhân viên không có đơn OT được duyệt cho ngày đó.
-     * Nếu có đơn OT được duyệt thì giữ nguyên giờ công thực tế (cho phép vượt 8 tiếng).
-     */
-    private BigDecimal capHoursWithoutOT(Connection conn, int employeeId, Date workDate,
-            BigDecimal hoursWorked) throws SQLException {
-        if (hoursWorked.compareTo(STANDARD_HOURS) > 0
-                && !overtimeDAO.hasApprovedOT(conn, employeeId, workDate)) {
-            return STANDARD_HOURS;
-        }
-        return hoursWorked;
-    }
-
 
     public AttendanceImportResultDTO importAttendance(InputStream in, int departmentId,
             int month, int year, int fileId) {
@@ -194,8 +183,24 @@ public class AttendanceImportService {
                 throw new RowValidationException("timeOut phải sau timeIn.");
             }
 
+            boolean hasOT = overtimeDAO.hasApprovedOT(conn, employeeId, workDate);
+
+            // Chuẩn hóa thời gian theo block 30 phút: giờ vào làm tròn LÊN
+            // (đi muộn trong block nào mất trọn block đó), giờ ra làm tròn XUỐNG.
+            timeIn = utils.WorkHoursCalculator.ceilToBlock(timeIn);
+            timeOut = utils.WorkHoursCalculator.floorToBlock(timeOut);
+
+            // Không có đơn OT được duyệt: phần làm thêm chỉ được tính tới 17:00.
+            if (!hasOT && timeOut.after(WORK_END)) {
+                timeOut = WORK_END;
+            }
+
             hoursWorked = utils.WorkHoursCalculator.hoursWorked(timeIn, timeOut);
-            hoursWorked = capHoursWithoutOT(conn, employeeId, workDate, hoursWorked);
+
+            // Không OT thì giờ công không vượt quá 8 tiếng chuẩn.
+            if (!hasOT && hoursWorked.compareTo(STANDARD_HOURS) > 0) {
+                hoursWorked = STANDARD_HOURS;
+            }
         } else {
 
             hoursWorked = BigDecimal.ZERO;
