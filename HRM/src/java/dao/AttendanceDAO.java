@@ -183,7 +183,8 @@ public class AttendanceDAO {
         StringBuilder sql = new StringBuilder(
                 "SELECT a.attendanceId, a.attendanceCode, a.employeeId, a.workDate, a.timeIn, a.timeOut, "
                 + "a.hoursWorked, a.attendanceStatus, a.fileId, "
-                + "a.employeeCode, a.departmentId, a.fullName, a.departmentName, a.positionId, a.positionName "
+                + "a.employeeCode, a.departmentId, a.fullName, a.departmentName, a.positionId, a.positionName, "
+                + "EXISTS(SELECT 1 FROM Attendance_Adjustment_History h WHERE h.attendanceId = a.attendanceId) AS isEdited "
                 + "FROM Attendance a "
                 + "WHERE 1=1 ");
 
@@ -232,7 +233,8 @@ public class AttendanceDAO {
         StringBuilder sql = new StringBuilder(
                 "SELECT a.attendanceId, a.attendanceCode, a.employeeId, a.workDate, a.timeIn, a.timeOut, "
                 + "a.hoursWorked, a.attendanceStatus, a.fileId, "
-                + "a.employeeCode, a.departmentId, a.fullName, a.departmentName, a.positionId, a.positionName "
+                + "a.employeeCode, a.departmentId, a.fullName, a.departmentName, a.positionId, a.positionName, "
+                + "EXISTS(SELECT 1 FROM Attendance_Adjustment_History h WHERE h.attendanceId = a.attendanceId) AS isEdited "
                 + "FROM Attendance a "
                 + "WHERE a.employeeId = ? ");
 
@@ -323,7 +325,8 @@ public class AttendanceDAO {
         String sql =
                 "SELECT a.attendanceId, a.attendanceCode, a.employeeId, a.workDate, a.timeIn, a.timeOut, "
                 + "a.hoursWorked, a.attendanceStatus, a.fileId, "
-                + "a.employeeCode, a.departmentId, a.fullName, a.departmentName, a.positionId, a.positionName "
+                + "a.employeeCode, a.departmentId, a.fullName, a.departmentName, a.positionId, a.positionName, "
+                + "EXISTS(SELECT 1 FROM Attendance_Adjustment_History h WHERE h.attendanceId = a.attendanceId) AS isEdited "
                 + "FROM Attendance a "
                 + "WHERE a.employeeId = ? AND MONTH(a.workDate) = ? AND YEAR(a.workDate) = ? "
                 + "ORDER BY a.workDate ASC";
@@ -346,7 +349,8 @@ public class AttendanceDAO {
     public Attendance getAttendanceById(int attendanceId) {
         String sql = "SELECT a.attendanceId, a.attendanceCode, a.employeeId, a.workDate, a.timeIn, a.timeOut, "
                 + "a.hoursWorked, a.attendanceStatus, a.fileId, "
-                + "a.employeeCode, a.departmentId, a.fullName, a.departmentName, a.positionId, a.positionName "
+                + "a.employeeCode, a.departmentId, a.fullName, a.departmentName, a.positionId, a.positionName, "
+                + "EXISTS(SELECT 1 FROM Attendance_Adjustment_History h WHERE h.attendanceId = a.attendanceId) AS isEdited "
                 + "FROM Attendance a "
                 + "WHERE a.attendanceId = ?";
         try (Connection conn = dbContext.getConnection();
@@ -366,7 +370,8 @@ public class AttendanceDAO {
     public Attendance getAttendanceByDate(int employeeId, java.sql.Date workDate) {
         String sql = "SELECT a.attendanceId, a.attendanceCode, a.employeeId, a.workDate, a.timeIn, a.timeOut, "
                 + "a.hoursWorked, a.attendanceStatus, a.fileId, "
-                + "a.employeeCode, a.departmentId, a.fullName, a.departmentName, a.positionId, a.positionName "
+                + "a.employeeCode, a.departmentId, a.fullName, a.departmentName, a.positionId, a.positionName, "
+                + "EXISTS(SELECT 1 FROM Attendance_Adjustment_History h WHERE h.attendanceId = a.attendanceId) AS isEdited "
                 + "FROM Attendance a "
                 + "WHERE a.employeeId = ? AND a.workDate = ?";
         try (Connection conn = dbContext.getConnection();
@@ -542,6 +547,7 @@ public class AttendanceDAO {
         int positionId = rs.getInt("positionId");
         a.setPositionId(rs.wasNull() ? null : positionId);
         a.setPositionName(rs.getNString("positionName"));
+        a.setEdited(rs.getBoolean("isEdited"));
         return a;
     }
 }

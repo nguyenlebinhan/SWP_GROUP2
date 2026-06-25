@@ -1,0 +1,30 @@
+services:
+  mysql:
+    image: mysql8.0
+    container_name: mysql
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: hrm
+      MYSQL_USER: hrm_user
+      MYSQL_PASSWORD: hrm_password
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost","-u","uroot","proot"] 
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  hrm:
+    build: .
+    container_name: hrm
+    ports:
+      - "8080:8080"
+    depends_on:
+      mysql:
+        condition: service_healthy
+    
+volumes:
+  mysql_data:

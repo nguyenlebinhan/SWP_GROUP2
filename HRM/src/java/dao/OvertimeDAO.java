@@ -214,6 +214,39 @@ public class OvertimeDAO {
         }
         return list;
     }
+    /**
+     * Kiểm tra nhân viên có đơn OT đã được duyệt trong ngày làm việc cụ thể hay không.
+     * Dùng để quyết định có cộng thêm giờ ngoài 8 tiếng chuẩn hay không.
+     */
+    public boolean hasApprovedOT(Connection conn, int employeeId, java.sql.Date workDate)
+            throws SQLException {
+        String sql = "SELECT 1 FROM Form_Requests fr "
+                + "JOIN Overtime_Details od ON fr.formId = od.formId "
+                + "JOIN Overtime_Assignees oa ON fr.formId = oa.formId "
+                + "WHERE oa.employeeId = ? "
+                + "  AND fr.status = 1 "
+                + "  AND od.otDate = ? LIMIT 1";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, employeeId);
+            ps.setDate(2, workDate);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next();
+            }
+        }
+    }
+
+    /**
+     * Phiên bản tự mở connection của {@link #hasApprovedOT(Connection, int, java.sql.Date)}.
+     */
+    public boolean hasApprovedOT(int employeeId, java.sql.Date workDate) {
+        try (Connection conn = dbContext.getConnection()) {
+            return hasApprovedOT(conn, employeeId, workDate);
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Cannot check approved OT for employee " + employeeId, e);
+            return false;
+        }
+    }
+
     public List<Integer> getApprovedOTDaysInMonth(int employeeId, int month, int year) {
         List<Integer> list = new ArrayList<>();
         String sql = "SELECT DAY(od.otDate) as otDay " +
@@ -221,7 +254,7 @@ public class OvertimeDAO {
                      "JOIN Overtime_Details od ON fr.formId = od.formId " +
                      "JOIN Overtime_Assignees oa ON fr.formId = oa.formId " +
                      "WHERE oa.employeeId = ? " +
-                     "AND fr.status = 1 " + // 1 = Approved
+                     "AND fr.status = 1 " + 
                      "AND MONTH(od.otDate) = ? " +
                      "AND YEAR(od.otDate) = ?";
         try (Connection conn = dbContext.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {

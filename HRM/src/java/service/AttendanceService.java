@@ -3,6 +3,7 @@ package service;
 import dao.AttendanceDAO;
 import dao.DepartmentDAO;
 import dao.HolidayDAO;
+import dao.OvertimeDAO;
 import dto.AttendanceDetailDTO;
 import dto.AttendanceReportDTO;
 import dto.AttendanceSummaryDTO;
@@ -19,6 +20,7 @@ public class AttendanceService {
     private final AttendanceDAO attendanceDAO = new AttendanceDAO();
     private final HolidayDAO holidayDAO = new HolidayDAO();
     private final DepartmentDAO departmentDAO = new DepartmentDAO();
+    private final OvertimeDAO overtimeDAO = new OvertimeDAO();
 
 
     public List<AttendanceSummaryDTO> getMonthlySummaries(Integer departmentId, int month, int year) {
@@ -26,6 +28,7 @@ public class AttendanceService {
         int standardDays = standardWorkingDays(month, year);
         for (AttendanceSummaryDTO s : rows) {
             s.setStandardDays(standardDays);
+            s.setOtDays(overtimeDAO.getApprovedOTDaysInMonth(s.getEmployeeId(), month, year).size());
         }
         return rows;
     }
