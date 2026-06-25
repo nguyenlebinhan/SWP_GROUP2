@@ -38,25 +38,38 @@
 
     <div class="section-card">
         <h5 class="mb-3"><i class="fa-solid fa-file-import me-2"></i>Import dữ liệu chấm công từ Excel (.xlsx)</h5>
+
+        <c:choose>
+            <c:when test="${importWindowOpen}">
+                <div class="alert alert-info">
+                    <i class="fa-solid fa-circle-info me-2"></i>
+                    Chỉ được import chấm công trong <strong>2 ngày đầu mỗi tháng</strong> (ngày 1 và 2)
+                    và chỉ cho <strong>tháng liền trước</strong>.
+                    Kỳ được phép hiện tại: <strong>Tháng ${allowedMonth}/${allowedYear}</strong>.
+                </div>
+            </c:when>
+            <c:otherwise>
+                <div class="alert alert-warning">
+                    <i class="fa-solid fa-triangle-exclamation me-2"></i>
+                    Đã quá hạn import. Chỉ được import trong <strong>2 ngày đầu mỗi tháng</strong> (ngày 1 và 2)
+                    cho tháng liền trước. Vui lòng quay lại vào đầu tháng sau.
+                </div>
+            </c:otherwise>
+        </c:choose>
+
         <form method="post" action="${pageContext.request.contextPath}/v1/manager/attendance/import"
               enctype="multipart/form-data">
+            <input type="hidden" name="month" value="${allowedMonth}">
+            <input type="hidden" name="year" value="${allowedYear}">
             <div class="row g-3">
-                <div class="col-md-3">
-                    <label class="form-label">Tháng <span class="text-danger">*</span></label>
-                    <select name="month" class="form-select" required>
-                        <c:forEach var="m" begin="1" end="12">
-                            <option value="${m}" ${selectedMonth == m ? 'selected' : ''}>Tháng ${m}</option>
-                        </c:forEach>
-                    </select>
-                </div>
-                <div class="col-md-3">
-                    <label class="form-label">Năm <span class="text-danger">*</span></label>
-                    <input type="number" name="year" class="form-control" min="2000" max="2100"
-                           value="${empty selectedYear ? 2026 : selectedYear}" required>
+                <div class="col-md-6">
+                    <label class="form-label">Kỳ chấm công</label>
+                    <input type="text" class="form-control"
+                           value="Tháng ${allowedMonth}/${allowedYear}" disabled>
                 </div>
                 <div class="col-md-6">
                     <label class="form-label">Phòng ban (tùy chọn)</label>
-                    <select name="departmentId" class="form-select">
+                    <select name="departmentId" class="form-select" ${importWindowOpen ? '' : 'disabled'}>
                         <option value="">-- Tất cả phòng ban --</option>
                         <c:forEach var="d" items="${departments}">
                             <option value="${d.departmentId}" ${selectedDepartmentId == d.departmentId ? 'selected' : ''}>
@@ -68,7 +81,8 @@
                 </div>
                 <div class="col-md-12">
                     <label class="form-label">File Excel (.xlsx) <span class="text-danger">*</span></label>
-                    <input type="file" name="attendanceFile" class="form-control" accept=".xlsx" required>
+                    <input type="file" name="attendanceFile" class="form-control" accept=".xlsx"
+                           ${importWindowOpen ? 'required' : 'disabled'}>
                     <small class="text-muted">
                         Cột yêu cầu (dòng 1 là header): employeeCode, fullName, Phòng ban, workDate, timeIn, timeOut, attendanceStatus, note.
                         Trạng thái: PRESENT / LATE / ABSENT / UNEXCUSED. Tối đa 10MB.
@@ -76,7 +90,7 @@
                 </div>
             </div>
             <div class="mt-3">
-                <button type="submit" class="btn btn-primary">
+                <button type="submit" class="btn btn-primary" ${importWindowOpen ? '' : 'disabled'}>
                     <i class="fa-solid fa-upload me-1"></i> Upload &amp; Import
                 </button>
             </div>

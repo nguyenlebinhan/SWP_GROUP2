@@ -598,8 +598,8 @@ public class ManagerController extends HttpServlet {
         }
 
         LocalDate now = LocalDate.now();
-        int month = paramOr(request, "month", now.getMonthValue());
-        int year = paramOr(request, "year", now.getYear());
+        int month = paramOr(request, "month", now.minusMonths(1).getMonthValue());
+        int year = paramOr(request, "year", now.minusMonths(1).getYear());
 
         Integer departmentId;
         if (canViewAll) {
@@ -649,8 +649,8 @@ public class ManagerController extends HttpServlet {
 
         int employeeId = paramOr(request, "employeeId", -1);
         java.time.LocalDate now = java.time.LocalDate.now();
-        int month = paramOr(request, "month", now.getMonthValue());
-        int year = paramOr(request, "year", now.getYear());
+        int month = paramOr(request, "month", now.minusMonths(1).getMonthValue());
+        int year = paramOr(request, "year", now.minusMonths(1).getYear());
 
         // canViewAll: không giới hạn phòng ban; ngược lại chỉ phòng ban của Manager.
         Integer restrictDept = canViewAll ? null : resolveManagerDepartmentId(user);
@@ -694,8 +694,8 @@ public class ManagerController extends HttpServlet {
             return;
         }
         java.time.LocalDate now = java.time.LocalDate.now();
-        int month = paramOr(request, "month", now.getMonthValue());
-        int year = paramOr(request, "year", now.getYear());
+        int month = paramOr(request, "month", now.minusMonths(1).getMonthValue());
+        int year = paramOr(request, "year", now.minusMonths(1).getYear());
 
         Integer departmentId;
         if (canViewAll) {
@@ -1440,7 +1440,46 @@ public class ManagerController extends HttpServlet {
         request.getSession().setAttribute("userPermissions", perms);
         setPermissionFlags(request, perms);
         request.setAttribute("departments", departmentDAO.getAllActiveDepartments());
+        setImportWindowAttributes(request);
         request.getRequestDispatcher("/public/manager/attendance/attendance_import.jsp").forward(request, response);
+    }
+
+    /**
+     * Đặt các thuộc tính phục vụ giao diện import: tháng được phép (tháng liền trước),
+     * và cờ cho biết cửa sổ import (2 ngày đầu tháng) còn mở hay không.
+     */
+    private void setImportWindowAttributes(HttpServletRequest request) {
+        LocalDate today = LocalDate.now();
+        LocalDate prevMonth = today.minusMonths(1);
+        request.setAttribute("allowedMonth", prevMonth.getMonthValue());
+        request.setAttribute("allowedYear", prevMonth.getYear());
+        request.setAttribute("importWindowOpen", today.getDayOfMonth() <= 2);
+        if (request.getAttribute("selectedMonth") == null) {
+            request.setAttribute("selectedMonth", prevMonth.getMonthValue());
+        }
+        if (request.getAttribute("selectedYear") == null) {
+            request.setAttribute("selectedYear", prevMonth.getYear());
+        }
+    }
+
+    /**
+     * Kiểm tra ràng buộc thời gian import chấm công:
+     * chỉ cho phép import trong 2 ngày đầu mỗi tháng (ngày 1 và 2),
+     * và chỉ cho tháng liền trước. Trả về thông báo lỗi nếu không hợp lệ, null nếu hợp lệ.
+     */
+    private String validateImportWindow(int month, int year) {
+        LocalDate today = LocalDate.now();
+        LocalDate prevMonth = today.minusMonths(1);
+        if (today.getDayOfMonth() > 2) {
+            return "Chỉ được import chấm công trong 2 ngày đầu mỗi tháng (ngày 1 và ngày 2). "
+                    + "Hôm nay đã qua hạn, không thể import chấm công Tháng "
+                    + prevMonth.getMonthValue() + "/" + prevMonth.getYear() + " nữa.";
+        }
+        if (month != prevMonth.getMonthValue() || year != prevMonth.getYear()) {
+            return "Chỉ được import chấm công cho tháng liền trước (Tháng "
+                    + prevMonth.getMonthValue() + "/" + prevMonth.getYear() + ").";
+        }
+        return null;
     }
 
     private void handleImportAttendance(HttpServletRequest request, HttpServletResponse response,
@@ -1476,6 +1515,12 @@ public class ManagerController extends HttpServlet {
         }
         if (year < 2000 || year > 2100) {
             forwardImportError(request, response, "Vui lòng chọn năm hợp lệ.", month, year, departmentId);
+            return;
+        }
+
+        String windowError = validateImportWindow(month, year);
+        if (windowError != null) {
+            forwardImportError(request, response, windowError, month, year, departmentId);
             return;
         }
 
@@ -1559,6 +1604,7 @@ public class ManagerController extends HttpServlet {
 
     private void forwardImportError(HttpServletRequest request, HttpServletResponse response,
             String message, int month, int year, int departmentId) throws ServletException, IOException {
+        setImportWindowAttributes(request);
         request.setAttribute("error", message);
         request.setAttribute("departments", departmentDAO.getAllActiveDepartments());
         request.setAttribute("selectedMonth", month);
@@ -1975,7 +2021,7 @@ public class ManagerController extends HttpServlet {
 
             if (otDate == null || otDate.isEmpty() || startTime == null || startTime.isEmpty()
                     || endTime == null || endTime.isEmpty() || dayTypeStr == null || assigneeIds == null || assigneeIds.length == 0) {
-                request.getSession().setAttribute("error", "Vui lêng điền đầy đủ thông tin và chọn ít nhất 1 nhân viên.");
+                request.getSession().setAttribute("error", "Vui lòng điền đầy đủ thông tin và chọn ít nhất 1 nhân viên.");
                 response.sendRedirect(request.getContextPath() + "/v1/manager/forms/create-ot");
                 return;
             }
