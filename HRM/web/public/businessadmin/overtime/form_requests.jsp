@@ -138,6 +138,16 @@
                                         <td><fmt:formatDate value="${f.createdAt}" pattern="dd/MM/yyyy HH:mm" /></td>
                                         <td>
                                             <span class="badge-status status-${f.status}">${f.statusLabel}</span>
+                                            <c:if test="${f.formTypeCode == 'TRANSFER'}">
+                                                <div class="small text-muted mt-1">
+                                                    Đến: <strong>${f.targetDepartmentName}</strong>
+                                                </div>
+                                            </c:if>
+                                            <c:if test="${f.formTypeCode == 'PROMOTION_DEMOTION'}">
+                                                <div class="small text-muted mt-1">
+                                                    Role: <strong>${f.targetRoleName}</strong>
+                                                </div>
+                                            </c:if>
                                         </td>
                                         <td class="text-center">
                                             <c:if test="${f.formTypeCode == 'OVERTIME'}">
