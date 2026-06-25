@@ -580,9 +580,11 @@ public class PayrollService {
                         summary.paidWorkingDays++;
                         summary.lateCount++;
 
+                        // Giờ vào lưu trong DB là giờ thực; phút đi muộn tính theo
+                        // block 30 phút (làm tròn LÊN) để khớp với cách tính giờ công.
                         LocalTime timeIn = rs.getTime("timeIn") == null
                                 ? STANDARD_START_TIME
-                                : rs.getTime("timeIn").toLocalTime();
+                                : utils.WorkHoursCalculator.ceilToBlock(rs.getTime("timeIn")).toLocalTime();
 
                         int lateMinutes = Math.max(0,
                                 (int) java.time.Duration.between(STANDARD_START_TIME, timeIn).toMinutes());

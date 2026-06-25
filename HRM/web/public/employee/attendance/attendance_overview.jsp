@@ -139,9 +139,7 @@
                         <th class="text-center" title="Vắng mặt">Ab</th>
                         <th class="text-center" title="Nghỉ lễ">Ho</th>
                         <th class="text-center" title="Cuối tuần">We</th>
-                        <th class="text-center" title="Tăng ca (số ngày có đơn OT được duyệt)">
-                            <i class="fa-solid fa-business-time"></i> OT
-                        </th>
+                        <th class="text-center" title="Tăng ca (số ngày có đơn OT được duyệt)"> OT</th>
                         <th class="text-center" style="min-width:130px">Tỷ lệ</th>
                         <th class="text-center"></th>
                     </tr>
@@ -164,7 +162,7 @@
                                 <c:choose>
                                     <c:when test="${s.otDays > 0}">
                                         <span class="cnt badge-ot" title="${s.otDays} ngày tăng ca">
-                                            <i class="fa-solid fa-business-time me-1"></i>${s.otDays}
+                                            ${s.otDays}
                                         </span>
                                     </c:when>
                                     <c:otherwise>
