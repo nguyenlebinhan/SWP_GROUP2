@@ -405,8 +405,8 @@ public class EmployeeController extends HttpServlet {
         setPermissionFlags(request, perms);
 
         java.time.LocalDate now = java.time.LocalDate.now();
-        int month = attParam(request, "month", now.getMonthValue());
-        int year = attParam(request, "year", now.getYear());
+        int month = attParam(request, "month", now.minusMonths(1).getMonthValue());
+        int year = attParam(request, "year", now.minusMonths(1).getYear());
         int day = attParam(request, "day", 0); 
 
         EmployeeDetailDTO me = employeeDAO.getEmployeeByUserId(user.getUserId());
@@ -637,8 +637,8 @@ public class EmployeeController extends HttpServlet {
         }
 
         LocalDate now = LocalDate.now();
-        int month = attParam(request, "month", now.getMonthValue());
-        int year = attParam(request, "year", now.getYear());
+        int month = attParam(request, "month", now.minusMonths(1).getMonthValue());
+        int year = attParam(request, "year", now.minusMonths(1).getYear());
         Integer departmentId = attDepartmentParam(request);
 
         java.util.List<dto.AttendanceSummaryDTO> summaries
@@ -671,8 +671,8 @@ public class EmployeeController extends HttpServlet {
 
         int employeeId = attParam(request, "employeeId", -1);
         LocalDate now = LocalDate.now();
-        int month = attParam(request, "month", now.getMonthValue());
-        int year = attParam(request, "year", now.getYear());
+        int month = attParam(request, "month", now.minusMonths(1).getMonthValue());
+        int year = attParam(request, "year", now.minusMonths(1).getYear());
         Integer departmentId = attDepartmentParam(request);
 
         AttendanceDetailDTO detail = (employeeId > 0)
@@ -713,8 +713,8 @@ public class EmployeeController extends HttpServlet {
             return;
         }
         LocalDate now = LocalDate.now();
-        int month = attParam(request, "month", now.getMonthValue());
-        int year = attParam(request, "year", now.getYear());
+        int month = attParam(request, "month", now.minusMonths(1).getMonthValue());
+        int year = attParam(request, "year", now.minusMonths(1).getYear());
         Integer departmentId = attDepartmentParam(request);
 
         AttendanceReportDTO report = attendanceService.getReport(departmentId, month, year);
@@ -823,7 +823,46 @@ public class EmployeeController extends HttpServlet {
         }
         Set<String> perms = getPermissions(user);
         request.getSession().setAttribute("userPermissions", perms);
+        setImportWindowAttributes(request);
         request.getRequestDispatcher("/public/employee/attendance/attendance_import.jsp").forward(request, response);
+    }
+
+    /**
+     * Đặt các thuộc tính phục vụ giao diện import: tháng được phép (tháng liền trước),
+     * và cờ cho biết cửa sổ import (2 ngày đầu tháng) còn mở hay không.
+     */
+    private void setImportWindowAttributes(HttpServletRequest request) {
+        LocalDate today = LocalDate.now();
+        LocalDate prevMonth = today.minusMonths(1);
+        request.setAttribute("allowedMonth", prevMonth.getMonthValue());
+        request.setAttribute("allowedYear", prevMonth.getYear());
+        request.setAttribute("importWindowOpen", today.getDayOfMonth() <= 2);
+        if (request.getAttribute("selectedMonth") == null) {
+            request.setAttribute("selectedMonth", prevMonth.getMonthValue());
+        }
+        if (request.getAttribute("selectedYear") == null) {
+            request.setAttribute("selectedYear", prevMonth.getYear());
+        }
+    }
+
+    /**
+     * Kiểm tra ràng buộc thời gian import chấm công:
+     * chỉ cho phép import trong 2 ngày đầu mỗi tháng (ngày 1 và 2),
+     * và chỉ cho tháng liền trước. Trả về thông báo lỗi nếu không hợp lệ, null nếu hợp lệ.
+     */
+    private String validateImportWindow(int month, int year) {
+        LocalDate today = LocalDate.now();
+        LocalDate prevMonth = today.minusMonths(1);
+        if (today.getDayOfMonth() > 2) {
+            return "Chỉ được import chấm công trong 2 ngày đầu mỗi tháng (ngày 1 và ngày 2). "
+                    + "Hôm nay đã qua hạn, không thể import chấm công Tháng "
+                    + prevMonth.getMonthValue() + "/" + prevMonth.getYear() + " nữa.";
+        }
+        if (month != prevMonth.getMonthValue() || year != prevMonth.getYear()) {
+            return "Chỉ được import chấm công cho tháng liền trước (Tháng "
+                    + prevMonth.getMonthValue() + "/" + prevMonth.getYear() + ").";
+        }
+        return null;
     }
 
     private void displayUpdateAttendanceForm(HttpServletRequest request, HttpServletResponse response,
@@ -836,8 +875,8 @@ public class EmployeeController extends HttpServlet {
         Set<String> perms = getPermissions(user);
         request.getSession().setAttribute("userPermissions", perms);
 
-        String backUrl = request.getContextPath() + "/v1/employee/attendance/list"
-                + buildAttendanceFilterQuery(request);
+        String backUrl = request.getContextPath() + "/v1/employee/attendance/detail"
+                + buildAttendanceDetailQuery(request);
 
         Integer attendanceId = parseIntOrNull(request.getParameter("id"));
         Attendance attendance = (attendanceId != null) ? attendanceDAO.getAttendanceById(attendanceId) : null;
@@ -854,6 +893,11 @@ public class EmployeeController extends HttpServlet {
         request.setAttribute("filterYear", trimToNull(request.getParameter("year")));
         request.setAttribute("filterDepartmentId", trimToNull(request.getParameter("departmentId")));
         request.setAttribute("filterEmployeeCode", trimToNull(request.getParameter("employeeCode")));
+        String filterEmployeeId = trimToNull(request.getParameter("employeeId"));
+        if (filterEmployeeId == null) {
+            filterEmployeeId = String.valueOf(attendance.getEmployeeId());
+        }
+        request.setAttribute("filterEmployeeId", filterEmployeeId);
         request.getRequestDispatcher("/public/employee/attendance/attendance_update.jsp").forward(request, response);
     }
 
@@ -865,8 +909,8 @@ public class EmployeeController extends HttpServlet {
             return;
         }
 
-        String redirectUrl = request.getContextPath() + "/v1/employee/attendance/list"
-                + buildAttendanceFilterQuery(request);
+        String redirectUrl = request.getContextPath() + "/v1/employee/attendance/detail"
+                + buildAttendanceDetailQuery(request);
 
         Integer attendanceId = parseIntOrNull(request.getParameter("attendanceId"));
         if (attendanceId == null) {
@@ -875,7 +919,6 @@ public class EmployeeController extends HttpServlet {
             return;
         }
 
-        // Mọi chỉnh sửa phải có lý do.
         String reason = trimToNull(request.getParameter("reason"));
         if (reason == null) {
             request.getSession().setAttribute("error", "Vui lêng nhập lý do chỉnh sửa chấm cóng.");
@@ -908,15 +951,12 @@ public class EmployeeController extends HttpServlet {
             return;
         }
 
-        // Kiểm tra thứ tự giờ trước khi suy trạng thái.
         if (timeIn != null && timeOut != null && timeOut.before(timeIn)) {
             request.getSession().setAttribute("error", "Giờ ra phải sau giờ vào.");
             response.sendRedirect(redirectUrl);
             return;
         }
 
-        // Trạng thái không còn do người dùng chọn: tự suy lại từ giờ vào/ra theo đúng
-        // logic import (PRESENT/LATE/ABSENT + ưu tiên HOLIDAY/WEEKEND/LEAVE).
         int status;
         try {
             status = importService.resolveStatus(attendance.getEmployeeId(),
@@ -927,11 +967,16 @@ public class EmployeeController extends HttpServlet {
             return;
         }
 
-        // Chỉ PRESENT(0) và LATE(1) có giờ làm; cón lại = 0 giờ.
         BigDecimal hoursWorked;
         if (timeIn != null && timeOut != null && (status == 0 || status == 1)) {
-            // Trừ giờ nghỉ trưa: làm đủ 08:00-17:00 -> 8 tiếng (không phải 9).
             hoursWorked = utils.WorkHoursCalculator.hoursWorked(timeIn, timeOut);
+            // Không có đơn OT được duyệt cho ngày này thì giới hạn giờ công ở 8 tiếng chuẩn,
+            // dù nhân viên đến sớm hơn hay về muộn hơn.
+            BigDecimal standardHours = new BigDecimal("8.00");
+            if (hoursWorked.compareTo(standardHours) > 0
+                    && !new dao.OvertimeDAO().hasApprovedOT(attendance.getEmployeeId(), attendance.getWorkDate())) {
+                hoursWorked = standardHours;
+            }
         } else {
             hoursWorked = BigDecimal.ZERO;
         }
@@ -956,7 +1001,7 @@ public class EmployeeController extends HttpServlet {
         request.getSession().setAttribute("userPermissions", perms);
 
         int month, year;
-        int departmentId = 0; // 0 = tất cả phòng ban (import gộp nhiều phòng trong 1 file)
+        int departmentId = 0;
         try {
             month = Integer.parseInt(request.getParameter("month").trim());
             year = Integer.parseInt(request.getParameter("year").trim());
@@ -980,6 +1025,15 @@ public class EmployeeController extends HttpServlet {
             request.setAttribute("error", "Vui lA?ng ch?n nam h?p l?");
             List<Department> activeDepartments = departmentDAO.getAllActiveDepartments();
             request.setAttribute("departments", activeDepartments);
+            request.getRequestDispatcher("/public/employee/attendance/attendance_import.jsp").forward(request, response);
+            return;
+        }
+
+        String windowError = validateImportWindow(month, year);
+        if (windowError != null) {
+            request.setAttribute("error", windowError);
+            request.setAttribute("departments", departmentDAO.getAllActiveDepartments());
+            setImportWindowAttributes(request);
             request.getRequestDispatcher("/public/employee/attendance/attendance_import.jsp").forward(request, response);
             return;
         }
@@ -2373,6 +2427,15 @@ public class EmployeeController extends HttpServlet {
         appendParamIfPresent(qs, request, "year");
         appendParamIfPresent(qs, request, "departmentId");
         appendParamIfPresent(qs, request, "employeeCode");
+        return qs.toString();
+    }
+
+    private String buildAttendanceDetailQuery(HttpServletRequest request) {
+        StringBuilder qs = new StringBuilder();
+        appendParamIfPresent(qs, request, "employeeId");
+        appendParamIfPresent(qs, request, "departmentId");
+        appendParamIfPresent(qs, request, "month");
+        appendParamIfPresent(qs, request, "year");
         return qs.toString();
     }
 

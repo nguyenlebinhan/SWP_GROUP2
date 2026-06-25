@@ -38,6 +38,7 @@
     <div class="main">
         <jsp:include page="/public/components/managerTopBar.jsp">
             <jsp:param name="title" value="Tạo đơn Overtime" />
+            <jsp:param name="backUrl" value="/v1/manager/forms/ot-requests"/>
         </jsp:include>
 
         <c:if test="${not empty sessionScope.error}">
@@ -50,9 +51,6 @@
 
         <div class="d-flex justify-content-between align-items-center mb-4">
             <h4 class="mb-0"><i class="fa-solid fa-file-circle-plus me-2"></i>Tạo đơn yêu cầu tăng ca (OT)</h4>
-            <a href="${pageContext.request.contextPath}/v1/manager/forms/ot-requests" class="btn btn-outline-secondary">
-                <i class="fa-solid fa-arrow-left me-1"></i> Quay lại
-            </a>
         </div>
 
         <div class="section-card">
@@ -79,7 +77,7 @@
                         <label class="form-label fw-bold">Loại ngày <span class="text-danger">*</span></label>
                         <select name="dayType" class="form-select" required>
                             <option value="1">Ngày thường</option>
-                            <option value="3">Ngày lễ</option>
+                            <!--<option value="3">Ngày lễ</option>-->
                         </select>
                     </div>
                     <div class="col-md-8">

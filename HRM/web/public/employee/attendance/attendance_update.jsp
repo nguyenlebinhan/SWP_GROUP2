@@ -67,7 +67,7 @@
 
         <form method="post" action="${pageContext.request.contextPath}/v1/employee/attendance/update">
             <input type="hidden" name="attendanceId" value="${attendance.attendanceId}">
-            <%-- giữ lại bộ lọc để quay về đúng trang danh sách --%>
+            <input type="hidden" name="employeeId" value="${filterEmployeeId}">
             <input type="hidden" name="month" value="${filterMonth}">
             <input type="hidden" name="year" value="${filterYear}">
             <input type="hidden" name="departmentId" value="${filterDepartmentId}">

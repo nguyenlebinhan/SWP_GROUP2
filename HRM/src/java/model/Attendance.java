@@ -29,6 +29,7 @@ public class Attendance {
     private Integer positionId;
     private String positionName;
     private boolean editable;
+    private boolean edited;
 
     public Attendance() {
     }
@@ -169,6 +170,14 @@ public class Attendance {
         this.editable = editable;
     }
 
+    public boolean isEdited() {
+        return edited;
+    }
+
+    public void setEdited(boolean edited) {
+        this.edited = edited;
+    }
+
     public Integer getPositionId() {
         return positionId;
     }
@@ -186,14 +195,30 @@ public class Attendance {
     }
     
     
+    /**
+     * Số phút làm việc của ngày (ưu tiên giá trị đã lưu, nếu chưa có thì tính từ giờ vào/ra).
+     * Dùng cho phần hiển thị lịch để áp giới hạn 8 tiếng khi không có đơn OT.
+     */
+    public long getWorkedMinutes() {
+        if (hoursWorked != null) {
+            return hoursWorked.multiply(BigDecimal.valueOf(60))
+                    .setScale(0, java.math.RoundingMode.HALF_UP).longValue();
+        }
+        if (timeIn != null && timeOut != null) {
+            return utils.WorkHoursCalculator.workedMinutes(timeIn, timeOut);
+        }
+        return 0;
+    }
+
     public String getHoursWorkedLabel() {
         long minutes;
-        if (timeIn != null && timeOut != null) {
-           
-            minutes = utils.WorkHoursCalculator.workedMinutes(timeIn, timeOut);
-        } else if (hoursWorked != null) {
+        // Ưu tiên giờ công đã lưu (đã được giới hạn 8 tiếng khi không có đơn OT).
+        // Chỉ tính lại từ giờ vào/ra khi chưa có giá trị lưu sẵn.
+        if (hoursWorked != null) {
             minutes = hoursWorked.multiply(BigDecimal.valueOf(60))
                     .setScale(0, java.math.RoundingMode.HALF_UP).longValue();
+        } else if (timeIn != null && timeOut != null) {
+            minutes = utils.WorkHoursCalculator.workedMinutes(timeIn, timeOut);
         } else {
             return "";
         }
