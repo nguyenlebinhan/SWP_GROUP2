@@ -33,6 +33,7 @@
         .status-1 { background: #d1fae5; color: #065f46; border: 1px solid #6ee7b7; }
         .status-2 { background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
         .status-3 { background: #e5e7eb; color: #374151; border: 1px solid #d1d5db; }
+        .status-4 { background: #dbeafe; color: #1e40af; border: 1px solid #bfdbfe; }
         .info-label {
             font-size: 0.85rem;
             color: #6c757d;

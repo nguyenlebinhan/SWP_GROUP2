@@ -44,6 +44,10 @@
                 background: #e5e7eb;
                 color: #374151;
             }
+            .status-4 {
+                background: #dbeafe;
+                color: #1e40af;
+            }
             .reason-cell {
                 max-width: 200px;
                 white-space: nowrap;

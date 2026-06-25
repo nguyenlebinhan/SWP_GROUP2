@@ -5,6 +5,9 @@
 package dao;
 
 import dal.DBContext;
+import dto.ComplaintFormRequestDTO;
+import dto.FormRequestDTO;
+import dto.LeaveFormRequestDTO;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -15,13 +18,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import model.ComplaintFormRequest;
 import model.FormRequest;
 import model.LeaveFormRequest;
-import model.ComplaintFormRequest;
-import dto.FormRequestDTO;
-import dto.LeaveFormRequestDTO;
-import dto.ComplaintFormRequestDTO;
-import java.util.Objects;
 
 /**
  *
@@ -66,8 +65,7 @@ public class FormRequestDAO {
                       attachmentUrl, attachmentName, status)
                      VALUES (?, ?, ?, ?, NULL, NULL, NULL, NULL, NULL, 0, ?, ?, 0)
                      """;
-        try (Connection conn = dbContext.getConnection();
-             PreparedStatement ps = conn.prepareStatement(SQL, Statement.RETURN_GENERATED_KEYS)) {
+        try (Connection conn = dbContext.getConnection(); PreparedStatement ps = conn.prepareStatement(SQL, Statement.RETURN_GENERATED_KEYS)) {
             ps.setString(1, fr.getFormCode());
             ps.setInt(2, fr.getEmployeeId());
             ps.setInt(3, fr.getFormTypeId());
@@ -105,15 +103,26 @@ public class FormRequestDAO {
                       attachmentUrl, attachmentName, status)
                      VALUES (?, ?, ?, ?, ?, ?, NULL, NULL, ?, 0, ?, ?, 0)
                      """;
-        try (Connection conn = dbContext.getConnection();
-             PreparedStatement ps = conn.prepareStatement(SQL, Statement.RETURN_GENERATED_KEYS)) {
+        try (Connection conn = dbContext.getConnection(); PreparedStatement ps = conn.prepareStatement(SQL, Statement.RETURN_GENERATED_KEYS)) {
             ps.setString(1, fr.getFormCode());
             ps.setInt(2, fr.getEmployeeId());
             ps.setInt(3, fr.getFormTypeId());
             ps.setNString(4, fr.getReason());
-            if (fr.getStartDate() == null) ps.setNull(5, Types.DATE); else ps.setDate(5, fr.getStartDate());
-            if (fr.getEndDate() == null) ps.setNull(6, Types.DATE); else ps.setDate(6, fr.getEndDate());
-            if (fr.getTotalDays() == null) ps.setNull(7, Types.INTEGER); else ps.setInt(7, fr.getTotalDays());
+            if (fr.getStartDate() == null) {
+                ps.setNull(5, Types.DATE);
+            } else {
+                ps.setDate(5, fr.getStartDate());
+            }
+            if (fr.getEndDate() == null) {
+                ps.setNull(6, Types.DATE);
+            } else {
+                ps.setDate(6, fr.getEndDate());
+            }
+            if (fr.getTotalDays() == null) {
+                ps.setNull(7, Types.INTEGER);
+            } else {
+                ps.setInt(7, fr.getTotalDays());
+            }
             if (fr.getAttachmentUrl() == null) {
                 ps.setNull(8, Types.VARCHAR);
                 ps.setNull(9, Types.VARCHAR);
@@ -147,15 +156,26 @@ public class FormRequestDAO {
                       attachmentUrl, attachmentName, status)
                      VALUES (?, ?, ?, ?, ?, NULL, ?, ?, NULL, 0, ?, ?, 0)
                      """;
-        try (Connection conn = dbContext.getConnection();
-             PreparedStatement ps = conn.prepareStatement(SQL, Statement.RETURN_GENERATED_KEYS)) {
+        try (Connection conn = dbContext.getConnection(); PreparedStatement ps = conn.prepareStatement(SQL, Statement.RETURN_GENERATED_KEYS)) {
             ps.setString(1, fr.getFormCode());
             ps.setInt(2, fr.getEmployeeId());
             ps.setInt(3, fr.getFormTypeId());
             ps.setNString(4, fr.getReason());
-            if (fr.getStartDate() == null) ps.setNull(5, Types.DATE); else ps.setDate(5, fr.getStartDate());
-            if (fr.getStartTime() == null) ps.setNull(6, Types.TIME); else ps.setTime(6, fr.getStartTime());
-            if (fr.getEndTime() == null) ps.setNull(7, Types.TIME); else ps.setTime(7, fr.getEndTime());
+            if (fr.getStartDate() == null) {
+                ps.setNull(5, Types.DATE);
+            } else {
+                ps.setDate(5, fr.getStartDate());
+            }
+            if (fr.getStartTime() == null) {
+                ps.setNull(6, Types.TIME);
+            } else {
+                ps.setTime(6, fr.getStartTime());
+            }
+            if (fr.getEndTime() == null) {
+                ps.setNull(7, Types.TIME);
+            } else {
+                ps.setTime(7, fr.getEndTime());
+            }
             if (fr.getAttachmentUrl() == null) {
                 ps.setNull(8, Types.VARCHAR);
                 ps.setNull(9, Types.VARCHAR);
@@ -201,6 +221,18 @@ public class FormRequestDAO {
             }
         } catch (SQLException e) {
             LOGGER.log(Level.SEVERE, "Error checking overlapping leave for employee: " + employeeId, e);
+        }
+        return false;
+    }
+
+    public boolean updateFormStatus(Connection conn, int formId, int newStatus) {
+        String SQL = "UPDATE form_requests SET status = ? WHERE formId = ?";
+        try (PreparedStatement ps = conn.prepareStatement(SQL)) {
+            ps.setInt(1, newStatus);
+            ps.setInt(2, formId);
+            return ps.executeUpdate() > 0;
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Error updating form status to " + newStatus + " for formId " + formId, e);
         }
         return false;
     }
@@ -261,7 +293,7 @@ public class FormRequestDAO {
             SQL.append(" AND YEAR(fr.createdAt) = ?");
             param.add(year);
         }
-        
+
         if (name != null && !name.trim().isEmpty()) {
             SQL.append(" AND u.fullName LIKE ?");
             param.add("%" + name.trim() + "%");
@@ -340,14 +372,14 @@ public class FormRequestDAO {
     }
 
     //Duyệt & Hủy đơn
-    public boolean approveFormRequest(int formId, int approverId, String note){
+    public boolean approveFormRequest(int formId, int approverId, String note) {
         return updateFormRequest(formId, 1, approverId, note);
     }
-    
+
     public boolean rejectFormRequest(int formId, int approverId, String note) {
         return updateFormRequest(formId, 2, approverId, note);
     }
-    
+
     public boolean updateFormRequest(int formId, int status, int approverId, String note) {
         String SQL = """
                      UPDATE form_requests
@@ -364,9 +396,9 @@ public class FormRequestDAO {
             }
             ps.setString(3, note);
             ps.setInt(4, formId);
-            
+
             int rowsAffected = ps.executeUpdate();
-            if(rowsAffected > 0) {
+            if (rowsAffected > 0) {
                 LOGGER.log(Level.INFO, "Form request updated successfully with id= {0}", formId);
                 return true;
             } else {
@@ -397,10 +429,9 @@ public class FormRequestDAO {
             + "LEFT JOIN Users ua     ON ea.userId       = ua.userId ";
 
     /**
-     * Map ResultSet thành đúng subtype DTO dựa vào formTypeCode.
-     * - "LEAVE"     → LeaveFormRequestDTO (có startDate, endDate, totalDays, usedDays)
-     * - "COMPLAINT" → ComplaintFormRequestDTO
-     * - khác       → FormRequestDTO (base)
+     * Map ResultSet thành đúng subtype DTO dựa vào formTypeCode. - "LEAVE" →
+     * LeaveFormRequestDTO (có startDate, endDate, totalDays, usedDays) -
+     * "COMPLAINT" → ComplaintFormRequestDTO - khác → FormRequestDTO (base)
      */
     private FormRequestDTO mapFormRequestDTO(ResultSet rs) throws SQLException {
         String typeCode = rs.getString("formTypeCode");

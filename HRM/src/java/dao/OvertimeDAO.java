@@ -13,6 +13,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class OvertimeDAO {
+
     private static final Logger LOGGER = Logger.getLogger(OvertimeDAO.class.getName());
     private final DBContext dbContext;
 
@@ -23,15 +24,15 @@ public class OvertimeDAO {
     public List<OvertimeRequestDTO> getOvertimeRequestsByManager(int managerId, String statusFilter, String dateFilter) {
         List<OvertimeRequestDTO> list = new ArrayList<>();
         StringBuilder sql = new StringBuilder(
-                "SELECT f.formId, f.formCode, f.employeeId, f.formTypeId, f.reason, f.status, f.approverId, f.approverNote, f.approvedAt, f.createdAt, f.updatedAt, " +
-                "od.otDate, od.startTime, od.endTime, od.dayType, " +
-                "(SELECT COUNT(*) FROM Overtime_Assignees oa WHERE oa.formId = f.formId) AS totalAssignees, " +
-                "u.fullName AS approverName " +
-                "FROM Form_Requests f " +
-                "JOIN Overtime_Details od ON f.formId = od.formId " +
-                "LEFT JOIN Employees e ON e.employeeId = f.approverId " +
-                "LEFT JOIN Users u ON u.userId = e.userId " +
-                "WHERE f.employeeId = ? AND f.formTypeId = (SELECT formTypeId FROM Form_Types WHERE formTypeCode = 'OVERTIME' LIMIT 1) "
+                "SELECT f.formId, f.formCode, f.employeeId, f.formTypeId, f.reason, f.status, f.approverId, f.approverNote, f.approvedAt, f.createdAt, f.updatedAt, "
+                + "od.otDate, od.startTime, od.endTime, od.dayType, "
+                + "(SELECT COUNT(*) FROM Overtime_Assignees oa WHERE oa.formId = f.formId) AS totalAssignees, "
+                + "u.fullName AS approverName "
+                + "FROM Form_Requests f "
+                + "JOIN Overtime_Details od ON f.formId = od.formId "
+                + "LEFT JOIN Employees e ON e.employeeId = f.approverId "
+                + "LEFT JOIN Users u ON u.userId = e.userId "
+                + "WHERE f.employeeId = ? AND f.formTypeId = (SELECT formTypeId FROM Form_Types WHERE formTypeCode = 'OVERTIME' LIMIT 1) "
         );
 
         List<Object> params = new ArrayList<>();
@@ -49,9 +50,8 @@ public class OvertimeDAO {
 
         sql.append("ORDER BY f.createdAt DESC");
 
-        try (Connection conn = dbContext.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql.toString())) {
-            
+        try (Connection conn = dbContext.getConnection(); PreparedStatement ps = conn.prepareStatement(sql.toString())) {
+
             for (int i = 0; i < params.size(); i++) {
                 ps.setObject(i + 1, params.get(i));
             }
@@ -65,22 +65,22 @@ public class OvertimeDAO {
                     dto.setFormTypeId(rs.getInt("formTypeId"));
                     dto.setReason(rs.getString("reason"));
                     dto.setStatus(rs.getInt("status"));
-                    
+
                     int approverId = rs.getInt("approverId");
                     dto.setApproverId(rs.wasNull() ? null : approverId);
-                    
+
                     dto.setApproverNote(rs.getString("approverNote"));
                     dto.setApprovedAt(rs.getTimestamp("approvedAt"));
                     dto.setCreatedAt(rs.getTimestamp("createdAt"));
                     dto.setUpdatedAt(rs.getTimestamp("updatedAt"));
-                    
+
                     dto.setOtDate(rs.getDate("otDate"));
                     dto.setStartTime(rs.getTime("startTime"));
                     dto.setEndTime(rs.getTime("endTime"));
                     dto.setDayType(rs.getInt("dayType"));
                     dto.setTotalAssignees(rs.getInt("totalAssignees"));
                     dto.setApproverName(rs.getString("approverName"));
-                    
+
                     list.add(dto);
                 }
             }
@@ -95,10 +95,14 @@ public class OvertimeDAO {
         try (Connection conn = dbContext.getConnection(); PreparedStatement ps = conn.prepareStatement(SQL)) {
             ps.setInt(1, formId);
             ps.setDate(2, java.sql.Date.valueOf(otDate));
-            
-            if (startTime != null && startTime.length() == 5) startTime += ":00";
-            if (endTime != null && endTime.length() == 5) endTime += ":00";
-            
+
+            if (startTime != null && startTime.length() == 5) {
+                startTime += ":00";
+            }
+            if (endTime != null && endTime.length() == 5) {
+                endTime += ":00";
+            }
+
             ps.setTime(3, java.sql.Time.valueOf(startTime));
             ps.setTime(4, java.sql.Time.valueOf(endTime));
             ps.setInt(5, dayType);
@@ -110,8 +114,10 @@ public class OvertimeDAO {
     }
 
     public boolean addOvertimeAssignees(int formId, String[] assigneeIds) {
-        if (assigneeIds == null || assigneeIds.length == 0) return false;
-        
+        if (assigneeIds == null || assigneeIds.length == 0) {
+            return false;
+        }
+
         String SQL = "INSERT INTO Overtime_Assignees (formId, employeeId) VALUES (?, ?)";
         try (Connection conn = dbContext.getConnection(); PreparedStatement ps = conn.prepareStatement(SQL)) {
             for (String empIdStr : assigneeIds) {
@@ -126,16 +132,17 @@ public class OvertimeDAO {
             return false;
         }
     }
+
     public OvertimeRequestDTO getOvertimeRequestById(int formId) {
-        String sql = "SELECT f.formId, f.formCode, f.employeeId, f.formTypeId, f.reason, f.status, f.approverId, f.approverNote, f.approvedAt, f.createdAt, f.updatedAt, " +
-                "od.otDate, od.startTime, od.endTime, od.dayType, " +
-                "(SELECT COUNT(*) FROM Overtime_Assignees oa WHERE oa.formId = f.formId) AS totalAssignees, " +
-                "u.fullName AS approverName " +
-                "FROM Form_Requests f " +
-                "JOIN Overtime_Details od ON f.formId = od.formId " +
-                "LEFT JOIN Employees e ON e.employeeId = f.approverId " +
-                "LEFT JOIN Users u ON u.userId = e.userId " +
-                "WHERE f.formId = ?";
+        String sql = "SELECT f.formId, f.formCode, f.employeeId, f.formTypeId, f.reason, f.status, f.approverId, f.approverNote, f.approvedAt, f.createdAt, f.updatedAt, "
+                + "od.otDate, od.startTime, od.endTime, od.dayType, "
+                + "(SELECT COUNT(*) FROM Overtime_Assignees oa WHERE oa.formId = f.formId) AS totalAssignees, "
+                + "u.fullName AS approverName "
+                + "FROM Form_Requests f "
+                + "JOIN Overtime_Details od ON f.formId = od.formId "
+                + "LEFT JOIN Employees e ON e.employeeId = f.approverId "
+                + "LEFT JOIN Users u ON u.userId = e.userId "
+                + "WHERE f.formId = ?";
         try (Connection conn = dbContext.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, formId);
             try (ResultSet rs = ps.executeQuery()) {
@@ -147,15 +154,15 @@ public class OvertimeDAO {
                     dto.setFormTypeId(rs.getInt("formTypeId"));
                     dto.setReason(rs.getString("reason"));
                     dto.setStatus(rs.getInt("status"));
-                    
+
                     int approverId = rs.getInt("approverId");
                     dto.setApproverId(rs.wasNull() ? null : approverId);
-                    
+
                     dto.setApproverNote(rs.getString("approverNote"));
                     dto.setApprovedAt(rs.getTimestamp("approvedAt"));
                     dto.setCreatedAt(rs.getTimestamp("createdAt"));
                     dto.setUpdatedAt(rs.getTimestamp("updatedAt"));
-                    
+
                     dto.setOtDate(rs.getDate("otDate"));
                     dto.setStartTime(rs.getTime("startTime"));
                     dto.setEndTime(rs.getTime("endTime"));
@@ -173,14 +180,14 @@ public class OvertimeDAO {
 
     public List<dto.EmployeeDetailDTO> getOvertimeAssignees(int formId) {
         List<dto.EmployeeDetailDTO> list = new ArrayList<>();
-        String sql = "SELECT e.*, u.fullName, u.email, u.username, d.departmentName, p.positionName, r.roleName " +
-                "FROM Overtime_Assignees oa " +
-                "JOIN Employees e ON oa.employeeId = e.employeeId " +
-                "JOIN Users u ON e.userId = u.userId " +
-                "LEFT JOIN Departments d ON e.departmentId = d.departmentId " +
-                "LEFT JOIN Positions p ON e.positionId = p.positionId " +
-                "LEFT JOIN Roles r ON u.roleId = r.roleId " +
-                "WHERE oa.formId = ?";
+        String sql = "SELECT e.*, u.fullName, u.email, u.username, d.departmentName, p.positionName, r.roleName "
+                + "FROM Overtime_Assignees oa "
+                + "JOIN Employees e ON oa.employeeId = e.employeeId "
+                + "JOIN Users u ON e.userId = u.userId "
+                + "LEFT JOIN Departments d ON e.departmentId = d.departmentId "
+                + "LEFT JOIN Positions p ON e.positionId = p.positionId "
+                + "LEFT JOIN Roles r ON u.roleId = r.roleId "
+                + "WHERE oa.formId = ?";
         try (Connection conn = dbContext.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, formId);
             try (ResultSet rs = ps.executeQuery()) {
@@ -196,10 +203,10 @@ public class OvertimeDAO {
                     dto.setExperience(rs.getString("experience"));
                     dto.setDegree(rs.getString("degree"));
                     dto.setStatus(rs.getInt("status"));
-                    
+
                     int managerId = rs.getInt("managerId");
                     dto.setManagerId(rs.wasNull() ? null : managerId);
-                    
+
                     dto.setFullName(rs.getString("fullName"));
                     dto.setEmail(rs.getString("email"));
                     dto.setUsername(rs.getString("username"));
@@ -214,9 +221,10 @@ public class OvertimeDAO {
         }
         return list;
     }
+
     /**
-     * Kiểm tra nhân viên có đơn OT đã được duyệt trong ngày làm việc cụ thể hay không.
-     * Dùng để quyết định có cộng thêm giờ ngoài 8 tiếng chuẩn hay không.
+     * Kiểm tra nhân viên có đơn OT đã được duyệt trong ngày làm việc cụ thể hay
+     * không. Dùng để quyết định có cộng thêm giờ ngoài 8 tiếng chuẩn hay không.
      */
     public boolean hasApprovedOT(Connection conn, int employeeId, java.sql.Date workDate)
             throws SQLException {
@@ -224,7 +232,7 @@ public class OvertimeDAO {
                 + "JOIN Overtime_Details od ON fr.formId = od.formId "
                 + "JOIN Overtime_Assignees oa ON fr.formId = oa.formId "
                 + "WHERE oa.employeeId = ? "
-                + "  AND fr.status = 1 "
+                + "  AND fr.status IN (1, 4) "
                 + "  AND od.otDate = ? LIMIT 1";
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, employeeId);
@@ -236,7 +244,28 @@ public class OvertimeDAO {
     }
 
     /**
-     * Phiên bản tự mở connection của {@link #hasApprovedOT(Connection, int, java.sql.Date)}.
+     * Lấy formId của đơn OT đã được duyệt (hoặc hoàn thành) của nhân viên trong ngày.
+     */
+    public int getApprovedOTFormId(Connection conn, int employeeId, java.sql.Date workDate) throws SQLException {
+        String sql = "SELECT fr.formId FROM Form_Requests fr "
+                + "JOIN Overtime_Details od ON fr.formId = od.formId "
+                + "JOIN Overtime_Assignees oa ON fr.formId = oa.formId "
+                + "WHERE oa.employeeId = ? "
+                + "  AND fr.status IN (1, 4) "
+                + "  AND od.otDate = ? LIMIT 1";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, employeeId);
+            ps.setDate(2, workDate);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) return rs.getInt("formId");
+                return -1;
+            }
+        }
+    }
+
+    /**
+     * Phiên bản tự mở connection của
+     * {@link #hasApprovedOT(Connection, int, java.sql.Date)}.
      */
     public boolean hasApprovedOT(int employeeId, java.sql.Date workDate) {
         try (Connection conn = dbContext.getConnection()) {
@@ -253,10 +282,12 @@ public class OvertimeDAO {
                      "FROM Form_Requests fr " +
                      "JOIN Overtime_Details od ON fr.formId = od.formId " +
                      "JOIN Overtime_Assignees oa ON fr.formId = oa.formId " +
+                     "LEFT JOIN Attendance a ON a.employeeId = oa.employeeId AND a.workDate = od.otDate " +
                      "WHERE oa.employeeId = ? " +
-                     "AND fr.status = 1 " + 
+                     "AND fr.status IN (1, 4) " + 
                      "AND MONTH(od.otDate) = ? " +
-                     "AND YEAR(od.otDate) = ?";
+                     "AND YEAR(od.otDate) = ? " +
+                     "AND (a.attendanceId IS NULL OR a.hoursWorked > 8.00)";
         try (Connection conn = dbContext.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, employeeId);
             ps.setInt(2, month);

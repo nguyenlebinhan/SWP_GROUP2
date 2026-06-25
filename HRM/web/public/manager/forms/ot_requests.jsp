@@ -33,6 +33,7 @@
             .status-1 { background: #d1fae5; color: #065f46; }
             .status-2 { background: #fee2e2; color: #991b1b; }
             .status-3 { background: #e5e7eb; color: #374151; }
+            .status-4 { background: #dbeafe; color: #1e40af; } /* Blue for completed */
         </style>
     </head>
     <body>
@@ -77,6 +78,7 @@
                             <option value="1" ${statusFilter == '1' ? 'selected' : ''}>Đã duyệt</option>
                             <option value="2" ${statusFilter == '2' ? 'selected' : ''}>Từ chối</option>
                             <option value="3" ${statusFilter == '3' ? 'selected' : ''}>Đã hủy</option>
+                            <option value="4" ${statusFilter == '4' ? 'selected' : ''}>Hoàn thành</option>
                         </select>
                     </div>
                     <div class="col-md-3">

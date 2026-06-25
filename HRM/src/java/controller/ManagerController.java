@@ -1870,7 +1870,7 @@ public class ManagerController extends HttpServlet {
         );
 
         if (statusSuccess || profileSuccess) {
-            request.getSession().setAttribute("success", "Cập nhật nhân viên thành cóng.");
+            request.getSession().setAttribute("success", "Cập nhật nhân viên thành công.");
         } else {
             request.getSession().setAttribute("error", "Cập nhật thất bại hoặc không có thay đổi.");
         }
@@ -1985,7 +1985,7 @@ public class ManagerController extends HttpServlet {
                 if (fr != null && fr.getEmployeeId() == manager.getEmployeeId() && fr.getStatus() == 0) {
                     boolean success = formRequestDAO.updateFormRequest(formId, 3, manager.getEmployeeId(), "Đã hủy bởi người tạo");
                     if (success) {
-                        request.getSession().setAttribute("success", "Đã hủy đơn OT thành cóng.");
+                        request.getSession().setAttribute("success", "Đã hủy đơn OT thành công.");
                     } else {
                         request.getSession().setAttribute("error", "Lỗi khi cập nhật trạng thái hủy đơn. Vui lòng thử lại.");
                     }

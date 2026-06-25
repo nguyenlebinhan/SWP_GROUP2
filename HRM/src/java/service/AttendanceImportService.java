@@ -36,7 +36,10 @@ public class AttendanceImportService {
 
     private static final Time WORK_START = Time.valueOf("08:00:00");
 
-    /** Số giờ làm chuẩn trong một ngày. Khi không có đơn OT được duyệt, giờ công bị giới hạn tối đa ở mức này. */
+    /**
+     * Số giờ làm chuẩn trong một ngày. Khi không có đơn OT được duyệt, giờ công
+     * bị giới hạn tối đa ở mức này.
+     */
     private static final BigDecimal STANDARD_HOURS = new BigDecimal("8.00");
 
     private final DBContext dbContext;
@@ -59,17 +62,26 @@ public class AttendanceImportService {
 
     /**
      * Giới hạn giờ công ở mức 8 tiếng chuẩn nếu nhân viên không có đơn OT được duyệt cho ngày đó.
-     * Nếu có đơn OT được duyệt thì giữ nguyên giờ công thực tế (cho phép vượt 8 tiếng).
+     * Nếu có đơn OT được duyệt (trạng thái 1 hoặc 4) thì giữ nguyên giờ công thực tế (cho phép vượt 8 tiếng),
+     * đồng thời cập nhật trạng thái đơn OT sang 4 (Hoàn thành) nếu chưa phải là 4.
      */
     private BigDecimal capHoursWithoutOT(Connection conn, int employeeId, Date workDate,
             BigDecimal hoursWorked) throws SQLException {
-        if (hoursWorked.compareTo(STANDARD_HOURS) > 0
-                && !overtimeDAO.hasApprovedOT(conn, employeeId, workDate)) {
-            return STANDARD_HOURS;
+        if (hoursWorked.compareTo(STANDARD_HOURS) > 0) {
+            int formId = overtimeDAO.getApprovedOTFormId(conn, employeeId, workDate);
+            if (formId > 0) {
+                // Đã có đơn OT được duyệt, chuyển sang Hoàn thành (4)
+                formRequestDAO.updateFormStatus(conn, formId, 4);
+                return hoursWorked;
+            } else if (overtimeDAO.hasApprovedOT(conn, employeeId, workDate)) {
+                // Đã hoàn thành trước đó (status = 4)
+                return hoursWorked;
+            } else {
+                return STANDARD_HOURS;
+            }
         }
         return hoursWorked;
     }
-
 
     public AttendanceImportResultDTO importAttendance(InputStream in, int departmentId,
             int month, int year, int fileId) {
@@ -260,7 +272,6 @@ public class AttendanceImportService {
         }
     }
 
-
     public AttendanceStatus resolveStatus(int employeeId, Date workDate, Time timeIn, Time timeOut)
             throws SQLException {
         AttendanceStatus base = deriveStatus(timeIn, timeOut);
@@ -268,7 +279,6 @@ public class AttendanceImportService {
             return determineFinalStatus(base, employeeId, workDate, conn);
         }
     }
-
 
     private AttendanceStatus deriveStatus(Time timeIn, Time timeOut) {
         if (timeIn == null || timeOut == null) {
@@ -297,7 +307,7 @@ public class AttendanceImportService {
         return AttendanceStatus.ABSENT;
     }
 
-     private boolean isWeekend(Date workDate) {
+    private boolean isWeekend(Date workDate) {
         DayOfWeek day = workDate.toLocalDate().getDayOfWeek();
         return day == DayOfWeek.SATURDAY || day == DayOfWeek.SUNDAY;
     }

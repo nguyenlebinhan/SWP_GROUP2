@@ -25,6 +25,7 @@
         .status-1 { background: #d1fae5; color: #065f46; }
         .status-2 { background: #fee2e2; color: #991b1b; }
         .status-3 { background: #e5e7eb; color: #374151; }
+        .status-4 { background: #dbeafe; color: #1e40af; }
         .reason-cell { max-width: 260px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     </style>
 </head>
