@@ -969,10 +969,16 @@ public class EmployeeController extends HttpServlet {
             return;
         }
 
+        // Giữ NGUYÊN giờ thực (timeIn/timeOut) để lưu và hiển thị.
+        // Riêng phần tính toán (trạng thái, số giờ làm) thì dùng bản đã chuẩn hóa
+        // theo block 30 phút: giờ vào làm tròn LÊN, giờ ra làm tròn XUỐNG.
+        Time calcTimeIn = utils.WorkHoursCalculator.ceilToBlock(timeIn);
+        Time calcTimeOut = utils.WorkHoursCalculator.floorToBlock(timeOut);
+
         int status;
         try {
             status = importService.resolveStatus(attendance.getEmployeeId(),
-                    attendance.getWorkDate(), timeIn, timeOut).getRelatedNum();
+                    attendance.getWorkDate(), calcTimeIn, calcTimeOut).getRelatedNum();
         } catch (SQLException e) {
             request.getSession().setAttribute("error", "Lỗi hệ thống khi xác định trạng thái chấm công.");
             response.sendRedirect(redirectUrl);
@@ -980,8 +986,8 @@ public class EmployeeController extends HttpServlet {
         }
 
         BigDecimal hoursWorked;
-        if (timeIn != null && timeOut != null && (status == 0 || status == 1)) {
-            hoursWorked = utils.WorkHoursCalculator.hoursWorked(timeIn, timeOut);
+        if (calcTimeIn != null && calcTimeOut != null && (status == 0 || status == 1)) {
+            hoursWorked = utils.WorkHoursCalculator.hoursWorked(calcTimeIn, calcTimeOut);
             // Không có đơn OT được duyệt cho ngày này thì giới hạn giờ công ở 8 tiếng chuẩn,
             // dù nhân viên đến sớm hơn hay về muộn hơn.
             BigDecimal standardHours = new BigDecimal("8.00");
