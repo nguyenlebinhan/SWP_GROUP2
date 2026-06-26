@@ -753,6 +753,14 @@ public class EmploymentContractDAO {
             contract.setEmployeeCode(rs.getString("employeeCode"));
         } catch (SQLException ignored) {
         }
+        try {
+            contract.setDepartmentName(rs.getString("departmentName"));
+        } catch (SQLException ignored) {
+        }
+        try {
+            contract.setPositionName(rs.getString("positionName"));
+        } catch (SQLException ignored) {
+        }
         contract.setCreatedBy(rs.getInt("createdBy"));
         try {
             contract.setCreatedByName(rs.getString("createdByName"));
@@ -761,6 +769,40 @@ public class EmploymentContractDAO {
         contract.setCreatedAt(rs.getDate("createdAt"));
         contract.setUpdatedAt(rs.getDate("updatedAt"));
         return contract;
+    }
+
+    /**
+     * Get all ACTIVE contracts with employee details (department, position) for list display.
+     * Used by the Terminate Contract flow to show only terminable contracts.
+     */
+    public List<EmploymentContract> getActiveContracts() {
+        List<EmploymentContract> contracts = new ArrayList<>();
+        String SQL = "SELECT ec.*, u.fullName, e.employeeCode, d.departmentName, p.positionName "
+                + "FROM Employment_Contracts ec "
+                + "JOIN Employees e ON ec.employeeId = e.employeeId "
+                + "JOIN Users u ON u.userId = e.userId "
+                + "LEFT JOIN Departments d ON e.departmentId = d.departmentId "
+                + "LEFT JOIN Positions p ON e.positionId = p.positionId "
+                + "WHERE ec.status = ? "
+                + "ORDER BY ec.updatedAt DESC, ec.contractId DESC";
+        try (Connection conn = dbContext.getConnection(); PreparedStatement ps = conn.prepareStatement(SQL)) {
+            ps.setString(1, ContractStatus.ACTIVE.name());
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    EmploymentContract contract = mapContract(rs);
+                    try {
+                        contract.setDepartmentName(rs.getString("departmentName"));
+                    } catch (SQLException ignored) {}
+                    try {
+                        contract.setPositionName(rs.getString("positionName"));
+                    } catch (SQLException ignored) {}
+                    contracts.add(contract);
+                }
+            }
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Cannot retrieve active contracts for termination", e);
+        }
+        return contracts;
     }
 
     public List<EmploymentContract> getPendingContracts() throws SQLException {

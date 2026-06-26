@@ -21,6 +21,8 @@ public class EmploymentContract {
     private String rejectionReason;
     private String employeeFullName;
     private String employeeCode;
+    private String departmentName;
+    private String positionName;
     private int createdBy;
     private String createdByName;
     private Date createdAt;
@@ -173,6 +175,22 @@ public class EmploymentContract {
 
     public void setEmployeeCode(String employeeCode) {
         this.employeeCode = employeeCode;
+    }
+
+    public String getDepartmentName() {
+        return departmentName;
+    }
+
+    public void setDepartmentName(String departmentName) {
+        this.departmentName = departmentName;
+    }
+
+    public String getPositionName() {
+        return positionName;
+    }
+
+    public void setPositionName(String positionName) {
+        this.positionName = positionName;
     }
 
     public int getCreatedBy() {

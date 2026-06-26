@@ -133,6 +133,9 @@ public class ManagerController extends HttpServlet {
             case "/contract/detail":
                 displayContractDetail(request, response, user);
                 break;
+            case "/contract/terminate":
+                displayTerminateContractList(request, response, user);
+                break;
             case "/department/employee-detail":
                 displayEmployeeDepartmentDetail(request, response, user);
                 break;
@@ -981,6 +984,54 @@ public class ManagerController extends HttpServlet {
         request.getRequestDispatcher("/public/manager/contract/contract_preview.jsp").forward(request, response);
     }
 
+    /**
+     * GET /contract/terminate — List all ACTIVE contracts for termination.
+     */
+    private void displayTerminateContractList(HttpServletRequest request, HttpServletResponse response,
+            User user) throws ServletException, IOException {
+        if (!isHrManager(user) || !hasPermission(user, "TERMINATE_CONTRACT")) {
+            request.getSession().setAttribute("error", "Bạn không có quyền chấm dứt hợp đồng.");
+            response.sendRedirect(request.getContextPath() + "/v1/manager/dashboard");
+            return;
+        }
+
+        Set<String> perms = getPermissions(user);
+        request.getSession().setAttribute("userPermissions", perms);
+
+        // Check if specific contract selected (redirect to form)
+        String contractIdParam = trimToNull(request.getParameter("id"));
+        if (contractIdParam != null) {
+            try {
+                int contractId = Integer.parseInt(contractIdParam);
+                EmploymentContract contract = contractDAO.getContractById(contractId);
+                if (contract == null) {
+                    request.getSession().setAttribute("error", "Không tìm thấy hợp đồng.");
+                } else if (contract.getStatus() != ContractStatus.ACTIVE) {
+                    request.getSession().setAttribute("error", "Chỉ có thể chấm dứt hợp đồng đang hiệu lực.");
+                } else {
+                    // Valid - forward to form page
+                    EmployeeDetailDTO employee = employeeDAO.getEmployeeById(contract.getEmployeeId());
+                    request.setAttribute("contract", contract);
+                    request.setAttribute("employee", employee);
+                    setPermissionFlags(request, perms);
+                    request.getRequestDispatcher("/public/manager/contract/terminate_contract.jsp").forward(request, response);
+                    return;
+                }
+            } catch (NumberFormatException e) {
+                request.getSession().setAttribute("error", "Mã hợp đồng không hợp lệ.");
+            }
+            // Any error - redirect back to list
+            response.sendRedirect(request.getContextPath() + "/v1/manager/contract/terminate");
+            return;
+        }
+
+        // List mode - show all ACTIVE contracts
+        List<EmploymentContract> activeContracts = contractDAO.getActiveContracts();
+        request.setAttribute("contracts", activeContracts);
+        setPermissionFlags(request, perms);
+        request.getRequestDispatcher("/public/manager/contract/terminate_contract_list.jsp").forward(request, response);
+    }
+
     private void displayEmployeeDepartmentDetail(HttpServletRequest request, HttpServletResponse response,
             User user) throws ServletException, IOException {
 
@@ -1132,29 +1183,110 @@ public class ManagerController extends HttpServlet {
     }
 
     private void handleTerminateContract(HttpServletRequest request, HttpServletResponse response,
-            User user) throws IOException {
+            User user) throws ServletException, IOException {
         if (!isHrManager(user) || !hasPermission(user, "TERMINATE_CONTRACT")) {
             request.getSession().setAttribute("error", "Bạn không có quyền chấm dứt hợp đồng.");
             response.sendRedirect(request.getContextPath() + "/v1/manager/dashboard");
             return;
         }
+
         Integer contractId = parseIntOrNull(request.getParameter("contractId"));
         if (contractId == null) {
             request.getSession().setAttribute("error", "Mã hợp đồng không hợp lệ.");
-            response.sendRedirect(request.getContextPath() + "/v1/manager/contract/history");
+            response.sendRedirect(request.getContextPath() + "/v1/manager/contract/terminate");
             return;
         }
+
         EmploymentContract contract = contractDAO.getContractById(contractId);
-        boolean terminated = contract != null
-                && contract.getStatus() == ContractStatus.ACTIVE
-                && contractDAO.updateContractStatus(
-                        contractId,
-                        ContractStatus.TERMINATED,
-                        java.sql.Date.valueOf(LocalDate.now()),
-                        trimToNull(request.getParameter("note"))
-                );
-        request.getSession().setAttribute(terminated ? "success" : "error",
-                terminated ? "�� ch?m d?t h?p d?ng." : "Ch?m d?t h?p d?ng th?t b?i.");
+        if (contract == null) {
+            request.getSession().setAttribute("error", "Không tìm thấy hợp đồng.");
+            response.sendRedirect(request.getContextPath() + "/v1/manager/contract/terminate");
+            return;
+        }
+
+        // Status guard with specific messages
+        if (contract.getStatus() == ContractStatus.TERMINATED) {
+            request.getSession().setAttribute("error", "Hợp đồng này đã được chấm dứt trước đó.");
+            response.sendRedirect(request.getContextPath() + "/v1/manager/contract/detail?contractId=" + contractId);
+            return;
+        }
+        if (contract.getStatus() == ContractStatus.EXPIRED) {
+            request.getSession().setAttribute("error", "Hợp đồng này đã hết hạn.");
+            response.sendRedirect(request.getContextPath() + "/v1/manager/contract/detail?contractId=" + contractId);
+            return;
+        }
+        if (contract.getStatus() == ContractStatus.CANCELLED) {
+            request.getSession().setAttribute("error", "Hợp đồng này đã bị hủy.");
+            response.sendRedirect(request.getContextPath() + "/v1/manager/contract/detail?contractId=" + contractId);
+            return;
+        }
+        if (contract.getStatus() == ContractStatus.PENDING_APPROVAL
+                || contract.getStatus() == ContractStatus.PENDING_ACTIVATION
+                || contract.getStatus() == ContractStatus.DRAFT) {
+            request.getSession().setAttribute("error", "Chỉ có thể chấm dứt hợp đồng đang hiệu lực.");
+            response.sendRedirect(request.getContextPath() + "/v1/manager/contract/detail?contractId=" + contractId);
+            return;
+        }
+        if (contract.getStatus() != ContractStatus.ACTIVE) {
+            request.getSession().setAttribute("error", "Chỉ có thể chấm dứt hợp đồng đang hiệu lực.");
+            response.sendRedirect(request.getContextPath() + "/v1/manager/contract/detail?contractId=" + contractId);
+            return;
+        }
+
+        // Read form fields
+        String terminationDateStr = trimToNull(request.getParameter("terminationDate"));
+        String terminationReason = trimToNull(request.getParameter("terminationReason"));
+        Set<String> perms = getPermissions(user);
+        request.getSession().setAttribute("userPermissions", perms);
+
+        // Validation
+        String error = null;
+        java.sql.Date terminationDate = null;
+
+        if (terminationDateStr == null) {
+            error = "Ngày chấm dứt không được để trống.";
+        } else {
+            try {
+                terminationDate = java.sql.Date.valueOf(terminationDateStr);
+            } catch (IllegalArgumentException e) {
+                error = "Ngày chấm dứt không hợp lệ.";
+            }
+        }
+
+        // Date business rules
+        if (terminationDate != null && error == null) {
+            if (terminationDate.before(contract.getEffectiveDate())) {
+                error = "Ngày chấm dứt không được trước ngày hiệu lực ("
+                        + new java.text.SimpleDateFormat("dd/MM/yyyy").format(contract.getEffectiveDate()) + ").";
+            } else if (contract.getEndDate() != null && terminationDate.after(contract.getEndDate())) {
+                error = "Ngày chấm dứt không được sau ngày kết thúc hợp đồng ("
+                        + new java.text.SimpleDateFormat("dd/MM/yyyy").format(contract.getEndDate()) + ").";
+            } else if (terminationDate.after(java.sql.Date.valueOf(LocalDate.now()))) {
+                error = "Ngày chấm dứt không được sau ngày hiện tại.";
+            }
+        }
+
+        if (terminationReason == null) {
+            error = (error == null) ? "Lý do chấm dứt không được để trống." : error + " Lý do chấm dứt không được để trống.";
+        }
+
+        // On validation error, forward back to form
+        if (error != null) {
+            request.setAttribute("error", error);
+            request.setAttribute("contract", contract);
+            request.setAttribute("employee", employeeDAO.getEmployeeById(contract.getEmployeeId()));
+            request.setAttribute("terminationDate", terminationDateStr);
+            request.setAttribute("terminationReason", terminationReason);
+            setPermissionFlags(request, perms);
+            request.getRequestDispatcher("/public/manager/contract/terminate_contract.jsp").forward(request, response);
+            return;
+        }
+
+        // Execute via Service layer (transactional: update + audit)
+        ContractOperationResult result = contractService.terminateContract(
+                contractId, terminationDate, terminationReason, user.getUserId());
+
+        request.getSession().setAttribute(result.isSuccess() ? "success" : "error", result.getMessage());
         response.sendRedirect(request.getContextPath() + "/v1/manager/contract/detail?contractId=" + contractId);
     }
 

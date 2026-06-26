@@ -231,6 +231,132 @@ public class EmploymentContractService {
      * Reject a PENDING_APPROVAL contract, transitioning to CANCELLED.
      * Includes audit log entry in the same transaction.
      */
+    // =========================================================================
+    // [HR FLOW] - TERMINATION / STATUS TRANSITION WITH AUDIT
+    // =========================================================================
+
+    /**
+     * Change contract status with full audit trail in a single transaction.
+     * Generic method used by Terminate, Approve, Reject, Expire flows.
+     *
+     * Business validation must be performed by the caller before invocation.
+     * This method only persists the transition and audit log atomically.
+     *
+     * @param contractId  The contract to update
+     * @param newStatus   Target status
+     * @param actualEndDate Actual end date (for termination/expiration)
+     * @param reason      Status change reason (stored in audit log)
+     * @param userId      User performing the action (0 = system)
+     * @return ContractOperationResult with success/failure details
+     */
+    public ContractOperationResult updateContractStatusWithAudit(int contractId,
+            ContractStatus newStatus, java.sql.Date actualEndDate,
+            String reason, int userId) {
+        Connection conn = null;
+        try {
+            conn = dbContext.getConnection();
+            conn.setAutoCommit(false);
+
+            EmploymentContract contract = contractDAO.getContractById(conn, contractId);
+            if (contract == null) {
+                conn.rollback();
+                return new ContractOperationResult(false, "NOT_FOUND", "Không tìm thấy hợp đồng.");
+            }
+
+            String oldStatus = contract.getStatus().name();
+            String newStatusStr = newStatus.name();
+            String auditReason = "Hợp đồng chuyển từ " + oldStatus + " sang " + newStatusStr
+                    + ". " + (reason != null ? reason : "");
+
+            // Update status with termination details
+            boolean updated = contractDAO.updateContractStatus(conn, contractId,
+                    newStatus, actualEndDate, reason);
+
+            if (!updated) {
+                conn.rollback();
+                return new ContractOperationResult(false,
+                        ContractOperationResult.SQL_ERROR,
+                        "Không thể cập nhật trạng thái hợp đồng.");
+            }
+
+            // Audit log (same connection = same transaction)
+            contractDAO.insertAuditLog(conn, contractId, oldStatus, newStatusStr,
+                    userId, auditReason);
+
+            conn.commit();
+            return new ContractOperationResult(true, null,
+                    "Cập nhật trạng thái hợp đồng thành công.");
+
+        } catch (SQLException e) {
+            if (conn != null) try { conn.rollback(); } catch (SQLException ex) {}
+            LOGGER.log(Level.SEVERE,
+                    "Database error during status transition for contract " + contractId, e);
+            return new ContractOperationResult(false,
+                    ContractOperationResult.SYSTEM_ERROR,
+                    "Lỗi hệ thống: " + e.getMessage());
+        } finally {
+            if (conn != null) try { conn.close(); } catch (SQLException ex) {}
+        }
+    }
+
+    /**
+     * Convenience: Terminate an ACTIVE contract with full validation + audit.
+     */
+    public ContractOperationResult terminateContract(int contractId,
+            java.sql.Date terminationDate, String reason, int userId) {
+        Connection conn = null;
+        try {
+            conn = dbContext.getConnection();
+            conn.setAutoCommit(false);
+
+            EmploymentContract contract = contractDAO.getContractById(conn, contractId);
+            if (contract == null) {
+                conn.rollback();
+                return new ContractOperationResult(false, "NOT_FOUND", "Không tìm thấy hợp đồng.");
+            }
+
+            // Guard: must be ACTIVE
+            if (contract.getStatus() != ContractStatus.ACTIVE) {
+                conn.rollback();
+                return new ContractOperationResult(false,
+                        ContractOperationResult.INVALID_STATUS,
+                        "Chỉ có thể chấm dứt hợp đồng đang hiệu lực.");
+            }
+
+            String oldStatus = contract.getStatus().name();
+            String newStatus = ContractStatus.TERMINATED.name();
+            String auditReason = "Chấm dứt hợp đồng. Lý do: "
+                    + (reason != null ? reason : "");
+
+            boolean updated = contractDAO.updateContractStatus(conn, contractId,
+                    ContractStatus.TERMINATED, terminationDate, reason);
+
+            if (!updated) {
+                conn.rollback();
+                return new ContractOperationResult(false,
+                        ContractOperationResult.SQL_ERROR,
+                        "Không thể chấm dứt hợp đồng.");
+            }
+
+            contractDAO.insertAuditLog(conn, contractId,
+                    oldStatus, newStatus, userId, auditReason);
+
+            conn.commit();
+            return new ContractOperationResult(true, null,
+                    "Đã chấm dứt hợp đồng thành công.");
+
+        } catch (SQLException e) {
+            if (conn != null) try { conn.rollback(); } catch (SQLException ex) {}
+            LOGGER.log(Level.SEVERE,
+                    "Database error during contract termination: " + contractId, e);
+            return new ContractOperationResult(false,
+                    ContractOperationResult.SYSTEM_ERROR,
+                    "Lỗi hệ thống khi chấm dứt hợp đồng: " + e.getMessage());
+        } finally {
+            if (conn != null) try { conn.close(); } catch (SQLException ex) {}
+        }
+    }
+
     public ContractOperationResult rejectContract(int contractId, int userId, String reason) {
         Connection conn = null;
         try {

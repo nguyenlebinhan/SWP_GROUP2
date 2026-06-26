@@ -137,7 +137,13 @@
             Hợp đồng chờ duyệt
         </a>
     </c:if>
-
+    
+    <c:if test="${sessionScope.userPermissions.contains('TERMINATE_CONTRACT')}">
+        <a href="${pageContext.request.contextPath}/v1/manager/contract/terminate">
+            Chấm dứt hợp đồng sớm
+        </a>
+    
+    </c:if>
     <c:if test="${sessionScope.userPermissions.contains('VIEW_OWN_CONTRACT')}">
         <a href="${pageContext.request.contextPath}/v1/manager/contract/history?scope=own">
             Lịch sử hợp đồng của bản thân
