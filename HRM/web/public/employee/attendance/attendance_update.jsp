@@ -105,7 +105,7 @@
                     </button>
                 </c:if>
                 <a href="${backUrl}" class="btn btn-secondary">
-                    <i class="fa-solid fa-arrow-left me-1"></i> Quay lại chi tiết
+                    <i class="fa-solid fa-arrow-left me-1"></i> Quay lại danh sách
                 </a>
             </div>
         </form>

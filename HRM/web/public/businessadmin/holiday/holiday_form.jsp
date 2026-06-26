@@ -13,7 +13,7 @@
         .section-card {
             background: white; border-radius: 14px;
             box-shadow: 0 2px 12px rgba(0,0,0,0.07);
-            padding: 24px; margin-bottom: 24px;
+            padding: 24px; margin-bottom: 24px; max-width: 720px;
         }
         .btn-primary-x { background:#1565C0; border:none; border-radius:8px; font-weight:600; }
         .btn-primary-x:hover { background:#0d47a1; }
@@ -29,7 +29,7 @@
     </jsp:include>
 
     <c:if test="${not empty error}">
-        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <div class="alert alert-danger alert-dismissible fade show" role="alert" style="max-width:720px;">
             <i class="fa-solid fa-circle-xmark me-2"></i>${error}
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
@@ -74,13 +74,11 @@
             <div class="form-text">Ngày lễ kéo dài nhiều ngày chỉ cần một dòng (chọn Từ ngày → Đến ngày).</div>
 
             <div class="mt-4 d-flex gap-2">
-                <button type="submit" id="holidaySubmitBtn"
-                        style="background:#1565C0;color:#fff;border:none;border-radius:8px;font-weight:600;padding:8px 24px;cursor:pointer;">
-                    Lưu
+                <button type="submit" class="btn btn-primary-x text-white px-4">
+                    <i class="fa-solid fa-floppy-disk me-1"></i> Lưu
                 </button>
-                <a href="${pageContext.request.contextPath}/v1/businessadmin/holiday"
-                   style="background:#6c757d;color:#fff;border:none;border-radius:8px;font-weight:600;padding:8px 24px;text-decoration:none;">
-                    Quay lại
+                <a href="${pageContext.request.contextPath}/v1/businessadmin/holiday" class="btn btn-secondary">
+                    <i class="fa-solid fa-arrow-left me-1"></i> Quay lại
                 </a>
             </div>
         </form>

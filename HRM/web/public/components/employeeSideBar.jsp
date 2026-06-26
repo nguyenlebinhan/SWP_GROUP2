@@ -50,29 +50,52 @@
         background: #1565C0;
         color: white;
     }
+
+    .emp-sidebar a i {
+        width: 18px;
+        text-align: center;
+        font-size: 14px;
+    }
 </style>
 
 <div class="emp-sidebar">
-    <div class="brand">HRM System</div>
+    <div class="brand">
+        HRM System
+    </div>
 
     <div class="nav-section">Tổng quan</div>
-    <a href="${pageContext.request.contextPath}/v1/employee/dashboard">Dashboard</a>
+    <a href="${pageContext.request.contextPath}/v1/employee/dashboard">
+        Dashboard
+    </a>
 
     <c:if test="${sessionScope.userPermissions.contains('VIEW_EMPLOYEES')}">
         <div class="nav-section">Nhân viên</div>
-        <a href="${pageContext.request.contextPath}/v1/employee/employee_info/list">Danh sách nhân viên</a>
+        <a href="${pageContext.request.contextPath}/v1/employee/employee-list">
+            Danh sách nhân viên
+        </a>
     </c:if>
 
-    <c:if test="${sessionScope.userPermissions.contains('VIEW_DEPARTMENTS')}">
-        <div class="nav-section">Phòng ban</div>
-        <a href="${pageContext.request.contextPath}/v1/employee/department/list">Danh sách phòng ban</a>
-    </c:if>
+    <div class="nav-section">Phòng ban</div>
+    <a href="${pageContext.request.contextPath}/v1/employee/department/list">
+        Danh sách phòng ban
+    </a>
 
     <div class="nav-section">Đơn từ</div>
     <c:if test="${sessionScope.userPermissions.contains('VIEW_ALL_FORMS')}">
-        <a href="${pageContext.request.contextPath}/v1/employee/forms/all">Tất cả đơn</a>
+        <a href="${pageContext.request.contextPath}/v1/employee/forms/all">
+            Tất cả đơn
+        </a>
     </c:if>
-    <a href="${pageContext.request.contextPath}/v1/employee/forms/my-forms">Đơn của tôi</a>
+    <a href="${pageContext.request.contextPath}/v1/employee/forms/my-forms">
+        Đơn của tôi
+    </a>
+
+    <c:if test="${sessionScope.userPermissions.contains('PROCESS_RECRUITMENT')}">
+        <div class="nav-section">Tuyển dụng</div>
+        <a href="${pageContext.request.contextPath}/v1/employee/recruitment-list">
+            Danh sách ứng viên
+        </a>
+    </c:if>
 
     <c:if test="${sessionScope.userPermissions.contains('VIEW_OWN_CONTRACT')}">
         <div class="nav-section">Hợp đồng</div>
@@ -81,13 +104,25 @@
     </c:if>
 
     <div class="nav-section">Chấm công</div>
-    <a href="${pageContext.request.contextPath}/v1/employee/attendance/own-attendance">Chấm công của tôi</a>
     <c:if test="${sessionScope.userPermissions.contains('VIEW_ALL_ATTENDANCE')}">
-        <a href="${pageContext.request.contextPath}/v1/employee/attendance/overview">Tổng quan chấm công</a>
+        <a href="${pageContext.request.contextPath}/v1/employee/attendance/overview">
+            Tổng quan chấm công
+        </a>
     </c:if>
+    <c:if test="${sessionScope.userPermissions.contains('VIEW_ATTENDANCE')}">
+        <a href="${pageContext.request.contextPath}/v1/employee/attendance/list">
+            Xem chấm công
+        </a>
+    </c:if>
+    <a href="${pageContext.request.contextPath}/v1/employee/attendance/own-attendance">
+        Chấm công của tôi
+    </a>
 
-    <c:if test="${sessionScope.userPermissions.contains('PROCESS_RECRUITMENT')}">
-        <div class="nav-section">Tuyển dụng</div>
-        <a href="${pageContext.request.contextPath}/v1/employee/recruitment-list">Danh sách ứng viên</a>
+    <c:if test="${sessionScope.userPermissions.contains('VIEW_ALL_SALARY')}">
+        <div class="nav-section">Lương</div>
+        <a href="${pageContext.request.contextPath}/v1/employee/salary/all"
+           class="${pageContext.request.servletPath == '/public/employee/salary/salary_list.jsp' ? 'active' : ''}">
+            Xem bảng lương
+        </a>
     </c:if>
 </div>
