@@ -70,7 +70,7 @@
                 <div class="text-muted">${sm.departmentName} &middot; ${sm.positionName} &middot; Tháng ${selectedMonth}/${selectedYear}</div>
             </div>
             <div class="d-flex gap-2 flex-wrap">
-                <span class="hdr-chip">Giờ làm: ${sm.workedHoursRounded}h / ${sm.standardHours}h</span>
+                <span class="hdr-chip">Giờ làm: ${sm.workedHoursDisplay}h / ${sm.standardHours}h</span>
                 <span class="hdr-chip">Tỷ lệ: ${sm.attendanceRate}%</span>
             </div>
         </div>
@@ -168,8 +168,6 @@
         return Math.floor(m / 60) + 'h' + ('0' + (m % 60)).slice(-2) + 'm';
     }
 
-    // Không có đơn OT thì giới hạn hiển thị tối đa 8 tiếng, dù đi sớm/về muộn.
-    // Nếu làm dưới 8 tiếng thì giữ nguyên giờ thực tế.
     function displayHours(rec, isOtDay) {
         var m = rec.mins;
         if (!(rec.isOT || isOtDay)) m = Math.min(m, STANDARD_MINS);
@@ -205,10 +203,13 @@
             var isOtDay = otDays.includes(day);
             var html = '<div class="d">' + day + '</div>';
             if (rec) {
-                if (rec.timeIn && rec.timeIn.length === 5 && rec.timeIn !== '00:00') {
+                var hasIn  = rec.timeIn  && rec.timeIn.length  === 5 && rec.timeIn  !== '00:00';
+                var hasOut = rec.timeOut && rec.timeOut.length === 5 && rec.timeOut !== '00:00';
+
+                if (hasIn || hasOut) {
                     var hoursStr = displayHours(rec, isOtDay);
-                    html += '<div class="tm">' + rec.timeIn
-                          + (rec.timeOut && rec.timeOut.length === 5 ? ' - ' + rec.timeOut : '')
+                    html += '<div class="tm">' + (hasIn ? rec.timeIn : 'NA')
+                          + ' - ' + (hasOut ? rec.timeOut : 'NA')
                           + (hoursStr ? '<br>' + hoursStr : '') + '</div>';
                 }
                 html += '<div class="st cl' + rec.status + '">' + rec.label + '</div>';

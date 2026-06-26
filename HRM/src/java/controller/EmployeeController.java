@@ -449,6 +449,9 @@ public class EmployeeController extends HttpServlet {
                 case 6:
                     summary.setWeekendDays(summary.getWeekendDays() + 1);
                     break;
+                case 7:
+                    summary.setMissingCheckDays(summary.getMissingCheckDays() + 1);
+                    break;
                 default:
                     break;
             }
