@@ -70,7 +70,7 @@
 
     <c:if test="${sessionScope.userPermissions.contains('VIEW_EMPLOYEES')}">
         <div class="nav-section">Nhân viên</div>
-        <a href="${pageContext.request.contextPath}/v1/employee/employee-list">
+        <a href="${pageContext.request.contextPath}/v1/employee/employee_info/list">
             Danh sách nhân viên
         </a>
     </c:if>
@@ -95,12 +95,6 @@
         <a href="${pageContext.request.contextPath}/v1/employee/recruitment-list">
             Danh sách ứng viên
         </a>
-    </c:if>
-
-    <c:if test="${sessionScope.userPermissions.contains('VIEW_OWN_CONTRACT')}">
-        <div class="nav-section">Hợp đồng</div>
-        <a href="${pageContext.request.contextPath}/v1/employee/contract/current">Hợp đồng hiện tại</a>
-        <a href="${pageContext.request.contextPath}/v1/employee/contract/history">Lịch sử hợp đồng</a>
     </c:if>
 
     <div class="nav-section">Chấm công</div>

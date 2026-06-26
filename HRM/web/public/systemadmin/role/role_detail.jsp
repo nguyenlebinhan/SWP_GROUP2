@@ -263,9 +263,6 @@
             </div>
         </c:when>
         <c:otherwise>
-            <c:set var="isSystemAdmin" value="${selectedRole.roleCode == 'SA'}"/>
-            <c:set var="isBusinessAdmin" value="${selectedRole.roleCode == 'BA'}"/>
-            <c:set var="isSpecialRole" value="${isSystemAdmin || isBusinessAdmin}"/>
             <div class="row g-4">
                 <div class="col-lg-3 col-md-4">
                     <div class="role-card">
@@ -277,10 +274,10 @@
                         <div>
                             <c:choose>
                                 <c:when test="${selectedRole.isActive == 1}">
-                                    <span class="badge-active"><i class="fa fa-circle-check me-1"></i>Hoạt động</span>
+                                    <span class="badge-active"></i>Hoạt động</span>
                                 </c:when>
                                 <c:otherwise>
-                                    <span class="badge-inactive"><i class="fa fa-circle-xmark me-1"></i>Vô hiệu</span>
+                                    <span class="badge-inactive"></i>Vô hiệu</span>
                                 </c:otherwise>
                             </c:choose>
                         </div>
@@ -315,12 +312,10 @@
                                         <span style="color:#6366f1;font-weight:700">${assignedCount}</span>
                                         / ${allPermissions.size()} quyền được gán
                                     </span>
-                                    <c:if test="${!isSpecialRole}">
-                                        <a href="${pageContext.request.contextPath}/v1/systemadmin/edit-role-permissions?id=${selectedRole.roleId}"
-                                           class="btn-edit-role" style="height:34px;padding:0 14px;font-size:13px">
-                                            <i class="fa fa-pen-to-square"></i> Phân quyền
-                                        </a>
-                                    </c:if>
+                                    <a href="${pageContext.request.contextPath}/v1/systemadmin/edit-role-permissions?id=${selectedRole.roleId}"
+                                       class="btn-edit-role" style="height:34px;padding:0 14px;font-size:13px">
+                                         Phân quyền
+                                    </a>
                                 </div>
                             </div>
 
@@ -328,139 +323,104 @@
                                 <div class="muted">Chưa có quyền nào trong hệ thống.</div>
                             </c:if>
 
-                            <c:if test="${isSystemAdmin || !isSpecialRole}">
-                                <div class="perm-group-title"><i class="fa fa-user"></i> Người dùng</div>
-                                <div class="row g-2 mb-1">
-                                    <c:forEach var="p" items="${allPermissions}">
-                                        <c:if test="${p.permissionCode == 'VIEW_USERS' || p.permissionCode == 'ADD_USER' || p.permissionCode == 'EDIT_USER' || p.permissionCode == 'DELETE_USER'}">
-                                            <div class="col-md-3">
-                                                <div class="perm-tile ${assignedPermissionIds.contains(p.permissionId) ? 'assigned' : ''}">
-                                                    <div class="perm-tile-name">
-                                                        <c:choose>
-                                                            <c:when test="${assignedPermissionIds.contains(p.permissionId)}">
-                                                                <i class="fa fa-circle-check perm-check"></i>
-                                                            </c:when>
-                                                            <c:otherwise>
-                                                                <i class="fa fa-circle perm-uncheck"></i>
-                                                            </c:otherwise>
-                                                        </c:choose>
-                                                        <c:out value="${p.permissionName}"/>
-                                                    </div>
-                                                    <span class="perm-tile-code"><c:out value="${p.permissionCode}"/></span>
-                                                    <div class="perm-tile-desc"><c:out value="${empty p.description ? '—' : p.description}"/></div>
+                            <div class="perm-group-title"><i class="fa fa-user"></i> Người dùng</div>
+                            <div class="row g-2 mb-1">
+                                <c:forEach var="p" items="${allPermissions}">
+                                    <c:if test="${p.permissionCode == 'VIEW_USERS' || p.permissionCode == 'ADD_USER' || p.permissionCode == 'EDIT_USER' || p.permissionCode == 'DELETE_USER'}">
+                                        <div class="col-md-3">
+                                            <div class="perm-tile ${assignedPermissionIds.contains(p.permissionId) ? 'assigned' : ''}">
+                                                <div class="perm-tile-name">
+                                                    <c:choose>
+                                                        <c:when test="${assignedPermissionIds.contains(p.permissionId)}">
+                                                            <i class="fa fa-circle-check perm-check"></i>
+                                                        </c:when>
+                                                        <c:otherwise>
+                                                            <i class="fa fa-circle perm-uncheck"></i>
+                                                        </c:otherwise>
+                                                    </c:choose>
+                                                    <c:out value="${p.permissionName}"/>
                                                 </div>
+                                                <span class="perm-tile-code"><c:out value="${p.permissionCode}"/></span>
+                                                <div class="perm-tile-desc"><c:out value="${empty p.description ? '—' : p.description}"/></div>
                                             </div>
-                                        </c:if>
-                                    </c:forEach>
-                                </div>
-                            </c:if>
+                                        </div>
+                                    </c:if>
+                                </c:forEach>
+                            </div>
 
-                            <c:if test="${isSystemAdmin || !isSpecialRole}">
-                                <div class="perm-group-title"><i class="fa fa-shield-halved"></i> Vai trò &amp; Phân quyền</div>
-                                <div class="row g-2 mb-1">
-                                    <c:forEach var="p" items="${allPermissions}">
-                                        <c:if test="${p.permissionCode == 'VIEW_ROLES' || p.permissionCode == 'ADD_ROLE' || p.permissionCode == 'EDIT_ROLE' || p.permissionCode == 'DELETE_ROLE' || p.permissionCode == 'MANAGE_PERMISSIONS'}">
-                                            <div class="col-md-3">
-                                                <div class="perm-tile ${assignedPermissionIds.contains(p.permissionId) ? 'assigned' : ''}">
-                                                    <div class="perm-tile-name">
-                                                        <c:choose>
-                                                            <c:when test="${assignedPermissionIds.contains(p.permissionId)}">
-                                                                <i class="fa fa-circle-check perm-check"></i>
-                                                            </c:when>
-                                                            <c:otherwise>
-                                                                <i class="fa fa-circle perm-uncheck"></i>
-                                                            </c:otherwise>
-                                                        </c:choose>
-                                                        <c:out value="${p.permissionName}"/>
-                                                    </div>
-                                                    <span class="perm-tile-code"><c:out value="${p.permissionCode}"/></span>
-                                                    <div class="perm-tile-desc"><c:out value="${empty p.description ? '—' : p.description}"/></div>
+                            <div class="perm-group-title"><i class="fa fa-shield-halved"></i> Vai trò &amp; Phân quyền</div>
+                            <div class="row g-2 mb-1">
+                                <c:forEach var="p" items="${allPermissions}">
+                                    <c:if test="${p.permissionCode == 'VIEW_ROLES' || p.permissionCode == 'ADD_ROLE' || p.permissionCode == 'EDIT_ROLE' || p.permissionCode == 'DELETE_ROLE' || p.permissionCode == 'MANAGE_PERMISSIONS'}">
+                                        <div class="col-md-3">
+                                            <div class="perm-tile ${assignedPermissionIds.contains(p.permissionId) ? 'assigned' : ''}">
+                                                <div class="perm-tile-name">
+                                                    <c:choose>
+                                                        <c:when test="${assignedPermissionIds.contains(p.permissionId)}">
+                                                            <i class="fa fa-circle-check perm-check"></i>
+                                                        </c:when>
+                                                        <c:otherwise>
+                                                            <i class="fa fa-circle perm-uncheck"></i>
+                                                        </c:otherwise>
+                                                    </c:choose>
+                                                    <c:out value="${p.permissionName}"/>
                                                 </div>
+                                                <span class="perm-tile-code"><c:out value="${p.permissionCode}"/></span>
+                                                <div class="perm-tile-desc"><c:out value="${empty p.description ? '—' : p.description}"/></div>
                                             </div>
-                                        </c:if>
-                                    </c:forEach>
-                                </div>
-                            </c:if>
-                            <c:if test="${isSystemAdmin || !isSpecialRole}">
-                                <div class="perm-group-title"><i class="fa fa-shield-halved"></i> Nhân viên &amp; Phân quyền</div>
-                                <div class="row g-2 mb-1">
-                                    <c:forEach var="p" items="${allPermissions}">
-                                        <c:if test="${p.permissionCode == 'VIEW_EMPLOYEES' || p.permissionCode == 'ADD_EMPLOYEE' || p.permissionCode == 'EDIT_EMPLOYEE' || p.permissionCode == 'ADD_EMPLOYMENT_CONTRACT' || p.permissionCode == 'VIEW_CONTRACT_PREVIEW' || p.permissionCode == 'VIEW_DEPARTMENTS' || p.permissionCode == 'EDIT_DEPARTMENTS' || p.permissionCode == 'ASSIGN_DEPARTMENT' || p.permissionCode == 'VIEW_DEPARTMENT_EMPLOYEES_DETAIL' || p.permissionCode == 'UNASSIGN_DEPARTMENT' || p.permissionCode == 'REASSIGN_DEPARTMENT' || p.permissionCode == 'VIEW_ATTENDANCE' || p.permissionCode == 'IMPORT_ATTENDANCE' || p.permissionCode == 'EDIT_ATTENDANCE'}">
-                                            <div class="col-md-3">
-                                                <div class="perm-tile ${assignedPermissionIds.contains(p.permissionId) ? 'assigned' : ''}">
-                                                    <div class="perm-tile-name">
-                                                        <c:choose>
-                                                            <c:when test="${assignedPermissionIds.contains(p.permissionId)}">
-                                                                <i class="fa fa-circle-check perm-check"></i>
-                                                            </c:when>
-                                                            <c:otherwise>
-                                                                <i class="fa fa-circle perm-uncheck"></i>
-                                                            </c:otherwise>
-                                                        </c:choose>
-                                                        <c:out value="${p.permissionName}"/>
-                                                    <span class="perm-tile-code"><c:out value="${p.permissionCode}"/></span>
-                                                    <div class="perm-tile-desc"><c:out value="${empty p.description ? '—' : p.description}"/></div>
-                                                     </div>
-                                                 </div>
-                                             </div>
-                                         </c:if>
-                                    </c:forEach>
-                                </div>
-                            </c:if>
+                                        </div>
+                                    </c:if>
+                                </c:forEach>
+                            </div>
+                            <div class="perm-group-title"><i class="fa fa-shield-halved"></i> Nhân viên &amp; Phân quyền</div>
+                            <div class="row g-2 mb-1">
+                                <c:forEach var="p" items="${allPermissions}">
 
-                            <c:if test="${isSystemAdmin || !isSpecialRole}">
-                                <div class="perm-group-title"><i class="fa fa-file-pen"></i> Đơn yêu cầu</div>
-                                <div class="row g-2 mb-1">
-                                    <c:forEach var="p" items="${allPermissions}">
-                                        <c:if test="${p.permissionCode == 'VIEW_ALL_FORMS' || p.permissionCode == 'VIEW_ALL_DEPT_FORMS'}">
-                                            <div class="col-md-3">
-                                                <div class="perm-tile ${assignedPermissionIds.contains(p.permissionId) ? 'assigned' : ''}">
-                                                    <div class="perm-tile-name">
-                                                        <c:choose>
-                                                            <c:when test="${assignedPermissionIds.contains(p.permissionId)}">
-                                                                <i class="fa fa-circle-check perm-check"></i>
-                                                            </c:when>
-                                                            <c:otherwise>
-                                                                <i class="fa fa-circle perm-uncheck"></i>
-                                                            </c:otherwise>
-                                                        </c:choose>
-                                                        <c:out value="${p.permissionName}"/>
-                                                    </div>
-                                                    <span class="perm-tile-code"><c:out value="${p.permissionCode}"/></span>
-                                                    <div class="perm-tile-desc"><c:out value="${empty p.description ? '—' : p.description}"/></div>
-                                                </div>
-                                            </div>
-                                        </c:if>
-                                    </c:forEach>
-                                </div>
-                            </c:if>
+                                    <c:if test="${p.permissionCode == 'VIEW_EMPLOYEES' || p.permissionCode == 'ADD_EMPLOYEE' || p.permissionCode == 'EDIT_EMPLOYEE' || p.permissionCode == 'ADD_EMPLOYMENT_CONTRACT' || p.permissionCode == 'VIEW_DEPARTMENTS' || p.permissionCode == 'EDIT_DEPARTMENTS' || p.permissionCode == 'ASSIGN_DEPARTMENT' || p.permissionCode == 'VIEW_DEPARTMENT_EMPLOYEES_DETAIL' || p.permissionCode == 'UNASSIGN_DEPARTMENT' || p.permissionCode == 'IMPORT_ATTENDANCE' || p.permissionCode =='EDIT_ATTENDANCE' ||  p.permissionCode =='VIEW_DEPARTMENT_ATTENDANCE' || p.permissionCode == 'VIEW_ALL_ATTENDANCE'|| p.permissionCode == 'VIEW_ALL_SALARY' || p.permissionCode == 'VIEW_OWN_SALARY' || p.permissionCode == 'APPROVE_PAYROLL' || p.permissionCode == 'EXPORT_PAYROLL'}">
 
-                            <c:if test="${isSystemAdmin || !isSpecialRole}">
-                                <div class="perm-group-title"><i class="fa fa-file-contract"></i> Hợp đồng lao động</div>
-                                <div class="row g-2 mb-1">
-                                    <c:forEach var="p" items="${allPermissions}">
-                                        <c:if test="${p.permissionCode == 'PERM_APPROVE_CONTRACT'}">
-                                            <div class="col-md-3">
-                                                <div class="perm-tile ${assignedPermissionIds.contains(p.permissionId) ? 'assigned' : ''}">
-                                                    <div class="perm-tile-name">
-                                                        <c:choose>
-                                                            <c:when test="${assignedPermissionIds.contains(p.permissionId)}">
-                                                                <i class="fa fa-circle-check perm-check"></i>
-                                                            </c:when>
-                                                            <c:otherwise>
-                                                                <i class="fa fa-circle perm-uncheck"></i>
-                                                            </c:otherwise>
-                                                        </c:choose>
-                                                        <c:out value="${p.permissionName}"/>
-                                                    </div>
-                                                    <span class="perm-tile-code"><c:out value="${p.permissionCode}"/></span>
-                                                    <div class="perm-tile-desc"><c:out value="${empty p.description ? '—' : p.description}"/></div>
+                                        <div class="col-md-3">
+                                            <div class="perm-tile ${assignedPermissionIds.contains(p.permissionId) ? 'assigned' : ''}">
+                                                <div class="perm-tile-name">
+                                                    <c:choose>
+                                                        <c:when test="${assignedPermissionIds.contains(p.permissionId)}">
+                                                            <i class="fa fa-circle-check perm-check"></i>
+                                                        </c:when>
+                                                        <c:otherwise>
+                                                            <i class="fa fa-circle perm-uncheck"></i>
+                                                        </c:otherwise>
+                                                    </c:choose>
+                                                    <c:out value="${p.permissionName}"/>
                                                 </div>
+                                                <span class="perm-tile-code"><c:out value="${p.permissionCode}"/></span>
+                                                <div class="perm-tile-desc"><c:out value="${empty p.description ? '—' : p.description}"/></div>
                                             </div>
-                                        </c:if>
-                                    </c:forEach>
-                                </div>
-                            </c:if>
+                                        </div>
+                                    </c:if>
+                                </c:forEach>
+                            </div>    
+                            <div class="row g-2 mb-1">
+                                <c:forEach var="p" items="${allPermissions}">
+                                    <c:if test="${p.permissionCode == 'VIEW_ALL_FORMS' || p.permissionCode == 'VIEW_ALL_DEPT_FORMS'}">
+                                        <div class="col-md-3">
+                                            <div class="perm-tile ${assignedPermissionIds.contains(p.permissionId) ? 'assigned' : ''}">
+                                                <div class="perm-tile-name">
+                                                    <c:choose>
+                                                        <c:when test="${assignedPermissionIds.contains(p.permissionId)}">
+                                                            <i class="fa fa-circle-check perm-check"></i>
+                                                        </c:when>
+                                                        <c:otherwise>
+                                                            <i class="fa fa-circle perm-uncheck"></i>
+                                                        </c:otherwise>
+                                                    </c:choose>
+                                                    <c:out value="${p.permissionName}"/>
+                                                </div>
+                                                <span class="perm-tile-code"><c:out value="${p.permissionCode}"/></span>
+                                                <div class="perm-tile-desc"><c:out value="${empty p.description ? '—' : p.description}"/></div>
+                                            </div>
+                                        </div>
+                                    </c:if>
+                                </c:forEach>
+                            </div>                              
                         </div>
 
                         <div class="section-block">
