@@ -19,6 +19,7 @@ public class AttendanceSummaryDTO {
     private int absentDays;
     private int holidayDays;
     private int weekendDays;
+    private int missingCheckDays;
     private int otDays;
 
     public AttendanceSummaryDTO() {
@@ -148,6 +149,14 @@ public class AttendanceSummaryDTO {
 
     public void setWeekendDays(int weekendDays) {
         this.weekendDays = weekendDays;
+    }
+
+    public int getMissingCheckDays() {
+        return missingCheckDays;
+    }
+
+    public void setMissingCheckDays(int missingCheckDays) {
+        this.missingCheckDays = missingCheckDays;
     }
 
     public int getOtDays() {

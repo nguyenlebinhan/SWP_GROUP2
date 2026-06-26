@@ -21,6 +21,7 @@
         .st4,.cl4 { background:#dbeafe; color:#1e40af; }
         .st5,.cl5 { background:#ede9fe; color:#5b21b6; }
         .st6,.cl6 { background:#f3f4f6; color:#4b5563; }
+        .st7,.cl7 { background:#ffedd5; color:#9a3412; }
         .stx { background:#eef2ff; color:#3730a3; }
 
         /* Calendar */
@@ -60,6 +61,7 @@
             <div class="col"><div class="stat st2"><div class="num">${summary.absentDays}</div><div class="lbl">Vắng mặt</div></div></div>
             <div class="col"><div class="stat st5"><div class="num">${summary.holidayDays}</div><div class="lbl">Nghỉ lễ</div></div></div>
             <div class="col"><div class="stat st6"><div class="num">${summary.weekendDays}</div><div class="lbl">Cuối tuần</div></div></div>
+            <div class="col"><div class="stat st7"><div class="num">${summary.missingCheckDays}</div><div class="lbl">Quên chấm công</div></div></div>
         </div>
         <div class="row g-2">
             <div class="col"><div class="stat stx"><div class="num">${summary.workedHoursRounded}h</div><div class="lbl">Giờ làm thực tế</div></div></div>
@@ -107,6 +109,7 @@
                 <span class="cl2">Vắng mặt</span>
                 <span class="cl5">Nghỉ lễ</span>
                 <span class="cl6">Cuối tuần</span>
+                <span class="cl7">Quên chấm công</span>
             </div>
         </div>
         <div class="cal-grid mb-1">

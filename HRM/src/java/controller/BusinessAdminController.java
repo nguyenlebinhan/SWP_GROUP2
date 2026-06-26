@@ -115,6 +115,9 @@ public class BusinessAdminController extends HttpServlet {
             case "/forms/ot-detail":
                 displayOTDetail(request, response);
                 break;
+            case "/forms/transfer-detail":
+                displayTransferDetail(request, response);
+                break;
             default:
                 response.sendRedirect(request.getContextPath() + "/");
                 break;
@@ -1002,6 +1005,30 @@ public class BusinessAdminController extends HttpServlet {
             
             request.getRequestDispatcher("/public/businessadmin/overtime/ot_detail.jsp").forward(request, response);
             
+        } catch (NumberFormatException e) {
+            response.sendRedirect(request.getContextPath() + "/v1/businessadmin/forms");
+        }
+    }
+
+    private void displayTransferDetail(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+        String idParam = request.getParameter("id");
+        if (idParam == null || idParam.trim().isEmpty()) {
+            response.sendRedirect(request.getContextPath() + "/v1/businessadmin/forms");
+            return;
+        }
+        try {
+            int formId = Integer.parseInt(idParam.trim());
+            FormRequestDTO form = formRequestDAO.getFormRequestById(formId);
+            if (form == null || !"TRANSFER".equals(form.getFormTypeCode())) {
+                request.getSession().setAttribute("error", "Không tìm thấy đơn chuyển phòng ban.");
+                response.sendRedirect(request.getContextPath() + "/v1/businessadmin/forms");
+                return;
+            }
+
+            request.setAttribute("form", form);
+            request.getRequestDispatcher("/public/businessadmin/overtime/transfer_detail.jsp").forward(request, response);
+
         } catch (NumberFormatException e) {
             response.sendRedirect(request.getContextPath() + "/v1/businessadmin/forms");
         }

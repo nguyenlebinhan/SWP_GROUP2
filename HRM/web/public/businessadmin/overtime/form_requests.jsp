@@ -150,21 +150,18 @@
                                             </c:if>
                                         </td>
                                         <td class="text-center">
-                                            <c:if test="${f.formTypeCode == 'OVERTIME'}">
-                                                <a href="${pageContext.request.contextPath}/v1/businessadmin/forms/ot-detail?id=${f.formId}" class="btn btn-primary btn-sm" title="Xem chi tiết">
-                                                    <i class="fa-solid fa-eye"></i> Xem chi tiết
-                                                </a>
-                                            </c:if>
-                                            <c:if test="${f.status == 0 && f.formTypeCode != 'OVERTIME'}">
-                                                <button type="button" class="btn btn-success-soft btn-sm me-1" 
-                                                        onclick="openProcessModal(${f.formId}, 'approve', '${f.formCode}')" title="Duyệt đơn">
-                                                    <i class="fa-solid fa-check"></i> Duyệt
-                                                </button>
-                                                <button type="button" class="btn btn-danger-soft btn-sm" 
-                                                        onclick="openProcessModal(${f.formId}, 'reject', '${f.formCode}')" title="Từ chối">
-                                                    <i class="fa-solid fa-xmark"></i> Từ chối
-                                                </button>
-                                            </c:if>
+                                            <c:choose>
+                                                <c:when test="${f.formTypeCode == 'OVERTIME'}">
+                                                    <a href="${pageContext.request.contextPath}/v1/businessadmin/forms/ot-detail?id=${f.formId}" class="btn btn-primary btn-sm" title="Xem chi tiết">
+                                                        <i class="fa-solid fa-eye"></i> Xem chi tiết
+                                                    </a>
+                                                </c:when>
+                                                <c:when test="${f.formTypeCode == 'TRANSFER'}">
+                                                    <a href="${pageContext.request.contextPath}/v1/businessadmin/forms/transfer-detail?id=${f.formId}" class="btn btn-primary btn-sm" title="Xem chi tiết">
+                                                        <i class="fa-solid fa-eye"></i> Xem chi tiết
+                                                    </a>
+                                                </c:when>
+                                            </c:choose>
                                         </td>
                                     </tr>
                                 </c:forEach>
@@ -177,55 +174,6 @@
     </div>
 </div>
 
-<!-- Modal Duyệt/Từ chối -->
-<div class="modal fade" id="processModal" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content" style="border-radius:16px;border:none;">
-            <form id="processForm" method="POST">
-                <div class="modal-header border-0 pb-0">
-                    <h5 class="modal-title fw-bold" id="processModalTitle">Xử lý đơn</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body p-4">
-                    <input type="hidden" name="formId" id="modalFormId">
-                    <div class="mb-3">
-                        <label class="form-label fw-semibold">Ghi chú (Note):</label>
-                        <textarea class="form-control" name="note" id="modalNote" rows="3" placeholder="Nhập ghi chú hoặc lý do..."></textarea>
-                    </div>
-                </div>
-                <div class="modal-footer border-0 pt-0 gap-2">
-                    <button type="button" class="btn btn-light px-4" data-bs-dismiss="modal">Hủy</button>
-                    <button type="submit" class="btn px-4 fw-semibold" id="modalSubmitBtn">Xác nhận</button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-<script>
-    function openProcessModal(formId, action, formCode) {
-        document.getElementById('modalFormId').value = formId;
-        document.getElementById('modalNote').value = '';
-        
-        var form = document.getElementById('processForm');
-        var title = document.getElementById('processModalTitle');
-        var btn = document.getElementById('modalSubmitBtn');
-        
-        if (action === 'approve') {
-            form.action = '${pageContext.request.contextPath}/v1/businessadmin/forms/approve';
-            title.textContent = 'Duyệt đơn: ' + formCode;
-            btn.textContent = 'Duyệt đơn';
-            btn.className = 'btn btn-success px-4 fw-semibold';
-        } else {
-            form.action = '${pageContext.request.contextPath}/v1/businessadmin/forms/reject';
-            title.textContent = 'Từ chối đơn: ' + formCode;
-            btn.textContent = 'Từ chối đơn';
-            btn.className = 'btn btn-danger px-4 fw-semibold';
-        }
-        
-        new bootstrap.Modal(document.getElementById('processModal')).show();
-    }
-</script>
 </body>
 </html>

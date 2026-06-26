@@ -1033,6 +1033,10 @@ public class EmployeeController extends HttpServlet {
             return;
         }
 
+        // Đảm bảo mọi đường forward về trang import (lỗi hoặc thành công) đều có
+        // tháng/năm được phép và cờ cửa sổ import, tránh mất ngày tháng & hiện thanh vàng.
+        setImportWindowAttributes(request);
+
         if (month < 1 || month > 12) {
             request.setAttribute("error", "Vui lêng chọn thông hợp lệ (1-12).");
             List<Department> activeDepartments = departmentDAO.getAllActiveDepartments();
@@ -1051,7 +1055,6 @@ public class EmployeeController extends HttpServlet {
         if (windowError != null) {
             request.setAttribute("error", windowError);
             request.setAttribute("departments", departmentDAO.getAllActiveDepartments());
-            setImportWindowAttributes(request);
             request.getRequestDispatcher("/public/employee/attendance/attendance_import.jsp").forward(request, response);
             return;
         }
