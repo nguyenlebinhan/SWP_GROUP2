@@ -202,10 +202,10 @@ public class FormRequestDTO {
     public String getStatusLabel() {
         switch (status) {
             case 0: return "Chờ duyệt";
-            case 1: return "Đã duyệt (B1)";
+            case 1: return "Đồng ý";
             case 2: return "Từ chối";
-            case 3: return "Hoàn tất duyệt";
-            case 4: return "Đã hủy";
+            case 3: return "Đã hủy";
+            case 4: return "Hoàn thành";
             default: return "Không xác định";
         }
     }

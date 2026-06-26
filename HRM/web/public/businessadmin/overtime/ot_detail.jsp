@@ -94,7 +94,7 @@
                             <div class="info-value"><fmt:formatDate value="${otRequest.createdAt}" pattern="dd/MM/yyyy HH:mm:ss"/></div>
                         </div>
                         <div class="col-md-4">
-                            <div class="info-label">Ngày OT</div>
+                            <div class="info-label">Ngày tăng ca</div>
                             <div class="info-value"><i class="fa-regular fa-calendar text-primary me-2"></i><fmt:formatDate value="${otRequest.otDate}" pattern="dd/MM/yyyy"/></div>
                         </div>
                         <div class="col-md-4">

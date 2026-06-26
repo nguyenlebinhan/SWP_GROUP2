@@ -96,7 +96,7 @@
                             <div class="info-value"><fmt:formatDate value="${otRequest.createdAt}" pattern="dd/MM/yyyy HH:mm:ss"/></div>
                         </div>
                         <div class="col-md-4">
-                            <div class="info-label">Ngày OT</div>
+                            <div class="info-label">Ngày tăng ca</div>
                             <div class="info-value"><i class="fa-regular fa-calendar text-primary me-2"></i><fmt:formatDate value="${otRequest.otDate}" pattern="dd/MM/yyyy"/></div>
                         </div>
                         <div class="col-md-4">
@@ -129,6 +129,7 @@
                                     <th>Họ tên</th>
                                     <th>Chức vụ</th>
                                     <th>Phòng ban</th>
+                                    <th>Thực tế OT</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -145,11 +146,28 @@
                                         </td>
                                         <td><span class="badge bg-light text-dark border">${emp.positionName}</span></td>
                                         <td>${emp.departmentName}</td>
+                                        <td>
+                                            <c:choose>
+                                                <c:when test="${otRequest.status == 3 || otRequest.status == 4}">
+                                                    <c:choose>
+                                                        <c:when test="${not empty emp.otHours && emp.otHours > 0}">
+                                                            <span class="fw-bold text-success">${emp.formattedOtHours}h</span>
+                                                        </c:when>
+                                                        <c:otherwise>
+                                                            <span class="badge bg-danger">Đã hủy</span>
+                                                        </c:otherwise>
+                                                    </c:choose>
+                                                </c:when>
+                                                <c:otherwise>
+                                                    <span class="text-muted">-</span>
+                                                </c:otherwise>
+                                            </c:choose>
+                                        </td>
                                     </tr>
                                 </c:forEach>
                                 <c:if test="${empty assignees}">
                                     <tr>
-                                        <td colspan="4" class="text-center text-muted py-4">Không có nhân viên nào được phân công.</td>
+                                        <td colspan="5" class="text-center text-muted py-4">Không có nhân viên nào được phân công.</td>
                                     </tr>
                                 </c:if>
                             </tbody>
