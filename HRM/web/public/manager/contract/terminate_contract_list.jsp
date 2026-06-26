@@ -48,17 +48,22 @@
     <div class="page-card">
         <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-4">
             <div>
-                <h5 class="fw-bold mb-1">Hợp đồng đang hiệu lực</h5>
+                <h5 class="fw-bold mb-1">Hợp đồng có thể chấm dứt</h5>
                 <div class="text-muted small"><span id="visibleCount">${contracts.size()}</span> / ${contracts.size()} hợp đồng</div>
             </div>
             <div class="d-flex gap-2 flex-wrap">
                 <input type="text" id="searchInput" class="form-control" style="width:280px;" placeholder="Tìm theo mã hợp đồng hoặc nhân viên">
-                <select id="typeFilter" class="form-select" style="width:220px;">
-                    <option value="">Tất cả loại hợp đồng</option>
+                <select id="typeFilter" class="form-select" style="width:180px;">
+                    <option value="">Tất cả loại</option>
                     <option value="PROBATION">Probation</option>
                     <option value="INTERNSHIP">Internship</option>
                     <option value="FIXED_TERM">Fixed-term</option>
                     <option value="INDEFINITE">Indefinite</option>
+                </select>
+                <select id="statusFilter" class="form-select" style="width:180px;">
+                    <option value="">Tất cả trạng thái</option>
+                    <option value="ACTIVE">Hiệu lực</option>
+                    <option value="PENDING_ACTIVATION">Chờ kích hoạt</option>
                 </select>
             </div>
         </div>
@@ -72,6 +77,7 @@
                     <c:forEach var="contract" items="${contracts}">
                         <div class="contract-item terminate-contract-item"
                              data-type="${contract.contractType}"
+                             data-status="${contract.status}"
                              data-search="${contract.contractCode} ${contract.employeeCode} ${contract.employeeFullName}">
                             <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
                                 <div>
@@ -88,6 +94,7 @@
                                             </c:choose>
                                         </span>
                                         <span class="meta-chip"><i class="fa-regular fa-file-lines"></i>${contract.contractType}</span>
+                                        <span class="meta-chip badge ${contract.status == 'ACTIVE' ? 'bg-success' : 'bg-warning text-dark'} ${contract.status == 'ACTIVE' ? 'text-bg-success' : 'text-bg-warning'} ${contract.status == 'ACTIVE' ? '' : ''}" style="font-weight:500;">${contract.status}</span>
                                     </div>
                                 </div>
                                 <div class="d-flex gap-2 flex-wrap">
@@ -112,21 +119,24 @@
     (function () {
         const input = document.getElementById("searchInput");
         const typeFilter = document.getElementById("typeFilter");
+        const statusFilter = document.getElementById("statusFilter");
         const items = Array.from(document.querySelectorAll(".terminate-contract-item"));
         const emptyState = document.getElementById("noMatch");
         const countNode = document.getElementById("visibleCount");
-        if (!input || !typeFilter || !items.length || !emptyState || !countNode) return;
+        if (!input || !typeFilter || !statusFilter || !items.length || !emptyState || !countNode) return;
 
         const normalize = (value) => (value || "").toLowerCase().trim();
         const applyFilter = () => {
             const keyword = normalize(input.value);
             const typeValue = normalize(typeFilter.value);
+            const statusValue = normalize(statusFilter.value);
             let visible = 0;
 
             items.forEach((item) => {
                 const matchesKeyword = !keyword || normalize(item.dataset.search).includes(keyword);
                 const matchesType = !typeValue || normalize(item.dataset.type) === typeValue;
-                const show = matchesKeyword && matchesType;
+                const matchesStatus = !statusValue || normalize(item.dataset.status) === statusValue;
+                const show = matchesKeyword && matchesType && matchesStatus;
                 item.classList.toggle("hidden-item", !show);
                 if (show) visible++;
             });
@@ -137,6 +147,7 @@
 
         input.addEventListener("input", applyFilter);
         typeFilter.addEventListener("change", applyFilter);
+        statusFilter.addEventListener("change", applyFilter);
     })();
 </script>
 </body>

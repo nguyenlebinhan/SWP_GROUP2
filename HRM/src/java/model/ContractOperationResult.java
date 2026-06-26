@@ -17,11 +17,17 @@ public class ContractOperationResult {
     private final boolean success;
     private final String errorCode;
     private final String message;
+    private final int draftId;
 
     public ContractOperationResult(boolean success, String errorCode, String message) {
+        this(success, errorCode, message, 0);
+    }
+
+    public ContractOperationResult(boolean success, String errorCode, String message, int draftId) {
         this.success = success;
         this.errorCode = errorCode;
         this.message = message;
+        this.draftId = draftId;
     }
 
     public boolean isSuccess() {
@@ -34,6 +40,10 @@ public class ContractOperationResult {
 
     public String getMessage() {
         return message;
+    }
+
+    public int getDraftId() {
+        return draftId;
     }
 
     @Override

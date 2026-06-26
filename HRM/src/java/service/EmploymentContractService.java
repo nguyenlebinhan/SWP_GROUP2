@@ -300,7 +300,7 @@ public class EmploymentContractService {
     }
 
     /**
-     * Convenience: Terminate an ACTIVE contract with full validation + audit.
+     * Convenience: Terminate a contract (ACTIVE or PENDING_ACTIVATION) with full validation + audit.
      */
     public ContractOperationResult terminateContract(int contractId,
             java.sql.Date terminationDate, String reason, int userId) {
@@ -315,18 +315,42 @@ public class EmploymentContractService {
                 return new ContractOperationResult(false, "NOT_FOUND", "Không tìm thấy hợp đồng.");
             }
 
-            // Guard: must be ACTIVE
-            if (contract.getStatus() != ContractStatus.ACTIVE) {
+            ContractStatus status = contract.getStatus();
+            if (status != ContractStatus.ACTIVE && status != ContractStatus.PENDING_ACTIVATION) {
                 conn.rollback();
                 return new ContractOperationResult(false,
                         ContractOperationResult.INVALID_STATUS,
-                        "Chỉ có thể chấm dứt hợp đồng đang hiệu lực.");
+                        "Chỉ có thể chấm dứt hợp đồng đang hiệu lực hoặc đang chờ kích hoạt.");
             }
 
-            String oldStatus = contract.getStatus().name();
+            // Business Validation: Date rules
+            if (status == ContractStatus.ACTIVE) {
+                if (terminationDate == null || terminationDate.before(contract.getEffectiveDate())) {
+                    conn.rollback();
+                    return new ContractOperationResult(false, "INVALID_DATE",
+                            "Ngày chấm dứt không được trước ngày hiệu lực.");
+                }
+                if (contract.getEndDate() != null && terminationDate.after(contract.getEndDate())) {
+                    conn.rollback();
+                    return new ContractOperationResult(false, "INVALID_DATE",
+                            "Ngày chấm dứt không được sau ngày kết thúc hợp đồng.");
+                }
+            } else if (status == ContractStatus.PENDING_ACTIVATION) {
+                if (terminationDate == null || terminationDate.after(contract.getEffectiveDate())) {
+                    conn.rollback();
+                    return new ContractOperationResult(false, "INVALID_DATE",
+                            "Ngày chấm dứt không được sau ngày hiệu lực của hợp đồng chờ kích hoạt.");
+                }
+                if (terminationDate.after(java.sql.Date.valueOf(LocalDate.now()))) {
+                    conn.rollback();
+                    return new ContractOperationResult(false, "INVALID_DATE",
+                            "Ngày chấm dứt không được sau ngày hiện tại.");
+                }
+            }
+
+            String oldStatus = status.name();
             String newStatus = ContractStatus.TERMINATED.name();
-            String auditReason = "Chấm dứt hợp đồng. Lý do: "
-                    + (reason != null ? reason : "");
+            String auditReason = "Chấm dứt hợp đồng. Lý do: " + (reason != null ? reason : "");
 
             boolean updated = contractDAO.updateContractStatus(conn, contractId,
                     ContractStatus.TERMINATED, terminationDate, reason);
@@ -385,6 +409,124 @@ public class EmploymentContractService {
         } finally {
             if (conn != null) try { conn.close(); } catch (SQLException ex) {}
         }
+    }
+
+    // =========================================================================
+    // [HR FLOW] - DRAFT OPERATIONS
+    // =========================================================================
+
+    /**
+     * Save or update a draft contract. Only 1 draft per employee.
+     * Returns ContractOperationResult with draftId on success.
+     */
+    public ContractOperationResult saveDraft(EmploymentContract contract, int userId) {
+        Connection conn = null;
+        try {
+            conn = dbContext.getConnection();
+            conn.setAutoCommit(false);
+
+            int employeeId = contract.getEmployeeId();
+            EmploymentContract existingDraft = contractDAO.getDraftByEmployee(employeeId);
+
+            if (existingDraft != null) {
+                // Update existing draft
+                contract.setContractId(existingDraft.getContractId());
+                boolean updated = contractDAO.updateDraft(conn, contract);
+                if (!updated) {
+                    conn.rollback();
+                    return new ContractOperationResult(false, "UPDATE_FAILED",
+                            "Không thể cập nhật bản nháp.");
+                }
+                conn.commit();
+                return new ContractOperationResult(true, null,
+                        "Đã lưu bản nháp.", existingDraft.getContractId());
+            } else {
+                // Create new draft
+                contract.setCreatedBy(userId);
+                contract.setStatus(ContractStatus.DRAFT);
+                int draftId = contractDAO.saveDraft(conn, contract);
+                if (draftId <= 0) {
+                    conn.rollback();
+                    return new ContractOperationResult(false, "CREATE_FAILED",
+                            "Không thể tạo bản nháp.");
+                }
+                conn.commit();
+                return new ContractOperationResult(true, null,
+                        "Đã lưu bản nháp.", draftId);
+            }
+        } catch (SQLException e) {
+            if (conn != null) try { conn.rollback(); } catch (SQLException ex) {}
+            LOGGER.log(Level.SEVERE, "Database error during draft save", e);
+            return new ContractOperationResult(false,
+                    ContractOperationResult.SYSTEM_ERROR,
+                    "Lỗi hệ thống khi lưu bản nháp: " + e.getMessage());
+        } finally {
+            if (conn != null) try { conn.close(); } catch (SQLException ex) {}
+        }
+    }
+
+    /**
+     * Submit a draft contract: DRAFT -> PENDING_APPROVAL.
+     */
+    public ContractOperationResult submitDraft(int contractId, int userId) {
+        Connection conn = null;
+        try {
+            conn = dbContext.getConnection();
+            conn.setAutoCommit(false);
+
+            EmploymentContract contract = contractDAO.getContractById(conn, contractId);
+            if (contract == null) {
+                conn.rollback();
+                return new ContractOperationResult(false, "NOT_FOUND",
+                        "Không tìm thấy hợp đồng.");
+            }
+            if (contract.getStatus() != ContractStatus.DRAFT) {
+                conn.rollback();
+                return new ContractOperationResult(false, "INVALID_STATUS",
+                        "Chỉ có thể gửi hợp đồng từ trạng thái nháp.");
+            }
+
+            boolean updated = contractDAO.updateContractStatusWithoutEndDate(conn, contractId,
+                    ContractStatus.PENDING_APPROVAL);
+            if (!updated) {
+                conn.rollback();
+                return new ContractOperationResult(false,
+                        ContractOperationResult.SQL_ERROR,
+                        "Không thể gửi hợp đồng duyệt.");
+            }
+
+            String auditReason = "Gửi bản nháp lên duyệt.";
+            contractDAO.insertAuditLog(conn, contractId,
+                    ContractStatus.DRAFT.name(),
+                    ContractStatus.PENDING_APPROVAL.name(),
+                    userId, auditReason);
+
+            conn.commit();
+            return new ContractOperationResult(true, null,
+                    "Đã gửi hợp đồng lên duyệt thành công.");
+
+        } catch (SQLException e) {
+            if (conn != null) try { conn.rollback(); } catch (SQLException ex) {}
+            LOGGER.log(Level.SEVERE, "Database error during draft submission", e);
+            return new ContractOperationResult(false,
+                    ContractOperationResult.SYSTEM_ERROR,
+                    "Lỗi hệ thống khi gửi hợp đồng: " + e.getMessage());
+        } finally {
+            if (conn != null) try { conn.close(); } catch (SQLException ex) {}
+        }
+    }
+
+    /**
+     * Delete a draft contract.
+     */
+    public ContractOperationResult deleteDraft(int contractId) {
+        boolean deleted = contractDAO.deleteDraft(contractId);
+        if (deleted) {
+            return new ContractOperationResult(true, null,
+                    "Đã xóa bản nháp.");
+        }
+        return new ContractOperationResult(false, "DELETE_FAILED",
+                "Không thể xóa bản nháp.");
     }
 
     // =========================================================================

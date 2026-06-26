@@ -44,6 +44,12 @@
         <div class="terminate-warning mb-4">
             <i class="fa-solid fa-triangle-exclamation me-2"></i>
             <strong>Cảnh báo:</strong> Hành động này sẽ chấm dứt hợp đồng ngay lập tức. Dữ liệu sẽ được ghi nhận trong lịch sử và không thể hoàn tác.
+            <c:if test="${contract.status == 'PENDING_ACTIVATION'}">
+                <br/><span class="mt-2 d-inline-block"><i class="fa-regular fa-clock me-1"></i>Hợp đồng đang chờ kích hoạt. Ngày chấm dứt phải <strong>trước hoặc bằng</strong> ngày hiệu lực.</span>
+            </c:if>
+            <c:if test="${contract.status == 'ACTIVE'}">
+                <br/><span class="mt-2 d-inline-block"><i class="fa-regular fa-clock me-1"></i>Hợp đồng đang hiệu lực. Ngày chấm dứt phải <strong>từ ngày hiệu lực trở đi</strong>${not empty contract.endDate ? ' và không sau ngày kết thúc.' : '.'}</span>
+            </c:if>
         </div>
 
         <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
@@ -51,7 +57,7 @@
                 <h1 class="h3 mb-1">Hợp đồng ${empty contract.contractCode ? contract.contractId : contract.contractCode}</h1>
                 <div class="text-muted">${employee.fullName} (${employee.employeeCode})</div>
             </div>
-            <span class="badge text-bg-success fs-6">${contract.status.displayName}</span>
+            <span class="badge ${contract.status == 'ACTIVE' ? 'text-bg-success' : 'text-bg-warning'} fs-6">${contract.status}</span>
         </div>
 
         <div class="section-title">Thông tin hợp đồng</div>

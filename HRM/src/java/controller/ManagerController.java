@@ -984,9 +984,7 @@ public class ManagerController extends HttpServlet {
         request.getRequestDispatcher("/public/manager/contract/contract_preview.jsp").forward(request, response);
     }
 
-    /**
-     * GET /contract/terminate — List all ACTIVE contracts for termination.
-     */
+
     private void displayTerminateContractList(HttpServletRequest request, HttpServletResponse response,
             User user) throws ServletException, IOException {
         if (!isHrManager(user) || !hasPermission(user, "TERMINATE_CONTRACT")) {
@@ -998,7 +996,7 @@ public class ManagerController extends HttpServlet {
         Set<String> perms = getPermissions(user);
         request.getSession().setAttribute("userPermissions", perms);
 
-        // Check if specific contract selected (redirect to form)
+
         String contractIdParam = trimToNull(request.getParameter("id"));
         if (contractIdParam != null) {
             try {
@@ -1019,15 +1017,13 @@ public class ManagerController extends HttpServlet {
                 }
             } catch (NumberFormatException e) {
                 request.getSession().setAttribute("error", "Mã hợp đồng không hợp lệ.");
-            }
-            // Any error - redirect back to list
+        }
             response.sendRedirect(request.getContextPath() + "/v1/manager/contract/terminate");
             return;
         }
 
-        // List mode - show all ACTIVE contracts
-        List<EmploymentContract> activeContracts = contractDAO.getActiveContracts();
-        request.setAttribute("contracts", activeContracts);
+        List<EmploymentContract> terminableContracts = contractDAO.getTerminableContracts();
+        request.setAttribute("contracts", terminableContracts);
         setPermissionFlags(request, perms);
         request.getRequestDispatcher("/public/manager/contract/terminate_contract_list.jsp").forward(request, response);
     }
@@ -1233,13 +1229,11 @@ public class ManagerController extends HttpServlet {
             return;
         }
 
-        // Read form fields
         String terminationDateStr = trimToNull(request.getParameter("terminationDate"));
         String terminationReason = trimToNull(request.getParameter("terminationReason"));
         Set<String> perms = getPermissions(user);
         request.getSession().setAttribute("userPermissions", perms);
 
-        // Validation
         String error = null;
         java.sql.Date terminationDate = null;
 
@@ -1253,7 +1247,6 @@ public class ManagerController extends HttpServlet {
             }
         }
 
-        // Date business rules
         if (terminationDate != null && error == null) {
             if (terminationDate.before(contract.getEffectiveDate())) {
                 error = "Ngày chấm dứt không được trước ngày hiệu lực ("
@@ -1270,7 +1263,6 @@ public class ManagerController extends HttpServlet {
             error = (error == null) ? "Lý do chấm dứt không được để trống." : error + " Lý do chấm dứt không được để trống.";
         }
 
-        // On validation error, forward back to form
         if (error != null) {
             request.setAttribute("error", error);
             request.setAttribute("contract", contract);
@@ -1282,7 +1274,6 @@ public class ManagerController extends HttpServlet {
             return;
         }
 
-        // Execute via Service layer (transactional: update + audit)
         ContractOperationResult result = contractService.terminateContract(
                 contractId, terminationDate, terminationReason, user.getUserId());
 
