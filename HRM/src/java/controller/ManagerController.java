@@ -2225,7 +2225,7 @@ public class ManagerController extends HttpServlet {
 
     private void displayRequestPromotionForm(HttpServletRequest request, HttpServletResponse response, User user)
             throws ServletException, IOException {
-        request.setAttribute("employees", employeeDAO.getAllEmployees());
+        request.setAttribute("employees", employeeDAO.getAllEmployees(user.getUserId()));
         request.setAttribute("roles", roleDAO.getAllActiveRoles());
         request.setAttribute("positions", departmentDAO.getAllPositions());
         request.getRequestDispatcher("/public/manager/forms/promotion_form.jsp").forward(request, response);

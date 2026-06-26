@@ -86,7 +86,6 @@ public class EmployeeController extends HttpServlet {
     private final CandidateDAO candidateDAO = new CandidateDAO();
     private final PayrollService payrollService = new PayrollService();
     private final CandidateImportService candidateImportService = new CandidateImportService();
-    private final OvertimeDAO overtimeDAO = new OvertimeDAO();
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
@@ -755,7 +754,7 @@ public class EmployeeController extends HttpServlet {
             return;
         }
         
-        List<Integer> approvedOTDays = overtimeDAO.getApprovedOTDaysInMonth(employeeId, month, year);
+        List<Integer> approvedOTDays = new dao.OvertimeDAO().getApprovedOTDaysInMonth(employeeId, month, year);
         request.setAttribute("approvedOTDays", approvedOTDays);
 
         int day = attParam(request, "day", 0);
@@ -1840,12 +1839,6 @@ public class EmployeeController extends HttpServlet {
         return v == null || v.trim().isEmpty();
     }
 
-    private void preventBackCache(HttpServletResponse response) {
-        response.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
-        response.setHeader("Pragma", "no-cache");
-        response.setDateHeader("Expires", 0);
-
-    }
 
     private void handleUpdateEmployeeDetail(HttpServletRequest request, HttpServletResponse response,
             User user) throws ServletException, IOException {
@@ -2095,7 +2088,7 @@ public class EmployeeController extends HttpServlet {
         }
         List<Holiday> holidays = holidayDAO.getAllHolidays();
         int totalDays = 0;
-        LocalDate current = startDate.toLocalDate();
+        LocalDate current = effectiveDate.toLocalDate();
         LocalDate end = endDate.toLocalDate();
 
         while (!current.isAfter(end)) {
@@ -2225,7 +2218,7 @@ public class EmployeeController extends HttpServlet {
         }
 
         String reason = request.getParameter("reason");
-        String rawDate = trimToNull(request.getParameter("startDate"));
+        String rawDate = trimToNull(request.getParameter("effectiveDate"));
         String rawStartTime = trimToNull(request.getParameter("startTime"));
         String rawEndTime = trimToNull(request.getParameter("endTime"));
 
@@ -2243,10 +2236,10 @@ public class EmployeeController extends HttpServlet {
             return;
         }
 
-        Date startDate;
+        Date effectiveDate;
         Time startTime, endTime;
         try {
-            startDate = Date.valueOf(rawDate);
+            effectiveDate = Date.valueOf(rawDate);
             // Append seconds for Time.valueOf format (HH:mm:ss)
             startTime = Time.valueOf(rawStartTime.length() == 5 ? rawStartTime + ":00" : rawStartTime);
             endTime = Time.valueOf(rawEndTime.length() == 5 ? rawEndTime + ":00" : rawEndTime);
@@ -2267,7 +2260,7 @@ public class EmployeeController extends HttpServlet {
         // Ràng buộc: Chỉ được khiếu nại trong tháng import chấm công mới nhất
         int[] latestPeriod = uploadedFileDAO.getLatestAttendanceImportMonthYear(me.getDepartmentId());
         if (latestPeriod != null) {
-            java.time.LocalDate localDate = startDate.toLocalDate();
+            java.time.LocalDate localDate = effectiveDate.toLocalDate();
             if (localDate.getMonthValue() != latestPeriod[0] || localDate.getYear() != latestPeriod[1]) {
                 request.setAttribute("error", String.format("Bạn chỉ được nộp đơn khiếu nại chấm công cho tháng %02d/%d (kỳ import gần nhất).", latestPeriod[0], latestPeriod[1]));
                 setPermissionFlags(request, getPermissions(user));
@@ -2316,7 +2309,7 @@ public class EmployeeController extends HttpServlet {
         fr.setEmployeeId(me.getEmployeeId());
         fr.setFormTypeId(formTypeId);
         fr.setReason(reason.trim());
-        fr.setStartDate(startDate);
+        fr.setStartDate(effectiveDate);
         fr.setStartTime(startTime);
         fr.setEndTime(endTime);
         fr.setAttachmentUrl(savedUrl);

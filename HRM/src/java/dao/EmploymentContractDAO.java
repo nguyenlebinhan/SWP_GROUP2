@@ -19,6 +19,7 @@ import model.ContractType;
 import model.EmploymentContract;
 
 public class EmploymentContractDAO {
+
     private static final Logger LOGGER = Logger.getLogger(EmploymentContractDAO.class.getName());
     private final DBContext dbContext;
 
@@ -34,8 +35,8 @@ public class EmploymentContractDAO {
     }
 
     /**
-     * Get a connection from the context (for backward compatibility).
-     * New code should prefer injecting Connection from the caller.
+     * Get a connection from the context (for backward compatibility). New code
+     * should prefer injecting Connection from the caller.
      */
     private Connection getInternalConnection() throws SQLException {
         return dbContext.getConnection();
@@ -44,7 +45,6 @@ public class EmploymentContractDAO {
     // =========================================================================
     // CRUD Methods
     // =========================================================================
-
     /**
      * Insert a new contract using an injected connection (transactional flow).
      * Returns the generated contractId, or -1 if failed.
@@ -75,7 +75,7 @@ public class EmploymentContractDAO {
             }
             ps.setString(11, contract.getTerminationReason());
             ps.setInt(12, contract.getCreatedBy());
-            
+
             int affectedRows = ps.executeUpdate();
             if (affectedRows > 0) {
                 try (ResultSet generatedKeys = ps.getGeneratedKeys()) {
@@ -103,7 +103,6 @@ public class EmploymentContractDAO {
     // =========================================================================
     // Connection-Aware Query Methods (for Scheduler Transactional Flow)
     // =========================================================================
-
     /**
      * Get a contract by ID (backward compatible, creates own connection).
      */
@@ -117,8 +116,8 @@ public class EmploymentContractDAO {
     }
 
     /**
-     * Get a contract by ID (using injected connection).
-     * Used by scheduler flow for thread-safe re-fetching.
+     * Get a contract by ID (using injected connection). Used by scheduler flow
+     * for thread-safe re-fetching.
      */
     public EmploymentContract getContractById(Connection conn, int contractId) {
         String SQL = "SELECT ec.*, e.employeeCode, u.fullName, creatorUser.fullName AS createdByName "
@@ -141,8 +140,8 @@ public class EmploymentContractDAO {
     }
 
     /**
-     * Get the latest contract by employeeId, ordered by effectiveDate DESC.
-     * For backward compatibility.
+     * Get the latest contract by employeeId, ordered by effectiveDate DESC. For
+     * backward compatibility.
      */
     public EmploymentContract getLatestContractByEmployeeId(int employeeId) {
         String SQL = "SELECT contractId, contractCode, employeeId, contractType, signedDate, effectiveDate, "
@@ -150,8 +149,7 @@ public class EmploymentContractDAO {
                 + "rejectionReason, createdBy, createdAt, updatedAt "
                 + "FROM Employment_Contracts WHERE employeeId = ? "
                 + "ORDER BY effectiveDate DESC, contractId DESC LIMIT 1";
-        try (Connection conn = getInternalConnection();
-             PreparedStatement ps = conn.prepareStatement(SQL)) {
+        try (Connection conn = getInternalConnection(); PreparedStatement ps = conn.prepareStatement(SQL)) {
             ps.setInt(1, employeeId);
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
@@ -167,9 +165,9 @@ public class EmploymentContractDAO {
     // =========================================================================
     // Backward Compatibility
     // =========================================================================
-
     /**
      * Check if an employee has an active contract.
+     *
      * @deprecated Use {@link #getActiveContract(int)} instead.
      */
     @Deprecated
@@ -180,7 +178,6 @@ public class EmploymentContractDAO {
     // =========================================================================
     // Query Methods
     // =========================================================================
-
     /**
      * Get the active contract for an employee (backward compatible).
      */
@@ -194,8 +191,8 @@ public class EmploymentContractDAO {
     }
 
     /**
-     * Get the active contract for an employee (using injected connection).
-     * Used by scheduler flow for thread-safe re-fetching.
+     * Get the active contract for an employee (using injected connection). Used
+     * by scheduler flow for thread-safe re-fetching.
      */
     public EmploymentContract getActiveContract(Connection conn, int employeeId) {
         String SQL = "SELECT contractId, contractCode, employeeId, contractType, signedDate, effectiveDate, "
@@ -217,8 +214,9 @@ public class EmploymentContractDAO {
     }
 
     /**
-     * Get the current active contract, or the next upcoming contract if no active one exists.
-     * Priority: ACTIVE (highest) -> PENDING_ACTIVATION (earliest effectiveDate).
+     * Get the current active contract, or the next upcoming contract if no
+     * active one exists. Priority: ACTIVE (highest) -> PENDING_ACTIVATION
+     * (earliest effectiveDate).
      */
     public EmploymentContract getCurrentOrUpcomingContract(int employeeId) {
         String SQL = "SELECT contractId, contractCode, employeeId, contractType, signedDate, effectiveDate, "
@@ -229,8 +227,7 @@ public class EmploymentContractDAO {
                 + "ORDER BY CASE WHEN status = 'ACTIVE' THEN 0 ELSE 1 END, "
                 + "effectiveDate ASC "
                 + "LIMIT 1";
-        try (Connection conn = getInternalConnection();
-             PreparedStatement ps = conn.prepareStatement(SQL)) {
+        try (Connection conn = getInternalConnection(); PreparedStatement ps = conn.prepareStatement(SQL)) {
             ps.setInt(1, employeeId);
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
@@ -253,8 +250,7 @@ public class EmploymentContractDAO {
                 + "rejectionReason, createdBy, createdAt, updatedAt "
                 + "FROM Employment_Contracts WHERE employeeId = ? "
                 + "ORDER BY effectiveDate ASC, contractId ASC";
-        try (Connection conn = getInternalConnection();
-             PreparedStatement ps = conn.prepareStatement(SQL)) {
+        try (Connection conn = getInternalConnection(); PreparedStatement ps = conn.prepareStatement(SQL)) {
             ps.setInt(1, employeeId);
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
@@ -268,8 +264,8 @@ public class EmploymentContractDAO {
     }
 
     /**
-     * Get all future (PENDING_ACTIVATION) contracts for an employee,
-     * ordered by effectiveDate ASC.
+     * Get all future (PENDING_ACTIVATION) contracts for an employee, ordered by
+     * effectiveDate ASC.
      */
     public List<EmploymentContract> getFutureContracts(int employeeId) {
         List<EmploymentContract> contracts = new ArrayList<>();
@@ -278,8 +274,7 @@ public class EmploymentContractDAO {
                 + "createdBy, createdAt, updatedAt "
                 + "FROM Employment_Contracts WHERE employeeId = ? AND status = 'PENDING_ACTIVATION' "
                 + "ORDER BY effectiveDate ASC";
-        try (Connection conn = getInternalConnection();
-             PreparedStatement ps = conn.prepareStatement(SQL)) {
+        try (Connection conn = getInternalConnection(); PreparedStatement ps = conn.prepareStatement(SQL)) {
             ps.setInt(1, employeeId);
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
@@ -295,26 +290,27 @@ public class EmploymentContractDAO {
     // =========================================================================
     // Validation Methods
     // =========================================================================
-
     /**
      * Check if a new contract period would overlap with existing ACTIVE or
      * PENDING_ACTIVATION contracts.
      */
     /**
-     * Check if a new contract overlaps with existing active/pending contracts using pure SQL.
-     * Overlap formula: (ExistingStart <= NewEnd OR NewEnd IS NULL) AND (ExistingEnd >= NewStart OR ExistingEnd IS NULL)
-     * Only checks against statuses: ACTIVE, PENDING_ACTIVATION, PENDING_APPROVAL.
+     * Check if a new contract overlaps with existing active/pending contracts
+     * using pure SQL. Overlap formula: (ExistingStart <= NewEnd OR NewEnd IS NULL) AND (ExistingEnd
+     * >= NewStart OR ExistingEnd IS NULL) Only checks against statuses: ACTIVE,
+     * PENDING_ACTIVATION, PENDING_APPROVAL.
      *
-     * @param conn            Database connection (caller manages transaction)
-     * @param employeeId      Employee to check
-     * @param newStart        New contract effective date
-     * @param newEnd          New contract end date (null = indefinite)
-     * @param excludeContractId Contract ID to exclude from check (for updates), or null
+     * @param conn Database connection (caller manages transaction)
+     * @param employeeId Employee to check
+     * @param newStart New contract effective date
+     * @param newEnd New contract end date (null = indefinite)
+     * @param excludeContractId Contract ID to exclude from check (for updates),
+     * or null
      * @return true if overlap exists
-     * @throws SQLException   Database error
+     * @throws SQLException Database error
      */
     public boolean hasOverlappingContract(Connection conn, int employeeId, java.sql.Date newStart,
-                                          java.sql.Date newEnd, Integer excludeContractId) throws SQLException {
+            java.sql.Date newEnd, Integer excludeContractId) throws SQLException {
         String SQL = "SELECT 1 FROM Employment_Contracts "
                 + "WHERE employeeId = ? "
                 + "AND status IN ('ACTIVE', 'PENDING_ACTIVATION', 'PENDING_APPROVAL') "
@@ -336,12 +332,14 @@ public class EmploymentContractDAO {
     }
 
     /**
-     * @deprecated Use {@link #hasOverlappingContract(Connection, int, java.sql.Date, java.sql.Date, Integer)} instead.
-     * This method loads all contracts into memory and checks in Java (inefficient).
+     * @deprecated Use
+     * {@link #hasOverlappingContract(Connection, int, java.sql.Date, java.sql.Date, Integer)}
+     * instead. This method loads all contracts into memory and checks in Java
+     * (inefficient).
      */
     @Deprecated
     public boolean checkOverlappingPeriods(int employeeId, java.sql.Date effectiveDate,
-                                           java.sql.Date endDate, Integer excludeContractId) {
+            java.sql.Date endDate, Integer excludeContractId) {
         try (Connection conn = getInternalConnection()) {
             return hasOverlappingContract(conn, employeeId, effectiveDate, endDate, excludeContractId);
         } catch (SQLException e) {
@@ -353,12 +351,11 @@ public class EmploymentContractDAO {
     // =========================================================================
     // Status Update Methods
     // =========================================================================
-
     /**
      * Update contract status (backward compatible, creates own connection).
      */
     public boolean updateContractStatus(int contractId, ContractStatus newStatus,
-                                        java.sql.Date actualEndDate, String terminationReason) {
+            java.sql.Date actualEndDate, String terminationReason) {
         try (Connection conn = getInternalConnection()) {
             return updateContractStatus(conn, contractId, newStatus, actualEndDate, terminationReason);
         } catch (SQLException e) {
@@ -368,11 +365,11 @@ public class EmploymentContractDAO {
     }
 
     /**
-     * Update contract status and termination details (using injected connection).
-     * Used by scheduler flow for transactional updates.
+     * Update contract status and termination details (using injected
+     * connection). Used by scheduler flow for transactional updates.
      */
     public boolean updateContractStatus(Connection conn, int contractId, ContractStatus newStatus,
-                                        java.sql.Date actualEndDate, String terminationReason) {
+            java.sql.Date actualEndDate, String terminationReason) {
         String SQL = "UPDATE Employment_Contracts "
                 + "SET status = ?, actualEndDate = ?, terminationReason = ?, "
                 + "updatedAt = CURRENT_TIMESTAMP "
@@ -394,21 +391,21 @@ public class EmploymentContractDAO {
     }
 
     /**
-     * Update contract status with signedDate (used for HR approval flow).
-     * When signedDate is provided, sets signedDate = ? in the same UPDATE.
-     * This overload preserves backward compatibility for existing callers.
+     * Update contract status with signedDate (used for HR approval flow). When
+     * signedDate is provided, sets signedDate = ? in the same UPDATE. This
+     * overload preserves backward compatibility for existing callers.
      *
-     * @param conn            Database connection (caller manages transaction)
-     * @param contractId      Contract to update
-     * @param newStatus       Target status
-     * @param actualEndDate   Actual end date (or null)
+     * @param conn Database connection (caller manages transaction)
+     * @param contractId Contract to update
+     * @param newStatus Target status
+     * @param actualEndDate Actual end date (or null)
      * @param terminationReason Termination reason (or null)
-     * @param signedDate      Date the contract was signed (set on approval, or null)
+     * @param signedDate Date the contract was signed (set on approval, or null)
      * @return true if updated
      */
     public boolean updateContractStatus(Connection conn, int contractId, ContractStatus newStatus,
-                                        java.sql.Date actualEndDate, String terminationReason,
-                                        java.sql.Date signedDate) {
+            java.sql.Date actualEndDate, String terminationReason,
+            java.sql.Date signedDate) {
         String SQL = "UPDATE Employment_Contracts "
                 + "SET status = ?, actualEndDate = ?, terminationReason = ?, "
                 + "signedDate = ?, updatedAt = CURRENT_TIMESTAMP "
@@ -437,9 +434,9 @@ public class EmploymentContractDAO {
     // =========================================================================
     // Scheduler Methods
     // =========================================================================
-
     /**
-     * Find contracts ready to activate (PENDING_ACTIVATION where effectiveDate <= CURRENT_DATE).
+     * Find contracts ready to activate (PENDING_ACTIVATION where effectiveDate
+     * <= CURRENT_DATE).
      */
     public List<EmploymentContract> getContractsReadyForActivation() {
         List<EmploymentContract> contracts = new ArrayList<>();
@@ -448,8 +445,7 @@ public class EmploymentContractDAO {
                 + "rejectionReason, createdBy, createdAt, updatedAt "
                 + "FROM Employment_Contracts "
                 + "WHERE status = 'PENDING_ACTIVATION' AND effectiveDate <= CURRENT_DATE";
-        try (Connection conn = getInternalConnection();
-             PreparedStatement ps = conn.prepareStatement(SQL)) {
+        try (Connection conn = getInternalConnection(); PreparedStatement ps = conn.prepareStatement(SQL)) {
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
                     contracts.add(mapContract(rs));
@@ -464,11 +460,10 @@ public class EmploymentContractDAO {
     // =========================================================================
     // Phase 7: Advanced Workflow & Security Methods
     // =========================================================================
-
     /**
-     * Get all contracts for a specific employee (self-service view).
-     * Strictly isolated - only returns contracts belonging to the given employeeId.
-     * Used by EmployeeController for contract-history and contract-current views.
+     * Get all contracts for a specific employee (self-service view). Strictly
+     * isolated - only returns contracts belonging to the given employeeId. Used
+     * by EmployeeController for contract-history and contract-current views.
      */
     public List<EmploymentContract> getContractsByEmployeeId(int empId) {
         List<EmploymentContract> contracts = new ArrayList<>();
@@ -477,8 +472,7 @@ public class EmploymentContractDAO {
                 + "rejectionReason, createdBy, createdAt, updatedAt "
                 + "FROM Employment_Contracts WHERE employeeId = ? "
                 + "ORDER BY effectiveDate DESC, contractId DESC";
-        try (Connection conn = getInternalConnection();
-             PreparedStatement ps = conn.prepareStatement(SQL)) {
+        try (Connection conn = getInternalConnection(); PreparedStatement ps = conn.prepareStatement(SQL)) {
             ps.setInt(1, empId);
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
@@ -492,8 +486,8 @@ public class EmploymentContractDAO {
     }
 
     /**
-     * Get all contracts in the system (HR Manager view).
-     * Returns all contracts regardless of employee - for administrative overview.
+     * Get all contracts in the system (HR Manager view). Returns all contracts
+     * regardless of employee - for administrative overview.
      */
     public List<EmploymentContract> getAllContracts() {
         List<EmploymentContract> contracts = new ArrayList<>();
@@ -502,8 +496,7 @@ public class EmploymentContractDAO {
                 + "rejectionReason, createdBy, createdAt, updatedAt "
                 + "FROM Employment_Contracts "
                 + "ORDER BY createdAt DESC, contractId DESC";
-        try (Connection conn = getInternalConnection();
-             PreparedStatement ps = conn.prepareStatement(SQL)) {
+        try (Connection conn = getInternalConnection(); PreparedStatement ps = conn.prepareStatement(SQL)) {
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
                     contracts.add(mapContract(rs));
@@ -516,8 +509,9 @@ public class EmploymentContractDAO {
     }
 
     /**
-     * Approve a contract: change status from PENDING_APPROVAL to PENDING_ACTIVATION.
-     * Creates own connection - used for HR manual approval flow.
+     * Approve a contract: change status from PENDING_APPROVAL to
+     * PENDING_ACTIVATION. Creates own connection - used for HR manual approval
+     * flow.
      */
     public ContractOperationResult approveContract(int contractId) {
         try (Connection conn = getInternalConnection()) {
@@ -550,8 +544,9 @@ public class EmploymentContractDAO {
     }
 
     /**
-     * Reject a contract: change status from PENDING_APPROVAL to CANCELLED with rejection reason.
-     * Creates own connection - used for HR manual rejection flow.
+     * Reject a contract: change status from PENDING_APPROVAL to CANCELLED with
+     * rejection reason. Creates own connection - used for HR manual rejection
+     * flow.
      */
     public ContractOperationResult rejectContract(int contractId, String reason) {
         try (Connection conn = getInternalConnection()) {
@@ -595,8 +590,7 @@ public class EmploymentContractDAO {
                 + "rejectionReason, createdBy, createdAt, updatedAt "
                 + "FROM Employment_Contracts "
                 + "WHERE status = 'ACTIVE' AND endDate IS NOT NULL AND endDate < CURRENT_DATE";
-        try (Connection conn = getInternalConnection();
-             PreparedStatement ps = conn.prepareStatement(SQL)) {
+        try (Connection conn = getInternalConnection(); PreparedStatement ps = conn.prepareStatement(SQL)) {
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
                     contracts.add(mapContract(rs));
@@ -611,15 +605,14 @@ public class EmploymentContractDAO {
     // =========================================================================
     // Audit Log Methods
     // =========================================================================
-
     /**
-     * Insert an audit log entry for a contract state transition.
-     * Shares the connection with the status update for transactional integrity.
+     * Insert an audit log entry for a contract state transition. Shares the
+     * connection with the status update for transactional integrity.
      */
     public void insertAuditLog(Connection conn, int contractId, String oldStatus,
-                               String newStatus, int changedBy, String actionReason) throws SQLException {
+            String newStatus, int changedBy, String actionReason) throws SQLException {
         String SQL = "INSERT INTO Contract_Audit_Log (ContractId, OldStatus, NewStatus, ChangedBy, ChangeDate, ActionReason) "
-                   + "VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP, ?)";
+                + "VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP, ?)";
         try (PreparedStatement ps = conn.prepareStatement(SQL)) {
             ps.setInt(1, contractId);
             ps.setString(2, oldStatus);
@@ -634,25 +627,26 @@ public class EmploymentContractDAO {
      * Advanced search for contract audit history with dynamic SQL construction.
      * Enforces strict employee isolation for non-HR users.
      *
-     * @param targetEmpId    Filter by employee ID (optional; ignored for non-HR)
-     * @param nameKeyword    Filter by employee full name LIKE (optional)
-     * @param departmentId   Filter by department ID (optional)
-     * @param loggedInEmpId  Logged-in employee's employeeId (for isolation enforcement)
-     * @param isHrStaff      true = full access (HR), false = own contracts only
+     * @param targetEmpId Filter by employee ID (optional; ignored for non-HR)
+     * @param nameKeyword Filter by employee full name LIKE (optional)
+     * @param departmentId Filter by department ID (optional)
+     * @param loggedInEmpId Logged-in employee's employeeId (for isolation
+     * enforcement)
+     * @param isHrStaff true = full access (HR), false = own contracts only
      * @return List of audit log entries
      */
     public List<ContractAuditLog> searchContractHistory(Integer targetEmpId, String nameKeyword,
-                                                        Integer departmentId, int loggedInEmpId, boolean isHrStaff) {
+            Integer departmentId, int loggedInEmpId, boolean isHrStaff) {
         List<ContractAuditLog> logs = new ArrayList<>();
         StringBuilder sql = new StringBuilder(
-            "SELECT la.LogId, la.ContractId, la.OldStatus, la.NewStatus, "
-            + "la.ChangedBy, la.ChangeDate, la.ActionReason, "
-            + "u.userName AS changedByName, ec.employeeId, e.fullName AS employeeName "
-            + "FROM Contract_Audit_Log la "
-            + "JOIN Employment_Contracts ec ON la.ContractId = ec.contractId "
-            + "JOIN Users u ON la.ChangedBy = u.userId "
-            + "JOIN Employees e ON ec.employeeId = e.employeeId "
-            + "WHERE 1=1 "
+                "SELECT la.LogId, la.ContractId, la.OldStatus, la.NewStatus, "
+                + "la.ChangedBy, la.ChangeDate, la.ActionReason, "
+                + "u.userName AS changedByName, ec.employeeId, e.fullName AS employeeName "
+                + "FROM Contract_Audit_Log la "
+                + "JOIN Employment_Contracts ec ON la.ContractId = ec.contractId "
+                + "JOIN Users u ON la.ChangedBy = u.userId "
+                + "JOIN Employees e ON ec.employeeId = e.employeeId "
+                + "WHERE 1=1 "
         );
 
         if (targetEmpId != null) {
@@ -672,13 +666,20 @@ public class EmploymentContractDAO {
 
         sql.append("ORDER BY la.ChangeDate DESC");
 
-        try (Connection conn = getInternalConnection();
-             PreparedStatement ps = conn.prepareStatement(sql.toString())) {
+        try (Connection conn = getInternalConnection(); PreparedStatement ps = conn.prepareStatement(sql.toString())) {
             int idx = 1;
-            if (targetEmpId != null) ps.setInt(idx++, targetEmpId);
-            if (nameKeyword != null && !nameKeyword.isBlank()) ps.setString(idx++, "%" + nameKeyword + "%");
-            if (departmentId != null) ps.setInt(idx++, departmentId);
-            if (!isHrStaff) ps.setInt(idx++, loggedInEmpId);
+            if (targetEmpId != null) {
+                ps.setInt(idx++, targetEmpId);
+            }
+            if (nameKeyword != null && !nameKeyword.isBlank()) {
+                ps.setString(idx++, "%" + nameKeyword + "%");
+            }
+            if (departmentId != null) {
+                ps.setInt(idx++, departmentId);
+            }
+            if (!isHrStaff) {
+                ps.setInt(idx++, loggedInEmpId);
+            }
 
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
@@ -705,7 +706,6 @@ public class EmploymentContractDAO {
     // =========================================================================
     // ResultSet Mapping
     // =========================================================================
-
     private EmploymentContract mapContract(ResultSet rs) throws SQLException {
         EmploymentContract contract = new EmploymentContract();
         contract.setContractId(rs.getInt("contractId"));
@@ -747,14 +747,17 @@ public class EmploymentContractDAO {
         contract.setRejectionReason(rs.getString("rejectionReason"));
         try {
             contract.setEmployeeFullName(rs.getString("fullName"));
-        } catch (SQLException ignored) {}
+        } catch (SQLException ignored) {
+        }
         try {
             contract.setEmployeeCode(rs.getString("employeeCode"));
-        } catch (SQLException ignored) {}
+        } catch (SQLException ignored) {
+        }
         contract.setCreatedBy(rs.getInt("createdBy"));
         try {
             contract.setCreatedByName(rs.getString("createdByName"));
-        } catch (SQLException ignored) {}
+        } catch (SQLException ignored) {
+        }
         contract.setCreatedAt(rs.getDate("createdAt"));
         contract.setUpdatedAt(rs.getDate("updatedAt"));
         return contract;
@@ -763,12 +766,11 @@ public class EmploymentContractDAO {
     public List<EmploymentContract> getPendingContracts() throws SQLException {
         List<EmploymentContract> contracts = new ArrayList<>();
         String SQL = "SELECT ec.*, u.fullName, e.employeeCode "
-                   + "FROM Employment_Contracts ec "
-                   + "JOIN Employees e ON ec.employeeId = e.employeeId "
-                   + "JOIN Users u ON u.userId = e.userId "
-                   + "WHERE ec.status = ?";
-        try (Connection conn = dbContext.getConnection();
-             PreparedStatement ps = conn.prepareStatement(SQL)) {
+                + "FROM Employment_Contracts ec "
+                + "JOIN Employees e ON ec.employeeId = e.employeeId "
+                + "JOIN Users u ON u.userId = e.userId "
+                + "WHERE ec.status = ?";
+        try (Connection conn = dbContext.getConnection(); PreparedStatement ps = conn.prepareStatement(SQL)) {
             ps.setString(1, ContractStatus.PENDING_APPROVAL.name());
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
@@ -779,4 +781,3 @@ public class EmploymentContractDAO {
         return contracts;
     }
 }
-
