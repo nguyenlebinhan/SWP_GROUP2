@@ -345,18 +345,18 @@ public class DBInitializer {
                 + ")";
         execute(conn, SQL, "CREATE UPLOADED_FILES TABLE SUCCESSFULLY");
     }
-    
+
     public void createTableAttendance(Connection conn) {
         String SQL = "CREATE TABLE Attendance("
                 + "attendanceId INT PRIMARY KEY AUTO_INCREMENT,"
                 + "attendanceCode VARCHAR(50) NOT NULL UNIQUE,"
                 + "employeeId INT NOT NULL,"
-                + "employeeCode VARCHAR(50),"         
-                + "fullName NVARCHAR(100)," 
+                + "employeeCode VARCHAR(50),"
+                + "fullName NVARCHAR(100),"
                 + "positionId INT,"
                 + "positionName VARCHAR(100),"
-                + "departmentId INT,"                
-                + "departmentName NVARCHAR(100),"     
+                + "departmentId INT,"
+                + "departmentName NVARCHAR(100),"
                 + "workDate DATE NOT NULL,"
                 + "timeIn TIME,"
                 + "timeOut TIME,"
@@ -440,6 +440,47 @@ public class DBInitializer {
         execute(conn, SQL, "CREATE PAYROLL TABLE SUCCESSFULLY");
     }
 
+    public void createTablePayrollSettings(Connection conn) {
+        String SQL = "CREATE TABLE Payroll_Settings("
+                + "settingKey VARCHAR(100) PRIMARY KEY,"
+                + "settingValue DECIMAL(15,6) NOT NULL,"
+                + "description NVARCHAR(255),"
+                + "updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"
+                + ")";
+        execute(conn, SQL, "CREATE PAYROLL_SETTINGS TABLE SUCCESSFULLY");
+    }
+
+    public void createTablePayrollDeductionRules(Connection conn) {
+        String SQL = "CREATE TABLE Payroll_Deduction_Rules("
+                + "ruleId INT PRIMARY KEY AUTO_INCREMENT,"
+                + "ruleCode VARCHAR(50) NOT NULL UNIQUE,"
+                + "ruleName NVARCHAR(255) NOT NULL,"
+                + "ruleType VARCHAR(30) NOT NULL,"
+                + "calculationType VARCHAR(20) NOT NULL,"
+                + "baseType VARCHAR(30) NOT NULL,"
+                + "rate DECIMAL(10,6) DEFAULT 0,"
+                + "employerRate DECIMAL(10,6) DEFAULT 0,"
+                + "fixedAmount DECIMAL(15,2) DEFAULT 0,"
+                + "taxableDeduction TINYINT(1) DEFAULT 1,"
+                + "isActive TINYINT(1) DEFAULT 1,"
+                + "createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,"
+                + "updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"
+                + ")";
+        execute(conn, SQL, "CREATE PAYROLL_DEDUCTION_RULES TABLE SUCCESSFULLY");
+    }
+
+    public void createTablePayrollTaxBrackets(Connection conn) {
+        String SQL = "CREATE TABLE Payroll_Tax_Brackets("
+                + "bracketId INT PRIMARY KEY AUTO_INCREMENT,"
+                + "minIncome DECIMAL(15,2) NOT NULL,"
+                + "maxIncome DECIMAL(15,2),"
+                + "taxRate DECIMAL(10,6) NOT NULL,"
+                + "createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,"
+                + "updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"
+                + ")";
+        execute(conn, SQL, "CREATE PAYROLL_TAX_BRACKETS TABLE SUCCESSFULLY");
+    }
+
 
     // ==================== THÔNG BÁO & AUDIT ====================
 
@@ -489,6 +530,9 @@ public class DBInitializer {
             String[] dropOrder = {
                 "Audit_Logs",
                 "Notifications",
+                "Payroll_Tax_Brackets",
+                "Payroll_Deduction_Rules",
+                "Payroll_Settings",
                 "Payroll",
                 "Attendance_Adjustment_History",
                 "Attendance",
@@ -536,6 +580,9 @@ public class DBInitializer {
                 "Attendance_Adjustment_History",
                 "Holiday",
                 "Payroll",
+                "Payroll_Settings",
+                "Payroll_Deduction_Rules",
+                "Payroll_Tax_Brackets",
                 "Notifications",
                 "Audit_Logs"
             };
@@ -578,6 +625,9 @@ public class DBInitializer {
                         case "Attendance_Adjustment_History": createTableAttendanceAdjustmentHistory(conn); break;
                         case "Holiday":           createTableHoliday(conn);           break;
                         case "Payroll":           createTablePayroll(conn);           break;
+                        case "Payroll_Settings":  createTablePayrollSettings(conn);   break;
+                        case "Payroll_Deduction_Rules": createTablePayrollDeductionRules(conn); break;
+                        case "Payroll_Tax_Brackets": createTablePayrollTaxBrackets(conn); break;
                         case "Notifications":     createTableNotifications(conn);     break;
                         case "Audit_Logs":        createTableAuditLogs(conn);         break;
                         default: LOGGER.log(Level.WARNING,"Unknown table: {0}", table);     break;
@@ -644,7 +694,7 @@ public class DBInitializer {
                 insertPermission(conn,"VIEW_OWN_SALARY","Xem lương cá nhân","Quyền xem, gửi đơn khiếu nại về lương của cá nhân");
                 insertPermission(conn,"APPROVE_PAYROLL","Duyệt bảng lương","Quyền duyệt bảng lương trước khi thanh toán");
                 insertPermission(conn,"EXPORT_PAYROLL","Xuất bảng lương","Quyền xuất bảng lương ra Excel");
-                
+
             }
 
             if (countRows(conn, "Positions") == 0) {
@@ -730,9 +780,151 @@ public class DBInitializer {
                 insertFormTypeIfAbsent(conn, "PROMOTION_DEMOTION", "Thăng/Giáng chức");
             }
 
+            seedPayrollConfig(conn);
+
             LOGGER.log(Level.INFO,"Seeding completed successfully.");
         } catch (SQLException e) {
             LOGGER.log(Level.SEVERE, "Cannot insert initial data", e);
+        }
+    }
+
+    private void seedPayrollConfig(Connection conn) throws SQLException {
+        if (tableExists(conn, "Payroll_Settings")) {
+            deletePayrollSetting(conn, "WORKING_HOURS_PER_DAY");
+            deletePayrollSetting(conn, "WORK_START_MINUTES");
+            deletePayrollSetting(conn, "WORK_END_MINUTES");
+            insertPayrollSetting(conn, "PERSONAL_ALLOWANCE", "15500000", "Giảm trừ cá nhân khi tính thuế TNCN");
+            insertPayrollSetting(conn, "LATE_PENALTY_BLOCK_MINUTES", "30", "Số phút của một block phạt đi muộn");
+            insertPayrollSetting(conn, "ATTENDANCE_BONUS_RATE", "0.03", "Tỷ lệ thưởng chuyên cần trên lương hợp đồng");
+            insertPayrollSetting(conn, "WORK_START", "480", "Giờ vào làm chuẩn, nhập theo HH:mm trên UI");
+            insertPayrollSetting(conn, "WORK_END", "1020", "Giờ ra làm chuẩn, nhập theo HH:mm trên UI");
+            insertPayrollSetting(conn, "WORK_BREAK_MINUTES", "60", "Số phút nghỉ không tính vào giờ làm chuẩn");
+            insertPayrollSetting(conn, "OVERTIME_BLOCK_MINUTES", "30", "Số phút của một block tính OT");
+            insertPayrollSetting(conn, "OVERTIME_WORKDAY_MULTIPLIER", "1.5", "Hệ số OT ngày làm việc");
+            insertPayrollSetting(conn, "OVERTIME_WEEKEND_MULTIPLIER", "2.0", "Hệ số OT cuối tuần");
+            insertPayrollSetting(conn, "OVERTIME_HOLIDAY_MULTIPLIER", "3.0", "Hệ số OT ngày lễ");
+        }
+
+        if (tableExists(conn, "Payroll_Deduction_Rules")) {
+            ensurePayrollDeductionEmployerRateColumn(conn);
+            ensurePayrollDeductionColumns(conn);
+            insertPayrollDeductionRule(conn, "SOCIAL_INSURANCE", "BHXH", "INSURANCE", "PERCENT",
+                    "CONTRACT_SALARY", "0.255", "0.175", "0", true, true);
+            insertPayrollDeductionRule(conn, "HEALTH_INSURANCE", "BHYT", "INSURANCE", "PERCENT",
+                    "CONTRACT_SALARY", "0.045", "0.03", "0", true, true);
+            insertPayrollDeductionRule(conn, "UNEMPLOYMENT_INSURANCE", "BHTN", "INSURANCE", "PERCENT",
+                    "CONTRACT_SALARY", "0.02", "0.01", "0", true, true);
+            updateLegacyInsuranceRate(conn, "SOCIAL_INSURANCE", "0.08", "0.255", "0.175");
+            updateLegacyInsuranceRate(conn, "HEALTH_INSURANCE", "0.015", "0.045", "0.03");
+            updateLegacyInsuranceRate(conn, "UNEMPLOYMENT_INSURANCE", "0.01", "0.02", "0.01");
+        }
+
+        if (tableExists(conn, "Payroll_Tax_Brackets")) {
+            ensurePayrollTaxBracketColumns(conn);
+        }
+        if (tableExists(conn, "Payroll_Tax_Brackets") && countRows(conn, "Payroll_Tax_Brackets") == 0) {
+            insertPayrollTaxBracket(conn, "0", "10000000", "0.05");
+            insertPayrollTaxBracket(conn, "10000000", "20000000", "0.10");
+            insertPayrollTaxBracket(conn, "20000000", "30000000", "0.20");
+            insertPayrollTaxBracket(conn, "30000000", "40000000", "0.30");
+            insertPayrollTaxBracket(conn, "40000000", null, "0.35");
+        }
+    }
+
+    private void insertPayrollSetting(Connection conn, String key, String value, String description) throws SQLException {
+        String sql = "INSERT INTO Payroll_Settings (settingKey, settingValue, description) VALUES (?, ?, ?) "
+                + "ON DUPLICATE KEY UPDATE settingValue = VALUES(settingValue), "
+                + "description = VALUES(description), updatedAt = CURRENT_TIMESTAMP";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, key);
+            ps.setBigDecimal(2, new java.math.BigDecimal(value));
+            ps.setNString(3, description);
+            ps.executeUpdate();
+        }
+    }
+
+    private void deletePayrollSetting(Connection conn, String key) throws SQLException {
+        String sql = "DELETE FROM Payroll_Settings WHERE settingKey = ?";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, key);
+            ps.executeUpdate();
+        }
+    }
+
+    private void insertPayrollDeductionRule(Connection conn, String code, String name, String type,
+            String calculationType, String baseType, String rate, String employerRate, String fixedAmount,
+            boolean taxableDeduction, boolean active) throws SQLException {
+        String sql = "INSERT IGNORE INTO Payroll_Deduction_Rules "
+                + "(ruleCode, ruleName, ruleType, calculationType, baseType, rate, employerRate, fixedAmount, taxableDeduction, isActive) "
+                + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, code);
+            ps.setNString(2, name);
+            ps.setString(3, type);
+            ps.setString(4, calculationType);
+            ps.setString(5, baseType);
+            ps.setBigDecimal(6, new java.math.BigDecimal(rate));
+            ps.setBigDecimal(7, new java.math.BigDecimal(employerRate));
+            ps.setBigDecimal(8, new java.math.BigDecimal(fixedAmount));
+            ps.setInt(9, taxableDeduction ? 1 : 0);
+            ps.setInt(10, active ? 1 : 0);
+            ps.executeUpdate();
+        }
+    }
+
+    private void ensurePayrollDeductionColumns(Connection conn) throws SQLException {
+        if (columnExists(conn, "Payroll_Deduction_Rules", "sortOrder")) {
+            execute(conn, "ALTER TABLE Payroll_Deduction_Rules DROP COLUMN sortOrder",
+                    "DROP SORT ORDER FROM PAYROLL_DEDUCTION_RULES");
+        }
+    }
+
+    private void ensurePayrollDeductionEmployerRateColumn(Connection conn) throws SQLException {
+        if (tableExists(conn, "Payroll_Deduction_Rules")
+                && !columnExists(conn, "Payroll_Deduction_Rules", "employerRate")) {
+            execute(conn, "ALTER TABLE Payroll_Deduction_Rules ADD COLUMN employerRate DECIMAL(10,6) DEFAULT 0 AFTER rate",
+                    "ADD EMPLOYER RATE TO PAYROLL_DEDUCTION_RULES");
+        }
+    }
+
+    private void updateLegacyInsuranceRate(Connection conn, String code, String oldEmployeeRate,
+            String totalRate, String employerRate) throws SQLException {
+        String sql = "UPDATE Payroll_Deduction_Rules SET rate = ?, employerRate = ?, "
+                + "calculationType = 'PERCENT', fixedAmount = 0, taxableDeduction = 1, isActive = 1 "
+                + "WHERE ruleCode = ? AND rate = ?";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setBigDecimal(1, new java.math.BigDecimal(totalRate));
+            ps.setBigDecimal(2, new java.math.BigDecimal(employerRate));
+            ps.setString(3, code);
+            ps.setBigDecimal(4, new java.math.BigDecimal(oldEmployeeRate));
+            ps.executeUpdate();
+        }
+    }
+
+    private void ensurePayrollTaxBracketColumns(Connection conn) throws SQLException {
+        if (columnExists(conn, "Payroll_Tax_Brackets", "sortOrder")) {
+            execute(conn, "ALTER TABLE Payroll_Tax_Brackets DROP COLUMN sortOrder",
+                    "DROP SORT ORDER FROM PAYROLL_TAX_BRACKETS");
+        }
+        if (columnExists(conn, "Payroll_Tax_Brackets", "isActive")) {
+            execute(conn, "ALTER TABLE Payroll_Tax_Brackets DROP COLUMN isActive",
+                    "DROP IS ACTIVE FROM PAYROLL_TAX_BRACKETS");
+        }
+    }
+
+    private void insertPayrollTaxBracket(Connection conn, String minIncome, String maxIncome,
+            String taxRate) throws SQLException {
+        String sql = "INSERT INTO Payroll_Tax_Brackets (minIncome, maxIncome, taxRate) "
+                + "VALUES (?, ?, ?)";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setBigDecimal(1, new java.math.BigDecimal(minIncome));
+            if (maxIncome == null) {
+                ps.setNull(2, java.sql.Types.DECIMAL);
+            } else {
+                ps.setBigDecimal(2, new java.math.BigDecimal(maxIncome));
+            }
+            ps.setBigDecimal(3, new java.math.BigDecimal(taxRate));
+            ps.executeUpdate();
         }
     }
 
@@ -879,7 +1071,7 @@ public class DBInitializer {
         if (!columnExists(conn, "Payroll", "approvedAt")) {
             execute(conn, "ALTER TABLE Payroll ADD COLUMN approvedAt DATETIME", "ADD PAYROLL APPROVED AT COLUMN");
         }
-        
+
     }
 
     private void ensureFormRequestColumns(Connection conn) throws SQLException {

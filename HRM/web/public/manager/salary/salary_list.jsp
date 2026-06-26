@@ -267,14 +267,19 @@
             </jsp:include>
 
             <c:if test="${not empty sessionScope.success}">
-                <div class="alert alert-success"><i class="fa-solid fa-circle-check me-2"></i>${sessionScope.success}</div>
-                    <c:remove var="success" scope="session" />
-                </c:if>
-                <c:if test="${not empty sessionScope.error}">
-                <div class="alert alert-danger"><i class="fa-solid fa-circle-xmark me-2"></i>${sessionScope.error}</div>
-                    <c:remove var="error" scope="session" />
-                </c:if>
+                <div class="alert alert-success">
+                    <i class="fa-solid fa-circle-check me-2"></i>${sessionScope.success}
+                </div>
+                <c:remove var="success" scope="session" />
+            </c:if>
+            <c:if test="${not empty sessionScope.error}">
+                <div class="alert alert-danger">
+                    <i class="fa-solid fa-circle-xmark me-2"></i>${sessionScope.error}
+                </div>
+                <c:remove var="error" scope="session" />
+            </c:if>
 
+            <%-- Tính tổng thống kê --%>
             <c:set var="totalGross" value="${0}" />
             <c:set var="totalApproved" value="${0}" />
             <c:set var="totalPending" value="${0}" />
@@ -292,88 +297,110 @@
                 </c:if>
             </c:forEach>
 
+            <%-- Toolbar: period pill + action buttons --%>
             <div class="toolbar">
                 <div class="period-pill">
                     <i class="fa-solid fa-calendar-days"></i>
-                    Tháng lương: Tháng ${selectedMonth}/${selectedYear}
+                    Tháng lương: Tháng <span id="pillMonth">${selectedMonth}</span>/<span id="pillYear">${selectedYear}</span>
                 </div>
                 <div class="action-group">
                     <c:if test="${canViewAllSalary}">
-                        <form method="post" action="${pageContext.request.contextPath}/v1/manager/salary/generate" class="m-0">
-                            <input type="hidden" name="month" value="${selectedMonth}">
-                            <input type="hidden" name="year" value="${selectedYear}">
-                            <input type="hidden" name="departmentId" value="${selectedDepartmentId}">
+                        <form id="generateForm" method="post"
+                              action="${pageContext.request.contextPath}/v1/manager/salary/generate"
+                              class="m-0">
+                            <input type="hidden" name="month" id="genMonth" value="${selectedMonth}">
+                            <input type="hidden" name="year"  id="genYear"  value="${selectedYear}">
+                            <input type="hidden" name="departmentId" id="genDept" value="${selectedDepartmentId}">
                             <button type="submit" class="btn-blue border-0"
-                                    onclick="return confirm('Generate lại bảng lương tháng này từ dữ liệu hệ thống?');">
+                                    onclick="return confirmGenerate();">
                                 <i class="fa-solid fa-calculator me-1"></i> Tạo bảng lương từ dữ liệu tháng này
                             </button>
                         </form>
                     </c:if>
                     <c:if test="${canExportPayroll}">
-                        <a class="btn-blue" href="${pageContext.request.contextPath}/v1/manager/salary/export?month=${selectedMonth}&year=${selectedYear}&departmentId=${selectedDepartmentId}">
+                        <a id="exportLink" class="btn-blue"
+                           href="${pageContext.request.contextPath}/v1/manager/salary/export?month=${selectedMonth}&year=${selectedYear}&departmentId=${selectedDepartmentId}">
                             <i class="fa-solid fa-file-export me-1"></i> Xuất bảng lương
                         </a>
                     </c:if>
                     <c:if test="${canApprovePayroll && pendingApprovalCount > 0}">
-                        <form method="post" action="${pageContext.request.contextPath}/v1/manager/salary/approve-all" class="m-0">
-                            <input type="hidden" name="month" value="${selectedMonth}">
-                            <input type="hidden" name="year" value="${selectedYear}">
-                            <input type="hidden" name="departmentId" value="${selectedDepartmentId}">
+                        <form id="approveForm" method="post"
+                              action="${pageContext.request.contextPath}/v1/manager/salary/approve-all"
+                              class="m-0">
+                            <input type="hidden" name="month" id="appMonth" value="${selectedMonth}">
+                            <input type="hidden" name="year"  id="appYear"  value="${selectedYear}">
+                            <input type="hidden" name="departmentId" id="appDept" value="${selectedDepartmentId}">
                             <button type="submit" class="btn-blue border-0" style="background:#16a34a;"
-                                    onclick="return confirm('Xác nhận duyệt toàn bộ ${pendingApprovalCount} bảng lương đang chờ duyệt trong kỳ lương Tháng ${selectedMonth}/${selectedYear}?');">
-                                <i class="fa-solid fa-check-double me-1"></i> Duyệt tất cả (${pendingApprovalCount})
+                                    onclick="return confirmApprove();">
+                                <i class="fa-solid fa-check-double me-1"></i>
+                                Duyệt tất cả (${pendingApprovalCount})
                             </button>
                         </form>
                     </c:if>
                 </div>
             </div>
 
+            <%-- Filter form --%>
             <div class="filter-card">
-                <form method="get" action="${pageContext.request.contextPath}/v1/manager/salary/all" class="row g-3 align-items-end">
+                <form method="get" action="${pageContext.request.contextPath}/v1/manager/salary/all"
+                      class="row g-3 align-items-end">
                     <div class="col-md-2">
                         <label class="form-label fw-semibold">Tháng</label>
-                        <select name="month" class="form-select">
+                        <select name="month" id="filterMonth" class="form-select" onchange="syncPeriod()">
                             <c:forEach var="m" begin="1" end="12">
                                 <option value="${m}" ${selectedMonth == m ? 'selected' : ''}>Tháng ${m}</option>
                             </c:forEach>
                         </select>
                     </div>
                     <div class="col-md-2">
-                        <label class="form-label fw-semibold">Nam</label>
-                        <input type="number" name="year" min="2000" max="2100" class="form-control" value="${selectedYear}">
+                        <label class="form-label fw-semibold">Năm</label>
+                        <input type="number" name="year" id="filterYear"
+                               min="2000" max="2100" class="form-control"
+                               value="${selectedYear}" oninput="syncPeriod()">
                     </div>
                     <div class="col-md-3">
                         <label class="form-label fw-semibold">Phòng ban</label>
-                        <select name="departmentId" class="form-select">
+                        <select name="departmentId" id="filterDept" class="form-select" onchange="syncPeriod()">
                             <option value="">Tất cả phòng ban</option>
                             <c:forEach var="d" items="${departments}">
-                                <option value="${d.departmentId}" ${selectedDepartmentId == d.departmentId ? 'selected' : ''}>
+                                <option value="${d.departmentId}"
+                                        ${selectedDepartmentId == d.departmentId ? 'selected' : ''}>
                                     ${d.departmentName}
                                 </option>
                             </c:forEach>
                         </select>
                     </div>
                     <div class="col-md-2">
-                        <button type="submit" class="btn btn-primary w-100"><i class="fa-solid fa-filter me-1"></i> Lọc</button>
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="fa-solid fa-filter me-1"></i> Lọc
+                        </button>
                     </div>
                     <div class="col-md-2">
-                        <a href="${pageContext.request.contextPath}/v1/manager/salary/all" class="btn btn-outline-secondary w-100">Xóa lọc</a>
+                        <a href="${pageContext.request.contextPath}/v1/manager/salary/all"
+                           class="btn btn-outline-secondary w-100">Xóa lọc</a>
                     </div>
                 </form>
             </div>
 
+            <%-- Stat cards --%>
             <div class="stat-grid">
                 <div class="stat-card">
                     <div class="stat-label">Tổng quỹ lương</div>
-                    <div class="stat-value stat-blue"><fmt:formatNumber value="${totalGross / 1000000}" maxFractionDigits="0" />M</div>
+                    <div class="stat-value stat-blue">
+                        <fmt:formatNumber value="${totalGross / 1000000}" maxFractionDigits="0" />M
+                    </div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-label">HR đã duyệt</div>
-                    <div class="stat-value stat-green"><fmt:formatNumber value="${totalApproved / 1000000}" maxFractionDigits="0" />M</div>
+                    <div class="stat-value stat-green">
+                        <fmt:formatNumber value="${totalApproved / 1000000}" maxFractionDigits="0" />M
+                    </div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-label">Chờ xử lý</div>
-                    <div class="stat-value stat-orange"><fmt:formatNumber value="${totalPending / 1000000}" maxFractionDigits="0" />M</div>
+                    <div class="stat-value stat-orange">
+                        <fmt:formatNumber value="${totalPending / 1000000}" maxFractionDigits="0" />M
+                    </div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-label">Tổng nhân sự</div>
@@ -381,6 +408,7 @@
                 </div>
             </div>
 
+            <%-- Bảng lương --%>
             <div class="table-card">
                 <div class="table-head">
                     <h5>Bảng lương tháng ${selectedMonth}/${selectedYear}</h5>
@@ -405,10 +433,13 @@
                                 <c:when test="${empty payrollPreviews}">
                                     <tr>
                                         <td colspan="9" class="empty-state">
-                                            <i class="fa-solid fa-money-bill-wave d-block mb-2" style="font-size:28px;color:#cbd5e1"></i>
+                                            <i class="fa-solid fa-money-bill-wave d-block mb-2"
+                                               style="font-size:28px;color:#cbd5e1"></i>
                                             <c:choose>
                                                 <c:when test="${not empty salaryError}">
-                                                    <div class="fw-semibold text-danger"><c:out value="${salaryError}" /></div>
+                                                    <div class="fw-semibold text-danger">
+                                                        <c:out value="${salaryError}" />
+                                                    </div>
                                                 </c:when>
                                                 <c:otherwise>
                                                     Chưa có dữ liệu bảng lương cho tháng này.
@@ -432,13 +463,17 @@
                                                         <i class="fa-solid fa-circle-exclamation me-1"></i>
                                                         <c:out value="${row.generationError}" />
                                                     </td>
-                                                    <td><span class="status-badge status-pending">Chưa đủ thông tin</span></td>
+                                                    <td>
+                                                        <span class="status-badge status-pending">Chưa đủ thông tin</span>
+                                                    </td>
                                                     <td>-</td>
                                                 </tr>
                                             </c:when>
                                             <c:otherwise>
-                                                <c:set var="earning" value="${row.payroll.bonus + row.payroll.overtimePay + row.payroll.allowance}" />
-                                                <c:set var="deduction" value="${row.payroll.insuranceDeduction + row.payroll.personalIncomeTax + row.payroll.penalty}" />
+                                                <c:set var="earning"
+                                                       value="${row.payroll.bonus + row.payroll.overtimePay + row.payroll.allowance}" />
+                                                <c:set var="deduction"
+                                                       value="${row.payroll.insuranceDeduction + row.payroll.personalIncomeTax + row.payroll.penalty}" />
                                                 <tr>
                                                     <td>${st.index + 1}</td>
                                                     <td>
@@ -446,10 +481,22 @@
                                                         <span class="employee-code"><c:out value="${row.employeeCode}" /></span>
                                                     </td>
                                                     <td><c:out value="${row.departmentName}" /></td>
-                                                    <td class="money"><fmt:formatNumber value="${row.payroll.baseSalary}" type="number" groupingUsed="true" />đ</td>
-                                                    <td class="money money-green">+<fmt:formatNumber value="${earning}" type="number" groupingUsed="true" />đ</td>
-                                                    <td class="money money-red">-<fmt:formatNumber value="${deduction}" type="number" groupingUsed="true" />đ</td>
-                                                    <td class="money money-net"><fmt:formatNumber value="${row.payroll.netSalary}" type="number" groupingUsed="true" />đ</td>
+                                                    <td class="money">
+                                                        <fmt:formatNumber value="${row.payroll.baseSalary}"
+                                                                          type="number" groupingUsed="true" />đ
+                                                    </td>
+                                                    <td class="money money-green">
+                                                        +<fmt:formatNumber value="${earning}"
+                                                                          type="number" groupingUsed="true" />đ
+                                                    </td>
+                                                    <td class="money money-red">
+                                                        -<fmt:formatNumber value="${deduction}"
+                                                                          type="number" groupingUsed="true" />đ
+                                                    </td>
+                                                    <td class="money money-net">
+                                                        <fmt:formatNumber value="${row.payroll.netSalary}"
+                                                                          type="number" groupingUsed="true" />đ
+                                                    </td>
                                                     <td>
                                                         <c:choose>
                                                             <c:when test="${row.payroll.status == 1}">
@@ -478,14 +525,74 @@
                 <div class="table-footer">
                     <span>Hiển thị ${fn:length(payrollPreviews)} nhân sự</span>
                     <div class="pager">
-                        <a class="page-btn disabled" href="#" aria-disabled="true"><i class="fa-solid fa-chevron-left"></i></a>
+                        <a class="page-btn disabled" href="#" aria-disabled="true">
+                            <i class="fa-solid fa-chevron-left"></i>
+                        </a>
                         <a class="page-btn active" href="#">1</a>
-                        <a class="page-btn disabled" href="#" aria-disabled="true"><i class="fa-solid fa-chevron-right"></i></a>
+                        <a class="page-btn disabled" href="#" aria-disabled="true">
+                            <i class="fa-solid fa-chevron-right"></i>
+                        </a>
                     </div>
                 </div>
             </div>
         </div>
 
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+        <script>
+                            function syncPeriod() {
+                                var month = document.getElementById('filterMonth').value;
+                                var year = document.getElementById('filterYear').value;
+                                var dept = document.getElementById('filterDept').value;
+
+                                // Sync vào form Generate
+                                var gm = document.getElementById('genMonth');
+                                var gy = document.getElementById('genYear');
+                                var gd = document.getElementById('genDept');
+                                if (gm)
+                                    gm.value = month;
+                                if (gy)
+                                    gy.value = year;
+                                if (gd)
+                                    gd.value = dept;
+
+                                // Sync vào form Approve-all
+                                var am = document.getElementById('appMonth');
+                                var ay = document.getElementById('appYear');
+                                var ad = document.getElementById('appDept');
+                                if (am)
+                                    am.value = month;
+                                if (ay)
+                                    ay.value = year;
+                                if (ad)
+                                    ad.value = dept;
+
+                                // Cập nhật link Export
+                                var exportLink = document.getElementById('exportLink');
+                                if (exportLink) {
+                                    var base = exportLink.href.split('?')[0];
+                                    exportLink.href = base + '?month=' + month + '&year=' + year + '&departmentId=' + dept;
+                                }
+
+                                // Cập nhật period pill
+                                var pm = document.getElementById('pillMonth');
+                                var py = document.getElementById('pillYear');
+                                if (pm)
+                                    pm.textContent = month;
+                                if (py)
+                                    py.textContent = year;
+                            }
+
+                            function confirmGenerate() {
+                                var month = document.getElementById('filterMonth').value;
+                                var year = document.getElementById('filterYear').value;
+                                return confirm('Generate lại bảng lương tháng ' + month + '/' + year + ' từ dữ liệu hệ thống?');
+                            }
+
+                            function confirmApprove() {
+                                var month = document.getElementById('filterMonth').value;
+                                var year = document.getElementById('filterYear').value;
+                                return confirm('Xác nhận duyệt toàn bộ bảng lương đang chờ duyệt trong kỳ lương Tháng ' + month + '/' + year + '?');
+                            }
+        </script>
     </body>
 </html>
