@@ -5,186 +5,194 @@
 <html lang="vi">
 <head>
     <meta charset="UTF-8"/>
-    <title>Xem trước hợp đồng lao động - HRM</title>
+    <title>Chi tiết hợp đồng - HRM</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet"/>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet"/>
     <style>
-        body { background: #eef1f5; font-family: Arial, sans-serif; color: #111; }
-        .main { margin-left: 250px; padding: 25px; }
-        .toolbar { max-width: 794px; margin: 0 auto 16px; display: flex; justify-content: space-between; gap: 12px; }
-        .paper { width: 794px; min-height: 1123px; margin: 0 auto 24px; background: #fff; padding: 88px 90px; box-shadow: 0 6px 24px rgba(15,23,42,0.14); }
-        .paper h1 { font-size: 28px; font-weight: 700; margin-bottom: 34px; text-align: center; }
-        .paper h2 { font-size: 20px; font-weight: 500; margin: 30px 0 14px; }
-        .paper p, .paper li { font-size: 13px; line-height: 1.75; margin-bottom: 14px; }
-        .field { color: #d00; font-weight: 600; }
-        .checkline { margin-left: 34px; }
-        .signature-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 56px; margin-top: 36px; }
-        .signature-box { height: 78px; border-bottom: 1px solid #111; margin-bottom: 10px; }
-        .muted-line { color: #555; }
-        .page-break { page-break-before: always; }
-
-        @media print {
-            @page { size: A4; margin: 18mm; }
-            body { background: #fff; }
-            .no-print, .employee-sidebar, .employee-topbar { display: none !important; }
-            .main { margin: 0; padding: 0; }
-            .paper { width: auto; min-height: auto; margin: 0; padding: 0; box-shadow: none; }
-            .paper h1 { margin-top: 0; }
-            .page-break { page-break-before: always; }
+        body { background: #f5f6fa; font-family: "Segoe UI", sans-serif; }
+        .main { margin-left: 250px; padding: 24px; }
+        .page-card { max-width: 980px; margin: 0 auto; background: #fff; border-radius: 16px; box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08); padding: 28px; }
+        .detail-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+        .detail-item { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 14px 16px; }
+        .detail-label { display: block; font-size: 12px; font-weight: 700; color: #64748b; text-transform: uppercase; margin-bottom: 6px; }
+        .detail-value { font-size: 15px; color: #0f172a; }
+        .note-box { min-height: 100px; white-space: pre-line; }
+        .toolbar { max-width: 980px; margin: 0 auto 16px; display: flex; justify-content: space-between; gap: 12px; align-items: center; }
+        .section-title { font-size: 18px; font-weight: 700; margin: 20px 0 12px; }
+        @media (max-width: 768px) {
+            .main { margin-left: 0; padding: 16px; }
+            .detail-grid { grid-template-columns: 1fr; }
+            .toolbar { flex-direction: column; align-items: stretch; }
         }
     </style>
 </head>
 <body>
-<div class="no-print">
-    <jsp:include page="/public/components/managerSideBar.jsp" />
-</div>
+<jsp:include page="/public/components/managerSideBar.jsp" />
 
 <div class="main">
-    <div class="no-print">
-        <jsp:include page="/public/components/managerTopBar.jsp">
-            <jsp:param name="title" value="Xem trước hợp đồng" />
-            <jsp:param name="backUrl" value="/v1/manager/employee/detail?id=${employee.employeeId}" />
-        </jsp:include>
-    </div>
+    <jsp:include page="/public/components/managerTopBar.jsp">
+        <jsp:param name="title" value="Chi tiết hợp đồng" />
+        <jsp:param name="backUrl" value="${backUrl}" />
+    </jsp:include>
 
-    <div class="toolbar no-print">
-        <a href="${pageContext.request.contextPath}/v1/manager/employee/detail?id=${employee.employeeId}" class="btn btn-outline-secondary btn-sm">
+    <c:if test="${not empty sessionScope.success}">
+        <div class="alert alert-success alert-dismissible fade show mx-auto mb-3" style="max-width:980px;" role="alert">
+            ${sessionScope.success}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        <c:remove var="success" scope="session"/>
+    </c:if>
+    <c:if test="${not empty sessionScope.error}">
+        <div class="alert alert-danger alert-dismissible fade show mx-auto mb-3" style="max-width:980px;" role="alert">
+            ${sessionScope.error}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        <c:remove var="error" scope="session"/>
+    </c:if>
+
+    <div class="toolbar">
+        <a href="${pageContext.request.contextPath}${backUrl}" class="btn btn-outline-secondary">
             <i class="fa-solid fa-arrow-left me-1"></i>Quay lại
         </a>
-        <div class="d-flex gap-2">
-            <button type="button" class="btn btn-outline-primary btn-sm" onclick="window.print()">
-                <i class="fa-solid fa-print me-1"></i>In
-            </button>
-            <button type="button" class="btn btn-primary btn-sm" onclick="window.print()">
-                <i class="fa-solid fa-file-pdf me-1"></i>Xuất PDF
-            </button>
+        <div class="d-flex flex-wrap gap-2">
+            <c:if test="${canApproveContract and contract.status == 'PENDING_APPROVAL'}">
+                <form method="post" action="${pageContext.request.contextPath}/v1/manager/contract/approve">
+                    <input type="hidden" name="contractId" value="${contract.contractId}">
+                    <button type="submit" class="btn btn-success">
+                        <i class="fa-solid fa-check me-1"></i>Phê duyệt
+                    </button>
+                </form>
+            </c:if>
+            <c:if test="${canRejectContract and contract.status == 'PENDING_APPROVAL'}">
+                <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#rejectModal">
+                    <i class="fa-solid fa-xmark me-1"></i>Từ chối
+                </button>
+            </c:if>
+            <c:if test="${canAddEmploymentContract and contract.status == 'PENDING_APPROVAL'}">
+                <form method="post" action="${pageContext.request.contextPath}/v1/manager/contract/cancel">
+                    <input type="hidden" name="contractId" value="${contract.contractId}">
+                    <button type="submit" class="btn btn-outline-warning">
+                        <i class="fa-solid fa-ban me-1"></i>Hủy
+                    </button>
+                </form>
+            </c:if>
+            <c:if test="${canTerminateContract and contract.status == 'ACTIVE'}">
+                <form method="post" action="${pageContext.request.contextPath}/v1/manager/contract/terminate">
+                    <input type="hidden" name="contractId" value="${contract.contractId}">
+                    <input type="hidden" name="note" value="Terminated by HR Manager">
+                    <button type="submit" class="btn btn-outline-dark">
+                        <i class="fa-solid fa-stop me-1"></i>Chấm dứt
+                    </button>
+                </form>
+            </c:if>
         </div>
     </div>
 
-    <article class="paper">
-        <h1>Hợp Đồng Lao Động</h1>
-
-        <p>
-            Hợp đồng lao động này ("Hợp đồng") được ký ngày
-            <span class="field"><fmt:formatDate value="${contract.signedDate}" pattern="dd/MM/yyyy"/></span>,
-            có hiệu lực từ ngày
-            <span class="field"><fmt:formatDate value="${contract.effectiveDate}" pattern="dd/MM/yyyy"/></span>,
-            giữa <span class="field">Công ty HRM</span>, có địa chỉ tại
-            <span class="field">Địa chỉ công ty</span> ("Người sử dụng lao động"), và
-            <span class="field"><c:out value="${employee.fullName}"/></span>,
-            mã nhân viên <span class="field"><c:out value="${employee.employeeCode}"/></span>
-            ("Người lao động").
-        </p>
-
-        <h2>1. Vị trí và nhiệm vụ.</h2>
-        <p>
-            Người lao động được tuyển dụng ở vị trí
-            <span class="field"><c:out value="${empty employee.positionName ? 'Chức danh' : employee.positionName}"/></span>
-            thuộc <span class="field"><c:out value="${empty employee.departmentName ? 'Phòng ban' : employee.departmentName}"/></span>.
-            Người lao động thực hiện các nhiệm vụ phù hợp với vị trí này và các công việc khác do Người sử dụng lao động phân công hợp lý.
-        </p>
-
-        <h2>2. Thời hạn hợp đồng.</h2>
-        <p>
-            Hợp đồng bắt đầu có hiệu lực từ ngày
-            <span class="field"><fmt:formatDate value="${contract.effectiveDate}" pattern="dd/MM/yyyy"/></span>.
-            Loại hợp đồng:
-            <span class="field"><c:out value="${contract.contractType}"/></span>.
-        </p>
-        <p class="checkline">
-            [<c:out value="${empty contract.endDate ? 'x' : ' '}"/>] Không xác định thời hạn, có thể chấm dứt theo quy định pháp luật và quy chế công ty.
-        </p>
-        <p class="checkline">
-            [<c:out value="${empty contract.endDate ? ' ' : 'x'}"/>] Có thời hạn đến ngày
-            <span class="field"><c:out value="${empty contract.endDate ? 'Ngày kết thúc' : contract.endDate}"/></span>,
-            trừ khi được chấm dứt sớm theo điều khoản của Hợp đồng.
-        </p>
-
-        <h2>3. Thời gian thử việc <em>(nếu có)</em>.</h2>
-        <p>
-            Thời gian thử việc là <span class="field">60</span> ngày kể từ ngày bắt đầu làm việc, trừ khi hai bên có thỏa thuận khác.
-            Trong thời gian này, việc chấm dứt thử việc được thực hiện theo quy định pháp luật và chính sách công ty.
-        </p>
-
-        <h2>4. Tiền lương.</h2>
-        <p>
-            Người lao động được trả mức lương
-            <span class="field"><fmt:formatNumber value="${contract.salary}" type="number" groupingUsed="true"/></span>
-            đồng mỗi tháng, thanh toán theo kỳ lương tiêu chuẩn của Người sử dụng lao động.
-            Các khoản thuế, bảo hiểm và khấu trừ bắt buộc sẽ được thực hiện theo quy định hiện hành.
-        </p>
-
-        <h2>5. Phúc lợi.</h2>
-        <p>
-            Người lao động được tham gia các chế độ phúc lợi tiêu chuẩn của công ty, bao gồm bảo hiểm, nghỉ phép có lương,
-            nghỉ ốm và các quyền lợi khác theo chính sách của Người sử dụng lao động.
-        </p>
-
-        <div class="page-break"></div>
-
-        <h2>6. Thời giờ làm việc.</h2>
-        <p>
-            Người lao động làm việc <span class="field">40</span> giờ mỗi tuần hoặc theo lịch làm việc do Người sử dụng lao động sắp xếp.
-            Việc thay đổi thời giờ làm việc được thực hiện theo nhu cầu công việc và quy định pháp luật.
-        </p>
-
-        <h2>7. Bảo mật thông tin.</h2>
-        <p>
-            Người lao động cam kết bảo mật mọi thông tin không công khai mà mình biết được trong quá trình làm việc
-            và không tiết lộ thông tin đó cho bên thứ ba, trừ trường hợp pháp luật yêu cầu hoặc được công ty cho phép.
-        </p>
-
-        <h2>8. Sở hữu trí tuệ.</h2>
-        <p>
-            Mọi sáng chế, sản phẩm, tài liệu, mã nguồn, thiết kế hoặc tài sản trí tuệ khác do Người lao động tạo ra trong phạm vi công việc
-            thuộc quyền sở hữu của Người sử dụng lao động, trong phạm vi pháp luật cho phép.
-        </p>
-
-        <h2>9. Chấm dứt hợp đồng.</h2>
-        <p>
-            Mỗi bên có quyền chấm dứt Hợp đồng theo quy định pháp luật, nội quy lao động và các thỏa thuận trong Hợp đồng.
-            Khi chấm dứt, Người lao động được thanh toán tiền lương và các quyền lợi còn lại theo quy định.
-        </p>
-
-        <h2>10. Không cạnh tranh và không lôi kéo <em>(nếu áp dụng)</em>.</h2>
-        <p>
-            Trong thời gian làm việc và một khoảng thời gian hợp lý sau khi nghỉ việc, Người lao động không được cạnh tranh không lành mạnh
-            hoặc lôi kéo khách hàng, đối tác, nhân sự của Người sử dụng lao động, trong phạm vi pháp luật cho phép.
-        </p>
-
-        <h2>11. Nội quy và quy trình.</h2>
-        <p>Người lao động đồng ý tuân thủ nội quy, quy trình và chính sách của công ty, bao gồm các sửa đổi được ban hành theo từng thời điểm.</p>
-
-        <h2>12. Toàn bộ thỏa thuận.</h2>
-        <p>Hợp đồng này là toàn bộ thỏa thuận giữa hai bên liên quan đến quan hệ lao động và thay thế các thỏa thuận trước đó về cùng nội dung.</p>
-
-        <h2>13. Sửa đổi hợp đồng.</h2>
-        <p>Mọi sửa đổi hoặc bổ sung Hợp đồng phải được lập bằng văn bản và có xác nhận của cả hai bên.</p>
-
-        <h2>14. Luật áp dụng.</h2>
-        <p>Hợp đồng này được điều chỉnh bởi pháp luật Việt Nam và các quy định có liên quan.</p>
-
-        <h2>15. Hiệu lực từng phần.</h2>
-        <p>Nếu bất kỳ điều khoản nào của Hợp đồng bị tuyên vô hiệu hoặc không thể thực thi, các điều khoản còn lại vẫn tiếp tục có hiệu lực.</p>
-
-        <h2>16. Chữ ký.</h2>
-        <p>Hai bên xác nhận đã đọc, hiểu và đồng ý ký kết Hợp đồng này vào ngày ghi ở phần đầu Hợp đồng.</p>
-
-        <div class="signature-grid">
+    <div class="page-card">
+        <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
             <div>
-                <p><strong>Người sử dụng lao động:</strong></p>
-                <div class="signature-box"></div>
-                <p>Chữ ký</p>
-                <p>Họ tên/Chức danh: <span class="field">Đại diện Công ty HRM</span></p>
-                <p>Ngày ký: <span class="field"><fmt:formatDate value="${contract.signedDate}" pattern="dd/MM/yyyy"/></span></p>
+                <h1 class="h3 mb-1">Hợp đồng ${empty contract.contractCode ? contract.contractId : contract.contractCode}</h1>
+                <div class="text-muted">${employee.fullName} (${employee.employeeCode})</div>
+            </div>
+            <span class="badge text-bg-secondary fs-6">${contract.status}</span>
+        </div>
+
+        <div class="section-title">Thông tin hợp đồng</div>
+        <div class="detail-grid">
+            <div class="detail-item">
+                <span class="detail-label">Loại hợp đồng</span>
+                <div class="detail-value">${contract.contractType}</div>
+            </div>
+            <div class="detail-item">
+                <span class="detail-label">Lương</span>
+                <div class="detail-value"><fmt:formatNumber value="${contract.salary}" type="number" groupingUsed="true"/> VND</div>
+            </div>
+            <div class="detail-item">
+                <span class="detail-label">Ngày ký</span>
+                <div class="detail-value">
+                    <c:choose>
+                        <c:when test="${not empty contract.signedDate}">
+                            <fmt:formatDate value="${contract.signedDate}" pattern="dd/MM/yyyy"/>
+                        </c:when>
+                        <c:otherwise>Chưa ký</c:otherwise>
+                    </c:choose>
+                </div>
+            </div>
+            <div class="detail-item">
+                <span class="detail-label">Ngày hiệu lực</span>
+                <div class="detail-value"><fmt:formatDate value="${contract.effectiveDate}" pattern="dd/MM/yyyy"/></div>
+            </div>
+            <div class="detail-item">
+                <span class="detail-label">Ngày kết thúc</span>
+                <div class="detail-value">
+                    <c:choose>
+                        <c:when test="${empty contract.endDate}">Không xác định thời hạn</c:when>
+                        <c:otherwise><fmt:formatDate value="${contract.endDate}" pattern="dd/MM/yyyy"/></c:otherwise>
+                    </c:choose>
+                </div>
+            </div>
+            <div class="detail-item">
+                <span class="detail-label">Hợp đồng trước đó</span>
+                <div class="detail-value">
+                    <c:choose>
+                        <c:when test="${not empty contract.previousContractId}">
+                            <a href="${pageContext.request.contextPath}/v1/manager/contract/detail?contractId=${contract.previousContractId}">
+                                #${contract.previousContractId}
+                            </a>
+                        </c:when>
+                        <c:otherwise>Không có</c:otherwise>
+                    </c:choose>
+                </div>
             </div>
         </div>
 
-        <c:if test="${not empty contract.note}">
-            <h2>Ghi chú.</h2>
-            <p><c:out value="${contract.note}"/></p>
-        </c:if>
-    </article>
+        <div class="section-title">Thông tin nhân viên</div>
+        <div class="detail-grid">
+            <div class="detail-item">
+                <span class="detail-label">Họ tên</span>
+                <div class="detail-value">${employee.fullName}</div>
+            </div>
+            <div class="detail-item">
+                <span class="detail-label">Mã nhân viên</span>
+                <div class="detail-value">${employee.employeeCode}</div>
+            </div>
+            <div class="detail-item">
+                <span class="detail-label">Phòng ban</span>
+                <div class="detail-value">${empty employee.departmentName ? 'Chưa cập nhật' : employee.departmentName}</div>
+            </div>
+            <div class="detail-item">
+                <span class="detail-label">Chức danh</span>
+                <div class="detail-value">${empty employee.positionName ? 'Chưa cập nhật' : employee.positionName}</div>
+            </div>
+        </div>
+
+        <div class="section-title">Ghi chú</div>
+        <div class="detail-item note-box">
+            <c:out value="${empty contract.note ? 'Không có ghi chú.' : contract.note}"/>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="rejectModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="post" action="${pageContext.request.contextPath}/v1/manager/contract/reject">
+                <div class="modal-header">
+                    <h5 class="modal-title">Từ chối hợp đồng</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" name="contractId" value="${contract.contractId}">
+                    <label class="form-label">Lý do từ chối</label>
+                    <textarea class="form-control" name="rejectReason" rows="4" required></textarea>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Đóng</button>
+                    <button type="submit" class="btn btn-danger">Xác nhận từ chối</button>
+                </div>
+            </form>
+        </div>
+    </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>

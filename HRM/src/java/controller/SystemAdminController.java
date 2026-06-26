@@ -599,6 +599,12 @@ public class SystemAdminController extends HttpServlet {
             return;
         }
 
+        if (isProtectedPermissionRole(selectedRole)) {
+            request.getSession().setAttribute("error", "Không được chỉnh sửa phân quyền của vai trò này.");
+            response.sendRedirect(request.getContextPath() + "/v1/systemadmin/role-list");
+            return;
+        }
+
         List<Permission> allPermissions = permissionDAO.getAllPermissions();
         Set<Permission> rolePermissions = permissionDAO.getAllPermissionByRoleId(roleId);
 
@@ -683,6 +689,12 @@ public class SystemAdminController extends HttpServlet {
 
     private boolean isBlank(String value) {
         return value == null || value.trim().isEmpty();
+    }
+
+    private boolean isProtectedPermissionRole(Role role) {
+        return role != null
+                && ("SystemAdmin".equalsIgnoreCase(role.getRoleName())
+                || "BusinessAdmin".equalsIgnoreCase(role.getRoleName()));
     }
 
     private void preventBackCache(HttpServletResponse response) {

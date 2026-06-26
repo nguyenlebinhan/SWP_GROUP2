@@ -119,13 +119,11 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-    // Dữ liệu OT trong tháng
     var otDays = [];
     <c:forEach var="otDay" items="${approvedOTDays}">
         otDays.push(${otDay});
     </c:forEach>
 
-    // Dữ liệu chấm công cả tháng, key = ngày trong tháng
     var attData = {};
     <c:forEach var="a" items="${monthRows}">
         <fmt:formatDate value="${a.workDate}" pattern="d" var="dnum" />
@@ -134,7 +132,8 @@
             label: "${a.statusLabel}",
             timeIn: "${a.timeIn}".substring(0,5),
             timeOut: "${a.timeOut}".substring(0,5),
-            hours: "${a.hoursWorkedLabel}",
+            mins: ${a.workedMinutes},
+            edited: ${a.edited},
             isOT: otDays.includes(parseInt("${dnum}", 10))
         };
     </c:forEach>
@@ -142,11 +141,25 @@
     var calMonth = ${selectedMonth};
     var calYear  = ${selectedYear};
 
+    var STANDARD_MINS = 480; // 8 tiếng chuẩn
+
+    function fmtHours(m) {
+        if (m < 0) m = 0;
+        return Math.floor(m / 60) + 'h' + ('0' + (m % 60)).slice(-2) + 'm';
+    }
+
+    // Không có đơn OT thì giới hạn hiển thị tối đa 8 tiếng, dù đi sớm/về muộn.
+    // Nếu làm dưới 8 tiếng thì giữ nguyên giờ thực tế.
+    function displayHours(rec, isOtDay) {
+        var m = rec.mins;
+        if (!(rec.isOT || isOtDay)) m = Math.min(m, STANDARD_MINS);
+        return m > 0 ? fmtHours(m) : '';
+    }
+
     function renderCalendar() {
         var body = document.getElementById('calBody');
         body.innerHTML = '';
         var daysInMonth = new Date(calYear, calMonth, 0).getDate();
-        // getDay(): 0=CN..6=T7 -> đổi sang T2=0..CN=6
         var firstDow = (new Date(calYear, calMonth - 1, 1).getDay() + 6) % 7;
 
         var now = new Date();
@@ -170,18 +183,22 @@
             var html = '<div class="d">' + day + '</div>';
             if (rec) {
                 if (rec.timeIn && rec.timeIn.length === 5 && rec.timeIn !== '00:00') {
+                    var hoursStr = displayHours(rec, isOtDay);
                     html += '<div class="tm">' + rec.timeIn
                           + (rec.timeOut && rec.timeOut.length === 5 ? ' - ' + rec.timeOut : '')
-                          + (rec.hours ? '<br>' + rec.hours : '') + '</div>';
+                          + (hoursStr ? '<br>' + hoursStr : '') + '</div>';
                 }
                 html += '<div class="st cl' + rec.status + '">' + rec.label + '</div>';
                 if (rec.isOT || isOtDay) {
-                    html += '<div class="mt-1"><span class="badge bg-warning text-dark px-2 py-1"><i class="fa-solid fa-fire me-1"></i>OT</span></div>';
+                    html += '<div class="mt-1"><span class="badge bg-warning text-dark px-2 py-1">OT</span></div>';
+                }
+                if (rec.edited) {
+                    html += '<div class="mt-1"><span class="badge bg-info text-dark px-2 py-1" title="Chấm công đã được chỉnh sửa"><i class="fa-solid fa-pen-to-square me-1"></i>Đã sửa</span></div>';
                 }
             } else {
                 cell.classList.add('off-day');
                 if (isOtDay) {
-                    html += '<div class="mt-1"><span class="badge bg-warning text-dark px-2 py-1"><i class="fa-solid fa-fire me-1"></i>OT</span></div>';
+                    html += '<div class="mt-1"><span class="badge bg-warning text-dark px-2 py-1">OT</span></div>';
                 }
             }
             cell.innerHTML = html;

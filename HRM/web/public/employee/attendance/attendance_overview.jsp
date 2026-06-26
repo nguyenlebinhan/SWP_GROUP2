@@ -23,6 +23,7 @@
         .badge-s4 { background:#dbeafe; color:#1e40af; }
         .badge-s5 { background:#ede9fe; color:#5b21b6; }
         .badge-s6 { background:#f3f4f6; color:#4b5563; }
+        .badge-ot { background:#fef3c7; color:#92400e; }
         .cnt { display:inline-block; min-width:26px; text-align:center; padding:3px 7px; border-radius:8px; font-size:12px; font-weight:600; }
         .progress { height:8px; border-radius:6px; }
     </style>
@@ -105,8 +106,6 @@
             </div>
         </form>
     </div>
-
-    <%-- KPI tổng hợp --%>
     <c:set var="totWorked" value="0" />
     <c:set var="totRate" value="0" />
     <c:set var="empCount" value="${fn:length(summaries)}" />
@@ -140,6 +139,9 @@
                         <th class="text-center" title="Vắng mặt">Ab</th>
                         <th class="text-center" title="Nghỉ lễ">Ho</th>
                         <th class="text-center" title="Cuối tuần">We</th>
+                        <th class="text-center" title="Tăng ca (số ngày có đơn OT được duyệt)">
+                            <i class="fa-solid fa-business-time"></i> OT
+                        </th>
                         <th class="text-center" style="min-width:130px">Tỷ lệ</th>
                         <th class="text-center"></th>
                     </tr>
@@ -158,6 +160,18 @@
                             <td class="text-center"><span class="cnt badge-s2">${s.absentDays}</span></td>
                             <td class="text-center"><span class="cnt badge-s5">${s.holidayDays}</span></td>
                             <td class="text-center"><span class="cnt badge-s6">${s.weekendDays}</span></td>
+                            <td class="text-center">
+                                <c:choose>
+                                    <c:when test="${s.otDays > 0}">
+                                        <span class="cnt badge-ot" title="${s.otDays} ngày tăng ca">
+                                            <i class="fa-solid fa-business-time me-1"></i>${s.otDays}
+                                        </span>
+                                    </c:when>
+                                    <c:otherwise>
+                                        <span class="cnt badge-s6">0</span>
+                                    </c:otherwise>
+                                </c:choose>
+                            </td>
                             <td>
                                 <div class="d-flex justify-content-between">
                                     <small class="fw-semibold ${s.attendanceRate < 80 ? 'text-danger' : 'text-success'}">${s.attendanceRate}%</small>
@@ -176,7 +190,7 @@
                         </tr>
                     </c:forEach>
                     <c:if test="${empty pagedSummaries}">
-                        <tr><td colspan="${canViewAll ? 13 : 12}" class="text-center text-muted py-4">Không có dữ liệu nhân viên.</td></tr>
+                        <tr><td colspan="${canViewAll ? 14 : 13}" class="text-center text-muted py-4">Không có dữ liệu nhân viên.</td></tr>
                     </c:if>
                 </tbody>
             </table>

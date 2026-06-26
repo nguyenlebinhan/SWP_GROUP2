@@ -12,6 +12,8 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.Arrays;
+import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -61,6 +63,7 @@ public class DBInitializer {
                 + "permissionId INT NOT NULL,"
                 + "createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,"
                 + "updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,"
+                + "UNIQUE KEY uq_role_permission (roleId, permissionId),"
                 + "FOREIGN KEY (roleId) REFERENCES Roles(roleId),"
                 + "FOREIGN KEY (permissionId) REFERENCES Permissions(permissionId)"
                 + ")";
@@ -652,6 +655,7 @@ public class DBInitializer {
             execute(conn, "SET FOREIGN_KEY_CHECKS=1", "ENABLE FK CHECKS AFTER CREATE");
             LOGGER.log(Level.INFO, "Đã kích hoạt lại toàn bộ kiểm tra khóa ngoại hệ thống.");
 
+            ensureRolePermissionUniqueKey(conn);
             ensurePayrollApprovalColumns(conn);
             insertInitialData(conn);
             LOGGER.log(Level.INFO,"Database initialized successfully!");
@@ -718,6 +722,41 @@ public class DBInitializer {
                 insertPermission(conn, "VIEW_ALL_DEPT_FORMS", "Xem tất cả đơn của phòng ban", "Quyền xem toàn bộ đơn yêu cầu của một phòng ban cụ thể");
                 insertPermission(conn, "PROCESS_RECRUITMENT", "Xử lý tuyển dụng", "Quyền import, duyệt và gửi thông báo kết quả tuyển dụng");
             }
+            ensurePermission(conn, "VIEW_USERS", "Xem người dùng", "Quyền xem danh sách và chi tiết người dùng");
+            ensurePermission(conn, "ADD_USER", "Thêm người dùng", "Quyền thêm mới người dùng");
+            ensurePermission(conn, "EDIT_USER", "Sửa người dùng", "Quyền chỉnh sửa thông tin người dùng");
+            ensurePermission(conn, "DELETE_USER", "Xóa người dùng", "Quyền xóa / vô hiệu hóa người dùng");
+            ensurePermission(conn, "VIEW_ROLES", "Xem vai trò", "Quyền xem danh sách và chi tiết vai trò");
+            ensurePermission(conn, "ADD_ROLE", "Thêm vai trò", "Quyền thêm mới vai trò");
+            ensurePermission(conn, "EDIT_ROLE", "Sửa vai trò", "Quyền chỉnh sửa thông tin vai trò");
+            ensurePermission(conn, "DELETE_ROLE", "Xóa vai trò", "Quyền xóa vai trò");
+            ensurePermission(conn, "MANAGE_PERMISSIONS", "Quản lý phân quyền", "Quyền gán / thu hồi quyền cho vai trò");
+            ensurePermission(conn, "VIEW_EMPLOYEES", "Xem nhân viên", "Quyền xem danh sách nhân viên");
+            ensurePermission(conn, "ADD_EMPLOYEE", "Thêm nhân viên", "Quyền thêm nhân viên");
+            ensurePermission(conn, "EDIT_EMPLOYEE", "Chỉnh sửa nhân viên", "Quyền chỉnh sửa nhân viên");
+            ensurePermission(conn, "ADD_EMPLOYMENT_CONTRACT", "Thêm hợp đồng lao động", "Quyền thêm hợp đồng lao động cho nhân viên");
+            ensurePermission(conn, "APPROVE_CONTRACT", "Phê duyệt hợp đồng", "Quyền phê duyệt hợp đồng lao động");
+            ensurePermission(conn, "REJECT_CONTRACT", "Từ chối hợp đồng", "Quyền từ chối hợp đồng lao động");
+            ensurePermission(conn, "TERMINATE_CONTRACT", "Chấm dứt hợp đồng", "Quyền chấm dứt sớm hợp đồng đang hiệu lực");
+            ensurePermission(conn, "VIEW_PENDING_CONTRACTS", "Xem hợp đồng chờ duyệt", "Quyền xem danh sách hợp đồng đang chờ duyệt");
+            ensurePermission(conn, "VIEW_OWN_CONTRACT", "Xem hợp đồng của mình", "Quyền xem hợp đồng và lịch sử hợp đồng của chính mình");
+            ensurePermission(conn, "VIEW_ALL_CONTRACTS", "Xem tất cả hợp đồng", "Quyền xem lịch sử hợp đồng của nhân viên");
+            ensurePermission(conn, "EDIT_DEPARTMENTS", "Chỉnh sửa phòng ban", "Quyền chỉnh sửa phòng ban");
+            ensurePermission(conn, "ASSIGN_DEPARTMENT", "Gán nhân viên vào phòng ban", "Quyền gán nhân viên vào phòng ban");
+            ensurePermission(conn, "UNASSIGN_DEPARTMENT", "Xóa gán phòng ban nhân viên", "Quyền xóa gán nhân viên sang phòng ban khác");
+            ensurePermission(conn, "ADD_DEPARTMENT", "Thêm phòng ban", "Quyền thêm phòng ban");
+            ensurePermission(conn, "VIEW_DEPARTMENT_ATTENDANCE", "Xem chấm công phòng ban", "Quyền xem dashboard chấm công của phòng ban mình quản lý (Manager)");
+            ensurePermission(conn, "VIEW_ALL_ATTENDANCE", "Xem toàn bộ chấm công", "Quyền xem dashboard chấm công của tất cả phòng ban trong toàn công ty (HR)");
+            ensurePermission(conn, "IMPORT_ATTENDANCE", "Import chấm công", "Quyền import dữ liệu chấm công từ file Excel");
+            ensurePermission(conn, "EDIT_ATTENDANCE", "Chỉnh sửa chấm công", "Quyền chỉnh sửa trạng thái chấm công khi tháng chấm công chưa công khai");
+            ensurePermission(conn, "VIEW_DEPARTMENT_EMPLOYEES_DETAIL", "Xem danh sách nhân viên của phòng ban khác", "Quyền xem dữ liệu nhân viên của phòng ban khác");
+            ensurePermission(conn, "VIEW_ALL_FORMS", "Xem tất cả đơn", "Quyền xem toàn bộ đơn yêu cầu của mọi phòng ban (chỉ HR)");
+            ensurePermission(conn, "VIEW_ALL_DEPT_FORMS", "Xem tất cả đơn của phòng ban", "Quyền xem toàn bộ đơn yêu cầu của một phòng ban cụ thể");
+            ensurePermission(conn, "PROCESS_RECRUITMENT", "Xử lý tuyển dụng", "Quyền import, duyệt và gửi thông báo kết quả tuyển dụng");
+            ensurePermission(conn, "VIEW_ALL_SALARY", "Xem tất cả lương nhân viên", "Quyền xem lương của tất cả nhân viên");
+            ensurePermission(conn, "VIEW_OWN_SALARY", "Xem lương cá nhân", "Quyền xem, gửi đơn khiếu nại về lương của cá nhân");
+            ensurePermission(conn, "APPROVE_PAYROLL", "Duyệt bảng lương", "Quyền duyệt bảng lương trước khi thanh toán");
+            ensurePermission(conn, "EXPORT_PAYROLL", "Xuất bảng lương", "Quyền xuất bảng lương ra Excel");
 
             if (countRows(conn, "Positions") == 0) {
                 insertPosition(conn, "Thực tập sinh", 1, "Sinh viên thực tập tại công ty");
@@ -789,6 +828,49 @@ public class DBInitializer {
                 insertDepartmentRole(conn, 3, 8); // FIEmployee
             }
 
+            ensureRolePermission(conn, "HRManager", "ADD_EMPLOYMENT_CONTRACT");
+            ensureRolePermission(conn, "HRManager", "APPROVE_CONTRACT");
+            ensureRolePermission(conn, "HRManager", "REJECT_CONTRACT");
+            ensureRolePermission(conn, "HRManager", "TERMINATE_CONTRACT");
+            ensureRolePermission(conn, "HRManager", "VIEW_PENDING_CONTRACTS");
+            ensureRolePermission(conn, "HRManager", "VIEW_ALL_CONTRACTS");
+            ensureRolePermission(conn, "HRManager", "VIEW_OWN_CONTRACT");
+
+            ensureRolePermission(conn, "HREmployee", "ADD_EMPLOYMENT_CONTRACT");
+            ensureRolePermission(conn, "HREmployee", "VIEW_OWN_CONTRACT");
+
+            ensureRolePermission(conn, "ITManager", "VIEW_OWN_CONTRACT");
+            ensureRolePermission(conn, "ITEmployee", "VIEW_OWN_CONTRACT");
+            ensureRolePermission(conn, "FIManager", "VIEW_OWN_CONTRACT");
+            ensureRolePermission(conn, "FIEmployee", "VIEW_OWN_CONTRACT");
+
+            List<String> systemAdminPermissions = Arrays.asList(
+                    "EDIT_USER",
+                    "ADD_USER",
+                    "VIEW_USERS",
+                    "DELETE_USER",
+                    "MANAGE_PERMISSIONS",
+                    "EDIT_ROLE",
+                    "ADD_ROLE",
+                    "VIEW_ROLES",
+                    "DELETE_ROLE"
+            );
+            for (String permissionCode : systemAdminPermissions) {
+                ensureRolePermission(conn, "SystemAdmin", permissionCode);
+            }
+
+            String businessAdminSql = "SELECT permissionCode FROM Permissions WHERE permissionCode NOT IN (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+            try (PreparedStatement ps = conn.prepareStatement(businessAdminSql)) {
+                for (int i = 0; i < systemAdminPermissions.size(); i++) {
+                    ps.setString(i + 1, systemAdminPermissions.get(i));
+                }
+                try (ResultSet rs = ps.executeQuery()) {
+                    while (rs.next()) {
+                        ensureRolePermission(conn, "BusinessAdmin", rs.getString("permissionCode"));
+                    }
+                }
+            }
+
             if (countRows(conn, "Form_Types") == 0) {
                 insertFormType(conn, "LEAVE", "Nghỉ phép");
                 insertFormType(conn, "COMPLAINT", "Khiếu nại");
@@ -812,6 +894,25 @@ public class DBInitializer {
         }
     }
 
+    private void ensurePermission(Connection conn, String code, String name, String description) throws SQLException {
+        String checkSql = "SELECT 1 FROM Permissions WHERE permissionCode = ?";
+        try (PreparedStatement checkPs = conn.prepareStatement(checkSql)) {
+            checkPs.setString(1, code);
+            try (ResultSet rs = checkPs.executeQuery()) {
+                if (rs.next()) {
+                    return;
+                }
+            }
+        }
+        String insertSql = "INSERT INTO Permissions (permissionCode, permissionName, description) VALUES (?, ?, ?)";
+        try (PreparedStatement ps = conn.prepareStatement(insertSql)) {
+            ps.setString(1, code);
+            ps.setString(2, name);
+            ps.setNString(3, description);
+            ps.executeUpdate();
+        }
+    }
+    
     private void insertPermission(Connection conn, String code, String name, String description) throws SQLException {
         String sql = "INSERT IGNORE INTO Permissions (permissionCode, permissionName, description) VALUES (?, ?, ?)";
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -896,6 +997,48 @@ public class DBInitializer {
             ps.setString(2, permissionCode);
             ps.executeUpdate();
         }
+    }
+
+    private void ensureRolePermission(Connection conn, String roleName, String permissionCode) throws SQLException {
+        String findSql = "SELECT r.roleId, p.permissionId FROM Roles r JOIN Permissions p ON 1=1 WHERE r.roleName = ? AND p.permissionCode = ?";
+        try (PreparedStatement findPs = conn.prepareStatement(findSql)) {
+            findPs.setString(1, roleName);
+            findPs.setString(2, permissionCode);
+            try (ResultSet rs = findPs.executeQuery()) {
+                if (!rs.next()) {
+                    return;
+                }
+                int roleId = rs.getInt("roleId");
+                int permissionId = rs.getInt("permissionId");
+                String existsSql = "SELECT 1 FROM Role_Permissions WHERE roleId = ? AND permissionId = ?";
+                try (PreparedStatement existsPs = conn.prepareStatement(existsSql)) {
+                    existsPs.setInt(1, roleId);
+                    existsPs.setInt(2, permissionId);
+                    try (ResultSet existsRs = existsPs.executeQuery()) {
+                        if (existsRs.next()) {
+                            return;
+                        }
+                    }
+                }
+                String insertSql = "INSERT INTO Role_Permissions (roleId, permissionId) VALUES (?, ?)";
+                try (PreparedStatement insertPs = conn.prepareStatement(insertSql)) {
+                    insertPs.setInt(1, roleId);
+                    insertPs.setInt(2, permissionId);
+                    insertPs.executeUpdate();
+                }
+            }
+        }
+    }
+
+    private void ensureRolePermissionUniqueKey(Connection conn) throws SQLException {
+        String checkSql = "SELECT 1 FROM INFORMATION_SCHEMA.STATISTICS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'Role_Permissions' AND INDEX_NAME = 'uq_role_permission'";
+        try (PreparedStatement checkPs = conn.prepareStatement(checkSql);
+             ResultSet rs = checkPs.executeQuery()) {
+            if (rs.next()) {
+                return;
+            }
+        }
+        execute(conn, "ALTER TABLE Role_Permissions ADD CONSTRAINT uq_role_permission UNIQUE (roleId, permissionId)", "ADD ROLE_PERMISSIONS UNIQUE KEY");
     }
 
     private int insertEmployee(Connection conn, String code, int userId, int deptId, int posId,

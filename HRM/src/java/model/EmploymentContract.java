@@ -265,5 +265,18 @@ public class EmploymentContract {
                 + ", status=" + status
                 + '}';
     }
-}
 
+    public String getStatusLabel() {
+        if (status == null) {
+            return "UNKNOWN";
+        }
+        if (status == ContractStatus.PENDING_APPROVAL) {
+            return "PENDING_APPROVE";
+        }
+        return status.name();
+    }
+
+    public boolean isTerminalStatus() {
+        return status != null && status.isFinalStatus();
+    }
+}

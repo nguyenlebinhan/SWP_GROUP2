@@ -233,7 +233,7 @@
                                             <a href="${pageContext.request.contextPath}/v1/systemadmin/update-role?id=${r.roleId}" class="btn-action btn-view">
                                                 Sửa
                                             </a>
-                                            <c:if test="${r.roleCode != 'SA' && r.roleCode != 'BA'}">    
+                                            <c:if test="${r.roleCode != 'SA' && r.roleCode != 'BA'}">
                                             <a href="${pageContext.request.contextPath}/v1/systemadmin/edit-role-permissions?id=${r.roleId}" class="btn-action" style="background:#fef3c7;color:#92400e;border:1px solid #fde68a">
                                                  Phân quyền
                                             </a>

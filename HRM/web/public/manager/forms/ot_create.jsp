@@ -38,6 +38,7 @@
     <div class="main">
         <jsp:include page="/public/components/managerTopBar.jsp">
             <jsp:param name="title" value="Tạo đơn Overtime" />
+            <jsp:param name="backUrl" value="/v1/manager/forms/ot-requests"/>
         </jsp:include>
 
         <c:if test="${not empty sessionScope.error}">
@@ -50,9 +51,6 @@
 
         <div class="d-flex justify-content-between align-items-center mb-4">
             <h4 class="mb-0"><i class="fa-solid fa-file-circle-plus me-2"></i>Tạo đơn yêu cầu tăng ca (OT)</h4>
-            <a href="${pageContext.request.contextPath}/v1/manager/forms/ot-requests" class="btn btn-outline-secondary">
-                <i class="fa-solid fa-arrow-left me-1"></i> Quay lại
-            </a>
         </div>
 
         <div class="section-card">
@@ -65,19 +63,21 @@
                         <input type="date" name="otDate" class="form-control" required>
                     </div>
                     <div class="col-md-4">
-                        <label class="form-label fw-bold">Thời gian bắt đầu <span class="text-danger">*</span></label>
-                        <input type="time" name="startTime" class="form-control" required>
+                        <label class="form-label fw-bold">Thời gian bắt đầu</label>
+                        <input type="text" readonly class="form-control-plaintext fw-bold text-primary fs-5" value="17:00">
+                        <input type="hidden" name="startTime" value="17:00">
                     </div>
                     <div class="col-md-4">
-                        <label class="form-label fw-bold">Thời gian kết thúc <span class="text-danger">*</span></label>
-                        <input type="time" name="endTime" class="form-control" required>
+                        <label class="form-label fw-bold">Thời gian kết thúc</label>
+                        <input type="text" readonly class="form-control-plaintext fw-bold text-primary fs-5" value="19:00">
+                        <input type="hidden" name="endTime" value="19:00">
                     </div>
                     
                     <div class="col-md-4">
                         <label class="form-label fw-bold">Loại ngày <span class="text-danger">*</span></label>
                         <select name="dayType" class="form-select" required>
                             <option value="1">Ngày thường</option>
-                            <option value="3">Ngày lễ</option>
+                            <!--<option value="3">Ngày lễ</option>-->
                         </select>
                     </div>
                     <div class="col-md-8">

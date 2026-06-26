@@ -50,76 +50,44 @@
         background: #1565C0;
         color: white;
     }
-
-    .emp-sidebar a i {
-        width: 18px;
-        text-align: center;
-        font-size: 14px;
-    }
 </style>
 
 <div class="emp-sidebar">
-    <div class="brand">
-        HRM System
-    </div>
+    <div class="brand">HRM System</div>
 
     <div class="nav-section">Tổng quan</div>
-    <a href="${pageContext.request.contextPath}/v1/employee/dashboard">
-        Dashboard
-    </a>
+    <a href="${pageContext.request.contextPath}/v1/employee/dashboard">Dashboard</a>
 
     <c:if test="${sessionScope.userPermissions.contains('VIEW_EMPLOYEES')}">
         <div class="nav-section">Nhân viên</div>
-        <a href="${pageContext.request.contextPath}/v1/employee/employee_info/list">
-            Danh sách nhân viên
-        </a>
+        <a href="${pageContext.request.contextPath}/v1/employee/employee_info/list">Danh sách nhân viên</a>
     </c:if>
 
     <c:if test="${sessionScope.userPermissions.contains('VIEW_DEPARTMENTS')}">
         <div class="nav-section">Phòng ban</div>
-        <a href="${pageContext.request.contextPath}/v1/employee/department/list">
-            Danh sách phòng ban
-        </a>
+        <a href="${pageContext.request.contextPath}/v1/employee/department/list">Danh sách phòng ban</a>
     </c:if>
 
     <div class="nav-section">Đơn từ</div>
     <c:if test="${sessionScope.userPermissions.contains('VIEW_ALL_FORMS')}">
-        <a href="${pageContext.request.contextPath}/v1/employee/forms/all">
-            Tất cả đơn
-        </a>
+        <a href="${pageContext.request.contextPath}/v1/employee/forms/all">Tất cả đơn</a>
     </c:if>
-    <a href="${pageContext.request.contextPath}/v1/employee/forms/my-forms">
-        Đơn của tôi
-    </a>
+    <a href="${pageContext.request.contextPath}/v1/employee/forms/my-forms">Đơn của tôi</a>
 
-    <c:if test="${sessionScope.userPermissions.contains('VIEW_CONTRACT_PREVIEW')}">
-        <a href="${pageContext.request.contextPath}/v1/employee/contract/current">
-            <i class="fas fa-file-contract me-2"></i>Hợp đồng hiện tại
-        </a>
+    <c:if test="${sessionScope.userPermissions.contains('VIEW_OWN_CONTRACT')}">
+        <div class="nav-section">Hợp đồng</div>
+        <a href="${pageContext.request.contextPath}/v1/employee/contract/current">Hợp đồng hiện tại</a>
+        <a href="${pageContext.request.contextPath}/v1/employee/contract/history">Lịch sử hợp đồng</a>
     </c:if>
-    <a href="${pageContext.request.contextPath}/v1/employee/contract/history">
-        <i class="fas fa-history me-2"></i>Lịch sử hợp đồng
-    </a>
 
     <div class="nav-section">Chấm công</div>
-    <c:if test="${sessionScope.userPermissions.contains('VIEW_ATTENDANCE')}">
-        <a href="${pageContext.request.contextPath}/v1/employee/attendance/list">
-            Xem chấm công
-        </a>
-    </c:if>
-    <a href="${pageContext.request.contextPath}/v1/employee/attendance/own-attendance">
-        Chấm công của tôi
-    </a>
+    <a href="${pageContext.request.contextPath}/v1/employee/attendance/own-attendance">Chấm công của tôi</a>
     <c:if test="${sessionScope.userPermissions.contains('VIEW_ALL_ATTENDANCE')}">
-        <a href="${pageContext.request.contextPath}/v1/employee/attendance/overview">
-            Tổng quan chấm công
-        </a>
+        <a href="${pageContext.request.contextPath}/v1/employee/attendance/overview">Tổng quan chấm công</a>
     </c:if>
 
     <c:if test="${sessionScope.userPermissions.contains('PROCESS_RECRUITMENT')}">
         <div class="nav-section">Tuyển dụng</div>
-        <a href="${pageContext.request.contextPath}/v1/employee/recruitment-list">
-            Danh sách ứng viên
-        </a>
+        <a href="${pageContext.request.contextPath}/v1/employee/recruitment-list">Danh sách ứng viên</a>
     </c:if>
 </div>

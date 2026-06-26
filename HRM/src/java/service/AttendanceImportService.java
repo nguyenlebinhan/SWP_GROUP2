@@ -36,11 +36,15 @@ public class AttendanceImportService {
 
     private static final Time WORK_START = Time.valueOf("08:00:00");
 
+    /** Số giờ làm chuẩn trong một ngày. Khi không có đơn OT được duyệt, giờ công bị giới hạn tối đa ở mức này. */
+    private static final BigDecimal STANDARD_HOURS = new BigDecimal("8.00");
+
     private final DBContext dbContext;
     private final AttendanceDAO attendanceDAO;
     private final UploadedFileDAO uploadedFileDAO;
     private final HolidayDAO holidayDAO;
     private final FormRequestDAO formRequestDAO;
+    private final dao.OvertimeDAO overtimeDAO;
     private final ExcelAttendanceParser parser;
 
     public AttendanceImportService() {
@@ -49,7 +53,21 @@ public class AttendanceImportService {
         this.uploadedFileDAO = new UploadedFileDAO();
         this.holidayDAO = new HolidayDAO();
         this.formRequestDAO = new FormRequestDAO();
+        this.overtimeDAO = new dao.OvertimeDAO();
         this.parser = new ExcelAttendanceParser();
+    }
+
+    /**
+     * Giới hạn giờ công ở mức 8 tiếng chuẩn nếu nhân viên không có đơn OT được duyệt cho ngày đó.
+     * Nếu có đơn OT được duyệt thì giữ nguyên giờ công thực tế (cho phép vượt 8 tiếng).
+     */
+    private BigDecimal capHoursWithoutOT(Connection conn, int employeeId, Date workDate,
+            BigDecimal hoursWorked) throws SQLException {
+        if (hoursWorked.compareTo(STANDARD_HOURS) > 0
+                && !overtimeDAO.hasApprovedOT(conn, employeeId, workDate)) {
+            return STANDARD_HOURS;
+        }
+        return hoursWorked;
     }
 
 
@@ -165,21 +183,22 @@ public class AttendanceImportService {
         Time timeIn = parseTime(ad.getTimeIn(), "timeIn");
         Time timeOut = parseTime(ad.getTimeOut(), "timeOut");
 
+        int employeeId = attendanceDAO.findEmployeeIdByCode(employeeCode);
+        if (employeeId <= 0) {
+            throw new RowValidationException("employeeCode không tồn tại: " + employeeCode);
+        }
+
         BigDecimal hoursWorked;
         if (timeIn != null && timeOut != null) {
             if (timeOut.getTime() - timeIn.getTime() < 0) {
                 throw new RowValidationException("timeOut phải sau timeIn.");
             }
-            
-            hoursWorked = utils.WorkHoursCalculator.hoursWorked(timeIn, timeOut);
-        } else {
-            
-            hoursWorked = BigDecimal.ZERO;
-        }
 
-        int employeeId = attendanceDAO.findEmployeeIdByCode(employeeCode);
-        if (employeeId <= 0) {
-            throw new RowValidationException("employeeCode không tồn tại: " + employeeCode);
+            hoursWorked = utils.WorkHoursCalculator.hoursWorked(timeIn, timeOut);
+            hoursWorked = capHoursWithoutOT(conn, employeeId, workDate, hoursWorked);
+        } else {
+
+            hoursWorked = BigDecimal.ZERO;
         }
 
         int effectiveDeptId;
@@ -276,7 +295,7 @@ public class AttendanceImportService {
         return AttendanceStatus.ABSENT;
     }
 
-    private boolean isWeekend(Date workDate) {
+     private boolean isWeekend(Date workDate) {
         DayOfWeek day = workDate.toLocalDate().getDayOfWeek();
         return day == DayOfWeek.SATURDAY || day == DayOfWeek.SUNDAY;
     }

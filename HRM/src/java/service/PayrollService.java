@@ -70,7 +70,6 @@ public class PayrollService {
     }
 
     // ── Quyền ──────────────────────────────────────────────────────────────────
-
     public boolean canViewOwnSalary(User user) {
         return user != null && getPermissions(user).contains(PERMISSION_VIEW_OWN_SALARY);
     }
@@ -95,7 +94,6 @@ public class PayrollService {
     }
 
     // ── Xem lương ──────────────────────────────────────────────────────────────
-
     public PayrollPreviewDTO getOwnPayroll(User user, int year, int month) {
         if (!canViewOwnSalary(user)) {
             return null;
@@ -144,7 +142,6 @@ public class PayrollService {
     }
 
     // ── Duyệt tổng (0 → 1) ────────────────────────────────────────────────────
-
     public int approveAllPayrollForPeriod(User user, int year, int month, Integer departmentId) {
         if (!canApprovePayroll(user)) {
             return 0;
@@ -173,7 +170,6 @@ public class PayrollService {
     }
 
     // ── Export ─────────────────────────────────────────────────────────────────
-
     public void exportPayrollWorkbook(User user, int year, int month, Integer departmentId, OutputStream out)
             throws IOException {
         boolean allowed = canExportPayroll(user);
@@ -226,7 +222,6 @@ public class PayrollService {
     }
 
     // ── Generate ───────────────────────────────────────────────────────────────
-
     public List<PayrollPreviewDTO> generatePayrollForAll(int year, int month, Integer departmentId, boolean save) {
         List<PayrollPreviewDTO> result = new ArrayList<>();
         try (Connection conn = dbContext.getConnection()) {
@@ -283,44 +278,79 @@ public class PayrollService {
     }
 
     // ── Tính lương ─────────────────────────────────────────────────────────────
-
     private PayrollPreviewDTO calculatePayroll(Connection conn, EmployeePayrollBase employee, int year, int month)
             throws SQLException {
+
         if (employee.contractSalary == null || employee.contractSalary.signum() <= 0) {
             return buildGenerationErrorPreview(employee, "Chưa có hợp đồng active hoặc lương hợp đồng hợp lệ.");
         }
 
         Date periodStart = toPeriodStart(year, month);
         Date periodEnd = toPeriodEnd(year, month);
+
         YearMonth ym = YearMonth.of(year, month);
         int standardWorkingDays = countStandardWorkingDays(ym);
+
         if (standardWorkingDays <= 0) {
             return buildGenerationErrorPreview(employee, "Tháng lương không có ngày làm việc chuẩn.");
         }
 
         BigDecimal dailyRate = divideMoney(employee.contractSalary, new BigDecimal(standardWorkingDays));
         BigDecimal minuteRate = divideMoney(dailyRate, WORKING_HOURS_PER_DAY.multiply(MINUTES_PER_HOUR));
-        AttendanceSummary attendance = getAttendanceSummary(conn, employee.employeeId, year, month, dailyRate, minuteRate);
+
+        AttendanceSummary attendance
+                = getAttendanceSummary(conn, employee.employeeId, year, month, dailyRate, minuteRate);
+
         if (attendance.recordCount == 0) {
             return buildGenerationErrorPreview(employee, "Chưa có dữ liệu chấm công trong tháng lương này.");
         }
 
-        OvertimeSummary overtime = getOvertimeSummary(conn, employee.employeeId, year, month, dailyRate);
-        BigDecimal attendanceBonus = attendance.lateMinutes == 0 && attendance.unauthorizedAbsentDays == 0
-                ? employee.contractSalary.multiply(new BigDecimal("0.03"))
-                : ZERO;
-        BigDecimal baseSalary = dailyRate.multiply(new BigDecimal(attendance.paidWorkingDays));
+        OvertimeSummary overtime
+                = getOvertimeSummary(conn, employee.employeeId, year, month, dailyRate);
+
+        BigDecimal attendanceBonus = attendance.lateMinutes == 0
+                && attendance.unauthorizedAbsentDays == 0
+                        ? employee.contractSalary.multiply(new BigDecimal("0.03"))
+                        : ZERO;
+
+        BigDecimal baseSalary
+                = dailyRate.multiply(new BigDecimal(attendance.paidWorkingDays));
+
         BigDecimal bonus = attendanceBonus;
-        BigDecimal penalty = attendance.latePenalty.add(attendance.unauthorizedAbsentPenalty);
-        BigDecimal grossSalary = baseSalary.add(bonus).add(overtime.overtimePay).subtract(penalty);
+
+        // Penalty dùng để hiển thị:
+        // - latePenalty: phạt đi muộn, có trừ thật vào lương
+        // - unauthorizedAbsentPenalty: tiền mất do nghỉ không phép, chỉ hiển thị
+        BigDecimal penalty = attendance.latePenalty
+                .add(attendance.unauthorizedAbsentPenalty);
+
+        // Gross chỉ trừ latePenalty.
+        // Không trừ unauthorizedAbsentPenalty nữa vì nghỉ không phép đã làm giảm paidWorkingDays.
+        BigDecimal grossSalary = baseSalary
+                .add(bonus)
+                .add(overtime.overtimePay)
+                .subtract(attendance.latePenalty);
+
         BigDecimal insuranceDeduction = employee.contractSalary.multiply(
-                SOCIAL_INSURANCE_RATE.add(HEALTH_INSURANCE_RATE).add(UNEMPLOYMENT_INSURANCE_RATE));
-        BigDecimal taxableIncome = grossSalary.subtract(insuranceDeduction).subtract(PERSONAL_ALLOWANCE);
+                SOCIAL_INSURANCE_RATE
+                        .add(HEALTH_INSURANCE_RATE)
+                        .add(UNEMPLOYMENT_INSURANCE_RATE)
+        );
+
+        BigDecimal taxableIncome = grossSalary
+                .subtract(insuranceDeduction)
+                .subtract(PERSONAL_ALLOWANCE);
+
         if (taxableIncome.signum() < 0) {
             taxableIncome = ZERO;
         }
+
         BigDecimal personalIncomeTax = calculatePersonalIncomeTax(taxableIncome);
-        BigDecimal netSalary = grossSalary.subtract(insuranceDeduction).subtract(personalIncomeTax);
+
+        BigDecimal netSalary = grossSalary
+                .subtract(insuranceDeduction)
+                .subtract(personalIncomeTax);
+
         if (netSalary.signum() < 0) {
             return buildGenerationErrorPreview(employee, "Dữ liệu chưa thể tạo ra. Cần kiểm tra lại dữ liệu nguồn...");
         }
@@ -353,11 +383,11 @@ public class PayrollService {
         preview.setPositionName(employee.positionName);
         preview.setContractSalary(employee.contractSalary);
         preview.setDetails(buildDetails(payroll, attendance, overtime, attendanceBonus));
+
         return preview;
     }
 
     // ── Helpers nội bộ ─────────────────────────────────────────────────────────
-
     private void auditPayroll(User user, String action, Integer recordId, String oldValue,
             String newValue, String status) {
         Integer userId = user == null ? null : user.getUserId();
@@ -410,8 +440,7 @@ public class PayrollService {
         }
         sql.append("ORDER BY d.departmentName, e.employeeCode");
 
-        try (Connection conn = dbContext.getConnection();
-                PreparedStatement ps = conn.prepareStatement(sql.toString())) {
+        try (Connection conn = dbContext.getConnection(); PreparedStatement ps = conn.prepareStatement(sql.toString())) {
             ps.setInt(1, year);
             ps.setInt(2, month);
             ps.setDate(3, toPeriodEnd(year, month));
@@ -516,95 +545,140 @@ public class PayrollService {
 
     private AttendanceSummary getAttendanceSummary(Connection conn, int employeeId, int year, int month,
             BigDecimal dailyRate, BigDecimal minuteRate) throws SQLException {
+
         AttendanceSummary summary = new AttendanceSummary();
-        String SQL = "SELECT attendanceStatus, COALESCE(hoursWorked, 0) AS hoursWorked, timeIn "
-                + "FROM Attendance WHERE employeeId = ? AND YEAR(workDate) = ? AND MONTH(workDate) = ?";
+
+        String SQL = "SELECT attendanceStatus, COALESCE(hoursWorked, 0) AS hoursWorked, timeIn, workDate "
+                + "FROM Attendance "
+                + "WHERE employeeId = ? AND YEAR(workDate) = ? AND MONTH(workDate) = ?";
+
         try (PreparedStatement ps = conn.prepareStatement(SQL)) {
             ps.setInt(1, employeeId);
             ps.setInt(2, year);
             ps.setInt(3, month);
+
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
                     summary.recordCount++;
+
+                    Date workDate = rs.getDate("workDate");
+                    DayOfWeek dow = workDate.toLocalDate().getDayOfWeek();
+
+                    if (dow == DayOfWeek.SATURDAY || dow == DayOfWeek.SUNDAY) {
+                        continue;
+                    }
+
                     int status = rs.getInt("attendanceStatus");
+
                     BigDecimal hours = moneyOrZero(rs.getBigDecimal("hoursWorked"));
                     summary.hoursWorked = summary.hoursWorked.add(hours);
-                    if (status == 2) {
+
+                    if (status == 0) {
+                        summary.paidWorkingDays++;
+
+                    } else if (status == 1) {
+                        summary.paidWorkingDays++;
+                        summary.lateCount++;
+
+                        LocalTime timeIn = rs.getTime("timeIn") == null
+                                ? STANDARD_START_TIME
+                                : rs.getTime("timeIn").toLocalTime();
+
+                        int lateMinutes = Math.max(0,
+                                (int) java.time.Duration.between(STANDARD_START_TIME, timeIn).toMinutes());
+
+                        summary.lateMinutes += lateMinutes;
+                        summary.latePenalty = summary.latePenalty.add(
+                                minuteRate.multiply(new BigDecimal(lateMinutes)));
+
+                    } else if (status == 4) {
+                        // Nghỉ phép có lương
                         summary.paidLeaveDays++;
                         summary.paidWorkingDays++;
-                    } else if (status == 3) {
+
+                    } else if (status == 2 || status == 3) {
+                        // Vắng mặt / Không phép: không cộng công
                         summary.unauthorizedAbsentDays++;
-                        summary.unauthorizedAbsentPenalty = summary.unauthorizedAbsentPenalty.add(dailyRate);
-                    } else {
-                        summary.paidWorkingDays++;
-                        if (status == 1) {
-                            summary.lateCount++;
-                            LocalTime timeIn = rs.getTime("timeIn") == null
-                                    ? STANDARD_START_TIME
-                                    : rs.getTime("timeIn").toLocalTime();
-                            int lateMinutes = Math.max(0,
-                                    (int) java.time.Duration.between(STANDARD_START_TIME, timeIn).toMinutes());
-                            summary.lateMinutes += lateMinutes;
-                            summary.latePenalty = summary.latePenalty.add(
-                                    minuteRate.multiply(new BigDecimal(lateMinutes)));
-                        }
+                        summary.unauthorizedAbsentPenalty
+                                = summary.unauthorizedAbsentPenalty.add(dailyRate);
                     }
                 }
             }
         }
+
         return summary;
     }
 
     private OvertimeSummary getOvertimeSummary(Connection conn, int employeeId, int year, int month,
             BigDecimal dailyRate) throws SQLException {
+
         OvertimeSummary summary = new OvertimeSummary();
         BigDecimal hourlyRate = divideMoney(dailyRate, WORKING_HOURS_PER_DAY);
+
         String SQL = "SELECT od.startTime, od.endTime, od.dayType, a.timeIn, a.timeOut "
-                + "FROM Overtime_Assignees oa "
-                + "JOIN Overtime_Details od ON od.formId = oa.formId "
-                + "JOIN Form_Requests fr ON fr.formId = oa.formId "
-                + "LEFT JOIN Attendance a ON a.employeeId = oa.employeeId AND a.workDate = od.otDate "
-                + "WHERE oa.employeeId = ? AND fr.status = 1 AND YEAR(od.otDate) = ? AND MONTH(od.otDate) = ?";
+                + "FROM Form_Requests fr "
+                + "JOIN Overtime_Details od ON od.formId = fr.formId "
+                + "LEFT JOIN Overtime_Assignees oa ON oa.formId = fr.formId "
+                + "JOIN Attendance a ON a.employeeId = ? AND a.workDate = od.otDate "
+                + "WHERE fr.status = 1 "
+                + "AND fr.formTypeId = (SELECT formTypeId FROM Form_Types WHERE formTypeCode = 'OVERTIME') "
+                + "AND (fr.employeeId = ? OR oa.employeeId = ?) "
+                + "AND YEAR(od.otDate) = ? "
+                + "AND MONTH(od.otDate) = ?";
+
         try (PreparedStatement ps = conn.prepareStatement(SQL)) {
             ps.setInt(1, employeeId);
-            ps.setInt(2, year);
-            ps.setInt(3, month);
+            ps.setInt(2, employeeId);
+            ps.setInt(3, employeeId);
+            ps.setInt(4, year);
+            ps.setInt(5, month);
+
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
-                    java.sql.Time tIn = rs.getTime("timeIn");
-                    java.sql.Time tOut = rs.getTime("timeOut");
-                    
-                    if (tIn == null || tOut == null) {
+                    if (rs.getTime("timeIn") == null || rs.getTime("timeOut") == null) {
                         continue;
                     }
 
                     LocalTime approvedStart = rs.getTime("startTime").toLocalTime();
                     LocalTime approvedEnd = rs.getTime("endTime").toLocalTime();
-                    LocalTime actualIn = tIn.toLocalTime();
-                    LocalTime actualOut = tOut.toLocalTime();
 
-                    LocalTime validStart = approvedStart.isAfter(actualIn) ? approvedStart : actualIn;
-                    LocalTime validEnd = approvedEnd.isBefore(actualOut) ? approvedEnd : actualOut;
+                    LocalTime actualIn = rs.getTime("timeIn").toLocalTime();
+                    LocalTime actualOut = rs.getTime("timeOut").toLocalTime();
+
+                    LocalTime validStart = approvedStart.isAfter(actualIn)
+                            ? approvedStart
+                            : actualIn;
+
+                    LocalTime validEnd = approvedEnd.isBefore(actualOut)
+                            ? approvedEnd
+                            : actualOut;
 
                     if (!validEnd.isAfter(validStart)) {
                         continue;
                     }
 
                     long workedMinutes = java.time.Duration.between(validStart, validEnd).toMinutes();
+
                     long validBlocks = workedMinutes / 30;
                     double validHours = (validBlocks * 30) / 60.0;
-                    
+
                     if (validHours <= 0) {
                         continue;
                     }
 
-                    BigDecimal hours = new BigDecimal(String.valueOf(validHours)).setScale(2, RoundingMode.HALF_UP);
-                    BigDecimal pay = hourlyRate.multiply(hours).multiply(overtimeMultiplier(rs.getInt("dayType")));
+                    BigDecimal hours = new BigDecimal(String.valueOf(validHours))
+                            .setScale(2, RoundingMode.HALF_UP);
+
+                    BigDecimal pay = hourlyRate
+                            .multiply(hours)
+                            .multiply(overtimeMultiplier(rs.getInt("dayType")));
+
                     summary.overtimeHours = summary.overtimeHours.add(hours);
                     summary.overtimePay = summary.overtimePay.add(pay);
                 }
             }
         }
+
         return summary;
     }
 
@@ -612,30 +686,31 @@ public class PayrollService {
         BigDecimal remaining = scale(taxableIncome);
         BigDecimal tax = ZERO;
         BigDecimal[] limits = {
-            new BigDecimal("5000000"),
-            new BigDecimal("5000000"),
-            new BigDecimal("8000000"),
-            new BigDecimal("14000000"),
+            new BigDecimal("10000000"),
             new BigDecimal("20000000"),
-            new BigDecimal("28000000")
+            new BigDecimal("30000000"),
+            new BigDecimal("40000000")
         };
+
         BigDecimal[] rates = {
             new BigDecimal("0.05"),
             new BigDecimal("0.10"),
-            new BigDecimal("0.15"),
             new BigDecimal("0.20"),
-            new BigDecimal("0.25"),
             new BigDecimal("0.30"),
             new BigDecimal("0.35")
         };
+
         for (int i = 0; i < rates.length; i++) {
             BigDecimal amount = i < limits.length ? remaining.min(limits[i]) : remaining;
+
             if (amount.signum() <= 0) {
                 break;
             }
+
             tax = tax.add(amount.multiply(rates[i]));
             remaining = remaining.subtract(amount);
         }
+
         return scale(tax);
     }
 
@@ -746,10 +821,13 @@ public class PayrollService {
 
     private BigDecimal overtimeMultiplier(int dayType) {
         switch (dayType) {
-            case 2: return new BigDecimal("2.0");
-            case 3: return new BigDecimal("3.0");
+            case 2:
+                return new BigDecimal("2.0");
+            case 3:
+                return new BigDecimal("3.0");
             case 1:
-            default: return new BigDecimal("1.5");
+            default:
+                return new BigDecimal("1.5");
         }
     }
 
@@ -787,8 +865,8 @@ public class PayrollService {
     }
 
     // ── Inner classes ──────────────────────────────────────────────────────────
-
     private static class EmployeePayrollBase {
+
         int employeeId;
         String employeeCode;
         int positionId;
@@ -800,6 +878,7 @@ public class PayrollService {
     }
 
     private static class AttendanceSummary {
+
         int recordCount;
         int paidWorkingDays;
         int paidLeaveDays;
@@ -813,6 +892,7 @@ public class PayrollService {
     }
 
     private static class OvertimeSummary {
+
         BigDecimal overtimeHours = BigDecimal.ZERO;
         BigDecimal overtimePay = BigDecimal.ZERO;
     }
