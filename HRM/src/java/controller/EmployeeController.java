@@ -551,14 +551,14 @@ public class EmployeeController extends HttpServlet {
         request.getSession().setAttribute("userPermissions", perms);
         setPermissionFlags(request, perms);
 
-        if (!payrollService.canViewAllSalary(user)) {
+        if (!payrollService.canViewAllSalary(user) && !payrollService.canViewOwnSalary(user)) {
             request.getSession().setAttribute("error", "Bạn không có quyền xem chi tiết bảng lương.");
             response.sendRedirect(request.getContextPath() + "/v1/employee/dashboard");
             return;
         }
 
         Integer payrollId = parseIntOrNull(request.getParameter("id"));
-        PayrollPreviewDTO payrollPreview = payrollId == null ? null : payrollService.getPayrollDetailForHr(user, payrollId);
+        PayrollPreviewDTO payrollPreview = payrollId == null ? null : payrollService.getPayrollDetail(user, payrollId);
         if (payrollPreview == null) {
             request.setAttribute("salaryError", "Không tìm thấy bảng lương cần xem chi tiết.");
         }

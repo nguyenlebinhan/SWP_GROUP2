@@ -2,6 +2,7 @@ package service;
 
 import dao.EmployeeDAO;
 import dao.PayrollDAO;
+import dao.PayrollConfigDAO;
 import dao.PermissionDAO;
 import dao.RoleDAO;
 import dal.DBContext;
@@ -23,10 +24,13 @@ import java.time.YearMonth;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import model.Payroll;
+import model.PayrollDeductionRule;
+import model.PayrollTaxBracket;
 import model.User;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
@@ -45,16 +49,11 @@ public class PayrollService {
 
     private static final Logger LOGGER = Logger.getLogger(PayrollService.class.getName());
     private static final BigDecimal ZERO = BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
-    private static final BigDecimal WORKING_HOURS_PER_DAY = new BigDecimal("8");
     private static final BigDecimal MINUTES_PER_HOUR = new BigDecimal("60");
-    private static final BigDecimal SOCIAL_INSURANCE_RATE = new BigDecimal("0.08");
-    private static final BigDecimal HEALTH_INSURANCE_RATE = new BigDecimal("0.015");
-    private static final BigDecimal UNEMPLOYMENT_INSURANCE_RATE = new BigDecimal("0.01");
-    private static final BigDecimal PERSONAL_ALLOWANCE = new BigDecimal("15500000");
-    private static final LocalTime STANDARD_START_TIME = LocalTime.of(8, 0);
 
     private final DBContext dbContext;
     private final PayrollDAO payrollDAO;
+    private final PayrollConfigDAO payrollConfigDAO;
     private final EmployeeDAO employeeDAO;
     private final PermissionDAO permissionDAO;
     private final RoleDAO roleDAO;
@@ -63,13 +62,14 @@ public class PayrollService {
     public PayrollService() {
         this.dbContext = new DBContext();
         this.payrollDAO = new PayrollDAO();
+        this.payrollConfigDAO = new PayrollConfigDAO();
         this.employeeDAO = new EmployeeDAO();
         this.permissionDAO = new PermissionDAO();
         this.roleDAO = new RoleDAO();
         this.auditLogService = new AuditLogService();
     }
 
-    // ── Quyền ──────────────────────────────────────────────────────────────────
+    // Permissions
     public boolean canViewOwnSalary(User user) {
         return user != null && getPermissions(user).contains(PERMISSION_VIEW_OWN_SALARY);
     }
@@ -93,7 +93,6 @@ public class PayrollService {
                 && getPermissions(user).contains(PERMISSION_EXPORT_PAYROLL);
     }
 
-    // ── Xem lương ──────────────────────────────────────────────────────────────
     public PayrollPreviewDTO getOwnPayroll(User user, int year, int month) {
         if (!canViewOwnSalary(user)) {
             return null;
@@ -125,7 +124,7 @@ public class PayrollService {
             }
             if ((payroll.getNetSalary() != null && payroll.getNetSalary().signum() < 0)
                     || (payroll.getBaseSalary() != null && payroll.getBaseSalary().signum() < 0)) {
-                preview.setGenerationError("Bảng lương đang chưa thể tạo ra. Cần kiểm tra lại dữ liệu nguồn...");
+                preview.setGenerationError("Bảng lương chưa thể tạo ra. Cần kiểm tra lại dữ liệu nguồn...");
             }
         }
     }
@@ -136,12 +135,31 @@ public class PayrollService {
         }
         PayrollPreviewDTO preview = payrollDAO.getPayrollPreviewById(payrollId);
         if (preview != null) {
-            preview.setDetails(buildSavedDetails(preview.getPayroll()));
+            enrichSavedPayrollPreview(preview);
         }
         return preview;
     }
 
-    // ── Duyệt tổng (0 → 1) ────────────────────────────────────────────────────
+    public PayrollPreviewDTO getPayrollDetail(User user, int payrollId) {
+        if (user == null) {
+            return null;
+        }
+        if (canViewAllSalary(user)) {
+            return getPayrollDetailForHr(user, payrollId);
+        }
+        if (!canViewOwnSalary(user)) {
+            return null;
+        }
+        EmployeeDetailDTO employee = employeeDAO.getEmployeeByUserId(user.getUserId());
+        PayrollPreviewDTO preview = payrollDAO.getPayrollPreviewById(payrollId);
+        if (employee == null || preview == null || preview.getEmployeeId() != employee.getEmployeeId()) {
+            return null;
+        }
+        enrichSavedPayrollPreview(preview);
+        return preview;
+    }
+
+    // Approval workflow
     public int approveAllPayrollForPeriod(User user, int year, int month, Integer departmentId) {
         if (!canApprovePayroll(user)) {
             return 0;
@@ -169,7 +187,7 @@ public class PayrollService {
         return payrollDAO.countPendingApproval(start, end, departmentId, null);
     }
 
-    // ── Export ─────────────────────────────────────────────────────────────────
+    // Export
     public void exportPayrollWorkbook(User user, int year, int month, Integer departmentId, OutputStream out)
             throws IOException {
         boolean allowed = canExportPayroll(user);
@@ -221,7 +239,7 @@ public class PayrollService {
                 + "; rows=" + exportedRows, allowed ? "SUCCESS" : "DENIED");
     }
 
-    // ── Generate ───────────────────────────────────────────────────────────────
+    // Generate
     public List<PayrollPreviewDTO> generatePayrollForAll(int year, int month, Integer departmentId, boolean save) {
         List<PayrollPreviewDTO> result = new ArrayList<>();
         try (Connection conn = dbContext.getConnection()) {
@@ -277,7 +295,7 @@ public class PayrollService {
         return payrollDAO.saveOrUpdatePayroll(payroll);
     }
 
-    // ── Tính lương ─────────────────────────────────────────────────────────────
+    // Tính lương
     private PayrollPreviewDTO calculatePayroll(Connection conn, EmployeePayrollBase employee, int year, int month)
             throws SQLException {
 
@@ -287,6 +305,12 @@ public class PayrollService {
 
         Date periodStart = toPeriodStart(year, month);
         Date periodEnd = toPeriodEnd(year, month);
+        PayrollRuntimeConfig config;
+        try {
+            config = loadPayrollRuntimeConfig();
+        } catch (IllegalStateException e) {
+            return buildGenerationErrorPreview(employee, e.getMessage());
+        }
 
         YearMonth ym = YearMonth.of(year, month);
         int standardWorkingDays = countStandardWorkingDays(ym);
@@ -296,21 +320,21 @@ public class PayrollService {
         }
 
         BigDecimal dailyRate = divideMoney(employee.contractSalary, new BigDecimal(standardWorkingDays));
-        BigDecimal minuteRate = divideMoney(dailyRate, WORKING_HOURS_PER_DAY.multiply(MINUTES_PER_HOUR));
+        BigDecimal minuteRate = divideMoney(dailyRate, config.workingHoursPerDay.multiply(MINUTES_PER_HOUR));
 
         AttendanceSummary attendance
-                = getAttendanceSummary(conn, employee.employeeId, year, month, dailyRate, minuteRate);
+                = getAttendanceSummary(conn, employee.employeeId, year, month, dailyRate, minuteRate, config);
 
         if (attendance.recordCount == 0) {
             return buildGenerationErrorPreview(employee, "Chưa có dữ liệu chấm công trong tháng lương này.");
         }
 
         OvertimeSummary overtime
-                = getOvertimeSummary(conn, employee.employeeId, year, month, dailyRate);
+                = getOvertimeSummary(conn, employee.employeeId, year, month, dailyRate, config);
 
         BigDecimal attendanceBonus = attendance.lateMinutes == 0
                 && attendance.unauthorizedAbsentDays == 0
-                        ? employee.contractSalary.multiply(new BigDecimal("0.03"))
+                        ? employee.contractSalary.multiply(config.attendanceBonusRate)
                         : ZERO;
 
         BigDecimal baseSalary
@@ -331,24 +355,24 @@ public class PayrollService {
                 .add(overtime.overtimePay)
                 .subtract(attendance.latePenalty);
 
-        BigDecimal insuranceDeduction = employee.contractSalary.multiply(
-                SOCIAL_INSURANCE_RATE
-                        .add(HEALTH_INSURANCE_RATE)
-                        .add(UNEMPLOYMENT_INSURANCE_RATE)
-        );
+        BigDecimal preTaxDeductions = calculateConfiguredDeductions(
+                employee.contractSalary, grossSalary, ZERO, config.deductionRules, true);
 
         BigDecimal taxableIncome = grossSalary
-                .subtract(insuranceDeduction)
-                .subtract(PERSONAL_ALLOWANCE);
+                .subtract(preTaxDeductions)
+                .subtract(config.personalAllowance);
 
         if (taxableIncome.signum() < 0) {
             taxableIncome = ZERO;
         }
 
-        BigDecimal personalIncomeTax = calculatePersonalIncomeTax(taxableIncome);
+        BigDecimal personalIncomeTax = calculatePersonalIncomeTax(taxableIncome, config.taxBrackets);
+        BigDecimal postTaxDeductions = calculateConfiguredDeductions(
+                employee.contractSalary, grossSalary, taxableIncome, config.deductionRules, false);
+        BigDecimal configuredDeductions = preTaxDeductions.add(postTaxDeductions);
 
         BigDecimal netSalary = grossSalary
-                .subtract(insuranceDeduction)
+                .subtract(configuredDeductions)
                 .subtract(personalIncomeTax);
 
         if (netSalary.signum() < 0) {
@@ -369,7 +393,7 @@ public class PayrollService {
         payroll.setOvertimePay(scale(overtime.overtimePay));
         payroll.setPenalty(scale(penalty));
         payroll.setGrossSalary(scale(grossSalary));
-        payroll.setInsuranceDeduction(scale(insuranceDeduction));
+        payroll.setInsuranceDeduction(scale(configuredDeductions));
         payroll.setPersonalIncomeTax(scale(personalIncomeTax));
         payroll.setNetSalary(scale(netSalary));
         payroll.setStatus(STATUS_PENDING_APPROVAL);
@@ -382,12 +406,27 @@ public class PayrollService {
         preview.setDepartmentName(employee.departmentName);
         preview.setPositionName(employee.positionName);
         preview.setContractSalary(employee.contractSalary);
-        preview.setDetails(buildDetails(payroll, attendance, overtime, attendanceBonus));
+        preview.setDailyRate(scale(dailyRate));
+        preview.setHourlyRate(scale(divideMoney(dailyRate, config.workingHoursPerDay)));
+        preview.setMinuteRate(scale(minuteRate));
+        preview.setStandardWorkingDays(standardWorkingDays);
+        preview.setPaidLeaveDays(attendance.paidLeaveDays);
+        preview.setUnpaidLeaveDays(attendance.unpaidLeaveDays);
+        preview.setUnauthorizedAbsentDays(attendance.unauthorizedAbsentDays);
+        preview.setLateMinutes(attendance.lateMinutes);
+        preview.setLatePenaltyBlocks(attendance.latePenaltyBlocks);
+        preview.setLatePenaltyMinutes(attendance.latePenaltyMinutes);
+        preview.setOvertimeHours(scale(overtime.overtimeHours));
+        preview.setAttendanceBonus(scale(attendanceBonus));
+        preview.setLatePenalty(scale(attendance.latePenalty));
+        preview.setUnauthorizedAbsentPenalty(scale(attendance.unauthorizedAbsentPenalty));
+        preview.setTaxableIncome(scale(taxableIncome));
+        preview.setTotalDeduction(scale(attendance.latePenalty.add(configuredDeductions).add(personalIncomeTax)));
+        preview.setDetails(buildDetails(payroll, preview));
 
         return preview;
     }
 
-    // ── Helpers nội bộ ─────────────────────────────────────────────────────────
     private void auditPayroll(User user, String action, Integer recordId, String oldValue,
             String newValue, String status) {
         Integer userId = user == null ? null : user.getUserId();
@@ -401,7 +440,7 @@ public class PayrollService {
         List<PayrollPreviewDTO> saved = payrollDAO.getPayrollPreviews(start, end, null, null);
         for (PayrollPreviewDTO preview : saved) {
             if (preview.getEmployeeId() == employeeId) {
-                preview.setDetails(buildSavedDetails(preview.getPayroll()));
+                enrichSavedPayrollPreview(preview);
                 return preview;
             }
         }
@@ -504,9 +543,19 @@ public class PayrollService {
         return preview;
     }
 
-    private List<PayrollDetailDTO> buildDetails(Payroll payroll, AttendanceSummary attendance,
-            OvertimeSummary overtime, BigDecimal attendanceBonus) {
+    private List<PayrollDetailDTO> buildDetails(Payroll payroll, PayrollPreviewDTO preview) {
         List<PayrollDetailDTO> details = new ArrayList<>();
+        AttendanceSummary attendance = new AttendanceSummary();
+        attendance.lateMinutes = preview.getLateMinutes();
+        attendance.unauthorizedAbsentDays = preview.getUnauthorizedAbsentDays();
+        attendance.latePenalty = moneyOrZero(preview.getLatePenalty());
+        attendance.unauthorizedAbsentPenalty = moneyOrZero(preview.getUnauthorizedAbsentPenalty());
+        OvertimeSummary overtime = new OvertimeSummary();
+        overtime.overtimeHours = moneyOrZero(preview.getOvertimeHours());
+        BigDecimal attendanceBonus = moneyOrZero(preview.getAttendanceBonus());
+        details.add(new PayrollDetailDTO("CONTRACT_SALARY", "Luong hop dong", PayrollDetailDTO.TYPE_EARNING,
+                moneyOrZero(preview.getContractSalary()),
+                "Luong thang tren hop dong, truoc khi quy doi theo ngay cong."));
         details.add(new PayrollDetailDTO("BASE_SALARY", "Lương cơ bản", PayrollDetailDTO.TYPE_EARNING,
                 payroll.getBaseSalary(), "Ngày công được tính: " + payroll.getWorkingDays()));
         details.add(new PayrollDetailDTO("OVERTIME_PAY", "Lương tăng ca", PayrollDetailDTO.TYPE_EARNING,
@@ -514,12 +563,29 @@ public class PayrollService {
         details.add(new PayrollDetailDTO("ATTENDANCE_BONUS", "Thưởng chuyên cần", PayrollDetailDTO.TYPE_EARNING,
                 scale(attendanceBonus), null));
         details.add(new PayrollDetailDTO("LATE_PENALTY", "Phạt đi muộn", PayrollDetailDTO.TYPE_DEDUCTION,
-                scale(attendance.latePenalty), "Số phút đi muộn: " + attendance.lateMinutes));
+                scale(attendance.latePenalty),
+                "So block phat: " + preview.getLatePenaltyBlocks()
+                + "; mot block phat: " + scale(latePenaltyBlockAmount(preview)) + "d."));
         details.add(new PayrollDetailDTO("ABSENT_PENALTY", "Phạt vắng không phép",
                 PayrollDetailDTO.TYPE_DEDUCTION, scale(attendance.unauthorizedAbsentPenalty),
                 "Số ngày vắng không phép: " + attendance.unauthorizedAbsentDays));
         details.add(new PayrollDetailDTO("PERSONAL_INCOME_TAX", "Thuế thu nhập cá nhân",
                 PayrollDetailDTO.TYPE_DEDUCTION, payroll.getPersonalIncomeTax(), null));
+        for (PayrollDeductionRule rule : payrollConfigDAO.getDeductionRules(true)) {
+            BigDecimal amount = calculateDeductionRuleAmount(rule, preview.getContractSalary(),
+                    payroll.getGrossSalary(), preview.getTaxableIncome());
+            details.add(new PayrollDetailDTO(rule.getRuleCode(), rule.getRuleName(),
+                    PayrollDetailDTO.TYPE_DEDUCTION, scale(amount), buildDeductionRuleNote(rule)));
+            BigDecimal employerAmount = calculateEmployerContributionAmount(rule,
+                    preview.getContractSalary(), payroll.getGrossSalary(), preview.getTaxableIncome());
+            if (employerAmount.signum() > 0) {
+                details.add(new PayrollDetailDTO(rule.getRuleCode() + "_EMPLOYER",
+                        "Doanh nghiệp đóng - " + rule.getRuleName(), PayrollDetailDTO.TYPE_COMPANY_COST,
+                        scale(employerAmount), buildEmployerContributionNote(rule)));
+            }
+        }
+        details.add(new PayrollDetailDTO("TAXABLE_INCOME", "Thu nhap tinh thue", PayrollDetailDTO.TYPE_INFO,
+                ZERO, "Sau bao hiem va giam tru ca nhan: " + scale(preview.getTaxableIncome()) + "d."));
         return details;
     }
 
@@ -543,8 +609,95 @@ public class PayrollService {
         return details;
     }
 
+    private void enrichSavedPayrollPreview(PayrollPreviewDTO preview) {
+        if (preview == null || preview.getPayroll() == null) {
+            return;
+        }
+
+        Payroll payroll = preview.getPayroll();
+        PayrollRuntimeConfig config;
+        try {
+            config = loadPayrollRuntimeConfig();
+        } catch (IllegalStateException e) {
+            preview.setDetails(buildSavedDetails(payroll));
+            return;
+        }
+        YearMonth ym = YearMonth.from(payroll.getPeriodStart().toLocalDate());
+        int standardWorkingDays = countStandardWorkingDays(ym);
+        BigDecimal contractSalary = moneyOrZero(preview.getContractSalary());
+        BigDecimal dailyRate = standardWorkingDays > 0 && contractSalary.signum() > 0
+                ? divideMoney(contractSalary, new BigDecimal(standardWorkingDays))
+                : ZERO;
+        BigDecimal hourlyRate = divideMoney(dailyRate, config.workingHoursPerDay);
+        BigDecimal minuteRate = divideMoney(hourlyRate, MINUTES_PER_HOUR);
+
+        int lateMinutes = extractIntNoteValue(payroll.getNote(), "lateMinutes");
+        int unauthorizedAbsentDays = extractIntNoteValue(payroll.getNote(), "unauthorizedAbsentDays");
+        BigDecimal overtimeHours = extractDecimalNoteValue(payroll.getNote(), "overtimeHours");
+        int latePenaltyMinutes = roundUpToLatePenaltyBlock(lateMinutes, config.latePenaltyBlockMinutes);
+        int latePenaltyBlocks = latePenaltyMinutes / config.latePenaltyBlockMinutes;
+        BigDecimal latePenalty = minuteRate.multiply(new BigDecimal(latePenaltyMinutes));
+        BigDecimal absentPenalty = dailyRate.multiply(new BigDecimal(unauthorizedAbsentDays));
+
+        BigDecimal taxableIncome = moneyOrZero(payroll.getGrossSalary())
+                .subtract(moneyOrZero(payroll.getInsuranceDeduction()))
+                .subtract(config.personalAllowance);
+        if (taxableIncome.signum() < 0) {
+            taxableIncome = ZERO;
+        }
+
+        preview.setDailyRate(scale(dailyRate));
+        preview.setHourlyRate(scale(hourlyRate));
+        preview.setMinuteRate(scale(minuteRate));
+        preview.setStandardWorkingDays(standardWorkingDays);
+        preview.setPaidLeaveDays(extractIntNoteValue(payroll.getNote(), "paidLeaveDays"));
+        preview.setUnpaidLeaveDays(extractIntNoteValue(payroll.getNote(), "unpaidLeaveDays"));
+        preview.setUnauthorizedAbsentDays(unauthorizedAbsentDays);
+        preview.setLateMinutes(lateMinutes);
+        preview.setLatePenaltyBlocks(latePenaltyBlocks);
+        preview.setLatePenaltyMinutes(latePenaltyMinutes);
+        preview.setOvertimeHours(scale(overtimeHours));
+        preview.setAttendanceBonus(moneyOrZero(payroll.getBonus()));
+        preview.setLatePenalty(scale(latePenalty));
+        preview.setUnauthorizedAbsentPenalty(scale(absentPenalty));
+        preview.setTaxableIncome(scale(taxableIncome));
+        preview.setTotalDeduction(scale(latePenalty
+                .add(moneyOrZero(payroll.getInsuranceDeduction()))
+                .add(moneyOrZero(payroll.getPersonalIncomeTax()))));
+
+        if (payroll.getNote() == null || payroll.getNote().trim().isEmpty()) {
+            preview.setDetails(buildSavedDetails(payroll));
+        } else {
+            preview.setDetails(buildDetails(payroll, preview));
+        }
+    }
+
+    private int extractIntNoteValue(String note, String key) {
+        BigDecimal value = extractDecimalNoteValue(note, key);
+        return value.setScale(0, RoundingMode.DOWN).intValue();
+    }
+
+    private BigDecimal extractDecimalNoteValue(String note, String key) {
+        if (note == null || key == null) {
+            return ZERO;
+        }
+        String prefix = key + "=";
+        String[] parts = note.split(";");
+        for (String part : parts) {
+            String trimmed = part.trim();
+            if (trimmed.startsWith(prefix)) {
+                try {
+                    return new BigDecimal(trimmed.substring(prefix.length()).trim());
+                } catch (NumberFormatException e) {
+                    return ZERO;
+                }
+            }
+        }
+        return ZERO;
+    }
+
     private AttendanceSummary getAttendanceSummary(Connection conn, int employeeId, int year, int month,
-            BigDecimal dailyRate, BigDecimal minuteRate) throws SQLException {
+            BigDecimal dailyRate, BigDecimal minuteRate, PayrollRuntimeConfig config) throws SQLException {
 
         AttendanceSummary summary = new AttendanceSummary();
 
@@ -583,15 +736,18 @@ public class PayrollService {
                         // Giờ vào lưu trong DB là giờ thực; phút đi muộn tính theo
                         // block 30 phút (làm tròn LÊN) để khớp với cách tính giờ công.
                         LocalTime timeIn = rs.getTime("timeIn") == null
-                                ? STANDARD_START_TIME
-                                : utils.WorkHoursCalculator.ceilToBlock(rs.getTime("timeIn")).toLocalTime();
+                                ? config.standardStartTime
+                                : rs.getTime("timeIn").toLocalTime();
 
                         int lateMinutes = Math.max(0,
-                                (int) java.time.Duration.between(STANDARD_START_TIME, timeIn).toMinutes());
+                                (int) java.time.Duration.between(config.standardStartTime, timeIn).toMinutes());
+                        int penaltyMinutes = roundUpToLatePenaltyBlock(lateMinutes, config.latePenaltyBlockMinutes);
 
                         summary.lateMinutes += lateMinutes;
+                        summary.latePenaltyMinutes += penaltyMinutes;
+                        summary.latePenaltyBlocks += penaltyMinutes / config.latePenaltyBlockMinutes;
                         summary.latePenalty = summary.latePenalty.add(
-                                minuteRate.multiply(new BigDecimal(lateMinutes)));
+                                minuteRate.multiply(new BigDecimal(penaltyMinutes)));
 
                     } else if (status == 4) {
                         // Nghỉ phép có lương
@@ -612,10 +768,10 @@ public class PayrollService {
     }
 
     private OvertimeSummary getOvertimeSummary(Connection conn, int employeeId, int year, int month,
-            BigDecimal dailyRate) throws SQLException {
+            BigDecimal dailyRate, PayrollRuntimeConfig config) throws SQLException {
 
         OvertimeSummary summary = new OvertimeSummary();
-        BigDecimal hourlyRate = divideMoney(dailyRate, WORKING_HOURS_PER_DAY);
+        BigDecimal hourlyRate = divideMoney(dailyRate, config.workingHoursPerDay);
 
         String SQL = "SELECT od.startTime, od.endTime, od.dayType, a.timeIn, a.timeOut "
                 + "FROM Form_Requests fr "
@@ -661,8 +817,8 @@ public class PayrollService {
 
                     long workedMinutes = java.time.Duration.between(validStart, validEnd).toMinutes();
 
-                    long validBlocks = workedMinutes / 30;
-                    double validHours = (validBlocks * 30) / 60.0;
+                    long validBlocks = workedMinutes / config.overtimeBlockMinutes;
+                    double validHours = (validBlocks * config.overtimeBlockMinutes) / MINUTES_PER_HOUR.doubleValue();
 
                     if (validHours <= 0) {
                         continue;
@@ -673,7 +829,7 @@ public class PayrollService {
 
                     BigDecimal pay = hourlyRate
                             .multiply(hours)
-                            .multiply(overtimeMultiplier(rs.getInt("dayType")));
+                            .multiply(overtimeMultiplier(rs.getInt("dayType"), config));
 
                     summary.overtimeHours = summary.overtimeHours.add(hours);
                     summary.overtimePay = summary.overtimePay.add(pay);
@@ -684,35 +840,20 @@ public class PayrollService {
         return summary;
     }
 
-    private BigDecimal calculatePersonalIncomeTax(BigDecimal taxableIncome) {
-        BigDecimal remaining = scale(taxableIncome);
+    private BigDecimal calculatePersonalIncomeTax(BigDecimal taxableIncome, List<PayrollTaxBracket> brackets) {
         BigDecimal tax = ZERO;
-        BigDecimal[] limits = {
-            new BigDecimal("10000000"),
-            new BigDecimal("20000000"),
-            new BigDecimal("30000000"),
-            new BigDecimal("40000000")
-        };
-
-        BigDecimal[] rates = {
-            new BigDecimal("0.05"),
-            new BigDecimal("0.10"),
-            new BigDecimal("0.20"),
-            new BigDecimal("0.30"),
-            new BigDecimal("0.35")
-        };
-
-        for (int i = 0; i < rates.length; i++) {
-            BigDecimal amount = i < limits.length ? remaining.min(limits[i]) : remaining;
-
-            if (amount.signum() <= 0) {
-                break;
+        for (PayrollTaxBracket bracket : brackets) {
+            BigDecimal min = moneyOrZero(bracket.getMinIncome());
+            BigDecimal max = bracket.getMaxIncome();
+            if (taxableIncome.compareTo(min) <= 0) {
+                continue;
             }
-
-            tax = tax.add(amount.multiply(rates[i]));
-            remaining = remaining.subtract(amount);
+            BigDecimal upper = max == null ? taxableIncome : taxableIncome.min(max);
+            BigDecimal amount = upper.subtract(min);
+            if (amount.signum() > 0) {
+                tax = tax.add(amount.multiply(moneyOrZero(bracket.getTaxRate())));
+            }
         }
-
         return scale(tax);
     }
 
@@ -821,15 +962,15 @@ public class PayrollService {
         return Date.valueOf(ym.atEndOfMonth());
     }
 
-    private BigDecimal overtimeMultiplier(int dayType) {
+    private BigDecimal overtimeMultiplier(int dayType, PayrollRuntimeConfig config) {
         switch (dayType) {
             case 2:
-                return new BigDecimal("2.0");
+                return config.overtimeWeekendMultiplier;
             case 3:
-                return new BigDecimal("3.0");
+                return config.overtimeHolidayMultiplier;
             case 1:
             default:
-                return new BigDecimal("1.5");
+                return config.overtimeWorkdayMultiplier;
         }
     }
 
@@ -843,6 +984,165 @@ public class PayrollService {
 
     private BigDecimal moneyOrZero(BigDecimal value) {
         return value == null ? ZERO : value;
+    }
+
+    private PayrollRuntimeConfig loadPayrollRuntimeConfig() {
+        Map<String, BigDecimal> settings = payrollConfigDAO.getSettingsMap();
+        PayrollRuntimeConfig config = new PayrollRuntimeConfig();
+        config.personalAllowance = requiredNonNegativeSetting(settings, "PERSONAL_ALLOWANCE");
+        config.latePenaltyBlockMinutes = requiredPositiveSetting(settings, "LATE_PENALTY_BLOCK_MINUTES").intValue();
+        config.attendanceBonusRate = requiredNonNegativeSetting(settings, "ATTENDANCE_BONUS_RATE");
+        BigDecimal workStartMinutes = requiredNonNegativeSetting(settings, "WORK_START", "WORK_START_MINUTES");
+        BigDecimal workEndMinutes = requiredNonNegativeSetting(settings, "WORK_END", "WORK_END_MINUTES");
+        BigDecimal workBreakMinutes = requiredNonNegativeSetting(settings, "WORK_BREAK_MINUTES");
+        config.standardStartTime = minutesOfDay(workStartMinutes, "WORK_START");
+        config.workingHoursPerDay = calculateWorkingHoursPerDay(workStartMinutes, workEndMinutes, workBreakMinutes);
+        config.overtimeBlockMinutes = requiredPositiveSetting(settings, "OVERTIME_BLOCK_MINUTES").intValue();
+        config.overtimeWorkdayMultiplier = requiredPositiveSetting(settings, "OVERTIME_WORKDAY_MULTIPLIER");
+        config.overtimeWeekendMultiplier = requiredPositiveSetting(settings, "OVERTIME_WEEKEND_MULTIPLIER");
+        config.overtimeHolidayMultiplier = requiredPositiveSetting(settings, "OVERTIME_HOLIDAY_MULTIPLIER");
+        config.deductionRules = payrollConfigDAO.getDeductionRules(true);
+        config.taxBrackets = payrollConfigDAO.getTaxBrackets(true);
+        if (config.taxBrackets == null || config.taxBrackets.isEmpty()) {
+            throw new IllegalStateException("Payroll tax bracket config is missing.");
+        }
+        return config;
+    }
+
+    private BigDecimal calculateWorkingHoursPerDay(BigDecimal start, BigDecimal end, BigDecimal breakMinutes) {
+        BigDecimal workingMinutes = end.subtract(start).subtract(breakMinutes);
+        if (workingMinutes.signum() <= 0) {
+            throw new IllegalStateException("Work time config is invalid.");
+        }
+        return divideMoney(workingMinutes, MINUTES_PER_HOUR);
+    }
+
+    private LocalTime minutesOfDay(BigDecimal value, String settingKey) {
+        int minutes = value.intValue();
+        if (minutes < 0 || minutes >= MINUTES_PER_HOUR.intValue() * 24) {
+            throw new IllegalStateException("Payroll setting " + settingKey + " is invalid.");
+        }
+        return LocalTime.of(minutes / MINUTES_PER_HOUR.intValue(), minutes % MINUTES_PER_HOUR.intValue());
+    }
+
+    private BigDecimal requiredPositiveSetting(Map<String, BigDecimal> settings, String key) {
+        BigDecimal value = requiredSetting(settings, key);
+        if (value.signum() <= 0) {
+            throw new IllegalStateException("Payroll setting " + key + " must be greater than 0.");
+        }
+        return value;
+    }
+
+    private BigDecimal requiredNonNegativeSetting(Map<String, BigDecimal> settings, String key) {
+        BigDecimal value = requiredSetting(settings, key);
+        if (value.signum() < 0) {
+            throw new IllegalStateException("Payroll setting " + key + " must not be negative.");
+        }
+        return value;
+    }
+
+    private BigDecimal requiredNonNegativeSetting(Map<String, BigDecimal> settings, String key, String legacyKey) {
+        BigDecimal value = settingValue(settings, key, legacyKey);
+        if (value == null) {
+            throw new IllegalStateException("Payroll setting " + key + " is missing.");
+        }
+        if (value.signum() < 0) {
+            throw new IllegalStateException("Payroll setting " + key + " must not be negative.");
+        }
+        return value;
+    }
+
+    private BigDecimal requiredSetting(Map<String, BigDecimal> settings, String key) {
+        BigDecimal value = settings == null ? null : settings.get(key);
+        if (value == null) {
+            throw new IllegalStateException("Payroll setting " + key + " is missing.");
+        }
+        return value;
+    }
+
+    private BigDecimal settingValue(Map<String, BigDecimal> settings, String key, String legacyKey) {
+        if (settings == null) {
+            return null;
+        }
+        BigDecimal value = settings.get(key);
+        return value != null ? value : settings.get(legacyKey);
+    }
+
+    private BigDecimal calculateConfiguredDeductions(BigDecimal contractSalary, BigDecimal grossSalary,
+            BigDecimal taxableIncome, List<PayrollDeductionRule> rules, boolean taxableOnly) {
+        BigDecimal total = ZERO;
+        if (rules == null) {
+            return total;
+        }
+        for (PayrollDeductionRule rule : rules) {
+            if (taxableOnly != rule.isTaxableDeduction()) {
+                continue;
+            }
+            total = total.add(calculateDeductionRuleAmount(rule, contractSalary, grossSalary, taxableIncome));
+        }
+        return total;
+    }
+
+    private BigDecimal calculateDeductionRuleAmount(PayrollDeductionRule rule, BigDecimal contractSalary,
+            BigDecimal grossSalary, BigDecimal taxableIncome) {
+        if (rule == null) {
+            return ZERO;
+        }
+        BigDecimal base = contractSalary;
+        if (PayrollDeductionRule.BASE_GROSS_SALARY.equals(rule.getBaseType())) {
+            base = grossSalary;
+        } else if (PayrollDeductionRule.BASE_TAXABLE_INCOME.equals(rule.getBaseType())) {
+            base = taxableIncome;
+        }
+        return moneyOrZero(base).multiply(moneyOrZero(rule.getEmployeeRate()));
+    }
+
+    private BigDecimal calculateEmployerContributionAmount(PayrollDeductionRule rule, BigDecimal contractSalary,
+            BigDecimal grossSalary, BigDecimal taxableIncome) {
+        if (rule == null) {
+            return ZERO;
+        }
+        BigDecimal base = contractSalary;
+        if (PayrollDeductionRule.BASE_GROSS_SALARY.equals(rule.getBaseType())) {
+            base = grossSalary;
+        } else if (PayrollDeductionRule.BASE_TAXABLE_INCOME.equals(rule.getBaseType())) {
+            base = taxableIncome;
+        }
+        return moneyOrZero(base).multiply(moneyOrZero(rule.getEmployerRate()));
+    }
+
+    private String buildDeductionRuleNote(PayrollDeductionRule rule) {
+        return "Tổng: " + percent(rule.getRate())
+                + "; công ty trả: " + percent(rule.getEmployerRate())
+                + "; nhân viên trả: " + percent(rule.getEmployeeRate())
+                + "; nền tính: " + rule.getBaseType() + ".";
+    }
+
+    private String buildEmployerContributionNote(PayrollDeductionRule rule) {
+        return "Chi phí doanh nghiệp, không trừ vào lương nhân viên. Tỷ lệ công ty trả: "
+                + percent(rule.getEmployerRate()) + ".";
+    }
+
+    private String percent(BigDecimal rate) {
+        return moneyOrZero(rate).multiply(new BigDecimal("100")).stripTrailingZeros().toPlainString() + "%";
+    }
+
+    private BigDecimal latePenaltyBlockAmount(PayrollPreviewDTO preview) {
+        if (preview == null || preview.getLatePenaltyBlocks() <= 0) {
+            return ZERO;
+        }
+        return moneyOrZero(preview.getLatePenalty())
+                .divide(new BigDecimal(preview.getLatePenaltyBlocks()), 6, RoundingMode.HALF_UP);
+    }
+
+    private int roundUpToLatePenaltyBlock(int lateMinutes, int blockMinutes) {
+        if (lateMinutes <= 0) {
+            return 0;
+        }
+        if (blockMinutes <= 0) {
+            throw new IllegalStateException("Late penalty block minutes must be greater than 0.");
+        }
+        return ((lateMinutes + blockMinutes - 1) / blockMinutes) * blockMinutes;
     }
 
     private void setNumeric(Row row, int column, BigDecimal value) {
@@ -866,7 +1166,7 @@ public class PayrollService {
         return role != null && role.contains("HR");
     }
 
-    // ── Inner classes ──────────────────────────────────────────────────────────
+    // Inner classes
     private static class EmployeePayrollBase {
 
         int employeeId;
@@ -888,6 +1188,8 @@ public class PayrollService {
         int unauthorizedAbsentDays;
         int lateCount;
         int lateMinutes;
+        int latePenaltyBlocks;
+        int latePenaltyMinutes;
         BigDecimal hoursWorked = BigDecimal.ZERO;
         BigDecimal latePenalty = BigDecimal.ZERO;
         BigDecimal unauthorizedAbsentPenalty = BigDecimal.ZERO;
@@ -897,5 +1199,20 @@ public class PayrollService {
 
         BigDecimal overtimeHours = BigDecimal.ZERO;
         BigDecimal overtimePay = BigDecimal.ZERO;
+    }
+
+    private static class PayrollRuntimeConfig {
+
+        BigDecimal workingHoursPerDay;
+        BigDecimal personalAllowance;
+        LocalTime standardStartTime;
+        int latePenaltyBlockMinutes;
+        BigDecimal attendanceBonusRate;
+        int overtimeBlockMinutes;
+        BigDecimal overtimeWorkdayMultiplier;
+        BigDecimal overtimeWeekendMultiplier;
+        BigDecimal overtimeHolidayMultiplier;
+        List<PayrollDeductionRule> deductionRules = new ArrayList<>();
+        List<PayrollTaxBracket> taxBrackets = new ArrayList<>();
     }
 }

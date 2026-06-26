@@ -13,12 +13,22 @@ public class PayrollPreviewDTO {
     private String departmentName;
     private String positionName;
     private BigDecimal contractSalary;
+    private BigDecimal dailyRate;
+    private BigDecimal hourlyRate;
+    private BigDecimal minuteRate;
     private int standardWorkingDays;
     private int paidLeaveDays;
     private int unpaidLeaveDays;
     private int unauthorizedAbsentDays;
     private int lateMinutes;
+    private int latePenaltyBlocks;
+    private int latePenaltyMinutes;
     private BigDecimal overtimeHours;
+    private BigDecimal attendanceBonus;
+    private BigDecimal latePenalty;
+    private BigDecimal unauthorizedAbsentPenalty;
+    private BigDecimal taxableIncome;
+    private BigDecimal totalDeduction;
     private String generationError;
     private List<PayrollDetailDTO> details = new ArrayList<>();
 
@@ -89,6 +99,30 @@ public class PayrollPreviewDTO {
         this.contractSalary = contractSalary;
     }
 
+    public BigDecimal getDailyRate() {
+        return dailyRate;
+    }
+
+    public void setDailyRate(BigDecimal dailyRate) {
+        this.dailyRate = dailyRate;
+    }
+
+    public BigDecimal getHourlyRate() {
+        return hourlyRate;
+    }
+
+    public void setHourlyRate(BigDecimal hourlyRate) {
+        this.hourlyRate = hourlyRate;
+    }
+
+    public BigDecimal getMinuteRate() {
+        return minuteRate;
+    }
+
+    public void setMinuteRate(BigDecimal minuteRate) {
+        this.minuteRate = minuteRate;
+    }
+
     public int getStandardWorkingDays() {
         return standardWorkingDays;
     }
@@ -129,12 +163,68 @@ public class PayrollPreviewDTO {
         this.lateMinutes = lateMinutes;
     }
 
+    public int getLatePenaltyBlocks() {
+        return latePenaltyBlocks;
+    }
+
+    public void setLatePenaltyBlocks(int latePenaltyBlocks) {
+        this.latePenaltyBlocks = latePenaltyBlocks;
+    }
+
+    public int getLatePenaltyMinutes() {
+        return latePenaltyMinutes;
+    }
+
+    public void setLatePenaltyMinutes(int latePenaltyMinutes) {
+        this.latePenaltyMinutes = latePenaltyMinutes;
+    }
+
     public BigDecimal getOvertimeHours() {
         return overtimeHours;
     }
 
     public void setOvertimeHours(BigDecimal overtimeHours) {
         this.overtimeHours = overtimeHours;
+    }
+
+    public BigDecimal getAttendanceBonus() {
+        return attendanceBonus;
+    }
+
+    public void setAttendanceBonus(BigDecimal attendanceBonus) {
+        this.attendanceBonus = attendanceBonus;
+    }
+
+    public BigDecimal getLatePenalty() {
+        return latePenalty;
+    }
+
+    public void setLatePenalty(BigDecimal latePenalty) {
+        this.latePenalty = latePenalty;
+    }
+
+    public BigDecimal getUnauthorizedAbsentPenalty() {
+        return unauthorizedAbsentPenalty;
+    }
+
+    public void setUnauthorizedAbsentPenalty(BigDecimal unauthorizedAbsentPenalty) {
+        this.unauthorizedAbsentPenalty = unauthorizedAbsentPenalty;
+    }
+
+    public BigDecimal getTaxableIncome() {
+        return taxableIncome;
+    }
+
+    public void setTaxableIncome(BigDecimal taxableIncome) {
+        this.taxableIncome = taxableIncome;
+    }
+
+    public BigDecimal getTotalDeduction() {
+        return totalDeduction;
+    }
+
+    public void setTotalDeduction(BigDecimal totalDeduction) {
+        this.totalDeduction = totalDeduction;
     }
 
     public String getGenerationError() {

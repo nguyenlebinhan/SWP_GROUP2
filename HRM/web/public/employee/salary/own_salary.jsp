@@ -169,7 +169,7 @@
                 </c:when>
                 <c:otherwise>
                     <c:set var="p" value="${payrollPreview.payroll}" />
-                    <c:set var="totalDeduction" value="${p.insuranceDeduction + p.personalIncomeTax + p.penalty}" />
+                    <c:set var="totalDeduction" value="${payrollPreview.totalDeduction}" />
                     <c:set var="personalAllowance" value="${15500000}" />
                     <c:set var="taxableIncomeBeforeFloor" value="${p.grossSalary - p.insuranceDeduction - personalAllowance}" />
                     <c:set var="taxableIncome" value="${taxableIncomeBeforeFloor < 0 ? 0 : taxableIncomeBeforeFloor}" />
@@ -180,6 +180,13 @@
                         <div class="summary-card"><div class="summary-label">Thực lĩnh</div><div class="summary-value orange"><fmt:formatNumber value="${p.netSalary}" type="number" groupingUsed="true" />đ</div></div>
                     </div>
 
+                    <div class="summary-grid">
+                        <div class="summary-card"><div class="summary-label">Lương hợp đồng</div><div class="summary-value blue"><fmt:formatNumber value="${payrollPreview.contractSalary}" type="number" groupingUsed="true" />đ</div></div>
+                        <div class="summary-card"><div class="summary-label">Ngày công</div><div class="summary-value green">${p.workingDays}/${payrollPreview.standardWorkingDays}</div></div>
+                        <div class="summary-card"><div class="summary-label">OT được tính</div><div class="summary-value orange"><fmt:formatNumber value="${payrollPreview.overtimeHours}" type="number" maxFractionDigits="2" />h</div></div>
+                        <div class="summary-card"><div class="summary-label">Block phạt muộn</div><div class="summary-value red">${payrollPreview.latePenaltyBlocks} block</div></div>
+                    </div>
+
                     <div class="panel">
                         <div class="d-flex justify-content-between align-items-center mb-3">
                             <div>
@@ -188,7 +195,7 @@
                             </div>
                             <div class="d-flex align-items-center gap-2 flex-wrap">
                                 <c:choose>
-                                    <c:when test="${row.payroll.status == 1}">
+                                    <c:when test="${p.status == 1}">
                                         <span class="status-badge status-paid">HR đã duyệt</span>
                                     </c:when>
                                     <c:otherwise>
@@ -219,8 +226,12 @@
                                         <tr>
                                             <td><c:out value="${d.name}" /></td>
                                             <td class="text-muted"><c:out value="${d.note}" /></td>
-                                            <td class="text-end fw-bold ${d.deduction ? 'text-danger' : 'text-success'}">
-                                                ${d.deduction ? '-' : '+'}<fmt:formatNumber value="${d.amount}" type="number" groupingUsed="true" />đ
+                                            <td class="text-end fw-bold ${d.info ? 'text-muted' : (d.companyCost ? 'text-primary' : (d.deduction ? 'text-danger' : 'text-success'))}">
+                                                <c:choose>
+                                                    <c:when test="${d.info}">Thông tin</c:when>
+                                                    <c:when test="${d.companyCost}"><fmt:formatNumber value="${d.amount}" type="number" groupingUsed="true" />đ</c:when>
+                                                    <c:otherwise>${d.deduction ? '-' : '+'}<fmt:formatNumber value="${d.amount}" type="number" groupingUsed="true" />đ</c:otherwise>
+                                                </c:choose>
                                             </td>
                                         </tr>
                                     </c:forEach>
