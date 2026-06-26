@@ -143,6 +143,26 @@
                         </div>
                     </div>
                 </c:if>
+                <c:if test="${form.formTypeCode eq 'TRANSFER'}">
+                    <div class="row mt-3">
+                        <div class="col-md-6">
+                            <div class="info-label">Phòng ban muốn chuyển đến</div>
+                            <div class="info-value text-primary fw-bold">${form.targetDepartmentName}</div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="info-label">Vai trò (Role) mới</div>
+                            <div class="info-value text-primary fw-bold">${not empty form.targetRoleName ? form.targetRoleName : 'Chưa xác định'}</div>
+                        </div>
+                    </div>
+                </c:if>
+                <c:if test="${form.formTypeCode eq 'PROMOTION_DEMOTION'}">
+                    <div class="row mt-3">
+                        <div class="col-md-6">
+                            <div class="info-label">Vai trò (Role) đề xuất</div>
+                            <div class="info-value text-primary fw-bold">${form.targetRoleName}</div>
+                        </div>
+                    </div>
+                </c:if>
                 <c:if test="${form.formTypeCode eq 'COMPLAINT'}">
                     <div class="row mt-3">
                         <div class="col-md-4">
@@ -174,7 +194,7 @@
                     </c:choose>
                 </div>
 
-                <c:if test="${form.status == 1 || form.status == 2}">
+                <c:if test="${form.status == 1 || form.status == 2 || form.status == 3}">
                     <hr class="my-4">
                     <h5 class="text-success"><i class="fa-solid fa-clipboard-check me-2"></i>Kết quả xử lý</h5>
 
@@ -226,7 +246,29 @@
                                 <i class="fa-solid fa-xmark me-1"></i> Từ chối
                             </button>
                             <button type="submit" formaction="${pageContext.request.contextPath}/v1/manager/forms/approve" class="btn btn-success px-4">
-                                <i class="fa-solid fa-check me-1"></i> Duyệt đơn
+                                <i class="fa-solid fa-check me-1"></i> Duyệt
+                            </button>
+                        </div>
+                    </form>
+                </c:if>
+
+                <%-- Khu vực duyệt lần 2 (HR): chỉ áp dụng cho đơn Khiếu nại đã được Manager duyệt (status = 1) --%>
+                <c:if test="${form.status == 1 and form.formTypeCode eq 'COMPLAINT' and isHrStaff}">
+                    <hr class="my-4">
+                    <h5 class="mb-3 text-primary"><i class="fa-solid fa-user-tie me-2"></i>Duyệt (HR)</h5>
+                    <form method="post">
+                        <input type="hidden" name="formId" value="${form.formId}">
+                        <div class="mb-3 mt-3">
+                            <label for="hrNote" class="form-label">Ghi chú của HR (tuỳ chọn)</label>
+                            <textarea id="hrNote" name="note" class="form-control" rows="3"
+                                      placeholder="Nhập lý do duyệt hoặc từ chối..."></textarea>
+                        </div>
+                        <div class="d-flex justify-content-end gap-2">
+                            <button type="submit" formaction="${pageContext.request.contextPath}/v1/manager/forms/hr-reject" class="btn btn-danger px-4">
+                                <i class="fa-solid fa-xmark me-1"></i> Từ chối (HR)
+                            </button>
+                            <button type="submit" formaction="${pageContext.request.contextPath}/v1/manager/forms/hr-approve" class="btn btn-primary px-4">
+                                <i class="fa-solid fa-check-double me-1"></i> Hoàn tất Duyệt (HR)
                             </button>
                         </div>
                     </form>

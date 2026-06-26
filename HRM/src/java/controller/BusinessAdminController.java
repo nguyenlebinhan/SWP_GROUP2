@@ -8,6 +8,7 @@ import dao.RoleDAO;
 import dao.UserDAO;
 import dto.EmployeeDetailDTO;
 import dto.FormRequestDTO;
+import dto.TransferRequestDTO;
 import dao.FormRequestDAO;
 import dao.OvertimeDAO;
 import dto.OvertimeRequestDTO;
@@ -965,7 +966,9 @@ public class BusinessAdminController extends HttpServlet {
         
         List<FormRequestDTO> forms = formRequestDAO.getAllFormRequests(day, month, year, keyword)
                 .stream()
-                .filter(f -> "OVERTIME".equals(f.getFormTypeCode()))
+                .filter(f -> "OVERTIME".equals(f.getFormTypeCode()) 
+                          || "TRANSFER".equals(f.getFormTypeCode())
+                          || "PROMOTION_DEMOTION".equals(f.getFormTypeCode()))
                 .collect(java.util.stream.Collectors.toList());
         
         request.setAttribute("forms", forms);
@@ -1014,12 +1017,30 @@ public class BusinessAdminController extends HttpServlet {
                 response.sendRedirect(request.getContextPath() + "/v1/businessadmin/forms");
                 return;
             }
+            FormRequestDTO form = formRequestDAO.getFormRequestById(formId);
+            if (form == null) {
+                request.getSession().setAttribute("error", "Không tìm thấy đơn.");
+                response.sendRedirect(request.getContextPath() + "/v1/businessadmin/forms");
+                return;
+            }
             
             EmployeeDetailDTO approver = employeeDAO.getEmployeeByUserId(user.getUserId());
             int approverId = approver != null ? approver.getEmployeeId() : 0;
             
-            boolean ok = formRequestDAO.approveFormRequest(formId, approverId, note != null ? note.trim() : "");
+            int newStatus = ("TRANSFER".equals(form.getFormTypeCode()) || "PROMOTION_DEMOTION".equals(form.getFormTypeCode())) ? 3 : 1;
+            boolean ok = formRequestDAO.updateFormRequest(formId, newStatus, approverId, note != null ? note.trim() : "");
+            
             if (ok) {
+                switch (form.getFormTypeCode()) {
+                        case "TRANSFER":
+                            onApproveTransfer(form, approverId);
+                            break;
+                        case "PROMOTION_DEMOTION":
+                            onApprovePromotion(form, approverId);
+                            break;
+                        default:
+                            break;                  
+                }
                 request.getSession().setAttribute("success", "Đã duyệt đơn thành công.");
             } else {
                 request.getSession().setAttribute("error", "Lỗi khi duyệt đơn.");
@@ -1029,6 +1050,45 @@ public class BusinessAdminController extends HttpServlet {
             request.getSession().setAttribute("error", "Lỗi hệ thống khi duyệt đơn.");
         }
         response.sendRedirect(request.getContextPath() + "/v1/businessadmin/forms");
+    }
+
+    private void onApproveTransfer(FormRequestDTO form, int approverId) {
+        if (!(form instanceof TransferRequestDTO)) return;
+        TransferRequestDTO tf = (TransferRequestDTO) form;
+        
+        if (tf.getTargetDepartmentId() != null) {
+            EmployeeDetailDTO emp = employeeDAO.getEmployeeById(tf.getEmployeeId());
+            if (emp != null) {
+                // Update position and department
+                int currentPosId = emp.getPositionId(); //!= null) ? emp.getPositionId() : 0;
+                employeeDAO.reassignEmployeeDepartment(tf.getEmployeeId(), tf.getTargetDepartmentId(), currentPosId);
+                
+                // Update role if targetRoleId exists
+                if (tf.getTargetRoleId() != null) {
+                    userDAO.updateUserRole(emp.getUserId(), tf.getTargetRoleId());
+                }
+            }
+        }
+    }
+
+    private void onApprovePromotion(FormRequestDTO form, int approverId) {
+        if (!(form instanceof TransferRequestDTO)) return;
+        TransferRequestDTO tf = (TransferRequestDTO) form;
+        
+        EmployeeDetailDTO emp = employeeDAO.getEmployeeById(tf.getEmployeeId());
+        if (emp != null) {
+            // Update role
+            if (tf.getTargetRoleId() != null) {
+                userDAO.updateUserRole(emp.getUserId(), tf.getTargetRoleId());
+                
+                // If it's a manager role, also set them as the department manager
+                Role newRole = roleDAO.getRoleById(tf.getTargetRoleId());
+                if (newRole != null && newRole.getRoleName() != null && newRole.getRoleName().toLowerCase().contains("manager")) {
+                    departmentDAO.assignManager(emp.getDepartmentId(), emp.getEmployeeId());
+                }
+            }
+            
+        }
     }
 
     private void handleRejectForm(HttpServletRequest request, HttpServletResponse response, User user)

@@ -12,6 +12,7 @@ import dao.RoleDAO;
 import dao.UploadedFileDAO;
 import dao.UserDAO;
 import dao.LeaveBalanceDAO;
+import dao.HolidayDAO;
 import dto.AttendanceDetailDTO;
 import dto.AttendanceImportResultDTO;
 import dto.AttendanceReportDTO;
@@ -37,6 +38,7 @@ import java.time.LocalDate;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.DayOfWeek;
 import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -70,6 +72,7 @@ public class EmployeeController extends HttpServlet {
     private final AttendanceDAO attendanceDAO = new AttendanceDAO();
     private final UploadedFileDAO uploadedFileDAO = new UploadedFileDAO();
     private final LeaveBalanceDAO leaveBalanceDAO = new LeaveBalanceDAO();
+    private final HolidayDAO holidayDAO = new HolidayDAO();
     private final AttendanceImportService importService = new AttendanceImportService();
     private final AttendanceService attendanceService = new AttendanceService();
     private final AttendanceExcelExporter attendanceExporter = new AttendanceExcelExporter();
@@ -163,6 +166,9 @@ public class EmployeeController extends HttpServlet {
             case "/forms/my-forms":
                 displayMyForms(request, response, user);
                 break;
+            case "/forms/dashboard":
+                displayFormDashboard(request, response, user);
+                break;
             case "/forms/leave/new":
                 displayLeaveForm(request, response, user);
                 break;
@@ -174,6 +180,9 @@ public class EmployeeController extends HttpServlet {
                 break;
             case "/forms/detail":
                 displayFormDetail(request, response, user);
+                break;
+            case "/forms/transfer/new":
+                displayRequestTransferForm(request, response, user);
                 break;
             case "/recruitment-list":
                 displayRecruitmentList(request, response, user);
@@ -239,6 +248,9 @@ public class EmployeeController extends HttpServlet {
                 break;
             case "/forms/complaint/submit":
                 handleComplaintFormSubmit(request, response, user);
+                break;
+            case "/forms/transfer/submit":
+                handleRequestTransfer(request, response, user);
                 break;
             case "/recruitment-review":
                 handleRecruitmentReview(request, response, user);
@@ -1886,6 +1898,12 @@ public class EmployeeController extends HttpServlet {
         }
     }
 
+    private void displayFormDashboard(HttpServletRequest request, HttpServletResponse response, User user)
+            throws ServletException, IOException {
+        setPermissionFlags(request, getPermissions(user));
+        request.getRequestDispatcher("/public/employee/forms/form_dashboard.jsp").forward(request, response);
+    }
+
     private void displayLeaveForm(HttpServletRequest request, HttpServletResponse response, User user)
             throws ServletException, IOException {
 
@@ -1919,7 +1937,7 @@ public class EmployeeController extends HttpServlet {
 
     private void handleLeaveFormSubmit(HttpServletRequest request, HttpServletResponse response, User user)
             throws ServletException, IOException {
-
+        
         FormType ft = formTypeDAO.getByCode("LEAVE");
         if (ft == null) {
             request.getSession().setAttribute("error", "Loại đơn LEAVE không tồn tại.");
@@ -1970,17 +1988,48 @@ public class EmployeeController extends HttpServlet {
             request.getRequestDispatcher("/public/employee/forms/leave_form.jsp").forward(request, response);
             return;
         }
+        List<Holiday> holidays = holidayDAO.getAllHolidays();
+        int totalDays = 0;
+        LocalDate current = startDate.toLocalDate();
+        LocalDate end = endDate.toLocalDate();
 
-        long diffMs = endDate.getTime() - startDate.getTime();
-        int totalDays = (int) (diffMs / (1000L * 60 * 60 * 24)) + 1;
+        while (!current.isAfter(end)) {
+            DayOfWeek dayOfWeek = current.getDayOfWeek();
+            if (dayOfWeek == DayOfWeek.SATURDAY || dayOfWeek == DayOfWeek.SUNDAY) {
+                current = current.plusDays(1);
+                continue;
+            }
 
+            boolean isHoliday = false;
+            for (Holiday h : holidays) {
+                if (!h.isActive()) continue;
+                LocalDate hStart = h.getStartDate().toLocalDate();
+                LocalDate hEnd = h.getEndDate().toLocalDate();
+                if (!current.isBefore(hStart) && !current.isAfter(hEnd)) {
+                    isHoliday = true;
+                    break;
+                }
+            }
+
+            if (!isHoliday) {
+                totalDays++;
+            }
+            current = current.plusDays(1);
+        }
+
+        if (totalDays == 0) {
+            request.setAttribute("error", "Khoảng thời gian bạn chọn toàn bộ là ngày nghỉ Lễ/Cuối tuần. Không cần phải xin phép!");
+            setPermissionFlags(request, getPermissions(user));
+            request.getRequestDispatcher("/public/employee/forms/leave_form.jsp").forward(request, response);
+            return;
+        }
         int currentYear = LocalDate.now().getYear();
         LeaveBalance lb = leaveBalanceDAO.getLeaveBalance(me.getEmployeeId(), currentYear);
         int remaining = 0;
-        if (lb != null) {
+        if(lb != null) {
             remaining = lb.getRemainingDays();
         }
-        if (totalDays > remaining) {
+        if(totalDays > remaining) {
             request.setAttribute("error", "Số ngày nghỉ vượt quá số ngày phép còn lại (" + remaining + " ngày).");
             setPermissionFlags(request, getPermissions(user));
             request.getRequestDispatcher("/public/employee/forms/leave_form.jsp").forward(request, response);
@@ -2003,7 +2052,7 @@ public class EmployeeController extends HttpServlet {
             if (submitted != null && !submitted.isEmpty()) {
                 String ext = submitted.contains(".") ? submitted.substring(submitted.lastIndexOf('.')).toLowerCase()
                         : "";
-                String[] allowed = {".xlsx", ".pdf", ".docx", ".doc", ".xls", ".jpg", ".png", ".zip"};
+                String[] allowed = { ".xlsx", ".pdf", ".docx", ".doc", ".xls", ".jpg", ".png", ".zip" };
                 boolean ok = false;
                 for (String a : allowed) {
                     if (a.equals(ext)) {
@@ -2111,6 +2160,18 @@ public class EmployeeController extends HttpServlet {
             return;
         }
 
+        // Ràng buộc: Chỉ được khiếu nại trong tháng import chấm công mới nhất
+        int[] latestPeriod = uploadedFileDAO.getLatestAttendanceImportMonthYear(me.getDepartmentId());
+        if (latestPeriod != null) {
+            java.time.LocalDate localDate = startDate.toLocalDate();
+            if (localDate.getMonthValue() != latestPeriod[0] || localDate.getYear() != latestPeriod[1]) {
+                request.setAttribute("error", String.format("Bạn chỉ được nộp đơn khiếu nại chấm công cho tháng %02d/%d (kỳ import gần nhất).", latestPeriod[0], latestPeriod[1]));
+                setPermissionFlags(request, getPermissions(user));
+                request.getRequestDispatcher("/public/employee/forms/complaint_form.jsp").forward(request, response);
+                return;
+            }
+        }
+
         // Xử lý file đính kèm
         String savedUrl = null, savedName = null;
         Part filePart = request.getPart("attachment");
@@ -2164,7 +2225,7 @@ public class EmployeeController extends HttpServlet {
             request.getRequestDispatcher("/public/employee/forms/complaint_form.jsp").forward(request, response);
             return;
         }
-        request.getSession().setAttribute("success", "Đã gửi đơn khiếu nại thành cóng.");
+        request.getSession().setAttribute("success", "Đã gửi đơn khiếu nại thành công.");
         response.sendRedirect(request.getContextPath() + "/v1/employee/forms/my-forms");
     }
 
@@ -2566,4 +2627,88 @@ public class EmployeeController extends HttpServlet {
         response.setDateHeader("Expires", 0);
 
     }
+
+    private void displayRequestTransferForm(HttpServletRequest request, HttpServletResponse response, User user)
+            throws ServletException, IOException {
+        request.setAttribute("departments", departmentDAO.getAllActiveDepartments());
+        request.setAttribute("positions", departmentDAO.getAllPositions());
+            request.getRequestDispatcher("/public/employee/forms/transfer_form.jsp").forward(request, response);
+    }
+
+    private void handleRequestTransfer(HttpServletRequest request, HttpServletResponse response, User user)
+            throws ServletException, IOException {
+
+        EmployeeDetailDTO me = employeeDAO.getEmployeeByUserId(user.getUserId());
+        if (me == null || me.getDepartmentId() <= 0) {
+            request.getSession().setAttribute("error", "Bạn chưa được phân công vào phòng ban nào.");
+            response.sendRedirect(request.getContextPath() + "/v1/employee/forms/transfer/new");
+            return;
+        }
+
+        // Ràng buộc: Manager không được xin thuyên chuyển
+        String myRole = roleDAO.getRoleByUserId(user.getUserId());
+        if (myRole != null && myRole.toLowerCase().contains("manager")) {
+            request.getSession().setAttribute("error", "Manager không được phép gửi đơn thuyên chuyển phòng ban.");
+            response.sendRedirect(request.getContextPath() + "/v1/employee/dashboard");
+            return;
+        }
+
+        String rawTargetDeptId = request.getParameter("targetDepartmentId");
+        String reason = request.getParameter("reason");
+        if (isBlank(rawTargetDeptId)) {
+            request.getSession().setAttribute("error", "Vui lòng chọn phòng ban muốn chuyển đến.");
+            response.sendRedirect(request.getContextPath() + "/v1/employee/forms/transfer/new");
+            return;
+        }
+
+        int targetDepartmentId;
+        try {
+            targetDepartmentId = Integer.parseInt(rawTargetDeptId);
+        } catch (NumberFormatException e) {
+            request.getSession().setAttribute("error", "Phòng ban không hợp lệ.");
+            response.sendRedirect(request.getContextPath() + "/v1/employee/forms/transfer/new");
+            return;
+        }
+
+        if (targetDepartmentId == me.getDepartmentId()) {
+            request.getSession().setAttribute("error", "Bạn đã ở phòng ban này rồi.");
+            response.sendRedirect(request.getContextPath() + "/v1/employee/forms/transfer/new");
+            return;
+        }
+
+        // Tự động resolve targetRoleId từ deptCode + "Employee"
+        String deptCode = departmentDAO.getDepartmentCodeById(targetDepartmentId);
+        Integer targetRoleId = null;
+        if (deptCode != null) {
+            model.Role role = roleDAO.getRoleByName(deptCode + "Employee");
+            if (role != null) {
+                targetRoleId = role.getRoleId();
+            }
+        }
+
+        // Lấy formTypeId của TRANSFER
+        int formTypeId = formTypeDAO.getFormTypeIdByCode("TRANSFER");
+        if (formTypeId <= 0) {
+            request.getSession().setAttribute("error", "Loại đơn TRANSFER chưa được cấu hình.");
+            response.sendRedirect(request.getContextPath() + "/v1/employee/forms/transfer/new");
+            return;
+        }
+
+        TransferFormRequest fr = new TransferFormRequest();
+        fr.setFormCode("TRF-" + me.getEmployeeId() + "-" + System.currentTimeMillis());
+        fr.setEmployeeId(me.getEmployeeId());
+        fr.setFormTypeId(formTypeId);
+        fr.setReason(isBlank(reason) ? null : reason.trim());
+        fr.setTargetDepartmentId(targetDepartmentId);
+        fr.setTargetRoleId(targetRoleId);
+
+        int newId = formRequestDAO.addFormRequest(fr);
+        if (newId > 0) {
+            request.getSession().setAttribute("success", "Đơn thuyên chuyển đã được gửi, chờ Business Admin phê duyệt.");
+        } else {
+            request.getSession().setAttribute("error", "Gửi đơn thuyên chuyển thất bại. Vui lòng thử lại.");
+        }
+        response.sendRedirect(request.getContextPath() + "/v1/employee/dashboard");
+    }
+
 }

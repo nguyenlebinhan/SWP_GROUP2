@@ -86,4 +86,12 @@ public class FormTypeDAO {
         return null;
     }
 
+    /**
+     * Trả về formTypeId theo code, -1 nếu không tìm thấy.
+     */
+    public int getFormTypeIdByCode(String code) {
+        FormType ft = getByCode(code);
+        return (ft != null) ? ft.getFormTypeId() : -1;
+    }
+
 }

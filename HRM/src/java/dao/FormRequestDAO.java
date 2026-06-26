@@ -18,9 +18,11 @@ import java.util.logging.Logger;
 import model.FormRequest;
 import model.LeaveFormRequest;
 import model.ComplaintFormRequest;
+import model.TransferFormRequest;
 import dto.FormRequestDTO;
 import dto.LeaveFormRequestDTO;
 import dto.ComplaintFormRequestDTO;
+import dto.TransferRequestDTO;
 import java.util.Objects;
 
 /**
@@ -61,10 +63,9 @@ public class FormRequestDAO {
     public int addFormRequest(FormRequest fr) {
         String SQL = """
                      INSERT INTO form_requests
-                     (formCode, employeeId, formTypeId, reason,
-                      startDate, endDate, startTime, endTime, totalDays, usedDays,
+                     (formCode, employeeId, formTypeId, reason, usedDays,
                       attachmentUrl, attachmentName, status)
-                     VALUES (?, ?, ?, ?, NULL, NULL, NULL, NULL, NULL, 0, ?, ?, 0)
+                     VALUES (?, ?, ?, ?, 0, ?, ?, 0)
                      """;
         try (Connection conn = dbContext.getConnection();
              PreparedStatement ps = conn.prepareStatement(SQL, Statement.RETURN_GENERATED_KEYS)) {
@@ -101,9 +102,9 @@ public class FormRequestDAO {
         String SQL = """
                      INSERT INTO form_requests
                      (formCode, employeeId, formTypeId, reason,
-                      startDate, endDate, startTime, endTime, totalDays, usedDays,
+                      startDate, endDate, totalDays, usedDays,
                       attachmentUrl, attachmentName, status)
-                     VALUES (?, ?, ?, ?, ?, ?, NULL, NULL, ?, 0, ?, ?, 0)
+                     VALUES (?, ?, ?, ?, ?, ?, ?, 0, ?, ?, 0)
                      """;
         try (Connection conn = dbContext.getConnection();
              PreparedStatement ps = conn.prepareStatement(SQL, Statement.RETURN_GENERATED_KEYS)) {
@@ -143,9 +144,9 @@ public class FormRequestDAO {
         String SQL = """
                      INSERT INTO form_requests
                      (formCode, employeeId, formTypeId, reason,
-                      startDate, endDate, startTime, endTime, totalDays, usedDays,
-                      attachmentUrl, attachmentName, status)
-                     VALUES (?, ?, ?, ?, ?, NULL, ?, ?, NULL, 0, ?, ?, 0)
+                       startDate, startTime, endTime, usedDays,
+                       attachmentUrl, attachmentName, status)
+                     VALUES (?, ?, ?, ?, ?, ?, ?, 0, ?, ?, 0)
                      """;
         try (Connection conn = dbContext.getConnection();
              PreparedStatement ps = conn.prepareStatement(SQL, Statement.RETURN_GENERATED_KEYS)) {
@@ -176,6 +177,48 @@ public class FormRequestDAO {
             LOGGER.log(Level.WARNING, "Add complaint form request failed for code: {0}", fr.getFormCode());
         } catch (SQLException e) {
             LOGGER.log(Level.SEVERE, "Error adding complaint form request: " + fr.getFormCode(), e);
+        }
+        return -1;
+    }
+
+    // INSERT đơn Thuyên chuyển / Thăng giáng chức (overload)
+    public int addFormRequest(TransferFormRequest fr) {
+        String SQL = """
+                     INSERT INTO form_requests
+                     (formCode, employeeId, formTypeId, reason, usedDays,
+                      attachmentUrl, attachmentName,
+                      targetDepartmentId, targetRoleId,
+                      status)
+                     VALUES (?, ?, ?, ?, 0, ?, ?, ?, ?, 0)
+                     """;
+        try (Connection conn = dbContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(SQL, Statement.RETURN_GENERATED_KEYS)) {
+            ps.setString(1, fr.getFormCode());
+            ps.setInt(2, fr.getEmployeeId());
+            ps.setInt(3, fr.getFormTypeId());
+            ps.setNString(4, fr.getReason());
+            if (fr.getAttachmentUrl() == null) {
+                ps.setNull(5, Types.VARCHAR);
+                ps.setNull(6, Types.VARCHAR);
+            } else {
+                ps.setString(5, fr.getAttachmentUrl());
+                ps.setString(6, fr.getAttachmentName());
+            }
+            if (fr.getTargetDepartmentId() == null) ps.setNull(7, Types.INTEGER); else ps.setInt(7, fr.getTargetDepartmentId());
+            if (fr.getTargetRoleId() == null) ps.setNull(8, Types.INTEGER); else ps.setInt(8, fr.getTargetRoleId());
+            int rows = ps.executeUpdate();
+            if (rows > 0) {
+                try (ResultSet rs = ps.getGeneratedKeys()) {
+                    if (rs.next()) {
+                        int newId = rs.getInt(1);
+                        LOGGER.log(Level.INFO, "Transfer/Promotion form request added: id={0}, code={1}", new Object[]{newId, fr.getFormCode()});
+                        return newId;
+                    }
+                }
+            }
+            LOGGER.log(Level.WARNING, "Add transfer/promotion form request failed for code: {0}", fr.getFormCode());
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Error adding transfer/promotion form request: " + fr.getFormCode(), e);
         }
         return -1;
     }
@@ -379,22 +422,61 @@ public class FormRequestDAO {
         return false;
     }
 
+    /**
+     * Duyệt đơn với kiểm tra trạng thái hiện tại (dùng cho bước 2 - HR duyệt từ status 1 → 3).
+     * Khác với approveFormRequest() chỉ chấp nhận status = 0.
+     */
+    public boolean approveFormRequestFromStatus(int formId, int fromStatus, int toStatus, int approverId, String note) {
+        String SQL = """
+                     UPDATE form_requests
+                     SET status = ?, approverId = ?, approverNote = ?, approvedAt = NOW()
+                     WHERE formId = ? AND status = ?
+                     """;
+        try (Connection conn = dbContext.getConnection(); PreparedStatement ps = conn.prepareStatement(SQL)) {
+            ps.setInt(1, toStatus);
+            if (approverId > 0) {
+                ps.setInt(2, approverId);
+            } else {
+                ps.setNull(2, java.sql.Types.INTEGER);
+            }
+            ps.setString(3, note);
+            ps.setInt(4, formId);
+            ps.setInt(5, fromStatus);
+            int rows = ps.executeUpdate();
+            if (rows > 0) {
+                LOGGER.log(Level.INFO, "Form request {0} approved from status {1} to {2}",
+                        new Object[]{formId, fromStatus, toStatus});
+                return true;
+            }
+            LOGGER.log(Level.WARNING, "approveFormRequestFromStatus failed: formId={0}, expectedFromStatus={1}",
+                    new Object[]{formId, fromStatus});
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Error in approveFormRequestFromStatus for formId= " + formId, e);
+        }
+        return false;
+    }
+
     private static final String MANAGER_FORM_QUERY
             = "SELECT fr.formId, fr.formCode, fr.employeeId, fr.formTypeId, fr.reason, "
             + "fr.startDate, fr.endDate, fr.startTime, fr.endTime, fr.totalDays, fr.usedDays, "
             + "fr.status, fr.approverId, fr.approverNote, fr.approvedAt, "
             + "fr.attachmentUrl, fr.attachmentName, fr.createdAt, fr.updatedAt, "
+            + "fr.targetDepartmentId, fr.targetRoleId, "
             + "e.employeeCode, u.fullName, "
             + "d.departmentId, d.departmentName, "
             + "ft.formTypeName, ft.formTypeCode, "
-            + "ua.fullName AS approverName "
+            + "ua.fullName AS approverName, "
+            + "td.departmentName AS targetDepartmentName, "
+            + "tr.roleName AS targetRoleName "
             + "FROM Form_Requests fr "
             + "JOIN Employees e   ON fr.employeeId  = e.employeeId "
             + "JOIN Users u       ON e.userId        = u.userId "
             + "LEFT JOIN Departments d  ON e.departmentId = d.departmentId "
             + "JOIN Form_Types ft ON fr.formTypeId   = ft.formTypeId "
             + "LEFT JOIN Employees ea ON fr.approverId  = ea.employeeId "
-            + "LEFT JOIN Users ua     ON ea.userId       = ua.userId ";
+            + "LEFT JOIN Users ua     ON ea.userId       = ua.userId "
+            + "LEFT JOIN Departments td ON fr.targetDepartmentId = td.departmentId "
+            + "LEFT JOIN Roles tr       ON fr.targetRoleId       = tr.roleId ";
 
     /**
      * Map ResultSet thành đúng subtype DTO dựa vào formTypeCode.
@@ -410,6 +492,8 @@ public class FormRequestDAO {
             fr = new LeaveFormRequestDTO();
         } else if ("COMPLAINT".equals(typeCode)) {
             fr = new ComplaintFormRequestDTO();
+        } else if ("TRANSFER".equals(typeCode) || "PROMOTION_DEMOTION".equals(typeCode)) {
+            fr = new TransferRequestDTO();
         } else {
             fr = new FormRequestDTO();
         }
@@ -427,6 +511,15 @@ public class FormRequestDAO {
             compFr.setStartDate(rs.getDate("startDate"));
             compFr.setStartTime(rs.getTime("startTime"));
             compFr.setEndTime(rs.getTime("endTime"));
+        } else if (fr instanceof TransferRequestDTO) {
+            TransferRequestDTO transferFr = (TransferRequestDTO) fr;
+            int tDeptId = rs.getInt("targetDepartmentId");
+            transferFr.setTargetDepartmentId(rs.wasNull() ? null : tDeptId);
+            int tRoleId = rs.getInt("targetRoleId");
+            transferFr.setTargetRoleId(rs.wasNull() ? null : tRoleId);
+            
+            transferFr.setTargetDepartmentName(rs.getNString("targetDepartmentName"));
+            transferFr.setTargetRoleName(rs.getString("targetRoleName"));
         }
 
         fr.setFormId(rs.getInt("formId"));
