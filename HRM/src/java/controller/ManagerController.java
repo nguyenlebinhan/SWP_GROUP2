@@ -290,7 +290,6 @@ public class ManagerController extends HttpServlet {
             case "/forms/cancel-ot":
                 handleCancelOT(request, response, user);
                 break;
-
             case "/forms/submit-promotion":
                 handleRequestPromotionDemotion(request, response, user);
                 break;

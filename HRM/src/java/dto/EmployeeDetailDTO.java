@@ -26,6 +26,7 @@ public class EmployeeDetailDTO {
     private String departmentName;
     private String positionName;
     private String roleName;    
+    private java.math.BigDecimal otHours;
 
     public EmployeeDetailDTO() {
     }
@@ -186,6 +187,19 @@ public class EmployeeDetailDTO {
         this.roleName = roleName;
     }
     
+    public java.math.BigDecimal getOtHours() {
+        return otHours;
+    }
+
+    public void setOtHours(java.math.BigDecimal otHours) {
+        this.otHours = otHours;
+    }
+
+    public String getFormattedOtHours() {
+        if (otHours == null) return "0";
+        return otHours.stripTrailingZeros().toPlainString();
+    }
+
     public String getStatusLabel() {
         switch (status) {
             case 0: return "Không hoạt động";

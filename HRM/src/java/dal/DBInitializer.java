@@ -459,24 +459,45 @@ public class DBInitializer {
         execute(conn, SQL, "CREATE PAYROLL TABLE SUCCESSFULLY");
     }
 
-    public void createTablePerformance(Connection conn) {
-        String SQL = "CREATE TABLE Performance("
-                + "performanceId INT PRIMARY KEY AUTO_INCREMENT,"
-                + "departmentId INT NOT NULL,"
-                + "employeeId INT NOT NULL,"
-                + "positionId INT NOT NULL,"
-                + "evaluatorId INT NOT NULL,"
-                + "evaluationDate DATE NOT NULL,"
-                + "content NVARCHAR(500),"
-                + "result NVARCHAR(100)," // Xuất sắc / Tốt / Trung bình / Yếu
-                + "createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,"
-                + "updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,"
-                + "FOREIGN KEY (departmentId) REFERENCES Departments(departmentId),"
-                + "FOREIGN KEY (employeeId) REFERENCES Employees(employeeId),"
-                + "FOREIGN KEY (evaluatorId) REFERENCES Employees(employeeId),"
-                + "FOREIGN KEY (positionId) REFERENCES Positions(positionId)"
+    public void createTablePayrollSettings(Connection conn) {
+        String SQL = "CREATE TABLE Payroll_Settings("
+                + "settingKey VARCHAR(100) PRIMARY KEY,"
+                + "settingValue DECIMAL(15,6) NOT NULL,"
+                + "description NVARCHAR(255),"
+                + "updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"
                 + ")";
-        execute(conn, SQL, "CREATE PERFORMANCE TABLE SUCCESSFULLY");
+        execute(conn, SQL, "CREATE PAYROLL_SETTINGS TABLE SUCCESSFULLY");
+    }
+
+    public void createTablePayrollDeductionRules(Connection conn) {
+        String SQL = "CREATE TABLE Payroll_Deduction_Rules("
+                + "ruleId INT PRIMARY KEY AUTO_INCREMENT,"
+                + "ruleCode VARCHAR(50) NOT NULL UNIQUE,"
+                + "ruleName NVARCHAR(255) NOT NULL,"
+                + "ruleType VARCHAR(30) NOT NULL,"
+                + "calculationType VARCHAR(20) NOT NULL,"
+                + "baseType VARCHAR(30) NOT NULL,"
+                + "rate DECIMAL(10,6) DEFAULT 0,"
+                + "employerRate DECIMAL(10,6) DEFAULT 0,"
+                + "fixedAmount DECIMAL(15,2) DEFAULT 0,"
+                + "taxableDeduction TINYINT(1) DEFAULT 1,"
+                + "isActive TINYINT(1) DEFAULT 1,"
+                + "createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,"
+                + "updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"
+                + ")";
+        execute(conn, SQL, "CREATE PAYROLL_DEDUCTION_RULES TABLE SUCCESSFULLY");
+    }
+
+    public void createTablePayrollTaxBrackets(Connection conn) {
+        String SQL = "CREATE TABLE Payroll_Tax_Brackets("
+                + "bracketId INT PRIMARY KEY AUTO_INCREMENT,"
+                + "minIncome DECIMAL(15,2) NOT NULL,"
+                + "maxIncome DECIMAL(15,2),"
+                + "taxRate DECIMAL(10,6) NOT NULL,"
+                + "createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,"
+                + "updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"
+                + ")";
+        execute(conn, SQL, "CREATE PAYROLL_TAX_BRACKETS TABLE SUCCESSFULLY");
     }
 
     // ==================== THÔNG BÁO & AUDIT ====================
@@ -525,7 +546,9 @@ public class DBInitializer {
             String[] dropOrder = {
                 "Audit_Logs",
                 "Notifications",
-                "Performance",
+                "Payroll_Tax_Brackets",
+                "Payroll_Deduction_Rules",
+                "Payroll_Settings",
                 "Payroll",
                 "Attendance_Adjustment_History",
                 "Attendance",
@@ -575,7 +598,9 @@ public class DBInitializer {
                 "Attendance_Adjustment_History",
                 "Holiday",
                 "Payroll",
-                "Performance",
+                "Payroll_Settings",
+                "Payroll_Deduction_Rules",
+                "Payroll_Tax_Brackets",
                 "Notifications",
                 "Audit_Logs"
             };
@@ -626,9 +651,6 @@ public class DBInitializer {
                         case "Employment_Contracts":
                             createTableEmploymentContracts(conn);
                             break;
-                        case "Contract_Audit_Log":
-                            createTableContractAuditLog(conn);
-                            break;
                         case "Uploaded_Files":
                             createTableUploadedFiles(conn);
                             break;
@@ -665,8 +687,14 @@ public class DBInitializer {
                         case "Payroll":
                             createTablePayroll(conn);
                             break;
-                        case "Performance":
-                            createTablePerformance(conn);
+                        case "Payroll_Settings":
+                            createTablePayrollSettings(conn);
+                            break;
+                        case "Payroll_Deduction_Rules":
+                            createTablePayrollDeductionRules(conn);
+                            break;
+                        case "Payroll_Tax_Brackets":
+                            createTablePayrollTaxBrackets(conn);
                             break;
                         case "Notifications":
                             createTableNotifications(conn);
@@ -714,78 +742,47 @@ public class DBInitializer {
                 insertPermission(conn, "ADD_USER", "Thêm người dùng", "Quyền thêm mới người dùng");
                 insertPermission(conn, "EDIT_USER", "Sửa người dùng", "Quyền chỉnh sửa thông tin người dùng");
                 insertPermission(conn, "DELETE_USER", "Xóa người dùng", "Quyền xóa / vô hiệu hóa người dùng");
+
                 insertPermission(conn, "VIEW_ROLES", "Xem vai trò", "Quyền xem danh sách và chi tiết vai trò");
                 insertPermission(conn, "ADD_ROLE", "Thêm vai trò", "Quyền thêm mới vai trò");
                 insertPermission(conn, "EDIT_ROLE", "Sửa vai trò", "Quyền chỉnh sửa thông tin vai trò");
                 insertPermission(conn, "DELETE_ROLE", "Xóa vai trò", "Quyền xóa vai trò");
                 insertPermission(conn, "MANAGE_PERMISSIONS", "Quản lý phân quyền", "Quyền gán / thu hồi quyền cho vai trò");
+
                 insertPermission(conn, "VIEW_EMPLOYEES", "Xem nhân viên", "Quyền xem danh sách nhân viên");
                 insertPermission(conn, "ADD_EMPLOYEE", "Thêm nhân viên", "Quyền thêm nhân viên");
                 insertPermission(conn, "EDIT_EMPLOYEE", "Chỉnh sửa nhân viên", "Quyền chỉnh sửa nhân viên");
+
                 insertPermission(conn, "ADD_EMPLOYMENT_CONTRACT", "Thêm hợp đồng lao động", "Quyền thêm hợp đồng lao động cho nhân viên");
-                insertPermission(conn, "EDIT_DEPARTMENTS", "Chỉnh sửa phòng ban", "Quyền chỉnh sửa phòng ban ");
+                insertPermission(conn, "APPROVE_CONTRACT", "Phê duyệt hợp đồng", "Quyền phê duyệt hợp đồng lao động");
+                insertPermission(conn, "REJECT_CONTRACT", "Từ chối hợp đồng", "Quyền từ chối hợp đồng lao động");
+                insertPermission(conn, "TERMINATE_CONTRACT", "Chấm dứt hợp đồng", "Quyền chấm dứt sớm hợp đồng đang hiệu lực");
+                insertPermission(conn, "VIEW_PENDING_CONTRACTS", "Xem hợp đồng chờ duyệt", "Quyền xem danh sách hợp đồng đang chờ duyệt");
+                insertPermission(conn, "VIEW_OWN_CONTRACT", "Xem hợp đồng của mình", "Quyền xem hợp đồng và lịch sử hợp đồng của chính mình");
+                insertPermission(conn, "VIEW_ALL_CONTRACTS", "Xem tất cả hợp đồng", "Quyền xem lịch sử hợp đồng của nhân viên");
+
+                insertPermission(conn, "EDIT_DEPARTMENTS", "Chỉnh sửa phòng ban", "Quyền chỉnh sửa phòng ban");
                 insertPermission(conn, "ASSIGN_DEPARTMENT", "Gán nhân viên vào phòng ban", "Quyền gán nhân viên vào phòng ban");
                 insertPermission(conn, "UNASSIGN_DEPARTMENT", "Xóa gán phòng ban nhân viên", "Quyền xóa gán nhân viên sang phòng ban khác");
                 insertPermission(conn, "ADD_DEPARTMENT", "Thêm phòng ban", "Quyền thêm phòng ban");
-                insertPermission(conn, "VIEW_ATTENDANCE", "Xem chấm công", "Quyền xem dữ liệu chấm công (Manager: theo phòng mình; Employee: của bản thân)");
-                insertPermission(conn, "IMPORT_ATTENDANCE", "Import chấm công", "Quyền import dữ liệu chấm công từ file Excel");
-                insertPermission(conn, "EDIT_ATTENDANCE", "Chỉnh sửa chấm công", "Quyền chỉnh sửa trạng thái chấm công khi kỳ chấm công chưa công khai");
-                insertPermission(conn, "VIEW_DEPARTMENT_EMPLOYEES_DETAIL", "Xem danh sách nhân viên của phòng ban khác", "Quyền xem dữ liệu nhân viên của phòng ban khác");
-                insertPermission(conn, "VIEW_ALL_FORMS", "Xem tất cả đơn", "Quyền xem toàn bộ đơn yêu cầu của mọi phòng ban (chỉ HR)");
-                insertPermission(conn, "VIEW_ALL_DEPT_FORMS", "Xem tất cả đơn của phòng ban", "Quyền xem toàn bộ đơn yêu cầu của một phòng ban cụ thể");
-                insertPermission(conn, "PROCESS_RECRUITMENT", "Xử lý tuyển dụng", "Quyền import, duyệt và gửi thông báo kết quả tuyển dụng");
-                insertPermission(conn, "VIEW_CONTRACT_PREVIEW", "Xem hợp đồng", "Quyền xem hợp đồng hiện tại và lịch sử hợp đồng");
-                insertPermission(conn, "PERM_APPROVE_CONTRACT", "Duyệt hợp đồng", "Quyền duyệt hợp đồng lao động");
-                insertPermission(conn, "PERM_VIEW_ALL_CONTRACTS", "Xem toàn bộ hợp đồng", "Quyền xem toàn bộ lịch sử hợp đồng");
-                insertPermission(conn, "EDIT_DEPARTMENTS", "Chỉnh sửa phòng ban", "Quyền chỉnh sửa phòng ban ");
-                insertPermission(conn, "ASSIGN_DEPARTMENT", "Gán nhân viên vào phòng ban", "Quyền gán nhân viên vào phòng ban");
-                insertPermission(conn, "UNASSIGN_DEPARTMENT", "Xóa gán phòng ban nhân viên", "Quyền xóa gán nhân viên sang phòng ban khác");
-                insertPermission(conn, "ADD_DEPARTMENT", "Thêm phòng ban", "Quyền thêm phòng ban");
+
                 insertPermission(conn, "VIEW_DEPARTMENT_ATTENDANCE", "Xem chấm công phòng ban", "Quyền xem dashboard chấm công của phòng ban mình quản lý (Manager)");
                 insertPermission(conn, "VIEW_ALL_ATTENDANCE", "Xem toàn bộ chấm công", "Quyền xem dashboard chấm công của tất cả phòng ban trong toàn công ty (HR)");
                 insertPermission(conn, "IMPORT_ATTENDANCE", "Import chấm công", "Quyền import dữ liệu chấm công từ file Excel");
-                insertPermission(conn, "EDIT_ATTENDANCE", "Chỉnh sửa chấm công", "Quyền chỉnh sửa trạng thái chấm công khi kỳ chấm công chưa công khai");
+                insertPermission(conn, "EDIT_ATTENDANCE", "Chỉnh sửa chấm công", "Quyền chỉnh sửa trạng thái chấm công khi tháng chấm công chưa công khai");
+
                 insertPermission(conn, "VIEW_DEPARTMENT_EMPLOYEES_DETAIL", "Xem danh sách nhân viên của phòng ban khác", "Quyền xem dữ liệu nhân viên của phòng ban khác");
+
                 insertPermission(conn, "VIEW_ALL_FORMS", "Xem tất cả đơn", "Quyền xem toàn bộ đơn yêu cầu của mọi phòng ban (chỉ HR)");
                 insertPermission(conn, "VIEW_ALL_DEPT_FORMS", "Xem tất cả đơn của phòng ban", "Quyền xem toàn bộ đơn yêu cầu của một phòng ban cụ thể");
-                insertPermission(conn, "PROCESS_RECRUITMENT", "Xử lý tuyển dụng", "Quyền import, duyệt và gửi thông báo kết quả tuyển dụng");
-            }
-            ensurePermission(conn, "VIEW_USERS", "Xem người dùng", "Quyền xem danh sách và chi tiết người dùng");
-            ensurePermission(conn, "ADD_USER", "Thêm người dùng", "Quyền thêm mới người dùng");
-            ensurePermission(conn, "EDIT_USER", "Sửa người dùng", "Quyền chỉnh sửa thông tin người dùng");
-            ensurePermission(conn, "DELETE_USER", "Xóa người dùng", "Quyền xóa / vô hiệu hóa người dùng");
-            ensurePermission(conn, "VIEW_ROLES", "Xem vai trò", "Quyền xem danh sách và chi tiết vai trò");
-            ensurePermission(conn, "ADD_ROLE", "Thêm vai trò", "Quyền thêm mới vai trò");
-            ensurePermission(conn, "EDIT_ROLE", "Sửa vai trò", "Quyền chỉnh sửa thông tin vai trò");
-            ensurePermission(conn, "DELETE_ROLE", "Xóa vai trò", "Quyền xóa vai trò");
-            ensurePermission(conn, "MANAGE_PERMISSIONS", "Quản lý phân quyền", "Quyền gán / thu hồi quyền cho vai trò");
-            ensurePermission(conn, "VIEW_EMPLOYEES", "Xem nhân viên", "Quyền xem danh sách nhân viên");
-            ensurePermission(conn, "ADD_EMPLOYEE", "Thêm nhân viên", "Quyền thêm nhân viên");
-            ensurePermission(conn, "EDIT_EMPLOYEE", "Chỉnh sửa nhân viên", "Quyền chỉnh sửa nhân viên");
-            ensurePermission(conn, "ADD_EMPLOYMENT_CONTRACT", "Thêm hợp đồng lao động", "Quyền thêm hợp đồng lao động cho nhân viên");
-            ensurePermission(conn, "APPROVE_CONTRACT", "Phê duyệt hợp đồng", "Quyền phê duyệt hợp đồng lao động");
-            ensurePermission(conn, "REJECT_CONTRACT", "Từ chối hợp đồng", "Quyền từ chối hợp đồng lao động");
-            ensurePermission(conn, "TERMINATE_CONTRACT", "Chấm dứt hợp đồng", "Quyền chấm dứt sớm hợp đồng đang hiệu lực");
-            ensurePermission(conn, "VIEW_PENDING_CONTRACTS", "Xem hợp đồng chờ duyệt", "Quyền xem danh sách hợp đồng đang chờ duyệt");
-            ensurePermission(conn, "VIEW_OWN_CONTRACT", "Xem hợp đồng của mình", "Quyền xem hợp đồng và lịch sử hợp đồng của chính mình");
-            ensurePermission(conn, "VIEW_ALL_CONTRACTS", "Xem tất cả hợp đồng", "Quyền xem lịch sử hợp đồng của nhân viên");
-            ensurePermission(conn, "EDIT_DEPARTMENTS", "Chỉnh sửa phòng ban", "Quyền chỉnh sửa phòng ban");
-            ensurePermission(conn, "ASSIGN_DEPARTMENT", "Gán nhân viên vào phòng ban", "Quyền gán nhân viên vào phòng ban");
-            ensurePermission(conn, "UNASSIGN_DEPARTMENT", "Xóa gán phòng ban nhân viên", "Quyền xóa gán nhân viên sang phòng ban khác");
-            ensurePermission(conn, "ADD_DEPARTMENT", "Thêm phòng ban", "Quyền thêm phòng ban");
-            ensurePermission(conn, "VIEW_DEPARTMENT_ATTENDANCE", "Xem chấm công phòng ban", "Quyền xem dashboard chấm công của phòng ban mình quản lý (Manager)");
-            ensurePermission(conn, "VIEW_ALL_ATTENDANCE", "Xem toàn bộ chấm công", "Quyền xem dashboard chấm công của tất cả phòng ban trong toàn công ty (HR)");
-            ensurePermission(conn, "IMPORT_ATTENDANCE", "Import chấm công", "Quyền import dữ liệu chấm công từ file Excel");
-            ensurePermission(conn, "EDIT_ATTENDANCE", "Chỉnh sửa chấm công", "Quyền chỉnh sửa trạng thái chấm công khi tháng chấm công chưa công khai");
-            ensurePermission(conn, "VIEW_DEPARTMENT_EMPLOYEES_DETAIL", "Xem danh sách nhân viên của phòng ban khác", "Quyền xem dữ liệu nhân viên của phòng ban khác");
-            ensurePermission(conn, "VIEW_ALL_FORMS", "Xem tất cả đơn", "Quyền xem toàn bộ đơn yêu cầu của mọi phòng ban (chỉ HR)");
-            ensurePermission(conn, "VIEW_ALL_DEPT_FORMS", "Xem tất cả đơn của phòng ban", "Quyền xem toàn bộ đơn yêu cầu của một phòng ban cụ thể");
-            ensurePermission(conn, "PROCESS_RECRUITMENT", "Xử lý tuyển dụng", "Quyền import, duyệt và gửi thông báo kết quả tuyển dụng");
-            ensurePermission(conn, "VIEW_ALL_SALARY", "Xem tất cả lương nhân viên", "Quyền xem lương của tất cả nhân viên");
-            ensurePermission(conn, "VIEW_OWN_SALARY", "Xem lương cá nhân", "Quyền xem, gửi đơn khiếu nại về lương của cá nhân");
-            ensurePermission(conn, "APPROVE_PAYROLL", "Duyệt bảng lương", "Quyền duyệt bảng lương trước khi thanh toán");
-            ensurePermission(conn, "EXPORT_PAYROLL", "Xuất bảng lương", "Quyền xuất bảng lương ra Excel");
 
+                insertPermission(conn, "PROCESS_RECRUITMENT", "Xử lý tuyển dụng", "Quyền import, duyệt và gửi thông báo kết quả tuyển dụng");
+
+                insertPermission(conn, "VIEW_ALL_SALARY", "Xem tất cả lương nhân viên", "Quyền xem lương của tất cả nhân viên");
+                insertPermission(conn, "VIEW_OWN_SALARY", "Xem lương cá nhân", "Quyền xem, gửi đơn khiếu nại về lương của cá nhân");
+                insertPermission(conn, "APPROVE_PAYROLL", "Duyệt bảng lương", "Quyền duyệt bảng lương trước khi thanh toán");
+                insertPermission(conn, "EXPORT_PAYROLL", "Xuất bảng lương", "Quyền xuất bảng lương ra Excel");
+            }
             if (countRows(conn, "Positions") == 0) {
                 insertPosition(conn, "Thực tập sinh", 1, "Sinh viên thực tập tại công ty");
                 insertPosition(conn, "Nhân viên chính thức", 2, "Hỗ trợ công việc hành chính");
@@ -921,27 +918,147 @@ public class DBInitializer {
                 insertRolePermission(conn, "HM", "PERM_VIEW_ALL_CONTRACTS");
             }
 
+            seedPayrollConfig(conn);
             LOGGER.log(Level.INFO, "Seeding completed successfully.");
         } catch (SQLException e) {
             LOGGER.log(Level.SEVERE, "Cannot insert initial data", e);
         }
     }
 
-    private void ensurePermission(Connection conn, String code, String name, String description) throws SQLException {
-        String checkSql = "SELECT 1 FROM Permissions WHERE permissionCode = ?";
-        try (PreparedStatement checkPs = conn.prepareStatement(checkSql)) {
-            checkPs.setString(1, code);
-            try (ResultSet rs = checkPs.executeQuery()) {
-                if (rs.next()) {
-                    return;
-                }
-            }
+    private void seedPayrollConfig(Connection conn) throws SQLException {
+        if (tableExists(conn, "Payroll_Settings")) {
+            deletePayrollSetting(conn, "WORKING_HOURS_PER_DAY");
+            deletePayrollSetting(conn, "WORK_START_MINUTES");
+            deletePayrollSetting(conn, "WORK_END_MINUTES");
+            insertPayrollSetting(conn, "PERSONAL_ALLOWANCE", "15500000", "Giảm trừ cá nhân khi tính thuế TNCN");
+            insertPayrollSetting(conn, "LATE_PENALTY_BLOCK_MINUTES", "30", "Số phút của một block phạt đi muộn");
+            insertPayrollSetting(conn, "ATTENDANCE_BONUS_RATE", "0.03", "Tỷ lệ thưởng chuyên cần trên lương hợp đồng");
+            insertPayrollSetting(conn, "WORK_START", "480", "Giờ vào làm chuẩn, nhập theo HH:mm trên UI");
+            insertPayrollSetting(conn, "WORK_END", "1020", "Giờ ra làm chuẩn, nhập theo HH:mm trên UI");
+            insertPayrollSetting(conn, "WORK_BREAK_MINUTES", "60", "Số phút nghỉ không tính vào giờ làm chuẩn");
+            insertPayrollSetting(conn, "OVERTIME_BLOCK_MINUTES", "30", "Số phút của một block tính OT");
+            insertPayrollSetting(conn, "OVERTIME_WORKDAY_MULTIPLIER", "1.5", "Hệ số OT ngày làm việc");
+            insertPayrollSetting(conn, "OVERTIME_WEEKEND_MULTIPLIER", "2.0", "Hệ số OT cuối tuần");
+            insertPayrollSetting(conn, "OVERTIME_HOLIDAY_MULTIPLIER", "3.0", "Hệ số OT ngày lễ");
         }
-        String insertSql = "INSERT INTO Permissions (permissionCode, permissionName, description) VALUES (?, ?, ?)";
-        try (PreparedStatement ps = conn.prepareStatement(insertSql)) {
+
+        if (tableExists(conn, "Payroll_Deduction_Rules")) {
+            ensurePayrollDeductionEmployerRateColumn(conn);
+            ensurePayrollDeductionColumns(conn);
+            insertPayrollDeductionRule(conn, "SOCIAL_INSURANCE", "BHXH", "INSURANCE", "PERCENT",
+                    "CONTRACT_SALARY", "0.255", "0.175", "0", true, true);
+            insertPayrollDeductionRule(conn, "HEALTH_INSURANCE", "BHYT", "INSURANCE", "PERCENT",
+                    "CONTRACT_SALARY", "0.045", "0.03", "0", true, true);
+            insertPayrollDeductionRule(conn, "UNEMPLOYMENT_INSURANCE", "BHTN", "INSURANCE", "PERCENT",
+                    "CONTRACT_SALARY", "0.02", "0.01", "0", true, true);
+            updateLegacyInsuranceRate(conn, "SOCIAL_INSURANCE", "0.08", "0.255", "0.175");
+            updateLegacyInsuranceRate(conn, "HEALTH_INSURANCE", "0.015", "0.045", "0.03");
+            updateLegacyInsuranceRate(conn, "UNEMPLOYMENT_INSURANCE", "0.01", "0.02", "0.01");
+        }
+
+        if (tableExists(conn, "Payroll_Tax_Brackets")) {
+            ensurePayrollTaxBracketColumns(conn);
+        }
+        if (tableExists(conn, "Payroll_Tax_Brackets") && countRows(conn, "Payroll_Tax_Brackets") == 0) {
+            insertPayrollTaxBracket(conn, "0", "10000000", "0.05");
+            insertPayrollTaxBracket(conn, "10000000", "20000000", "0.10");
+            insertPayrollTaxBracket(conn, "20000000", "30000000", "0.20");
+            insertPayrollTaxBracket(conn, "30000000", "40000000", "0.30");
+            insertPayrollTaxBracket(conn, "40000000", null, "0.35");
+        }
+    }
+
+    private void insertPayrollSetting(Connection conn, String key, String value, String description) throws SQLException {
+        String sql = "INSERT INTO Payroll_Settings (settingKey, settingValue, description) VALUES (?, ?, ?) "
+                + "ON DUPLICATE KEY UPDATE settingValue = VALUES(settingValue), "
+                + "description = VALUES(description), updatedAt = CURRENT_TIMESTAMP";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, key);
+            ps.setBigDecimal(2, new java.math.BigDecimal(value));
+        }
+    }
+
+    private void deletePayrollSetting(Connection conn, String key) throws SQLException {
+        String sql = "DELETE FROM Payroll_Settings WHERE settingKey = ?";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, key);
+            ps.executeUpdate();
+        }
+    }
+
+    private void insertPayrollDeductionRule(Connection conn, String code, String name, String type,
+            String calculationType, String baseType, String rate, String employerRate, String fixedAmount,
+            boolean taxableDeduction, boolean active) throws SQLException {
+        String sql = "INSERT IGNORE INTO Payroll_Deduction_Rules "
+                + "(ruleCode, ruleName, ruleType, calculationType, baseType, rate, employerRate, fixedAmount, taxableDeduction, isActive) "
+                + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, code);
-            ps.setString(2, name);
-            ps.setNString(3, description);
+            ps.setNString(2, name);
+            ps.setString(3, type);
+            ps.setString(4, calculationType);
+            ps.setString(5, baseType);
+            ps.setBigDecimal(6, new java.math.BigDecimal(rate));
+            ps.setBigDecimal(7, new java.math.BigDecimal(employerRate));
+            ps.setBigDecimal(8, new java.math.BigDecimal(fixedAmount));
+            ps.setInt(9, taxableDeduction ? 1 : 0);
+            ps.setInt(10, active ? 1 : 0);
+            ps.executeUpdate();
+        }
+    }
+
+    private void ensurePayrollDeductionColumns(Connection conn) throws SQLException {
+        if (columnExists(conn, "Payroll_Deduction_Rules", "sortOrder")) {
+            execute(conn, "ALTER TABLE Payroll_Deduction_Rules DROP COLUMN sortOrder",
+                    "DROP SORT ORDER FROM PAYROLL_DEDUCTION_RULES");
+        }
+    }
+
+    private void ensurePayrollDeductionEmployerRateColumn(Connection conn) throws SQLException {
+        if (tableExists(conn, "Payroll_Deduction_Rules")
+                && !columnExists(conn, "Payroll_Deduction_Rules", "employerRate")) {
+            execute(conn, "ALTER TABLE Payroll_Deduction_Rules ADD COLUMN employerRate DECIMAL(10,6) DEFAULT 0 AFTER rate",
+                    "ADD EMPLOYER RATE TO PAYROLL_DEDUCTION_RULES");
+        }
+    }
+
+    private void updateLegacyInsuranceRate(Connection conn, String code, String oldEmployeeRate,
+            String totalRate, String employerRate) throws SQLException {
+        String sql = "UPDATE Payroll_Deduction_Rules SET rate = ?, employerRate = ?, "
+                + "calculationType = 'PERCENT', fixedAmount = 0, taxableDeduction = 1, isActive = 1 "
+                + "WHERE ruleCode = ? AND rate = ?";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setBigDecimal(1, new java.math.BigDecimal(totalRate));
+            ps.setBigDecimal(2, new java.math.BigDecimal(employerRate));
+            ps.setString(3, code);
+            ps.setBigDecimal(4, new java.math.BigDecimal(oldEmployeeRate));
+            ps.executeUpdate();
+        }
+    }
+
+    private void ensurePayrollTaxBracketColumns(Connection conn) throws SQLException {
+        if (columnExists(conn, "Payroll_Tax_Brackets", "sortOrder")) {
+            execute(conn, "ALTER TABLE Payroll_Tax_Brackets DROP COLUMN sortOrder",
+                    "DROP SORT ORDER FROM PAYROLL_TAX_BRACKETS");
+        }
+        if (columnExists(conn, "Payroll_Tax_Brackets", "isActive")) {
+            execute(conn, "ALTER TABLE Payroll_Tax_Brackets DROP COLUMN isActive",
+                    "DROP IS ACTIVE FROM PAYROLL_TAX_BRACKETS");
+        }
+    }
+
+    private void insertPayrollTaxBracket(Connection conn, String minIncome, String maxIncome,
+            String taxRate) throws SQLException {
+        String sql = "INSERT INTO Payroll_Tax_Brackets (minIncome, maxIncome, taxRate) "
+                + "VALUES (?, ?, ?)";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setBigDecimal(1, new java.math.BigDecimal(minIncome));
+            if (maxIncome == null) {
+                ps.setNull(2, java.sql.Types.DECIMAL);
+            } else {
+                ps.setBigDecimal(2, new java.math.BigDecimal(maxIncome));
+            }
+            ps.setBigDecimal(3, new java.math.BigDecimal(taxRate));
             ps.executeUpdate();
         }
     }
