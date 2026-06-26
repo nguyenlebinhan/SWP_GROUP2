@@ -19,6 +19,7 @@ public class AttendanceSummaryDTO {
     private int absentDays;
     private int holidayDays;
     private int weekendDays;
+    private int missingCheckDays;
     private int otDays;
 
     public AttendanceSummaryDTO() {
@@ -31,6 +32,18 @@ public class AttendanceSummaryDTO {
     public int getWorkedHoursRounded() {
         return workedHours == null ? 0
                 : workedHours.setScale(0, RoundingMode.HALF_UP).intValue();
+    }
+
+    /**
+     * Giờ làm hiển thị: giữ phần thập phân (theo block 30 phút) thay vì làm tròn về số nguyên.
+     * VD: 150.50 -> "150.5", 152.00 -> "152".
+     */
+    public String getWorkedHoursDisplay() {
+        if (workedHours == null) {
+            return "0";
+        }
+        return workedHours.setScale(1, RoundingMode.HALF_UP)
+                .stripTrailingZeros().toPlainString();
     }
 
 
@@ -148,6 +161,14 @@ public class AttendanceSummaryDTO {
 
     public void setWeekendDays(int weekendDays) {
         this.weekendDays = weekendDays;
+    }
+
+    public int getMissingCheckDays() {
+        return missingCheckDays;
+    }
+
+    public void setMissingCheckDays(int missingCheckDays) {
+        this.missingCheckDays = missingCheckDays;
     }
 
     public int getOtDays() {

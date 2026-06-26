@@ -271,6 +271,8 @@ public class DBInitializer {
                 + "approvedAt TIMESTAMP NULL,"
                 + "attachmentUrl VARCHAR(255) NULL,"
                 + "attachmentName VARCHAR(255) NULL,"
+                + "targetDepartmentId INT NULL,"
+                + "targetRoleId INT NULL,"
                 + "createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,"
                 + "updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,"
                 + "FOREIGN KEY (employeeId) REFERENCES Employees(employeeId),"
@@ -637,6 +639,7 @@ public class DBInitializer {
             LOGGER.log(Level.INFO, "Đã kích hoạt lại toàn bộ kiểm tra khóa ngoại hệ thống.");
 
             ensurePayrollApprovalColumns(conn);
+            ensureFormRequestColumns(conn);
             insertInitialData(conn);
             LOGGER.log(Level.INFO,"Database initialized successfully!");
 
@@ -766,9 +769,15 @@ public class DBInitializer {
             }
 
             if (countRows(conn, "Form_Types") == 0) {
-                insertFormType(conn, "LEAVE",     "Nghỉ phép");
-                insertFormType(conn, "COMPLAINT", "Khiếu nại");
-                insertFormType(conn, "OVERTIME",  "Tăng ca");
+                insertFormType(conn, "LEAVE",              "Nghỉ phép");
+                insertFormType(conn, "COMPLAINT",          "Khiếu nại");
+                insertFormType(conn, "OVERTIME",           "Tăng ca");
+                insertFormType(conn, "TRANSFER",           "Thuyên chuyển phòng ban");
+                insertFormType(conn, "PROMOTION_DEMOTION", "Thăng/Giáng chức");
+            } else {
+                // Ensure new form types exist even if table was already seeded
+                insertFormTypeIfAbsent(conn, "TRANSFER",           "Thuyên chuyển phòng ban");
+                insertFormTypeIfAbsent(conn, "PROMOTION_DEMOTION", "Thăng/Giáng chức");
             }
 
             seedPayrollConfig(conn);
@@ -938,6 +947,15 @@ public class DBInitializer {
         }
     }
 
+    private void insertFormTypeIfAbsent(Connection conn, String code, String name) throws SQLException {
+        String sql = "INSERT IGNORE INTO Form_Types (formTypeCode, formTypeName) VALUES (?, ?)";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, code);
+            ps.setNString(2, name);
+            ps.executeUpdate();
+        }
+    }
+
 
     private void insertPosition(Connection conn, String name, int level, String description) throws SQLException {
         String sql = "INSERT INTO Positions (positionName, level, description) VALUES (?, ?, ?)";
@@ -1052,6 +1070,19 @@ public class DBInitializer {
         }
         if (!columnExists(conn, "Payroll", "approvedAt")) {
             execute(conn, "ALTER TABLE Payroll ADD COLUMN approvedAt DATETIME", "ADD PAYROLL APPROVED AT COLUMN");
+        }
+
+    }
+
+    private void ensureFormRequestColumns(Connection conn) throws SQLException {
+        if (!tableExists(conn, "Form_Requests")) {
+            return;
+        }
+        if (!columnExists(conn, "Form_Requests", "targetDepartmentId")) {
+            execute(conn, "ALTER TABLE Form_Requests ADD COLUMN targetDepartmentId INT", "ADD FORM_REQUESTS TARGET DEPT COLUMN");
+        }
+        if (!columnExists(conn, "Form_Requests", "targetRoleId")) {
+            execute(conn, "ALTER TABLE Form_Requests ADD COLUMN targetRoleId INT", "ADD FORM_REQUESTS TARGET ROLE COLUMN");
         }
 
     }

@@ -540,6 +540,19 @@ public class EmployeeDAO {
         return false;
     }
 
+    public boolean updateEmployeePosition(int employeeId, int positionId) {
+        String SQL = "UPDATE Employees SET positionId = ? WHERE employeeId = ?";
+        try (Connection conn = dbContext.getConnection();
+                PreparedStatement ps = conn.prepareStatement(SQL)) {
+            ps.setInt(1, positionId);
+            ps.setInt(2, employeeId);
+            return ps.executeUpdate() > 0;
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Cannot update position for employeeId: " + employeeId, e);
+        }
+        return false;
+    }
+
     /**
      * Danh sách nhân viên đã được phân công phòng ban (departmentId IS NOT NULL),
      * dùng cho màn hình chuyển phòng ban. Loại trừ chính người đang đăng nhập.

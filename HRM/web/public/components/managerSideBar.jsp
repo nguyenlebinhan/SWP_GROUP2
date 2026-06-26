@@ -95,13 +95,19 @@
         </a>
     </c:if>
 
-    <a href="${pageContext.request.contextPath}/v1/manager/forms/dept-forms">
+    <a href="${pageContext.request.contextPath}/v1/manager/forms/dept-forms"
+       class="${pageContext.request.servletPath == '/public/manager/forms/dept_form_list.jsp' ? 'active' : ''}">
         Đơn của phòng ban
     </a>
 
     <c:if test="${sessionScope.userPermissions.contains('VIEW_ALL_FORMS')}">
-        <a href="${pageContext.request.contextPath}/v1/manager/forms/all">
-            Tất cả đơn
+        <a href="${pageContext.request.contextPath}/v1/manager/forms/all"
+           class="${pageContext.request.servletPath == '/public/manager/forms/all_form_list.jsp' ? 'active' : ''}">
+            Tất cả đơn yêu cầu
+        </a>
+        <a href="${pageContext.request.contextPath}/v1/manager/forms/submit-promotion"
+           class="${pageContext.request.servletPath == '/public/manager/forms/promotion_form.jsp' ? 'active' : ''}">
+            Tạo đề xuất thăng/giáng chức
         </a>
     </c:if>
 

@@ -733,6 +733,8 @@ public class PayrollService {
                         summary.paidWorkingDays++;
                         summary.lateCount++;
 
+                        // Giờ vào lưu trong DB là giờ thực; phút đi muộn tính theo
+                        // block 30 phút (làm tròn LÊN) để khớp với cách tính giờ công.
                         LocalTime timeIn = rs.getTime("timeIn") == null
                                 ? config.standardStartTime
                                 : rs.getTime("timeIn").toLocalTime();

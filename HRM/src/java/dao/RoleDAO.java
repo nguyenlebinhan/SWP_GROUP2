@@ -73,6 +73,23 @@ public class RoleDAO {
         return null;
     }
     
+    public Role getRoleByName(String roleName) {
+        LOGGER.log(Level.INFO, "Get role by roleName: {0}", roleName);
+        String SQL = "SELECT * FROM roles WHERE roleName = ? AND isDeleted = 0";
+        try (Connection conn = dbContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(SQL)) {
+            ps.setString(1, roleName);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return mapRole(rs);
+                }
+            }
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Cannot retrieve role by roleName: " + roleName, e);
+        }
+        return null;
+    }
+    
         public String getRoleByUserId(int userId) {
         LOGGER.log(Level.INFO, "Get role by userId: {0}", userId);
         String SQL = "SELECT r.roleName FROM users u INNER JOIN roles r ON r.roleId = u.roleId WHERE u.userId = ?";

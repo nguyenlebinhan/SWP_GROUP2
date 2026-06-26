@@ -14,4 +14,10 @@
             Đơn Khiếu Nại
         </a>
     </li>
+    <li class="nav-item">
+        <a class="nav-link ${param.active == 'transfer' ? 'active' : ''}"
+           href="${pageContext.request.contextPath}/v1/employee/forms/transfer/new">
+            Đơn Thuyên Chuyển
+        </a>
+    </li>
 </ul>

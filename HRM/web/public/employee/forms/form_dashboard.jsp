@@ -15,6 +15,16 @@
             padding: 28px;
             margin-bottom: 24px;
         }
+        .form-type-tabs .nav-link {
+            color: #475569;
+            font-weight: 600;
+            border-radius: 10px;
+            padding: 10px 20px;
+        }
+        .form-type-tabs .nav-link.active {
+            background: #0d6efd;
+            color: #fff;
+        }
     </style>
 </head>
 <body>
@@ -26,20 +36,13 @@
         <jsp:param name="title" value="Tạo đơn yêu cầu" />
     </jsp:include>
 
-    <div class="section-card">
-        <h5 class="mb-1">Chọn loại đơn muốn tạo</h5>
-        <p class="text-muted mb-4">Chọn loại đơn phù hợp với yêu cầu của bạn.</p>
+    <jsp:include page="/public/employee/forms/form_tabs.jsp">
+        <jsp:param name="active" value="" />
+    </jsp:include>
 
-        <div class="d-flex flex-column gap-3" style="max-width: 400px;">
-            <a href="${pageContext.request.contextPath}/v1/employee/forms/leave/new"
-               class="btn btn-primary btn-lg text-start" id="btn-new-leave">
-                Gửi Đơn Nghỉ Phép
-            </a>
-            <a href="${pageContext.request.contextPath}/v1/employee/forms/complaint/new"
-               class="btn btn-outline-secondary btn-lg text-start" id="btn-new-complaint">
-                Gửi Đơn Khiếu Nại
-            </a>
-        </div>
+    <div class="section-card text-center py-5">
+        <h5 class="mb-3 text-muted">Vui lòng chọn một loại đơn từ các tab ở trên</h5>
+        <p class="text-muted mb-0">Hệ thống hỗ trợ gửi đơn nghỉ phép, khiếu nại chấm công và thuyên chuyển phòng ban.</p>
     </div>
 </div>
 

@@ -100,4 +100,18 @@ public class UploadedFileDAO {
             return true;
         }
     }
+    public int[] getLatestAttendanceImportMonthYear(int departmentId) {
+        String SQL = "SELECT month, year FROM Uploaded_Files WHERE departmentId = ? AND fileType = 'ATTENDANCE' AND status = 1 ORDER BY createdAt DESC LIMIT 1";
+        try (Connection conn = dbContext.getConnection(); PreparedStatement ps = conn.prepareStatement(SQL)) {
+            ps.setInt(1, departmentId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return new int[]{rs.getInt("month"), rs.getInt("year")};
+                }
+            }
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Cannot get latest attendance import for dept: " + departmentId, e);
+        }
+        return null;
+    }
 }
