@@ -9,6 +9,8 @@ import dto.PayrollPreviewDTO;
 import dto.FormRequestDTO;
 import dto.LeaveFormRequestDTO;
 import dto.ComplaintFormRequestDTO;
+import dto.TransferRequestDTO;
+import model.TransferFormRequest;
 import enums.FileStatus;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.MultipartConfig;
@@ -54,6 +56,7 @@ import service.AttendanceImportService;
 import service.PayrollService;
 import service.EmploymentContractService;
 import dal.DBContext;
+import java.time.LocalTime;
 import utils.AttendanceExcelExporter;
 
 @MultipartConfig(
@@ -205,6 +208,10 @@ public class ManagerController extends HttpServlet {
             case "/recruitment/import":
                 displayRecruitmentImport(request, response, user);
                 break;
+
+            case "/forms/submit-promotion":
+                displayRequestPromotionForm(request, response, user);
+                break;
             default:
                 response.sendRedirect(request.getContextPath() + "/v1/manager/dashboard");
                 break;
@@ -265,14 +272,24 @@ public class ManagerController extends HttpServlet {
             case "/forms/approve":
                 handleApproveForm(request, response, user);
                 break;
+            case "/forms/hr-approve":
+                handleHrApproveForm(request, response, user);
+                break;
             case "/forms/reject":
                 handleRejectForm(request, response, user);
+                break;
+            case "/forms/hr-reject":
+                handleHrRejectForm(request, response, user);
                 break;
             case "/forms/create-ot":
                 handleCreateOT(request, response, user);
                 break;
             case "/forms/cancel-ot":
                 handleCancelOT(request, response, user);
+                break;
+
+            case "/forms/submit-promotion":
+                handleRequestPromotionDemotion(request, response, user);
                 break;
             case "/attendance/import":
                 handleImportAttendance(request, response, user);
@@ -1947,6 +1964,7 @@ public class ManagerController extends HttpServlet {
 
             request.setAttribute("form", form);
             request.setAttribute("canApprove", canApprove);
+            request.setAttribute("isHrStaff", isHrStaff(user));
             request.getRequestDispatcher("/public/manager/forms/form_detail.jsp").forward(request, response);
         } catch (NumberFormatException e) {
             request.getSession().setAttribute("error", "Mã đơn không hợp lệ.");
@@ -1975,6 +1993,8 @@ public class ManagerController extends HttpServlet {
         request.getRequestDispatcher("/public/manager/forms/dept_form_list.jsp").forward(request, response);
     }
 
+    // ========== XỬ LÝ DUYỆT ĐƠN (Manager - Bước 1) ==========
+
     private void handleApproveForm(HttpServletRequest request, HttpServletResponse response, User user)
             throws ServletException, IOException {
 
@@ -2001,43 +2021,15 @@ public class ManagerController extends HttpServlet {
             if (ok) {
                 FormRequestDTO form = formRequestDAO.getFormRequestById(formId);
                 if (form != null) {
-                    if (form instanceof LeaveFormRequestDTO) {
-                        LeaveFormRequestDTO leaveForm = (LeaveFormRequestDTO) form;
-                        int year = (leaveForm.getStartDate() != null) ? leaveForm.getStartDate().toLocalDate().getYear() : java.time.LocalDate.now().getYear();
-                        LeaveBalance lb = leaveBalanceDAO.getLeaveBalance(form.getEmployeeId(), year);
-                        if (lb != null && leaveForm.getTotalDays() != null) {
-                            leaveBalanceDAO.updateUsedDays(form.getEmployeeId(), year, leaveForm.getTotalDays());
-                        }
-                    } else if (form instanceof ComplaintFormRequestDTO) {
-                        ComplaintFormRequestDTO compForm = (ComplaintFormRequestDTO) form;
-                        if (compForm.getStartDate() != null && compForm.getStartTime() != null && compForm.getEndTime() != null) {
-                            Attendance att = attendanceDAO.getAttendanceByDate(form.getEmployeeId(), compForm.getStartDate());
-                            if (att != null) {
-                                attendanceDAO.updateAttendanceWithHistory(att.getAttendanceId(), compForm.getStartTime(), compForm.getEndTime(), null, 0, "Updated by complaint approval", me.getUserId());
-                            } else {
-                                EmployeeDetailDTO empForAtt = employeeDAO.getEmployeeById(form.getEmployeeId());
-                                Attendance newAtt = new Attendance();
-                                newAtt.setAttendanceCode("ATT-" + form.getEmployeeId() + "-" + System.currentTimeMillis());
-                                newAtt.setEmployeeId(form.getEmployeeId());
-                                if(empForAtt != null){
-                                    newAtt.setEmployeeCode(empForAtt.getEmployeeCode());
-                                    newAtt.setFullName(empForAtt.getFullName());
-                                    newAtt.setDepartmentId(empForAtt.getDepartmentId());
-                                    newAtt.setDepartmentName(empForAtt.getDepartmentName());
-                                }
-                                newAtt.setWorkDate(compForm.getStartDate());
-                                newAtt.setTimeIn(compForm.getStartTime());
-                                newAtt.setTimeOut(compForm.getEndTime());
-                                newAtt.setAttendanceStatus(0); // Đúng giờ
-                                try {
-                                    try (java.sql.Connection conn = new DBContext().getConnection()) {
-                                        attendanceDAO.upsertAttendance(conn, newAtt);
-                                    }
-                                } catch (java.sql.SQLException ex) {
-                                    LOGGER.log(Level.SEVERE, "Lỗi khi chèn điểm danh mới từ đơn khiếu nại", ex);
-                                }
-                            }
-                        }
+                    switch (form.getFormTypeCode()) {
+                        case "LEAVE":
+                            onManagerApproveLeave(form, me);
+                            break;
+                        case "COMPLAINT":
+                            onManagerApproveComplaint(form, me);
+                            break;
+                        default:
+                            break;
                     }
                 }
             }
@@ -2047,6 +2039,119 @@ public class ManagerController extends HttpServlet {
             request.getSession().setAttribute("error", "Mã đơn không hợp lệ.");
         }
         response.sendRedirect(request.getContextPath() + "/v1/manager/forms/dept-forms");
+    }
+
+    /** Manager duyệt LEAVE: update số ngày nghỉ đã dùng. */
+    private void onManagerApproveLeave(FormRequestDTO form, EmployeeDetailDTO me) {
+        if (form instanceof LeaveFormRequestDTO) {
+            LeaveFormRequestDTO leaveForm = (LeaveFormRequestDTO) form;
+            int year = (leaveForm.getStartDate() != null)
+                    ? leaveForm.getStartDate().toLocalDate().getYear()
+                    : java.time.LocalDate.now().getYear();
+            LeaveBalance lb = leaveBalanceDAO.getLeaveBalance(form.getEmployeeId(), year);
+            if (lb != null && leaveForm.getTotalDays() != null) {
+                leaveBalanceDAO.updateUsedDays(form.getEmployeeId(), year, leaveForm.getTotalDays());
+            }
+        }
+    }
+
+    /** Manager duyệt COMPLAINT: không làm gì — chờ HR duyệt bước 2 mới update Attendance. */
+    private void onManagerApproveComplaint(FormRequestDTO form, EmployeeDetailDTO me) {
+        LOGGER.log(Level.INFO, "Manager approved complaint formId={0}, waiting for HR second approval.", form.getFormId());
+    }
+
+    // ========== Xử LÝ DUYỆT LẦN 2 (HR - BƯỚc 2, chỉ áp dụng cho COMPLAINT) ==========
+
+    private void handleHrApproveForm(HttpServletRequest request, HttpServletResponse response, User user)
+            throws ServletException, IOException {
+
+        if (!isHrStaff(user)) {
+            request.getSession().setAttribute("error", "Chỉ nhân viên HR mới có thể thực hiện bước duyệt này.");
+            response.sendRedirect(request.getContextPath() + "/v1/manager/dashboard");
+            return;
+        }
+        EmployeeDetailDTO me = employeeDAO.getEmployeeByUserId(user.getUserId());
+        if (me == null) {
+            response.sendRedirect(request.getContextPath() + "/v1/manager/dashboard");
+            return;
+        }
+        String rawId = request.getParameter("formId");
+        String note = request.getParameter("note");
+        if (isBlank(rawId)) {
+            request.getSession().setAttribute("error", "Thiếu mã đơn.");
+            response.sendRedirect(request.getContextPath() + "/v1/manager/forms/all");
+            return;
+        }
+        try {
+            int formId = Integer.parseInt(rawId);
+            FormRequestDTO form = formRequestDAO.getFormRequestById(formId);
+            if (form == null) {
+                request.getSession().setAttribute("error", "Không tìm thấy đơn yêu cầu.");
+                response.sendRedirect(request.getContextPath() + "/v1/manager/forms/all");
+                return;
+            }
+            // Chỉ cho phép duyệt đơn đang ở status 1 (Manager đã duyệt)
+            if (form.getStatus() != 1) {
+                request.getSession().setAttribute("error", "Đơn này không ở trạng thái chờ HR duyệt.");
+                response.sendRedirect(request.getContextPath() + "/v1/manager/forms/all");
+                return;
+            }
+            boolean ok = formRequestDAO.approveFormRequestFromStatus(formId, 1, 3, me.getEmployeeId(), note);
+            if (ok) {
+                switch (form.getFormTypeCode()) {
+                    case "COMPLAINT":
+                        onHrApproveComplaint(form, me, request);
+                        break;
+                    default:
+                        break;
+                }
+            }
+            request.getSession().setAttribute(ok ? "success" : "error",
+                    ok ? "HR duyệt đơn thành công." : "HR duyệt đơn thất bại.");
+        } catch (NumberFormatException e) {
+            request.getSession().setAttribute("error", "Mã đơn không hợp lệ.");
+        }
+        response.sendRedirect(request.getContextPath() + "/v1/manager/forms/all");
+    }
+
+    /**
+     * HR duyệt COMPLAINT (bước 2): update Attendance nếu record tồn tại,
+     * không INSERT mới nếu không có dữ liệu chấm công.
+     */
+    private void onHrApproveComplaint(FormRequestDTO form, EmployeeDetailDTO me, HttpServletRequest request) {
+        if (!(form instanceof ComplaintFormRequestDTO)) {
+            return;
+        }
+        ComplaintFormRequestDTO compForm = (ComplaintFormRequestDTO) form;
+        if (compForm.getStartDate() == null || compForm.getStartTime() == null || compForm.getEndTime() == null) {
+            LOGGER.log(Level.WARNING, "Complaint formId={0} missing date/time data, skipping attendance update.", form.getFormId());
+            return;
+        }
+        long minutes = java.time.Duration.between(
+                compForm.getStartTime().toLocalTime(),
+                compForm.getEndTime().toLocalTime()).toMinutes();
+        BigDecimal hoursWorked = BigDecimal.valueOf(Math.max(0, minutes) / 60.0);
+        LocalTime stdStart = LocalTime.of(8, 30);
+        int newStatus = compForm.getStartTime().toLocalTime().isAfter(stdStart) ? 2 : 1;
+
+        Attendance att = attendanceDAO.getAttendanceByDate(form.getEmployeeId(), compForm.getStartDate());
+        if (att != null) {
+            attendanceDAO.updateAttendanceWithHistory(
+                    att.getAttendanceId(),
+                    compForm.getStartTime(), compForm.getEndTime(),
+                    hoursWorked, newStatus,
+                    "Updated by complaint approval (HR step)", me.getUserId());
+            LOGGER.log(Level.INFO, "Attendance updated via complaint HR approval: formId={0}, attId={1}",
+                    new Object[]{form.getFormId(), att.getAttendanceId()});
+        } else {
+            // Không INSERT mới — chỉ báo warning
+            LOGGER.log(Level.WARNING,
+                    "Complaint formId={0}: no attendance record found for employeeId={1} on date={2}. Attendance NOT inserted.",
+                    new Object[]{form.getFormId(), form.getEmployeeId(), compForm.getStartDate()});
+            request.getSession().setAttribute("warning",
+                    "Đơn khiếu nại được duyệt nhưng không tìm thấy bản ghi chấm công ngày "
+                    + compForm.getStartDate() + " — không có gì được cập nhật.");
+        }
     }
 
     private void handleRejectForm(HttpServletRequest request, HttpServletResponse response, User user)
@@ -2078,6 +2183,126 @@ public class ManagerController extends HttpServlet {
             request.getSession().setAttribute("error", "Mã đơn không hợp lệ.");
         }
         response.sendRedirect(request.getContextPath() + "/v1/manager/forms/dept-forms");
+    }
+
+    /**
+     * HR từ chối COMPLAINT bước 2 (khi đơn đang ở status = 1).
+     * Dùng approveFormRequestFromStatus: WHERE status = 1 → status = 2.
+     */
+    private void handleHrRejectForm(HttpServletRequest request, HttpServletResponse response, User user)
+            throws ServletException, IOException {
+        if (!isHrStaff(user)) {
+            request.getSession().setAttribute("error", "Chỉ nhân viên HR mới có thể thực hiện bước này.");
+            response.sendRedirect(request.getContextPath() + "/v1/manager/dashboard");
+            return;
+        }
+        EmployeeDetailDTO me = employeeDAO.getEmployeeByUserId(user.getUserId());
+        if (me == null) {
+            response.sendRedirect(request.getContextPath() + "/v1/manager/dashboard");
+            return;
+        }
+        String rawId = request.getParameter("formId");
+        String note = request.getParameter("note");
+        if (isBlank(rawId)) {
+            request.getSession().setAttribute("error", "Thiếu mã đơn.");
+            response.sendRedirect(request.getContextPath() + "/v1/manager/forms/all");
+            return;
+        }
+        try {
+            int formId = Integer.parseInt(rawId);
+            // Từ chối từ status 1 → status 2 (khác với reject thường cần status = 0)
+            boolean ok = formRequestDAO.approveFormRequestFromStatus(formId, 1, 2, me.getEmployeeId(), note);
+            request.getSession().setAttribute(ok ? "success" : "error",
+                    ok ? "HR đã từ chối đơn khiếu nại thành công." : "Từ chối đơn thất bại — đơn có thể đã được xử lý rồi.");
+        } catch (NumberFormatException e) {
+            request.getSession().setAttribute("error", "Mã đơn không hợp lệ.");
+        }
+        response.sendRedirect(request.getContextPath() + "/v1/manager/forms/all");
+    }
+
+    // ========== XỬ LÝ GỬI ĐƠN THUYÊN CHUYỂN / THĂNG GIÁNG CHỨC ==========
+
+
+    private void displayRequestPromotionForm(HttpServletRequest request, HttpServletResponse response, User user)
+            throws ServletException, IOException {
+        request.setAttribute("employees", employeeDAO.getAllEmployees());
+        request.setAttribute("roles", roleDAO.getAllActiveRoles());
+        request.setAttribute("positions", departmentDAO.getAllPositions());
+        request.getRequestDispatcher("/public/manager/forms/promotion_form.jsp").forward(request, response);
+    }
+
+
+    /**
+     * HR gửi đơn Thăng/Giáng chức cho nhân viên.
+     * Ràng buộc: targetRole phải thuộc đúng phòng ban của nhân viên.
+     */
+    private void handleRequestPromotionDemotion(HttpServletRequest request, HttpServletResponse response, User user)
+            throws ServletException, IOException {
+
+        if (!isHrStaff(user)) {
+            request.getSession().setAttribute("error", "Chỉ HR mới có quyền tạo đơn thăng/giáng chức.");
+            response.sendRedirect(request.getContextPath() + "/v1/manager/dashboard");
+            return;
+        }
+
+        String rawEmpId      = request.getParameter("employeeId");
+        String rawTargetRole = request.getParameter("targetRoleId");
+        String reason        = request.getParameter("reason");
+
+        if (isBlank(rawEmpId) || isBlank(rawTargetRole)) {
+            request.getSession().setAttribute("error", "Vui lòng điền đầy đủ thông tin nhân viên và vai trò mới.");
+            response.sendRedirect(request.getContextPath() + "/v1/manager/forms/submit-promotion");
+            return;
+        }
+
+        int empId, targetRoleId;
+        try {
+            empId        = Integer.parseInt(rawEmpId);
+            targetRoleId = Integer.parseInt(rawTargetRole);
+        } catch (NumberFormatException e) {
+            request.getSession().setAttribute("error", "Dữ liệu không hợp lệ.");
+            response.sendRedirect(request.getContextPath() + "/v1/manager/forms/submit-promotion");
+            return;
+        }
+
+        EmployeeDetailDTO emp = employeeDAO.getEmployeeById(empId);
+        if (emp == null) {
+            request.getSession().setAttribute("error", "Không tìm thấy nhân viên.");
+            response.sendRedirect(request.getContextPath() + "/v1/manager/forms/submit-promotion");
+            return;
+        }
+
+        // Ràng buộc: targetRole phải được phép trong phòng ban hiện tại của nhân viên
+        if (!departmentDAO.isRoleAllowedForDepartment(emp.getDepartmentId(), targetRoleId)) {
+            request.getSession().setAttribute("error", "Vai trò mới không phù hợp với phòng ban hiện tại của nhân viên.");
+            response.sendRedirect(request.getContextPath() + "/v1/manager/forms/submit-promotion");
+            return;
+        }
+
+        int formTypeId = formTypeDAO.getFormTypeIdByCode("PROMOTION_DEMOTION");
+        if (formTypeId <= 0) {
+            request.getSession().setAttribute("error", "Loại đơn PROMOTION_DEMOTION chưa được cấu hình.");
+            response.sendRedirect(request.getContextPath() + "/v1/manager/forms/submit-promotion");
+            return;
+        }
+
+        // Người tạo đơn là HR, nhưng employeeId trong đơn là nhân viên được thăng/giáng
+        TransferFormRequest fr = new TransferFormRequest();
+        fr.setFormCode("PRO-" + empId + "-" + System.currentTimeMillis());
+        fr.setEmployeeId(empId);
+        fr.setFormTypeId(formTypeId);
+        fr.setReason(isBlank(reason) ? null : reason.trim());
+        fr.setTargetRoleId(targetRoleId);
+
+        int newId = formRequestDAO.addFormRequest(fr);
+        if (newId > 0) {
+            LOGGER.log(Level.INFO, "Promotion/Demotion request submitted: employeeId={0}, targetRoleId={1}, formId={2}",
+                    new Object[]{empId, targetRoleId, newId});
+            request.getSession().setAttribute("success", "Đơn thăng/giáng chức đã được gửi, chờ Business Admin phê duyệt.");
+        } else {
+            request.getSession().setAttribute("error", "Gửi đơn thăng/giáng chức thất bại. Vui lòng thử lại.");
+        }
+        response.sendRedirect(request.getContextPath() + "/v1/manager/dashboard");
     }
 
     private void handleUpdateMyProfile(HttpServletRequest request, HttpServletResponse response,

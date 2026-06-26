@@ -36,6 +36,9 @@ public class AttendanceImportService {
 
     private static final Time WORK_START = Time.valueOf("08:00:00");
 
+    /** Giờ kết thúc ca chuẩn. Khi không có đơn OT được duyệt, giờ ra bị giới hạn ở mốc này. */
+    private static final Time WORK_END = Time.valueOf("17:00:00");
+
     /** Số giờ làm chuẩn trong một ngày. Khi không có đơn OT được duyệt, giờ công bị giới hạn tối đa ở mức này. */
     private static final BigDecimal STANDARD_HOURS = new BigDecimal("8.00");
 
@@ -56,20 +59,6 @@ public class AttendanceImportService {
         this.overtimeDAO = new dao.OvertimeDAO();
         this.parser = new ExcelAttendanceParser();
     }
-
-    /**
-     * Giới hạn giờ công ở mức 8 tiếng chuẩn nếu nhân viên không có đơn OT được duyệt cho ngày đó.
-     * Nếu có đơn OT được duyệt thì giữ nguyên giờ công thực tế (cho phép vượt 8 tiếng).
-     */
-    private BigDecimal capHoursWithoutOT(Connection conn, int employeeId, Date workDate,
-            BigDecimal hoursWorked) throws SQLException {
-        if (hoursWorked.compareTo(STANDARD_HOURS) > 0
-                && !overtimeDAO.hasApprovedOT(conn, employeeId, workDate)) {
-            return STANDARD_HOURS;
-        }
-        return hoursWorked;
-    }
-
 
     public AttendanceImportResultDTO importAttendance(InputStream in, int departmentId,
             int month, int year, int fileId) {
@@ -188,14 +177,35 @@ public class AttendanceImportService {
             throw new RowValidationException("employeeCode không tồn tại: " + employeeCode);
         }
 
+        // Giữ NGUYÊN giờ thực (timeIn/timeOut) để lưu và hiển thị.
+        // Mọi tính toán bên dưới (giờ công, trạng thái) dùng bản chuẩn hóa theo block.
+        Time calcTimeIn = timeIn;
+        Time calcTimeOut = timeOut;
+
         BigDecimal hoursWorked;
         if (timeIn != null && timeOut != null) {
             if (timeOut.getTime() - timeIn.getTime() < 0) {
                 throw new RowValidationException("timeOut phải sau timeIn.");
             }
 
-            hoursWorked = utils.WorkHoursCalculator.hoursWorked(timeIn, timeOut);
-            hoursWorked = capHoursWithoutOT(conn, employeeId, workDate, hoursWorked);
+            boolean hasOT = overtimeDAO.hasApprovedOT(conn, employeeId, workDate);
+
+            // Chuẩn hóa thời gian theo block 30 phút: giờ vào làm tròn LÊN
+            // (đi muộn trong block nào mất trọn block đó), giờ ra làm tròn XUỐNG.
+            calcTimeIn = utils.WorkHoursCalculator.ceilToBlock(timeIn);
+            calcTimeOut = utils.WorkHoursCalculator.floorToBlock(timeOut);
+
+            // Không có đơn OT được duyệt: phần làm thêm chỉ được tính tới 17:00.
+            if (!hasOT && calcTimeOut.after(WORK_END)) {
+                calcTimeOut = WORK_END;
+            }
+
+            hoursWorked = utils.WorkHoursCalculator.hoursWorked(calcTimeIn, calcTimeOut);
+
+            // Không OT thì giờ công không vượt quá 8 tiếng chuẩn.
+            if (!hasOT && hoursWorked.compareTo(STANDARD_HOURS) > 0) {
+                hoursWorked = STANDARD_HOURS;
+            }
         } else {
 
             hoursWorked = BigDecimal.ZERO;
@@ -222,7 +232,7 @@ public class AttendanceImportService {
 
         Position position = attendanceDAO.getEmployeePosition(employeeId);
 
-        AttendanceStatus baseStatus = deriveStatus(timeIn, timeOut);
+        AttendanceStatus baseStatus = deriveStatus(calcTimeIn, calcTimeOut);
         AttendanceStatus finalStatus = determineFinalStatus(baseStatus, employeeId, workDate, conn);
 
         Attendance att = new Attendance();
@@ -269,8 +279,14 @@ public class AttendanceImportService {
     }
 
     private AttendanceStatus deriveStatus(Time timeIn, Time timeOut) {
-        if (timeIn == null || timeOut == null) {
+        // Thiếu cả hai: chưa chấm công ngày đó -> Vắng mặt (có thể được xét lại
+        // thành nghỉ phép/lễ/cuối tuần ở determineFinalStatus).
+        if (timeIn == null && timeOut == null) {
             return AttendanceStatus.ABSENT;
+        }
+        // Chỉ có một trong hai: quên chấm công vào hoặc ra -> đánh dấu riêng để HR xử lý.
+        if (timeIn == null || timeOut == null) {
+            return AttendanceStatus.MISSING_CHECK;
         }
         if (timeIn.after(WORK_START)) {
             return AttendanceStatus.LATE;
@@ -280,7 +296,8 @@ public class AttendanceImportService {
 
     private AttendanceStatus determineFinalStatus(AttendanceStatus base, int employeeId,
             Date workDate, Connection conn) throws SQLException {
-        if (base == AttendanceStatus.PRESENT || base == AttendanceStatus.LATE) {
+        if (base == AttendanceStatus.PRESENT || base == AttendanceStatus.LATE
+                || base == AttendanceStatus.MISSING_CHECK) {
             return base;
         }
         if (holidayDAO.isHoliday(conn, workDate)) {

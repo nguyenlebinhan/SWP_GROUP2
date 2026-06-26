@@ -68,13 +68,11 @@
     <div class="main">
         <jsp:include page="/public/components/businessAdminTopBar.jsp">
             <jsp:param name="title" value="Chi tiết Đơn Overtime" />
+            <jsp:param name="backUrl" value="/v1/businessadmin/forms"/>
         </jsp:include>
 
         <div class="d-flex justify-content-between align-items-center mb-4">
             <h4 class="mb-0"><i class="fa-solid fa-file-invoice me-2 text-primary"></i>Chi tiết đơn OT: <span class="fw-bold">${otRequest.formCode}</span></h4>
-            <a href="${pageContext.request.contextPath}/v1/businessadmin/forms" class="btn btn-outline-secondary">
-                <i class="fa-solid fa-arrow-left me-1"></i> Quay lại
-            </a>
         </div>
 
         <div class="row">

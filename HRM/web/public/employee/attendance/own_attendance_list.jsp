@@ -21,6 +21,7 @@
         .st4,.cl4 { background:#dbeafe; color:#1e40af; }
         .st5,.cl5 { background:#ede9fe; color:#5b21b6; }
         .st6,.cl6 { background:#f3f4f6; color:#4b5563; }
+        .st7,.cl7 { background:#ffedd5; color:#9a3412; }
         .stx { background:#eef2ff; color:#3730a3; }
 
         /* Calendar */
@@ -60,9 +61,10 @@
             <div class="col"><div class="stat st2"><div class="num">${summary.absentDays}</div><div class="lbl">Vắng mặt</div></div></div>
             <div class="col"><div class="stat st5"><div class="num">${summary.holidayDays}</div><div class="lbl">Nghỉ lễ</div></div></div>
             <div class="col"><div class="stat st6"><div class="num">${summary.weekendDays}</div><div class="lbl">Cuối tuần</div></div></div>
+            <div class="col"><div class="stat st7"><div class="num">${summary.missingCheckDays}</div><div class="lbl">Quên chấm công</div></div></div>
         </div>
         <div class="row g-2">
-            <div class="col"><div class="stat stx"><div class="num">${summary.workedHoursRounded}h</div><div class="lbl">Giờ làm thực tế</div></div></div>
+            <div class="col"><div class="stat stx"><div class="num">${summary.workedHoursDisplay}h</div><div class="lbl">Giờ làm thực tế</div></div></div>
             <div class="col"><div class="stat stx"><div class="num">${summary.standardHours}h</div><div class="lbl">Giờ chuẩn</div></div></div>
             <div class="col"><div class="stat stx"><div class="num">${summary.attendanceRate}%</div><div class="lbl">Tỷ lệ chuyên cần</div></div></div>
         </div>
@@ -107,6 +109,7 @@
                 <span class="cl2">Vắng mặt</span>
                 <span class="cl5">Nghỉ lễ</span>
                 <span class="cl6">Cuối tuần</span>
+                <span class="cl7">Quên chấm công</span>
             </div>
         </div>
         <div class="cal-grid mb-1">
@@ -141,15 +144,13 @@
     var calMonth = ${selectedMonth};
     var calYear  = ${selectedYear};
 
-    var STANDARD_MINS = 480; // 8 tiếng chuẩn
+    var STANDARD_MINS = 480; 
 
     function fmtHours(m) {
         if (m < 0) m = 0;
         return Math.floor(m / 60) + 'h' + ('0' + (m % 60)).slice(-2) + 'm';
     }
 
-    // Không có đơn OT thì giới hạn hiển thị tối đa 8 tiếng, dù đi sớm/về muộn.
-    // Nếu làm dưới 8 tiếng thì giữ nguyên giờ thực tế.
     function displayHours(rec, isOtDay) {
         var m = rec.mins;
         if (!(rec.isOT || isOtDay)) m = Math.min(m, STANDARD_MINS);
@@ -182,10 +183,12 @@
             var isOtDay = otDays.includes(day);
             var html = '<div class="d">' + day + '</div>';
             if (rec) {
-                if (rec.timeIn && rec.timeIn.length === 5 && rec.timeIn !== '00:00') {
+                var hasIn  = rec.timeIn  && rec.timeIn.length  === 5 && rec.timeIn  !== '00:00';
+                var hasOut = rec.timeOut && rec.timeOut.length === 5 && rec.timeOut !== '00:00';
+                if (hasIn || hasOut) {
                     var hoursStr = displayHours(rec, isOtDay);
-                    html += '<div class="tm">' + rec.timeIn
-                          + (rec.timeOut && rec.timeOut.length === 5 ? ' - ' + rec.timeOut : '')
+                    html += '<div class="tm">' + (hasIn ? rec.timeIn : 'NA')
+                          + ' - ' + (hasOut ? rec.timeOut : 'NA')
                           + (hoursStr ? '<br>' + hoursStr : '') + '</div>';
                 }
                 html += '<div class="st cl' + rec.status + '">' + rec.label + '</div>';

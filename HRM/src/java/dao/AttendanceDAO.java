@@ -282,7 +282,8 @@ public class AttendanceDAO {
                 + "COALESCE(SUM(a.attendanceStatus = 4), 0) AS leaveDays, "
                 + "COALESCE(SUM(a.attendanceStatus IN (2,3)), 0) AS absentDays, "
                 + "COALESCE(SUM(a.attendanceStatus = 5), 0) AS holidayDays, "
-                + "COALESCE(SUM(a.attendanceStatus = 6), 0) AS weekendDays "
+                + "COALESCE(SUM(a.attendanceStatus = 6), 0) AS weekendDays, "
+                + "COALESCE(SUM(a.attendanceStatus = 7), 0) AS missingCheckDays "
                 + "FROM Employees e JOIN Attendance a ON a.employeeId = e.employeeId "
                 + "WHERE e.status = 1 "
                 + "  AND (? IS NULL OR e.departmentId = ?) "
@@ -313,6 +314,7 @@ public class AttendanceDAO {
                     s.setAbsentDays(rs.getInt("absentDays"));
                     s.setHolidayDays(rs.getInt("holidayDays"));
                     s.setWeekendDays(rs.getInt("weekendDays"));
+                    s.setMissingCheckDays(rs.getInt("missingCheckDays"));
                     list.add(s);
                 }
             }
@@ -506,7 +508,7 @@ public class AttendanceDAO {
     private String formatHoursLabel(Time timeIn, Time timeOut, BigDecimal hours) {
         long minutes;
         if (timeIn != null && timeOut != null) {
-            minutes = WorkHoursCalculator.workedMinutes(timeIn, timeOut);
+            minutes = utils.WorkHoursCalculator.workedMinutes(timeIn, timeOut);
         } else if (hours != null) {
             minutes = hours.multiply(BigDecimal.valueOf(60))
                     .setScale(0, java.math.RoundingMode.HALF_UP).longValue();
@@ -525,6 +527,7 @@ public class AttendanceDAO {
             case 4: return "Nghỉ phép";
             case 5: return "Nghỉ lễ";
             case 6: return "Cuối tuần";
+            case 7: return "Quên chấm công";
             default: return "Không xác định";
         }
     }

@@ -294,6 +294,8 @@ public class DBInitializer {
                 + "approvedAt TIMESTAMP NULL,"
                 + "attachmentUrl VARCHAR(255) NULL,"
                 + "attachmentName VARCHAR(255) NULL,"
+                + "targetDepartmentId INT NULL,"
+                + "targetRoleId INT NULL,"
                 + "createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,"
                 + "updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,"
                 + "FOREIGN KEY (employeeId) REFERENCES Employees(employeeId),"
@@ -399,28 +401,6 @@ public class DBInitializer {
         execute(conn, SQL, "CREATE ATTENDANCE TABLE SUCCESSFULLY");
     }
 
-    public void createTableAttendanceImportRows(Connection conn) {
-        String SQL = "CREATE TABLE Attendance_Import_Rows("
-                + "importRowId INT PRIMARY KEY AUTO_INCREMENT,"
-                + "fileId INT NOT NULL,"
-                + "rowNumber INT NOT NULL,"
-                + "employeeCode VARCHAR(50),"
-                + "fullName NVARCHAR(100),"
-                + "departmentName NVARCHAR(100),"
-                + "workDate VARCHAR(50),"
-                + "timeIn VARCHAR(20),"
-                + "timeOut VARCHAR(20),"
-                + "attendanceStatus VARCHAR(30),"
-                + "note NVARCHAR(255),"
-                + "validateStatus TINYINT DEFAULT 0," // 0: lỗi/bị từ chối, 1: hợp lệ đã merge vào Attendance
-                + "errorMessage NVARCHAR(500),"
-                + "createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,"
-                + "FOREIGN KEY (fileId) REFERENCES Uploaded_Files(fileId)"
-                + ")";
-        execute(conn, SQL, "CREATE ATTENDANCE_IMPORT_ROWS TABLE SUCCESSFULLY");
-    }
-
-    // Lịch sử chỉnh sửa chấm công: ai sửa, sửa gì, lý do.
     public void createTableAttendanceAdjustmentHistory(Connection conn) {
         String SQL = "CREATE TABLE Attendance_Adjustment_History("
                 + "adjustmentId INT PRIMARY KEY AUTO_INCREMENT,"
@@ -550,7 +530,6 @@ public class DBInitializer {
                 "Performance",
                 "Payroll",
                 "Attendance_Adjustment_History",
-                "Attendance_Import_Rows",
                 "Attendance",
                 "Holiday",
                 "Application_Stage_Logs",
@@ -595,7 +574,6 @@ public class DBInitializer {
                 "Overtime_Assignees",
                 "Leave_Balances",
                 "Attendance",
-                "Attendance_Import_Rows",
                 "Attendance_Adjustment_History",
                 "Holiday",
                 "Payroll",
@@ -640,7 +618,6 @@ public class DBInitializer {
                         case "Overtime_Assignees": createTableOvertimeAssignees(conn); break;
                         case "Leave_Balances":     createTableLeaveBalances(conn);      break;
                         case "Attendance":        createTableAttendance(conn);        break;
-                        case "Attendance_Import_Rows":        createTableAttendanceImportRows(conn);        break;
                         case "Attendance_Adjustment_History": createTableAttendanceAdjustmentHistory(conn); break;
                         case "Holiday":           createTableHoliday(conn);           break;
                         case "Payroll":           createTablePayroll(conn);           break;
@@ -657,6 +634,7 @@ public class DBInitializer {
 
             ensureRolePermissionUniqueKey(conn);
             ensurePayrollApprovalColumns(conn);
+            ensureFormRequestColumns(conn);
             insertInitialData(conn);
             LOGGER.log(Level.INFO,"Database initialized successfully!");
 
@@ -828,6 +806,18 @@ public class DBInitializer {
                 insertDepartmentRole(conn, 3, 8); // FIEmployee
             }
 
+            if (countRows(conn, "Form_Types") == 0) {
+                insertFormType(conn, "LEAVE",              "Nghỉ phép");
+                insertFormType(conn, "COMPLAINT",          "Khiếu nại");
+                insertFormType(conn, "OVERTIME",           "Tăng ca");
+                insertFormType(conn, "TRANSFER",           "Thuyên chuyển phòng ban");
+                insertFormType(conn, "PROMOTION_DEMOTION", "Thăng/Giáng chức");
+            } else {
+                // Ensure new form types exist even if table was already seeded
+                insertFormTypeIfAbsent(conn, "TRANSFER",           "Thuyên chuyển phòng ban");
+                insertFormTypeIfAbsent(conn, "PROMOTION_DEMOTION", "Thăng/Giáng chức");
+            }
+
             ensureRolePermission(conn, "HRManager", "ADD_EMPLOYMENT_CONTRACT");
             ensureRolePermission(conn, "HRManager", "APPROVE_CONTRACT");
             ensureRolePermission(conn, "HRManager", "REJECT_CONTRACT");
@@ -857,7 +847,6 @@ public class DBInitializer {
             );
             for (String permissionCode : systemAdminPermissions) {
                 ensureRolePermission(conn, "SystemAdmin", permissionCode);
-            }
 
             String businessAdminSql = "SELECT permissionCode FROM Permissions WHERE permissionCode NOT IN (?, ?, ?, ?, ?, ?, ?, ?, ?)";
             try (PreparedStatement ps = conn.prepareStatement(businessAdminSql)) {
@@ -869,12 +858,6 @@ public class DBInitializer {
                         ensureRolePermission(conn, "BusinessAdmin", rs.getString("permissionCode"));
                     }
                 }
-            }
-
-            if (countRows(conn, "Form_Types") == 0) {
-                insertFormType(conn, "LEAVE", "Nghỉ phép");
-                insertFormType(conn, "COMPLAINT", "Khiếu nại");
-                insertFormType(conn, "OVERTIME", "Tăng ca");
             }
 
             if (countRows(conn, "Role_Permissions") == 0) {
@@ -931,6 +914,16 @@ public class DBInitializer {
             ps.executeUpdate();
         }
     }
+
+    private void insertFormTypeIfAbsent(Connection conn, String code, String name) throws SQLException {
+        String sql = "INSERT IGNORE INTO Form_Types (formTypeCode, formTypeName) VALUES (?, ?)";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, code);
+            ps.setNString(2, name);
+            ps.executeUpdate();
+        }
+    }
+
 
     private void insertPosition(Connection conn, String name, int level, String description) throws SQLException {
         String sql = "INSERT INTO Positions (positionName, level, description) VALUES (?, ?, ?)";
@@ -1106,6 +1099,19 @@ public class DBInitializer {
             execute(conn, "ALTER TABLE Payroll ADD COLUMN approvedAt DATETIME", "ADD PAYROLL APPROVED AT COLUMN");
         }
         
+    }
+
+    private void ensureFormRequestColumns(Connection conn) throws SQLException {
+        if (!tableExists(conn, "Form_Requests")) {
+            return;
+        }
+        if (!columnExists(conn, "Form_Requests", "targetDepartmentId")) {
+            execute(conn, "ALTER TABLE Form_Requests ADD COLUMN targetDepartmentId INT", "ADD FORM_REQUESTS TARGET DEPT COLUMN");
+        }
+        if (!columnExists(conn, "Form_Requests", "targetRoleId")) {
+            execute(conn, "ALTER TABLE Form_Requests ADD COLUMN targetRoleId INT", "ADD FORM_REQUESTS TARGET ROLE COLUMN");
+        }
+
     }
 
     private int countRows(Connection conn, String tableName) throws SQLException {

@@ -20,6 +20,7 @@
         .badge-s4,.cl4 { background:#dbeafe; color:#1e40af; }
         .badge-s5,.cl5 { background:#ede9fe; color:#5b21b6; }
         .badge-s6,.cl6 { background:#f3f4f6; color:#4b5563; }
+        .badge-s7,.cl7 { background:#ffedd5; color:#9a3412; }
         .hdr-chip { background:#f1f5f9; border-radius:10px; padding:8px 14px; font-size:13px; font-weight:600; color:#334155; }
 
         /* Calendar */
@@ -65,13 +66,11 @@
     <div class="section-card">
         <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
             <div>
-                <a href="${backUrl}" class="text-decoration-none text-muted small">
-                    <i class="fa-solid fa-arrow-left me-1"></i>Quay lại tổng quan</a>
                 <h4 class="mb-1 mt-2">${sm.fullName} <span class="text-muted fs-6">(${sm.employeeCode})</span></h4>
                 <div class="text-muted">${sm.departmentName} &middot; ${sm.positionName} &middot; Tháng ${selectedMonth}/${selectedYear}</div>
             </div>
             <div class="d-flex gap-2 flex-wrap">
-                <span class="hdr-chip">Giờ làm: ${sm.workedHoursRounded}h / ${sm.standardHours}h</span>
+                <span class="hdr-chip">Giờ làm: ${sm.workedHoursDisplay}h / ${sm.standardHours}h</span>
                 <span class="hdr-chip">Tỷ lệ: ${sm.attendanceRate}%</span>
             </div>
         </div>
@@ -82,6 +81,7 @@
             <span class="badge-st badge-s2">Vắng mặt: ${sm.absentDays}</span>
             <span class="badge-st badge-s5">Nghỉ lễ: ${sm.holidayDays}</span>
             <span class="badge-st badge-s6">Cuối tuần: ${sm.weekendDays}</span>
+            <span class="badge-st badge-s7">Quên chấm công: ${sm.missingCheckDays}</span>
         </div>
     </div>
 
@@ -122,6 +122,7 @@
                 <span class="cl2">Vắng mặt</span>
                 <span class="cl5">Nghỉ lễ</span>
                 <span class="cl6">Cuối tuần</span>
+                <span class="cl7">Quên chấm công</span>
             </div>
         </div>
         <div class="cal-grid mb-1">
@@ -167,8 +168,6 @@
         return Math.floor(m / 60) + 'h' + ('0' + (m % 60)).slice(-2) + 'm';
     }
 
-    // Không có đơn OT thì giới hạn hiển thị tối đa 8 tiếng, dù đi sớm/về muộn.
-    // Nếu làm dưới 8 tiếng thì giữ nguyên giờ thực tế.
     function displayHours(rec, isOtDay) {
         var m = rec.mins;
         if (!(rec.isOT || isOtDay)) m = Math.min(m, STANDARD_MINS);
@@ -204,10 +203,13 @@
             var isOtDay = otDays.includes(day);
             var html = '<div class="d">' + day + '</div>';
             if (rec) {
-                if (rec.timeIn && rec.timeIn.length === 5 && rec.timeIn !== '00:00') {
+                var hasIn  = rec.timeIn  && rec.timeIn.length  === 5 && rec.timeIn  !== '00:00';
+                var hasOut = rec.timeOut && rec.timeOut.length === 5 && rec.timeOut !== '00:00';
+
+                if (hasIn || hasOut) {
                     var hoursStr = displayHours(rec, isOtDay);
-                    html += '<div class="tm">' + rec.timeIn
-                          + (rec.timeOut && rec.timeOut.length === 5 ? ' - ' + rec.timeOut : '')
+                    html += '<div class="tm">' + (hasIn ? rec.timeIn : 'NA')
+                          + ' - ' + (hasOut ? rec.timeOut : 'NA')
                           + (hoursStr ? '<br>' + hoursStr : '') + '</div>';
                 }
                 html += '<div class="st cl' + rec.status + '">' + rec.label + '</div>';
@@ -217,14 +219,14 @@
                 if (rec.edited) {
                     html += '<div class="mt-1"><span class="badge bg-info text-dark px-2 py-1" title="Chấm công đã được chỉnh sửa"><i class="fa-solid fa-pen-to-square me-1"></i>Đã sửa</span></div>';
                 }
-                if (canEditAttendance && rec.id) {
+                if (canEditAttendance && rec.id ) {
                     var editUrl = ctxPath + '/v1/employee/attendance/update?id=' + rec.id
                             + '&employeeId=' + attEmpId
                             + '&month=' + calMonth + '&year=' + calYear
                             + '&departmentId=' + attDeptId;
                     html += '<a href="' + editUrl + '" class="att-edit" title="Sửa chấm công">'
                           + '<i class="fa-solid fa-pen"></i></a>';
-                }
+                }                
             } else {
                 cell.classList.add('off-day');
                 if (isOtDay) {

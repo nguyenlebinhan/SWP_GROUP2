@@ -78,15 +78,15 @@ public class UploadedFileDAO {
         return false;
     }
 
-     /**
-      * Updates the import result on the caller-supplied transaction connection. This MUST
-      * be used while an import transaction is still open on {@code conn}: updating the row
-      * through a separate connection would block on locks held by the open transaction and
-      * fail with "Lock wait timeout exceeded". Reusing {@code conn} keeps lock owner and
-      * updater on the same transaction.
-      */
-     public boolean updateImportResult(Connection conn, int fileId, int totalRows, int importedRows,
-             int failedRows, int status, String note) throws SQLException {
+    /**
+     * Updates the import result on the caller-supplied transaction connection. This MUST
+     * be used while an import transaction is still open on {@code conn}: updating the row
+     * through a separate connection would block on locks held by the open transaction and
+     * fail with "Lock wait timeout exceeded". Reusing {@code conn} keeps lock owner and
+     * updater on the same transaction.
+     */
+    public boolean updateImportResult(Connection conn, int fileId, int totalRows, int importedRows,
+            int failedRows, int status, String note) throws SQLException {
         String SQL = "UPDATE Uploaded_Files SET totalRows = ?, importedRows = ?, failedRows = ?, "
                 + "status = ?, note = ? WHERE fileId = ?";
         try (PreparedStatement ps = conn.prepareStatement(SQL)) {
@@ -99,5 +99,19 @@ public class UploadedFileDAO {
             ps.executeUpdate();
             return true;
         }
+    }
+    public int[] getLatestAttendanceImportMonthYear(int departmentId) {
+        String SQL = "SELECT month, year FROM Uploaded_Files WHERE departmentId = ? AND fileType = 'ATTENDANCE' AND status = 1 ORDER BY createdAt DESC LIMIT 1";
+        try (Connection conn = dbContext.getConnection(); PreparedStatement ps = conn.prepareStatement(SQL)) {
+            ps.setInt(1, departmentId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return new int[]{rs.getInt("month"), rs.getInt("year")};
+                }
+            }
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Cannot get latest attendance import for dept: " + departmentId, e);
+        }
+        return null;
     }
 }

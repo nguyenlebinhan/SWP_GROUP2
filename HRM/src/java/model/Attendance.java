@@ -234,6 +234,7 @@ public class Attendance {
             case 4: return "Nghỉ phép";
             case 5: return "Nghỉ lễ";
             case 6: return "Cuối tuần";
+            case 7: return "Quên chấm công";
             default: return "Không xác định";
         }
     }

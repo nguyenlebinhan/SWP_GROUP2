@@ -129,6 +129,14 @@
                         </div>
                     </div>
                 </c:if>
+                <c:if test="${form.formTypeCode eq 'TRANSFER'}">
+                    <div class="row mt-3">
+                        <div class="col-md-6">
+                            <div class="info-label">Phòng ban muốn chuyển đến</div>
+                            <div class="info-value text-primary fw-bold">${form.targetDepartmentName}</div>
+                        </div>
+                    </div>
+                </c:if>
                 <c:if test="${form.formTypeCode eq 'COMPLAINT'}">
                     <div class="row mt-3">
                         <div class="col-md-4">
@@ -160,7 +168,7 @@
                     </c:choose>
                 </div>
 
-                <c:if test="${form.status == 1 || form.status == 2}">
+                <c:if test="${form.status == 1 || form.status == 2 || form.status == 3}">
                     <hr class="my-4">
                     <h5 class="text-success">Kết quả xử lý</h5>
                     

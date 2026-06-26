@@ -13,7 +13,43 @@ public final class WorkHoursCalculator {
     private static final Time LUNCH_START = Time.valueOf("12:00:00");
     private static final Time LUNCH_END = Time.valueOf("13:00:00");
 
+    /** Độ dài một block tính công, tính theo phút. */
+    public static final int BLOCK_MINUTES = 30;
+
+    private static final int MINUTES_PER_DAY = 24 * 60;
+
     private WorkHoursCalculator() {
+    }
+
+    /**
+     * Làm tròn LÊN thời điểm vào theo block {@link #BLOCK_MINUTES} phút.
+     * Đi muộn dù chỉ vài phút trong một block sẽ mất trọn cả block đó.
+     * Ví dụ (block 30 phút): 08:00 -> 08:00, 08:01 -> 08:30, 08:30 -> 08:30, 08:31 -> 09:00.
+     */
+    public static Time ceilToBlock(Time t) {
+        if (t == null) {
+            return null;
+        }
+        int min = t.toLocalTime().toSecondOfDay() / 60;
+        int rounded = ((min + BLOCK_MINUTES - 1) / BLOCK_MINUTES) * BLOCK_MINUTES;
+        if (rounded >= MINUTES_PER_DAY) {
+            return Time.valueOf("23:59:59");
+        }
+        return Time.valueOf(java.time.LocalTime.ofSecondOfDay(rounded * 60L));
+    }
+
+    /**
+     * Làm tròn XUỐNG thời điểm ra theo block {@link #BLOCK_MINUTES} phút.
+     * Block cuối cùng chưa đủ sẽ không được tính.
+     * Ví dụ (block 30 phút): 17:00 -> 17:00, 16:59 -> 16:30, 16:29 -> 16:00.
+     */
+    public static Time floorToBlock(Time t) {
+        if (t == null) {
+            return null;
+        }
+        int min = t.toLocalTime().toSecondOfDay() / 60;
+        int rounded = (min / BLOCK_MINUTES) * BLOCK_MINUTES;
+        return Time.valueOf(java.time.LocalTime.ofSecondOfDay(rounded * 60L));
     }
 
     public static long workedMinutes(Time timeIn, Time timeOut) {
