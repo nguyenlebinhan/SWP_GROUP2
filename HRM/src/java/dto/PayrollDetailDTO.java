@@ -5,6 +5,8 @@ import java.math.BigDecimal;
 public class PayrollDetailDTO {
     public static final String TYPE_EARNING = "EARNING";
     public static final String TYPE_DEDUCTION = "DEDUCTION";
+    public static final String TYPE_INFO = "INFO";
+    public static final String TYPE_COMPANY_COST = "COMPANY_COST";
 
     private String code;
     private String name;
@@ -65,5 +67,13 @@ public class PayrollDetailDTO {
 
     public boolean isDeduction() {
         return TYPE_DEDUCTION.equals(type);
+    }
+
+    public boolean isInfo() {
+        return TYPE_INFO.equals(type);
+    }
+
+    public boolean isCompanyCost() {
+        return TYPE_COMPANY_COST.equals(type);
     }
 }

@@ -11,7 +11,9 @@ import dto.FormRequestDTO;
 import dao.FormRequestDAO;
 import dao.OvertimeDAO;
 import dto.OvertimeRequestDTO;
+import dao.PayrollConfigDAO;
 import java.sql.Date;
+import java.math.BigDecimal;
 import model.Holiday;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServlet;
@@ -26,6 +28,9 @@ import java.util.HashMap;
 import java.util.logging.Logger;
 import model.Attendance;
 import model.Department;
+import model.PayrollDeductionRule;
+import model.PayrollSetting;
+import model.PayrollTaxBracket;
 import model.Role;
 import model.User;
 import static org.apache.tomcat.jakartaee.commons.lang3.StringUtils.isBlank;
@@ -44,6 +49,7 @@ public class BusinessAdminController extends HttpServlet {
     private static final HolidayDAO holidayDAO = new HolidayDAO();
     private static final FormRequestDAO formRequestDAO = new FormRequestDAO();
     private static final OvertimeDAO overtimeDAO = new OvertimeDAO();
+    private static final PayrollConfigDAO payrollConfigDAO = new PayrollConfigDAO();
     private static final service.AttendanceService attendanceService = new service.AttendanceService();
     private static final utils.AttendanceExcelExporter attendanceExporter = new utils.AttendanceExcelExporter();
 
@@ -98,6 +104,10 @@ public class BusinessAdminController extends HttpServlet {
                 break;
             case "/holiday/edit":
                 displayHolidayForm(request, response, true);
+                break;
+            case "/payroll-config":
+            case "/payrol-config":
+                displayPayrollConfig(request, response);
                 break;
             case "/attendance/overview":
                 displayAttendanceOverview(request, response);
@@ -159,6 +169,18 @@ public class BusinessAdminController extends HttpServlet {
                 break;
             case "/holiday/delete":
                 handleDeleteHoliday(request, response);
+                break;
+            case "/payroll-config/setting/save":
+                handleSavePayrollSetting(request, response);
+                break;
+            case "/payroll-config/deduction/save":
+                handleSavePayrollDeduction(request, response);
+                break;
+            case "/payroll-config/deduction/delete":
+                handleDeletePayrollDeduction(request, response);
+                break;
+            case "/payroll-config/tax/save":
+                handleSavePayrollTaxBracket(request, response);
                 break;
             case "/forms/approve":
                 handleApproveForm(request, response, user);
@@ -528,7 +550,7 @@ public class BusinessAdminController extends HttpServlet {
 
                 employeeDAO.assignAsManager(departmentId, assigned.getEmployeeId());
             } else if (deptHasManager) {
-                // Phòng đã có manager → người mới (kể cả role manager) làm cấp dưới
+                // Phòng đã có manager -> người mới (kể cả role manager) làm cấp dưới
                 // của manager hiện tại, không ghi đè manager.
                 employeeDAO.setEmployeeManager(assigned.getEmployeeId(), assignedDept.getManagerId());
             }
@@ -946,6 +968,304 @@ public class BusinessAdminController extends HttpServlet {
         } catch (NumberFormatException e) {
             return null;
         }
+    }
+
+    private void displayPayrollConfig(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+        Map<String, BigDecimal> settingsMap = payrollConfigDAO.getSettingsMap();
+        List<PayrollSetting> settings = payrollConfigDAO.getAllSettings();
+        for (PayrollSetting setting : settings) {
+            setting.setDisplayValue(displayPayrollSettingValue(setting));
+        }
+        request.setAttribute("settings", settings);
+        request.setAttribute("standardWorkSchedule", buildStandardWorkSchedule(settingsMap));
+        request.setAttribute("deductionRules", payrollConfigDAO.getDeductionRules(false));
+        request.setAttribute("taxBrackets", payrollConfigDAO.getTaxBrackets(false));
+        HttpSession session = request.getSession(false);
+        if (session != null) {
+            String success = (String) session.getAttribute("payrollConfigSuccess");
+            String error = (String) session.getAttribute("payrollConfigError");
+            if (success != null) {
+                request.setAttribute("success", success);
+                session.removeAttribute("payrollConfigSuccess");
+            }
+            if (error != null) {
+                request.setAttribute("error", error);
+                session.removeAttribute("payrollConfigError");
+            }
+        }
+        request.getRequestDispatcher("/public/businessadmin/payroll/payroll_config.jsp").forward(request, response);
+    }
+
+    private String displayPayrollSettingValue(PayrollSetting setting) {
+        if (setting == null || setting.getSettingValue() == null) {
+            return "";
+        }
+        if (isWorkTimeSetting(setting.getSettingKey())) {
+            return minutesToClock(setting.getSettingValue());
+        }
+        return setting.getSettingValue().stripTrailingZeros().toPlainString();
+    }
+
+    private String buildStandardWorkSchedule(Map<String, BigDecimal> settings) {
+        BigDecimal start = settingValue(settings, "WORK_START", "WORK_START_MINUTES");
+        BigDecimal end = settingValue(settings, "WORK_END", "WORK_END_MINUTES");
+        BigDecimal breakMinutes = settings == null ? null : settings.get("WORK_BREAK_MINUTES");
+        if (start == null || end == null || breakMinutes == null) {
+            return null;
+        }
+        BigDecimal workingMinutes = end.subtract(start).subtract(breakMinutes);
+        if (workingMinutes.signum() <= 0) {
+            return "Cấu hình giờ làm chuẩn không hợp lệ.";
+        }
+        BigDecimal hours = workingMinutes.divide(new BigDecimal("60"), 2, java.math.RoundingMode.HALF_UP)
+                .stripTrailingZeros();
+        return minutesToClock(start) + " - " + minutesToClock(end)
+                + "; nghỉ " + breakMinutes.stripTrailingZeros().toPlainString()
+                + " phút; số giờ làm/ngày = " + hours.toPlainString() + "h";
+    }
+
+    private String minutesToClock(BigDecimal minutesValue) {
+        int minutes = minutesValue.intValue();
+        int hour = minutes / 60;
+        int minute = minutes % 60;
+        return String.format("%02d:%02d", hour, minute);
+    }
+
+    private void handleSavePayrollSetting(HttpServletRequest request, HttpServletResponse response)
+            throws IOException {
+        PayrollSetting setting = new PayrollSetting();
+        setting.setSettingKey(trim(request.getParameter("settingKey")).toUpperCase());
+        setting.setSettingValue(parsePayrollSettingValue(setting.getSettingKey(), request.getParameter("settingValue")));
+        setting.setDescription(trim(request.getParameter("description")));
+        String validationError = validatePayrollSetting(setting);
+        if (validationError != null) {
+            setPayrollConfigError(request, validationError);
+        } else if (payrollConfigDAO.saveSetting(setting)) {
+            setPayrollConfigSuccess(request, "Đã lưu tham số payroll.");
+        } else {
+            setPayrollConfigError(request, "Lưu tham số payroll thất bại.");
+        }
+        response.sendRedirect(request.getContextPath() + "/v1/businessadmin/payroll-config");
+    }
+
+    private BigDecimal parsePayrollSettingValue(String key, String rawValue) {
+        if (isWorkTimeSetting(key)) {
+            Integer minutes = parseClockToMinutes(rawValue);
+            return minutes == null ? null : new BigDecimal(minutes);
+        }
+        return parseDecimal(rawValue);
+    }
+
+    private String validatePayrollSetting(PayrollSetting setting) {
+        if (isBlank(setting.getSettingKey()) || setting.getSettingValue() == null) {
+            return "Dữ liệu tham số payroll không hợp lệ.";
+        }
+        String key = setting.getSettingKey();
+        BigDecimal value = setting.getSettingValue();
+        if (isWorkTimeSetting(key)
+                && (value.signum() < 0 || value.compareTo(new BigDecimal("1439")) > 0)) {
+            return "Giờ làm chuẩn phải đúng định dạng HH:mm.";
+        }
+        if ("WORK_BREAK_MINUTES".equals(key) && value.signum() < 0) {
+            return "Số phút nghỉ không được âm.";
+        }
+        if (isWorkTimeSetting(key) || "WORK_BREAK_MINUTES".equals(key)) {
+            Map<String, BigDecimal> settings = payrollConfigDAO.getSettingsMap();
+            settings.put(key, value);
+            BigDecimal start = settingValue(settings, "WORK_START", "WORK_START_MINUTES");
+            BigDecimal end = settingValue(settings, "WORK_END", "WORK_END_MINUTES");
+            BigDecimal breakMinutes = settings.get("WORK_BREAK_MINUTES");
+            if (start != null && end != null && breakMinutes != null
+                    && end.subtract(start).subtract(breakMinutes).signum() <= 0) {
+                return "Giờ ra phải lớn hơn giờ vào sau khi trừ thời gian nghỉ.";
+            }
+        }
+        return null;
+    }
+
+    private boolean isWorkTimeSetting(String key) {
+        return "WORK_START".equals(key) || "WORK_END".equals(key)
+                || "WORK_START_MINUTES".equals(key) || "WORK_END_MINUTES".equals(key);
+    }
+
+    private BigDecimal settingValue(Map<String, BigDecimal> settings, String primaryKey, String legacyKey) {
+        if (settings == null) {
+            return null;
+        }
+        BigDecimal value = settings.get(primaryKey);
+        return value != null ? value : settings.get(legacyKey);
+    }
+
+    private Integer parseClockToMinutes(String raw) {
+        if (isBlank(raw) || !raw.matches("^\\d{2}:\\d{2}$")) {
+            return null;
+        }
+        String[] parts = raw.split(":");
+        int hour;
+        int minute;
+        try {
+            hour = Integer.parseInt(parts[0]);
+            minute = Integer.parseInt(parts[1]);
+        } catch (NumberFormatException e) {
+            return null;
+        }
+        if (hour < 0 || hour > 23 || minute < 0 || minute > 59) {
+            return null;
+        }
+        return hour * 60 + minute;
+    }
+
+    private void handleSavePayrollDeduction(HttpServletRequest request, HttpServletResponse response)
+            throws IOException {
+        PayrollDeductionRule rule = new PayrollDeductionRule();
+        Integer ruleId = parseIntParam(request.getParameter("ruleId"));
+        rule.setRuleId(ruleId == null ? 0 : ruleId);
+        rule.setRuleCode(trim(request.getParameter("ruleCode")).toUpperCase());
+        rule.setRuleName(trim(request.getParameter("ruleName")));
+        rule.setRuleType(trim(request.getParameter("ruleType")).toUpperCase());
+        rule.setCalculationType(PayrollDeductionRule.CALC_PERCENT);
+        rule.setBaseType(trim(request.getParameter("baseType")).toUpperCase());
+        rule.setRate(parsePercentParam(request.getParameter("rate")));
+        rule.setEmployerRate(parsePercentParam(request.getParameter("employerRate")));
+        rule.setFixedAmount(BigDecimal.ZERO);
+        rule.setTaxableDeduction(true);
+        rule.setActive(true);
+        if (isBlank(rule.getRuleCode()) || isBlank(rule.getRuleName())
+                || isBlank(rule.getBaseType()) || rule.getRate() == null || rule.getEmployerRate() == null
+                || rule.getEmployerRate().compareTo(rule.getRate()) > 0) {
+            setPayrollConfigError(request, "Dữ liệu khoản khấu trừ không hợp lệ.");
+        } else {
+            boolean ok = rule.getRuleId() > 0
+                    ? payrollConfigDAO.updateDeductionRule(rule)
+                    : payrollConfigDAO.addDeductionRule(rule) > 0;
+            if (ok) {
+                setPayrollConfigSuccess(request, "Đã lưu khoản khấu trừ.");
+            } else {
+                setPayrollConfigError(request, "Lưu khoản khấu trừ thất bại.");
+            }
+        }
+        response.sendRedirect(request.getContextPath() + "/v1/businessadmin/payroll-config");
+    }
+
+    private void handleDeletePayrollDeduction(HttpServletRequest request, HttpServletResponse response)
+            throws IOException {
+        Integer id = parseIntParam(request.getParameter("ruleId"));
+        if (id != null && payrollConfigDAO.deleteDeductionRule(id)) {
+            setPayrollConfigSuccess(request, "Đã xóa khoản khấu trừ.");
+        } else {
+            setPayrollConfigError(request, "Xóa khoản khấu trừ thất bại.");
+        }
+        response.sendRedirect(request.getContextPath() + "/v1/businessadmin/payroll-config");
+    }
+
+    private void handleSavePayrollTaxBracket(HttpServletRequest request, HttpServletResponse response)
+            throws IOException {
+        String[] ids = request.getParameterValues("bracketId");
+        String[] minIncomes = request.getParameterValues("minIncome");
+        String[] maxIncomes = request.getParameterValues("maxIncome");
+        String[] taxRates = request.getParameterValues("taxRate");
+        List<PayrollTaxBracket> brackets = buildTaxBrackets(ids, minIncomes, maxIncomes, taxRates);
+
+        String validationError = validateTaxBrackets(brackets);
+        if (validationError != null) {
+            setPayrollConfigError(request, validationError);
+        } else if (payrollConfigDAO.updateTaxBrackets(brackets)) {
+            setPayrollConfigSuccess(request, "Đã lưu bậc thuế.");
+        } else {
+            setPayrollConfigError(request, "Lưu bậc thuế thất bại.");
+        }
+        response.sendRedirect(request.getContextPath() + "/v1/businessadmin/payroll-config");
+    }
+
+    private List<PayrollTaxBracket> buildTaxBrackets(String[] ids, String[] minIncomes,
+            String[] maxIncomes, String[] taxRates) {
+        List<PayrollTaxBracket> brackets = new ArrayList<>();
+        if (ids == null || minIncomes == null || maxIncomes == null || taxRates == null
+                || ids.length != minIncomes.length || ids.length != maxIncomes.length
+                || ids.length != taxRates.length) {
+            return brackets;
+        }
+        for (int i = 0; i < ids.length; i++) {
+            Integer id = parseIntParam(ids[i]);
+            PayrollTaxBracket bracket = new PayrollTaxBracket();
+            bracket.setBracketId(id == null ? 0 : id);
+            bracket.setMinIncome(parseDecimal(minIncomes[i]));
+            bracket.setMaxIncome(parseDecimal(maxIncomes[i]));
+            bracket.setTaxRate(parseDecimal(taxRates[i]));
+            brackets.add(bracket);
+        }
+        return brackets;
+    }
+
+    private String validateTaxBrackets(List<PayrollTaxBracket> brackets) {
+        if (brackets == null || brackets.isEmpty()) {
+            return "Dữ liệu bậc thuế không hợp lệ.";
+        }
+        for (PayrollTaxBracket bracket : brackets) {
+            if (bracket.getBracketId() <= 0 || bracket.getMinIncome() == null || bracket.getTaxRate() == null) {
+                return "Dữ liệu bậc thuế không hợp lệ.";
+            }
+            if (bracket.getMinIncome().signum() < 0 || bracket.getTaxRate().signum() < 0) {
+                return "Mốc thu nhập và thuế suất không được âm.";
+            }
+            if (bracket.getTaxRate().compareTo(BigDecimal.ONE) > 0) {
+                return "Thuế suất phải nhập dạng decimal, ví dụ 5% là 0.05.";
+            }
+        }
+        if (brackets.get(0).getMinIncome().compareTo(BigDecimal.ZERO) != 0) {
+            return "Bậc thuế đầu tiên phải bắt đầu từ 0.";
+        }
+        for (int i = 0; i < brackets.size(); i++) {
+            PayrollTaxBracket current = brackets.get(i);
+            boolean last = i == brackets.size() - 1;
+            if (last) {
+                if (current.getMaxIncome() != null) {
+                    return "Bậc thuế cuối phải để trống cột Đến để hiểu là trên mốc cao nhất.";
+                }
+            } else {
+                PayrollTaxBracket next = brackets.get(i + 1);
+                if (current.getMaxIncome() == null || current.getMaxIncome().compareTo(current.getMinIncome()) <= 0) {
+                    return "Mỗi bậc thuế phải có mốc Đến lớn hơn mốc Từ.";
+                }
+                if (current.getMaxIncome().compareTo(next.getMinIncome()) != 0) {
+                    return "Mốc Đến của một bậc phải bằng mốc Từ của bậc tiếp theo.";
+                }
+            }
+        }
+        return null;
+    }
+
+
+    private BigDecimal parseDecimal(String raw) {
+        if (isBlank(raw)) {
+            return null;
+        }
+        try {
+            return new BigDecimal(raw.trim().replace(",", ""));
+        } catch (NumberFormatException e) {
+            return null;
+        }
+    }
+
+    private BigDecimal parsePercentParam(String raw) {
+        BigDecimal value = parseDecimal(raw);
+        if (value == null) {
+            return null;
+        }
+        return value.divide(new BigDecimal("100"));
+    }
+
+    private String trim(String raw) {
+        return raw == null ? "" : raw.trim();
+    }
+
+    private void setPayrollConfigSuccess(HttpServletRequest request, String message) {
+        request.getSession().setAttribute("payrollConfigSuccess", message);
+    }
+
+    private void setPayrollConfigError(HttpServletRequest request, String message) {
+        request.getSession().setAttribute("payrollConfigError", message);
     }
 
     // =========================================================
