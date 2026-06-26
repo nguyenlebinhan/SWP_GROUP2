@@ -173,13 +173,15 @@ public class OvertimeDAO {
 
     public List<dto.EmployeeDetailDTO> getOvertimeAssignees(int formId) {
         List<dto.EmployeeDetailDTO> list = new ArrayList<>();
-        String sql = "SELECT e.*, u.fullName, u.email, u.username, d.departmentName, p.positionName, r.roleName " +
+        String sql = "SELECT e.*, u.fullName, u.email, u.username, d.departmentName, p.positionName, r.roleName, att.timeOut " +
                 "FROM Overtime_Assignees oa " +
+                "JOIN Overtime_Details od ON oa.formId = od.formId " +
                 "JOIN Employees e ON oa.employeeId = e.employeeId " +
                 "JOIN Users u ON e.userId = u.userId " +
                 "LEFT JOIN Departments d ON e.departmentId = d.departmentId " +
                 "LEFT JOIN Positions p ON e.positionId = p.positionId " +
                 "LEFT JOIN Roles r ON u.roleId = r.roleId " +
+                "LEFT JOIN Attendance att ON att.employeeId = oa.employeeId AND att.workDate = od.otDate " +
                 "WHERE oa.formId = ?";
         try (Connection conn = dbContext.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, formId);
@@ -206,6 +208,23 @@ public class OvertimeDAO {
                     dto.setDepartmentName(rs.getString("departmentName"));
                     dto.setPositionName(rs.getString("positionName"));
                     dto.setRoleName(rs.getString("roleName"));
+                    
+                    java.sql.Time timeOut = rs.getTime("timeOut");
+                    if (timeOut != null) {
+                        java.sql.Time roundedTimeOut = utils.WorkHoursCalculator.ceilToBlock(timeOut);
+                        java.sql.Time WORK_END = java.sql.Time.valueOf("17:00:00");
+                        if (roundedTimeOut.after(WORK_END)) {
+                            java.math.BigDecimal computed = utils.WorkHoursCalculator.hoursWorked(WORK_END, roundedTimeOut);
+                            if (computed.compareTo(new java.math.BigDecimal("2.0")) > 0) {
+                                computed = new java.math.BigDecimal("2.0");
+                            }
+                            dto.setOtHours(computed);
+                        } else {
+                            dto.setOtHours(java.math.BigDecimal.ZERO);
+                        }
+                    } else {
+                        dto.setOtHours(java.math.BigDecimal.ZERO);
+                    }
                     list.add(dto);
                 }
             }
@@ -224,7 +243,7 @@ public class OvertimeDAO {
                 + "JOIN Overtime_Details od ON fr.formId = od.formId "
                 + "JOIN Overtime_Assignees oa ON fr.formId = oa.formId "
                 + "WHERE oa.employeeId = ? "
-                + "  AND fr.status = 1 "
+                + "  AND fr.status IN (1, 4) "
                 + "  AND od.otDate = ? LIMIT 1";
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, employeeId);
@@ -253,10 +272,12 @@ public class OvertimeDAO {
                      "FROM Form_Requests fr " +
                      "JOIN Overtime_Details od ON fr.formId = od.formId " +
                      "JOIN Overtime_Assignees oa ON fr.formId = oa.formId " +
+                     "LEFT JOIN Attendance att ON att.employeeId = oa.employeeId AND att.workDate = od.otDate " +
                      "WHERE oa.employeeId = ? " +
-                     "AND fr.status = 1 " + 
+                     "AND fr.status IN (1, 4) " + 
                      "AND MONTH(od.otDate) = ? " +
-                     "AND YEAR(od.otDate) = ?";
+                     "AND YEAR(od.otDate) = ? " +
+                     "AND (att.attendanceId IS NULL OR att.timeOut > '17:00:00')";
         try (Connection conn = dbContext.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, employeeId);
             ps.setInt(2, month);
@@ -270,5 +291,29 @@ public class OvertimeDAO {
             LOGGER.log(Level.SEVERE, "Cannot get approved OT days", e);
         }
         return list;
+    }
+
+    public void completeOTForm(Connection conn, int employeeId, java.sql.Date workDate) throws SQLException {
+        String sql = "UPDATE Form_Requests fr " +
+                     "JOIN Overtime_Details od ON fr.formId = od.formId " +
+                     "JOIN Overtime_Assignees oa ON fr.formId = oa.formId " +
+                     "SET fr.status = 4 " +
+                     "WHERE oa.employeeId = ? AND od.otDate = ? AND fr.status = 1";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, employeeId);
+            ps.setDate(2, workDate);
+            ps.executeUpdate();
+        }
+    }
+
+    public void cancelUnfulfilledOTForms(Connection conn, java.sql.Date workDate) throws SQLException {
+        String sql = "UPDATE Form_Requests fr " +
+                     "JOIN Overtime_Details od ON fr.formId = od.formId " +
+                     "SET fr.status = 3 " +
+                     "WHERE od.otDate = ? AND fr.status = 1";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setDate(1, workDate);
+            ps.executeUpdate();
+        }
     }
 }

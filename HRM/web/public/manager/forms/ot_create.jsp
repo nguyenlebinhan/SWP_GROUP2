@@ -59,7 +59,7 @@
                 <h5 class="mb-3 text-primary"><i class="fa-solid fa-clock me-2"></i>Thông tin thời gian</h5>
                 <div class="row g-3 mb-4">
                     <div class="col-md-4">
-                        <label class="form-label fw-bold">Ngày OT <span class="text-danger">*</span></label>
+                        <label class="form-label fw-bold">Ngày tăng ca <span class="text-danger">*</span></label>
                         <input type="date" name="otDate" class="form-control" required>
                     </div>
                     <div class="col-md-4">
