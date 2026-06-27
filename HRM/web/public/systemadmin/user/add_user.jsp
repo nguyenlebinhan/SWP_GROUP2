@@ -124,7 +124,7 @@
 <div class="main-content">
     <jsp:include page="/public/components/systemAdminTopBar.jsp">
         <jsp:param name="title" value="Thêm người dùng" />
-        <jsp:param name="backUrl" value="/v1/systemadmin/user-list" />
+        <jsp:param name="backUrl" value="/v1/systemadmin/user/list" />
     </jsp:include>
 
     <c:if test="${not empty error}">
@@ -140,7 +140,7 @@
         </div>
     </c:if>
 
-    <form action="${pageContext.request.contextPath}/v1/systemadmin/add-user" method="POST">
+    <form action="${pageContext.request.contextPath}/v1/systemadmin/user/add" method="POST">
         <div class="card">
             <div class="card-body p-4">
 
@@ -217,7 +217,7 @@
                     <button type="submit" class="btn-save">
                        Thêm người dùng
                     </button>
-                    <a href="${pageContext.request.contextPath}/v1/systemadmin/user-list" class="btn-cancel-link">
+                    <a href="${pageContext.request.contextPath}/v1/systemadmin/user/list" class="btn-cancel-link">
                         Hủy
                     </a>
                 </div>

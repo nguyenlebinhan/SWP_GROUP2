@@ -37,7 +37,7 @@
                 <tbody>
                 <c:forEach var="s" items="${settings}">
                     <tr>
-                        <form method="post" action="${pageContext.request.contextPath}/v1/businessadmin/payroll-config/setting/save">
+                        <form method="post" action="${pageContext.request.contextPath}/v1/businessadmin/payroll/config/setting/save">
                             <td><input name="settingKey" class="form-control wide-input" value="${s.settingKey}" readonly></td>
                             <td>
                                 <c:choose>
@@ -65,7 +65,7 @@
             Tỷ lệ tổng là tổng nghĩa vụ bảo hiểm. Công ty trả nhập riêng, phần nhân viên trả sẽ tự tính bằng tổng trừ công ty.
             Các khoản này luôn tính theo phần trăm, luôn active và luôn trừ trước thuế.
         </p>
-        <form method="post" action="${pageContext.request.contextPath}/v1/businessadmin/payroll-config/deduction/save" class="row g-2 mb-3">
+        <form method="post" action="${pageContext.request.contextPath}/v1/businessadmin/payroll/config/deduction/save" class="row g-2 mb-3">
             <div class="col-md-2"><input name="ruleCode" class="form-control" placeholder="CODE" required></div>
             <div class="col-md-2"><input name="ruleName" class="form-control" placeholder="Tên khoản" required></div>
             <div class="col-md-2"><input name="ruleType" class="form-control" value="INSURANCE"></div>
@@ -93,7 +93,7 @@
                     <fmt:formatNumber var="totalRatePercent" value="${r.rate * 100}" type="number" maxFractionDigits="4" groupingUsed="false" />
                     <fmt:formatNumber var="employerRatePercent" value="${r.employerRate * 100}" type="number" maxFractionDigits="4" groupingUsed="false" />
                     <tr>
-                        <form method="post" action="${pageContext.request.contextPath}/v1/businessadmin/payroll-config/deduction/save">
+                        <form method="post" action="${pageContext.request.contextPath}/v1/businessadmin/payroll/config/deduction/save">
                             <input type="hidden" name="ruleId" value="${r.ruleId}">
                             <td><input name="ruleCode" class="form-control" value="${r.ruleCode}"></td>
                             <td><input name="ruleName" class="form-control" value="<c:out value='${r.ruleName}'/>"></td>
@@ -111,7 +111,7 @@
                             <td class="text-end">
                                 <button class="btn btn-sm btn-outline-primary">Lưu</button>
                         </form>
-                                <form method="post" action="${pageContext.request.contextPath}/v1/businessadmin/payroll-config/deduction/delete" class="d-inline">
+                                <form method="post" action="${pageContext.request.contextPath}/v1/businessadmin/payroll/config/deduction/delete" class="d-inline">
                                     <input type="hidden" name="ruleId" value="${r.ruleId}">
                                     <button class="btn btn-sm btn-outline-danger" onclick="return confirm('Xóa khoản này?')">Xóa</button>
                                 </form>
@@ -130,7 +130,7 @@
             Bậc cuối không có giới hạn trên, ví dụ hiển thị là &gt; 40.000.000.
             Khi lưu, mốc “Đến” của một bậc phải bằng mốc “Từ” của bậc tiếp theo.
         </p>
-        <form method="post" action="${pageContext.request.contextPath}/v1/businessadmin/payroll-config/tax/save">
+        <form method="post" action="${pageContext.request.contextPath}/v1/businessadmin/payroll/config/tax/save">
             <div class="table-responsive">
                 <table class="table align-middle">
                     <thead><tr><th>Từ</th><th>Đến</th><th>Thuế suất</th><th class="text-end">Ghi chú</th></tr></thead>

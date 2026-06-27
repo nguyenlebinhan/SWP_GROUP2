@@ -21,7 +21,7 @@
 <div class="main">
     <jsp:include page="/public/components/managerTopBar.jsp">
         <jsp:param name="title" value="Cập nhật nhân viên" />
-        <jsp:param name="backUrl" value="/v1/manager/employee/list" />
+        <jsp:param name="backUrl" value="/v1/manager/employee_info/list" />
     </jsp:include>
 
     <c:if test="${not empty sessionScope.error}">
@@ -38,7 +38,7 @@
             <div class="text-muted small"><c:out value="${employee.employeeCode}"/> - <c:out value="${employee.email}"/></div>
         </div>
 
-        <form method="post" action="${pageContext.request.contextPath}/v1/manager/employee/update">
+        <form method="post" action="${pageContext.request.contextPath}/v1/manager/employee_info/update">
             <input type="hidden" name="employeeId" value="${employee.employeeId}">
 
             <div class="row g-3">
@@ -72,7 +72,7 @@
                 <button type="submit" class="btn btn-primary">
                     <i class="fa-solid fa-check me-1"></i>Lưu thay đổi
                 </button>
-                <a href="${pageContext.request.contextPath}/v1/manager/employee/detail?id=${employee.employeeId}" class="btn btn-outline-secondary">
+                <a href="${pageContext.request.contextPath}/v1/manager/employee_info/detail?id=${employee.employeeId}" class="btn btn-outline-secondary">
                     Hủy
                 </a>
             </div>

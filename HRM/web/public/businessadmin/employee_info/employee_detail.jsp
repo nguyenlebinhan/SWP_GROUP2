@@ -109,7 +109,7 @@
 <div class="main-content">
     <jsp:include page="/public/components/businessAdminTopBar.jsp">
         <jsp:param name="title" value="Chi tiết nhân viên" />
-        <jsp:param name="backUrl" value="/v1/businessadmin/employee-list" />
+        <jsp:param name="backUrl" value="/v1/businessadmin/employee_info/list" />
     </jsp:include>
 
     <c:if test="${not empty error}">

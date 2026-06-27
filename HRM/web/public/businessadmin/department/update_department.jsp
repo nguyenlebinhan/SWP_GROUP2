@@ -110,7 +110,7 @@
 <div class="main">
     <jsp:include page="/public/components/businessAdminTopBar.jsp">
         <jsp:param name="title" value="Cập nhật phòng ban" />
-        <jsp:param name="backUrl" value="/v1/businessadmin/department" />
+        <jsp:param name="backUrl" value="/v1/businessadmin/department/list" />
     </jsp:include>
 
     <c:if test="${not empty error}">
@@ -135,7 +135,7 @@
             </div>
         </div>
 
-        <form action="${pageContext.request.contextPath}/v1/businessadmin/update-department"
+        <form action="${pageContext.request.contextPath}/v1/businessadmin/department/update"
               method="post" id="updateDeptForm" novalidate>
 
             <input type="hidden" name="departmentId" value="${department.departmentId}">
@@ -202,7 +202,7 @@
                 <button type="submit" class="btn btn-submit">
                     <i class="fa-solid fa-save"></i> Lưu thay đổi
                 </button>
-                <a href="${pageContext.request.contextPath}/v1/businessadmin/department" class="btn-cancel">
+                <a href="${pageContext.request.contextPath}/v1/businessadmin/department/list" class="btn-cancel">
                     <i class="fa-solid fa-xmark"></i> Hủy
                 </a>
                 <span class="text-muted ms-auto" style="font-size:12px">

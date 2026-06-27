@@ -75,7 +75,7 @@
 
     <!-- Bộ lọc -->
     <div class="dept-card p-4">
-        <form action="${pageContext.request.contextPath}/v1/businessadmin/forms" method="GET" class="row g-3 align-items-end">
+        <form action="${pageContext.request.contextPath}/v1/businessadmin/overtime/list" method="GET" class="row g-3 align-items-end">
             <div class="col-md-2">
                 <label class="form-label">Ngày tạo</label>
                 <input type="number" name="day" class="form-control" placeholder="DD" min="1" max="31" value="${filterDay}">
@@ -153,12 +153,12 @@
                                         <td class="text-center">
                                             <c:choose>
                                                 <c:when test="${f.formTypeCode == 'OVERTIME'}">
-                                                    <a href="${pageContext.request.contextPath}/v1/businessadmin/forms/ot-detail?id=${f.formId}" class="btn btn-primary btn-sm" title="Xem chi tiết">
+                                                    <a href="${pageContext.request.contextPath}/v1/businessadmin/overtime/ot-detail?id=${f.formId}" class="btn btn-primary btn-sm" title="Xem chi tiết">
                                                         <i class="fa-solid fa-eye"></i> Xem chi tiết
                                                     </a>
                                                 </c:when>
                                                 <c:when test="${f.formTypeCode == 'TRANSFER'}">
-                                                    <a href="${pageContext.request.contextPath}/v1/businessadmin/forms/transfer-detail?id=${f.formId}" class="btn btn-primary btn-sm" title="Xem chi tiết">
+                                                    <a href="${pageContext.request.contextPath}/v1/businessadmin/overtime/transfer-detail?id=${f.formId}" class="btn btn-primary btn-sm" title="Xem chi tiết">
                                                         <i class="fa-solid fa-eye"></i> Xem chi tiết
                                                     </a>
                                                 </c:when>

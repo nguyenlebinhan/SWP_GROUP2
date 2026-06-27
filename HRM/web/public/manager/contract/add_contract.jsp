@@ -22,7 +22,7 @@
 <div class="main">
     <jsp:include page="/public/components/managerTopBar.jsp">
         <jsp:param name="title" value="Thêm hợp đồng lao động" />
-        <jsp:param name="backUrl" value="/v1/manager/employee/list" />
+        <jsp:param name="backUrl" value="/v1/manager/employee_info/list" />
     </jsp:include>
 
     <c:if test="${not empty sessionScope.success}">
@@ -118,7 +118,7 @@
                 <button type="submit" class="btn btn-primary" name="action" value="submit">
                     <i class="fa-solid fa-paper-plane me-1"></i>Gửi duyệt
                 </button>
-                <a href="${pageContext.request.contextPath}/v1/manager/employee/list" class="btn btn-outline-secondary" onclick="return confirmCancel();">
+                <a href="${pageContext.request.contextPath}/v1/manager/employee_info/list" class="btn btn-outline-secondary" onclick="return confirmCancel();">
                     <i class="fa-solid fa-ban me-1"></i>Hủy
                 </a>
             </div>

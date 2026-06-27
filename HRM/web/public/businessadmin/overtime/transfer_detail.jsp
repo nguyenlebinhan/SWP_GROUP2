@@ -60,7 +60,7 @@
     <div class="main">
         <jsp:include page="/public/components/businessAdminTopBar.jsp">
             <jsp:param name="title" value="Chi tiết Đơn Chuyển phòng ban" />
-            <jsp:param name="backUrl" value="/v1/businessadmin/forms"/>
+            <jsp:param name="backUrl" value="/v1/businessadmin/overtime/list"/>
         </jsp:include>
 
         <c:if test="${not empty sessionScope.success}">
@@ -179,10 +179,10 @@
                                         <textarea class="form-control" name="note" rows="3" placeholder="Nhập ghi chú hoặc lý do..."></textarea>
                                     </div>
                                     <div class="d-flex gap-2">
-                                        <button type="submit" class="btn btn-success flex-fill fw-semibold" onclick="document.getElementById('processForm').action='${pageContext.request.contextPath}/v1/businessadmin/forms/approve';">
+                                        <button type="submit" class="btn btn-success flex-fill fw-semibold" onclick="document.getElementById('processForm').action='${pageContext.request.contextPath}/v1/businessadmin/overtime/approve';">
                                             <i class="fa-solid fa-check me-1"></i> Duyệt
                                         </button>
-                                        <button type="submit" class="btn btn-danger flex-fill fw-semibold" onclick="document.getElementById('processForm').action='${pageContext.request.contextPath}/v1/businessadmin/forms/reject';">
+                                        <button type="submit" class="btn btn-danger flex-fill fw-semibold" onclick="document.getElementById('processForm').action='${pageContext.request.contextPath}/v1/businessadmin/overtime/reject';">
                                             <i class="fa-solid fa-xmark me-1"></i> Từ chối
                                         </button>
                                     </div>

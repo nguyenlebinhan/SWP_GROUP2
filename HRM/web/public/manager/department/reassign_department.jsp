@@ -193,7 +193,7 @@
                     </div>
                     <h6 class="fw-bold mb-2">Chưa có nhân viên nào để chuyển</h6>
                     <p class="text-muted small mb-3">Không có nhân viên nào đã được phân công phòng ban.</p>
-                    <a href="${pageContext.request.contextPath}/v1/manager/employee/list"
+                    <a href="${pageContext.request.contextPath}/v1/manager/employee_info/list"
                        class="btn btn-outline-primary btn-sm">
                         <i class="fa-solid fa-list me-1"></i>Xem danh sách nhân viên
                     </a>
@@ -270,7 +270,7 @@
                         <button type="submit" class="btn btn-submit">
                             <i class="fa-solid fa-right-left"></i> Xác nhận chuyển phòng
                         </button>
-                        <a href="${pageContext.request.contextPath}/v1/manager/employee/list"
+                        <a href="${pageContext.request.contextPath}/v1/manager/employee_info/list"
                            class="btn-cancel">
                             <i class="fa-solid fa-xmark"></i> Hủy
                         </a>

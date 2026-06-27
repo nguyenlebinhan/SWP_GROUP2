@@ -32,14 +32,14 @@
 <div class="sidebar">
     <h4>HRM System</h4>
     <a href="${pageContext.request.contextPath}/v1/businessadmin/dashboard">Tổng quan</a>
-    <a href="${pageContext.request.contextPath}/v1/businessadmin/employee-list">Nhân viên</a>
-    <a href="${pageContext.request.contextPath}/v1/businessadmin/assign-department">Phân công nhân viên</a>
-    <a href="${pageContext.request.contextPath}/v1/businessadmin/department">Phòng ban</a>
-    <a href="${pageContext.request.contextPath}/v1/businessadmin/add-department">Thêm phòng ban</a>
+    <a href="${pageContext.request.contextPath}/v1/businessadmin/employee_info/list">Nhân viên</a>
+    <a href="${pageContext.request.contextPath}/v1/businessadmin/employee_info/department-assign">Phân công nhân viên</a>
+    <a href="${pageContext.request.contextPath}/v1/businessadmin/department/list">Phòng ban</a>
+    <a href="${pageContext.request.contextPath}/v1/businessadmin/department/add">Thêm phòng ban</a>
     <a href="${pageContext.request.contextPath}/v1/businessadmin/attendance/overview">Chấm công</a>
-    <a href="${pageContext.request.contextPath}/v1/businessadmin/holiday">Ngày lễ</a>
-    <a href="${pageContext.request.contextPath}/v1/businessadmin/payroll-config">Cấu hình payroll</a>
-    <a href="${pageContext.request.contextPath}/v1/businessadmin/forms">Quản lý đơn từ</a>
-    <a href="${pageContext.request.contextPath}/v1/businessadmin/my-profile">Hồ sơ của tôi</a>
+    <a href="${pageContext.request.contextPath}/v1/businessadmin/holiday/list">Ngày lễ</a>
+    <a href="${pageContext.request.contextPath}/v1/businessadmin/payroll/config">Cấu hình payroll</a>
+    <a href="${pageContext.request.contextPath}/v1/businessadmin/overtime/list">Quản lý đơn từ</a>
+    <a href="${pageContext.request.contextPath}/v1/businessadmin/employee_info/my-profile">Hồ sơ của tôi</a>
     <a href="${pageContext.request.contextPath}/v1/auth/logout">Đăng xuất</a>
 </div>

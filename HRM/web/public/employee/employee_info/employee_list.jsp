@@ -213,12 +213,12 @@
                                     <td>
                                         <div class="d-flex gap-2">
                                             <a class="btn btn-sm btn-outline-primary"
-                                               href="${pageContext.request.contextPath}/v1/employee/employee-detail?id=${emp.employeeId}">
+                                               href="${pageContext.request.contextPath}/v1/employee/employee_info/detail?id=${emp.employeeId}">
                                                 <i class="fa-solid fa-eye"></i>
                                             </a>
                                             <c:if test="${canEditEmployee}">
                                                 <a class="btn btn-sm btn-outline-secondary"
-                                                   href="${pageContext.request.contextPath}/v1/employee/update-employee?id=${emp.employeeId}">
+                                                   href="${pageContext.request.contextPath}/v1/employee/employee_info/update?id=${emp.employeeId}">
                                                     <i class="fa-solid fa-pen"></i>
                                                 </a>
                                             </c:if>

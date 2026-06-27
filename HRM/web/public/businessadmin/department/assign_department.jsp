@@ -131,7 +131,7 @@
 <div class="main">
     <jsp:include page="/public/components/businessAdminTopBar.jsp">
         <jsp:param name="title" value="Phân công phòng ban" />
-        <jsp:param name="backUrl" value="/v1/businessadmin/employee-list" />
+        <jsp:param name="backUrl" value="/v1/businessadmin/employee_info/list" />
     </jsp:include>
 
     <c:if test="${not empty error}">
@@ -171,14 +171,14 @@
                     </div>
                     <h6 class="fw-bold mb-2">Tất cả người dùng đã được phân công</h6>
                     <p class="text-muted small mb-3">Không còn người dùng nào chưa có hồ sơ nhân viên.</p>
-                    <a href="${pageContext.request.contextPath}/v1/businessadmin/employee-list"
+                    <a href="${pageContext.request.contextPath}/v1/businessadmin/employee_info/list"
                        class="btn btn-outline-primary btn-sm">
                         <i class="fa-solid fa-list me-1"></i>Xem danh sách nhân viên
                     </a>
                 </div>
             </c:when>
             <c:otherwise>
-                <form action="${pageContext.request.contextPath}/v1/businessadmin/assign-department"
+                <form action="${pageContext.request.contextPath}/v1/businessadmin/employee_info/department-assign"
                       method="post" id="assignForm" novalidate>
 
                     <div class="section-title">Thông tin bắt buộc</div>
@@ -241,7 +241,7 @@
                         <button type="submit" class="btn btn-submit">
                             <i class="fa-solid fa-check"></i> Xác nhận phân công
                         </button>
-                        <a href="${pageContext.request.contextPath}/v1/businessadmin/employee-list"
+                        <a href="${pageContext.request.contextPath}/v1/businessadmin/employee_info/list"
                            class="btn-cancel">
                             <i class="fa-solid fa-xmark"></i> Hủy
                         </a>

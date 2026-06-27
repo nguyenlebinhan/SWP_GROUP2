@@ -109,13 +109,13 @@ public class ManagerController extends HttpServlet {
             case "/department/my-department-list":
                 displayMyDepartmentEmployees(request, response, user);
                 break;
-            case "/employee/list":
+            case "/employee_info/list":
                 displayEmployeeList(request, response, user);
                 break;
-            case "/employee/detail":
+            case "/employee_info/detail":
                 displayEmployeeDetail(request, response, user);
                 break;
-            case "/employee/update":
+            case "/employee_info/update":
                 displayUpdateEmployeeForm(request, response, user);
                 break;
             case "/contract/add":
@@ -151,7 +151,7 @@ public class ManagerController extends HttpServlet {
             case "/department/update":
                 displayUpdateDepartmentForm(request, response, user);
                 break;
-            case "/my-profile":
+            case "/employee_info/my-profile":
                 displayMyProfile(request, response, user);
                 break;
             case "/forms/all":
@@ -239,7 +239,7 @@ public class ManagerController extends HttpServlet {
             case "/department/assign":
                 handleAssignDepartment(request, response, user);
                 break;
-            case "/employee/update":
+            case "/employee_info/update":
                 handleUpdateEmployee(request, response, user);
                 break;
             case "/contract/add":
@@ -266,10 +266,10 @@ public class ManagerController extends HttpServlet {
             case "/department/update":
                 handleUpdateDepartment(request, response, user);
                 break;
-            case "/my-profile/update":
+            case "/employee_info/my-profile/update":
                 handleUpdateMyProfile(request, response, user);
                 break;
-            case "/employee/update-detail":
+            case "/employee_info/update-detail":
                 handleUpdateEmployeeDetail(request, response);
                 break;
             case "/forms/approve":
@@ -781,7 +781,7 @@ public class ManagerController extends HttpServlet {
             User user) throws ServletException, IOException {
         EmployeeDetailDTO employee = getEmployeeFromRequest(request, response);
         if (employee == null) {
-            response.sendRedirect(request.getContextPath() + "/v1/manager/employee/list");
+            response.sendRedirect(request.getContextPath() + "/v1/manager/employee_info/list");
             return;
         }
 
@@ -802,7 +802,7 @@ public class ManagerController extends HttpServlet {
 
         EmployeeDetailDTO employee = getEmployeeFromRequest(request, response);
         if (employee == null) {
-            response.sendRedirect(request.getContextPath() + "/v1/manager/employee/list");
+            response.sendRedirect(request.getContextPath() + "/v1/manager/employee_info/list");
             return;
         }
 
@@ -838,14 +838,14 @@ public class ManagerController extends HttpServlet {
 
         EmploymentContract contract = getContractFromRequest(request);
         if (contract == null) {
-            response.sendRedirect(request.getContextPath() + "/v1/manager/employee/list");
+            response.sendRedirect(request.getContextPath() + "/v1/manager/employee_info/list");
             return;
         }
 
         EmployeeDetailDTO employee = employeeDAO.getEmployeeById(contract.getEmployeeId());
         if (employee == null) {
             request.getSession().setAttribute("error", "Không tìm thấy nhân viên của hợp đồng.");
-            response.sendRedirect(request.getContextPath() + "/v1/manager/employee/list");
+            response.sendRedirect(request.getContextPath() + "/v1/manager/employee_info/list");
             return;
         }
 
@@ -1407,7 +1407,7 @@ public class ManagerController extends HttpServlet {
         String rawEmployeeId = request.getParameter("employeeId");
         if (isBlank(rawEmployeeId)) {
             request.getSession().setAttribute("error", "Thiếu mã nhân viên.");
-            response.sendRedirect(request.getContextPath() + "/v1/manager/employee/list");
+            response.sendRedirect(request.getContextPath() + "/v1/manager/employee_info/list");
             return;
         }
 
@@ -1416,14 +1416,14 @@ public class ManagerController extends HttpServlet {
             employeeId = Integer.parseInt(rawEmployeeId);
         } catch (NumberFormatException e) {
             request.getSession().setAttribute("error", "Mã nhân viên không hợp lệ.");
-            response.sendRedirect(request.getContextPath() + "/v1/manager/employee/list");
+            response.sendRedirect(request.getContextPath() + "/v1/manager/employee_info/list");
             return;
         }
 
         EmployeeDetailDTO employee = employeeDAO.getEmployeeById(employeeId);
         if (employee == null || employee.getDepartmentId() <= 0) {
             request.getSession().setAttribute("error", "Nhân viên không hợp lệ hoặc chưa được phân công phòng ban.");
-            response.sendRedirect(request.getContextPath() + "/v1/manager/employee/detail?id=" + employeeId);
+            response.sendRedirect(request.getContextPath() + "/v1/manager/employee_info/detail?id=" + employeeId);
             return;
         }
 
@@ -1435,7 +1435,7 @@ public class ManagerController extends HttpServlet {
         } else {
             request.getSession().setAttribute("error", "Gỡ phân công thất bại. Vui lòng thử lại.");
         }
-        response.sendRedirect(request.getContextPath() + "/v1/manager/employee/detail?id=" + employeeId);
+        response.sendRedirect(request.getContextPath() + "/v1/manager/employee_info/detail?id=" + employeeId);
     }
 
     private void displayAddDepartmentForm(HttpServletRequest request, HttpServletResponse response,
@@ -1621,20 +1621,20 @@ public class ManagerController extends HttpServlet {
             status = Integer.parseInt(statusParam);
         } catch (NumberFormatException e) {
             request.getSession().setAttribute("error", "Dữ liệu nhân viên không hợp lệ.");
-            response.sendRedirect(request.getContextPath() + "/v1/manager/employee/list");
+            response.sendRedirect(request.getContextPath() + "/v1/manager/employee_info/list");
             return;
         }
 
         if (!isValidEmployeeStatus(status)) {
             request.getSession().setAttribute("error", "Trạng thái nhân viên không hợp lệ.");
-            response.sendRedirect(request.getContextPath() + "/v1/manager/employee/update?id=" + employeeId);
+            response.sendRedirect(request.getContextPath() + "/v1/manager/employee_info/update?id=" + employeeId);
             return;
         }
 
         EmployeeDetailDTO current = employeeDAO.getEmployeeById(employeeId);
         if (current == null) {
             request.getSession().setAttribute("error", "Không tìm thấy nhân viên.");
-            response.sendRedirect(request.getContextPath() + "/v1/manager/employee/list");
+            response.sendRedirect(request.getContextPath() + "/v1/manager/employee_info/list");
             return;
         }
 
@@ -1643,7 +1643,7 @@ public class ManagerController extends HttpServlet {
         int userRoleId = userDAO.getRoleIdByUserId(current.getUserId());
         if (!departmentDAO.isRoleAllowedForDepartment(departmentId, userRoleId)) {
             request.getSession().setAttribute("error", "Vai trò hiện tại của nhân viên không phù hợp với phòng ban đã chọn.");
-            response.sendRedirect(request.getContextPath() + "/v1/manager/employee/update?id=" + employeeId);
+            response.sendRedirect(request.getContextPath() + "/v1/manager/employee_info/update?id=" + employeeId);
             return;
         }
 
@@ -1661,10 +1661,10 @@ public class ManagerController extends HttpServlet {
         boolean success = employeeDAO.updateEmployee(emp);
         if (success) {
             request.getSession().setAttribute("success", "Cập nhật thông tin nhân viên thành công.");
-            response.sendRedirect(request.getContextPath() + "/v1/manager/employee/detail?id=" + employeeId);
+            response.sendRedirect(request.getContextPath() + "/v1/manager/employee_info/detail?id=" + employeeId);
         } else {
             request.getSession().setAttribute("error", "Cập nhật nhân viên thất bại. Vui lòng thử lại.");
-            response.sendRedirect(request.getContextPath() + "/v1/manager/employee/update?id=" + employeeId);
+            response.sendRedirect(request.getContextPath() + "/v1/manager/employee_info/update?id=" + employeeId);
         }
     }
 
@@ -2437,7 +2437,7 @@ public class ManagerController extends HttpServlet {
         EmployeeDetailDTO myEmployee = employeeDAO.getEmployeeByUserId(user.getUserId());
         if (myEmployee == null) {
             request.getSession().setAttribute("error", "Không tìm thấy hồ sơ nhân viên.");
-            response.sendRedirect(request.getContextPath() + "/v1/manager/my-profile");
+            response.sendRedirect(request.getContextPath() + "/v1/manager/employee_info/my-profile");
             return;
         }
 
@@ -2454,7 +2454,7 @@ public class ManagerController extends HttpServlet {
         } else {
             request.getSession().setAttribute("error", "Cập nhật thất bại. Vui lòng thử lại.");
         }
-        response.sendRedirect(request.getContextPath() + "/v1/manager/my-profile");
+        response.sendRedirect(request.getContextPath() + "/v1/manager/employee_info/my-profile");
     }
 
     private void handleUpdateEmployeeDetail(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
@@ -2507,7 +2507,7 @@ public class ManagerController extends HttpServlet {
         if (employeeDetail.getDepartmentId() > 0) {
             response.sendRedirect(request.getContextPath() + "/v1/manager/department/employee-detail?id=" + employeeDetail.getDepartmentId());
         } else {
-            response.sendRedirect(request.getContextPath() + "/v1/manager/employee/detail?id=" + employeeId);
+            response.sendRedirect(request.getContextPath() + "/v1/manager/employee_info/detail?id=" + employeeId);
         }
     }
 
@@ -2790,13 +2790,13 @@ public class ManagerController extends HttpServlet {
         }
         Integer candidateId = parseIntOrNull(request.getParameter("id"));
         if (candidateId == null) {
-            response.sendRedirect(request.getContextPath() + "/v1/manager/recruitment-list");
+            response.sendRedirect(request.getContextPath() + "/v1/manager/recruitment/list");
             return;
         }
         Candidate candidate = candidateDAO.getById(candidateId);
         if (candidate == null) {
             request.getSession().setAttribute("error", "Không tìm thấy ứng viên.");
-            response.sendRedirect(request.getContextPath() + "/v1/manager/recruitment-list");
+            response.sendRedirect(request.getContextPath() + "/v1/manager/recruitment/list");
             return;
         }
         Set<String> perms = getPermissions(user);
@@ -2825,7 +2825,7 @@ public class ManagerController extends HttpServlet {
         if (candidateId == null || isBlank(result) || isBlank(toEmail)
                 || isBlank(emailSubject) || isBlank(emailBody)) {
             request.getSession().setAttribute("error", "Thieu thong tin xu ly tuyen dung.");
-            response.sendRedirect(request.getContextPath() + "/v1/manager/recruitment-list");
+            response.sendRedirect(request.getContextPath() + "/v1/manager/recruitment/list");
             return;
         }
 
@@ -2833,7 +2833,7 @@ public class ManagerController extends HttpServlet {
         EmployeeDetailDTO reviewer = employeeDAO.getEmployeeByUserId(user.getUserId());
         if (candidate == null || reviewer == null) {
             request.getSession().setAttribute("error", "Không tìm thấy dữ liệu ứng viên hoặc người xử lý.");
-            response.sendRedirect(request.getContextPath() + "/v1/manager/recruitment-list");
+            response.sendRedirect(request.getContextPath() + "/v1/manager/recruitment/list");
             return;
         }
 
@@ -2857,7 +2857,7 @@ public class ManagerController extends HttpServlet {
         int logId = candidateDAO.insertLog(log);
         if (logId <= 0) {
             request.getSession().setAttribute("error", "Không thể lưu lịch sử xử lý ứng viên.");
-            response.sendRedirect(request.getContextPath() + "/v1/manager/recruitment-detail?id=" + candidateId);
+            response.sendRedirect(request.getContextPath() + "/v1/manager/recruitment/detail?id=" + candidateId);
             return;
         }
 
@@ -2867,13 +2867,13 @@ public class ManagerController extends HttpServlet {
         candidateDAO.updateEmailStatus(logId, sent ? "SENT" : "FAILED");
         if (!sent) {
             request.getSession().setAttribute("error", "Gui email that bai, trang thai ung vien chua duoc cap nhat.");
-            response.sendRedirect(request.getContextPath() + "/v1/manager/recruitment-detail?id=" + candidateId);
+            response.sendRedirect(request.getContextPath() + "/v1/manager/recruitment/detail?id=" + candidateId);
             return;
         }
 
         candidateDAO.updateStage(candidateId, toStage);
         request.getSession().setAttribute("success", "Đã xử lý ứng viên và gửi email thành công.");
-        response.sendRedirect(request.getContextPath() + "/v1/manager/recruitment-list?stage=" + toStage);
+        response.sendRedirect(request.getContextPath() + "/v1/manager/recruitment/list?stage=" + toStage);
     }
 
     private void displayRecruitmentImport(HttpServletRequest request, HttpServletResponse response,
@@ -2900,13 +2900,13 @@ public class ManagerController extends HttpServlet {
         Part filePart = request.getPart("file");
         if (filePart == null || filePart.getSize() == 0) {
             request.getSession().setAttribute("error", "Vui long chon file Excel.");
-            response.sendRedirect(request.getContextPath() + "/v1/manager/recruitment-import");
+            response.sendRedirect(request.getContextPath() + "/v1/manager/recruitment/import");
             return;
         }
         String submittedName = filePart.getSubmittedFileName();
         if (submittedName == null || !submittedName.toLowerCase(Locale.ROOT).endsWith(".xlsx")) {
             request.getSession().setAttribute("error", "File phai co dinh dang .xlsx.");
-            response.sendRedirect(request.getContextPath() + "/v1/manager/recruitment-import");
+            response.sendRedirect(request.getContextPath() + "/v1/manager/recruitment/import");
             return;
         }
 
@@ -2922,7 +2922,7 @@ public class ManagerController extends HttpServlet {
         EmployeeDetailDTO me = employeeDAO.getEmployeeByUserId(user.getUserId());
         if (me == null || me.getDepartmentId() <= 0) {
             request.getSession().setAttribute("error", "Không tìm thấy phòng ban của bạn.");
-            response.sendRedirect(request.getContextPath() + "/v1/manager/recruitment-import");
+            response.sendRedirect(request.getContextPath() + "/v1/manager/recruitment/import");
             return;
         }
 
@@ -2939,7 +2939,7 @@ public class ManagerController extends HttpServlet {
         int fileId = uploadedFileDAO.createUploadedFile(uf);
         if (fileId <= 0) {
             request.getSession().setAttribute("error", "Không thể tạo bản ghi file import.");
-            response.sendRedirect(request.getContextPath() + "/v1/manager/recruitment-import");
+            response.sendRedirect(request.getContextPath() + "/v1/manager/recruitment/import");
             return;
         }
 

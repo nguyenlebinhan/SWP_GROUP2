@@ -49,7 +49,7 @@
 
         <div class="main-content">
 
-            <a href="${pageContext.request.contextPath}/v1/manager/recruitment-list"
+            <a href="${pageContext.request.contextPath}/v1/manager/recruitment/list"
                class="text-decoration-none text-secondary mb-3 d-inline-block">
                 <i class="fa fa-arrow-left"></i> Quay lại danh sách
             </a>
@@ -118,7 +118,7 @@
                         <div class="card-body p-4">
                             <h6 class="fw-bold mb-3">Tải lên file Excel</h6>
                             <form method="post"
-                                  action="${pageContext.request.contextPath}/v1/manager/recruitment-import"
+                                  action="${pageContext.request.contextPath}/v1/manager/recruitment/import"
                                   enctype="multipart/form-data">
 
                                 <div class="upload-zone mb-3" onclick="document.getElementById('fileInput').click()">

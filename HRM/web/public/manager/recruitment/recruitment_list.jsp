@@ -102,7 +102,7 @@
             <div class="d-flex justify-content-between align-items-center mb-3">
 
                 <c:if test="${currentStage == 'APPLIED' && sessionScope.userPermissions.contains('PROCESS_RECRUITMENT')}">
-                    <a href="${pageContext.request.contextPath}/v1/manager/recruitment-import"
+                    <a href="${pageContext.request.contextPath}/v1/manager/recruitment/import"
                        class="btn btn-primary">
                         <i class="fa-solid fa-file-arrow-up"></i> Upload hồ sơ từ Excel
                     </a>
@@ -172,13 +172,13 @@
                                                     <c:when test="${currentStage == 'INTERVIEW' && c.stage == 'INTERVIEW'}">
                                                         <c:choose>
                                                             <c:when test="${sessionScope.userPermissions.contains('PROCESS_RECRUITMENT')}">
-                                                                <a href="${pageContext.request.contextPath}/v1/manager/recruitment-detail?id=${c.candidateId}"
+                                                                <a href="${pageContext.request.contextPath}/v1/manager/recruitment/detail?id=${c.candidateId}"
                                                                    class="btn btn-sm btn-outline-primary result-btn">
                                                                     Ấn vào để duyệt
                                                                 </a>
                                                             </c:when>
                                                             <c:otherwise>
-                                                                <a href="${pageContext.request.contextPath}/v1/manager/recruitment-detail?id=${c.candidateId}"
+                                                                <a href="${pageContext.request.contextPath}/v1/manager/recruitment/detail?id=${c.candidateId}"
                                                                    class="btn btn-sm btn-outline-secondary result-btn">
                                                                     Xem chi tiết
                                                                 </a>
@@ -186,29 +186,29 @@
                                                         </c:choose>
                                                     </c:when>
                                                     <c:when test="${c.stage == 'INTERVIEW'}">
-                                                        <span class="badge badge-interview px-3 py-2"><a href="${pageContext.request.contextPath}/v1/manager/recruitment-detail?id=${c.candidateId}">Hồ sơ đậu</a></span>
+                                                        <span class="badge badge-interview px-3 py-2"><a href="${pageContext.request.contextPath}/v1/manager/recruitment/detail?id=${c.candidateId}">Hồ sơ đậu</a></span>
                                                     </c:when>
                                                     <c:when test="${c.stage == 'PROBATION'}">
                                                         <span class="badge badge-probation px-3 py-2">
-                                                            <a href="${pageContext.request.contextPath}/v1/manager/recruitment-detail?id=${c.candidateId}">Thử việc</a>
+                                                            <a href="${pageContext.request.contextPath}/v1/manager/recruitment/detail?id=${c.candidateId}">Thử việc</a>
                                                         </span>
                                                     </c:when>
                                                     <c:when test="${c.stage == 'REJECTED'}">
-                                                        <span class="badge badge-rejected px-3 py-2"><a href="${pageContext.request.contextPath}/v1/manager/recruitment-detail?id=${c.candidateId}">Hồ sơ rớt</a></span>
+                                                        <span class="badge badge-rejected px-3 py-2"><a href="${pageContext.request.contextPath}/v1/manager/recruitment/detail?id=${c.candidateId}">Hồ sơ rớt</a></span>
                                                     </c:when>
                                                     <%-- Chưa duyệt --%>
                                                     <c:otherwise>
                                                         <c:choose>
                                                             <%-- Có quyền duyệt → hiện nút xem để vào trang duyệt --%>
                                                             <c:when test="${sessionScope.userPermissions.contains('PROCESS_RECRUITMENT')}">
-                                                                <a href="${pageContext.request.contextPath}/v1/manager/recruitment-detail?id=${c.candidateId}"
+                                                                <a href="${pageContext.request.contextPath}/v1/manager/recruitment/detail?id=${c.candidateId}"
                                                                    class="btn btn-sm btn-outline-primary result-btn">
                                                                     Ấn vào để duyệt
                                                                 </a>
                                                             </c:when>
                                                             <%-- Chỉ có quyền xem --%>
                                                             <c:otherwise>
-                                                                <a href="${pageContext.request.contextPath}/v1/manager/recruitment-detail?id=${c.candidateId}"
+                                                                <a href="${pageContext.request.contextPath}/v1/manager/recruitment/detail?id=${c.candidateId}"
                                                                    class="btn btn-sm btn-outline-secondary result-btn">
                                                                     Xem chi tiết
                                                                 </a>
@@ -229,7 +229,7 @@
                                 Trang ${currentPage}/${totalPages} - ${totalCandidates} hồ sơ
                             </span>
                             <ul class="pagination mb-0">
-                                <c:url var="prevPageUrl" value="/v1/manager/recruitment-list">
+                                <c:url var="prevPageUrl" value="/v1/manager/recruitment/list">
                                     <c:param name="stage" value="${currentStage}"/>
                                     <c:if test="${not empty keyword}">
                                         <c:param name="keyword" value="${keyword}"/>
@@ -241,7 +241,7 @@
                                 </li>
 
                                 <c:forEach begin="1" end="${totalPages}" var="i">
-                                    <c:url var="pageUrl" value="/v1/manager/recruitment-list">
+                                    <c:url var="pageUrl" value="/v1/manager/recruitment/list">
                                         <c:param name="stage" value="${currentStage}"/>
                                         <c:if test="${not empty keyword}">
                                             <c:param name="keyword" value="${keyword}"/>
@@ -253,7 +253,7 @@
                                     </li>
                                 </c:forEach>
 
-                                <c:url var="nextPageUrl" value="/v1/manager/recruitment-list">
+                                <c:url var="nextPageUrl" value="/v1/manager/recruitment/list">
                                     <c:param name="stage" value="${currentStage}"/>
                                     <c:if test="${not empty keyword}">
                                         <c:param name="keyword" value="${keyword}"/>

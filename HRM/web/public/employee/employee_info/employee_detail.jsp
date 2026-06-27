@@ -26,7 +26,7 @@
 <div class="main">
     <jsp:include page="/public/components/employeeTopBar.jsp">
         <jsp:param name="title" value="Chi tiết nhân viên" />
-        <jsp:param name="backUrl" value="/v1/employee/employee/list" />
+        <jsp:param name="backUrl" value="/v1/employee/employee_info/list" />
     </jsp:include>
 
     <c:if test="${not empty sessionScope.success}">

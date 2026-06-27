@@ -155,7 +155,7 @@
 <div class="main-content">
     <jsp:include page="/public/components/systemAdminTopBar.jsp">
         <jsp:param name="title" value="Cập nhật người dùng" />
-        <jsp:param name="backUrl" value="/v1/systemadmin/user-list" />
+        <jsp:param name="backUrl" value="/v1/systemadmin/user/list" />
     </jsp:include>
 
     <c:if test="${not empty error}">
@@ -171,7 +171,7 @@
         </div>
     </c:if>
 
-    <form action="${pageContext.request.contextPath}/v1/systemadmin/update-user" method="POST">
+    <form action="${pageContext.request.contextPath}/v1/systemadmin/user/update" method="POST">
         <div class="card">
             <div class="card-body p-4">
                 <div class="section-label">Thông tin tài khoản</div>
@@ -246,7 +246,7 @@
                     <button type="submit" class="btn-save">
                         Cập nhật người dùng
                     </button>
-                    <a href="${pageContext.request.contextPath}/v1/systemadmin/user-list" class="btn-cancel-link">
+                    <a href="${pageContext.request.contextPath}/v1/systemadmin/user/list" class="btn-cancel-link">
                         Hủy
                     </a>
                 </div>

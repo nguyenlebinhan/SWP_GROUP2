@@ -75,7 +75,7 @@
     </a>
 
     <c:if test="${sessionScope.userPermissions.contains('VIEW_EMPLOYEES')}">
-        <a href="${pageContext.request.contextPath}/v1/manager/employee/list"
+        <a href="${pageContext.request.contextPath}/v1/manager/employee_info/list"
            class="${pageContext.request.servletPath == '/public/manager/employee_list.jsp' ? 'active' : ''}">
             Danh sách nhân viên
         </a>
@@ -90,7 +90,7 @@
     </c:if>
 
     <c:if test="${sessionScope.userPermissions.contains('APPROVE_LEAVE')}">
-        <a href="${pageContext.request.contextPath}/v1/manager/leave-requests">
+        <a href="${pageContext.request.contextPath}/v1/manager/forms/leave-requests">
             Đơn nghỉ phép
         </a>
     </c:if>
@@ -112,14 +112,14 @@
     </c:if>
 
     <c:if test="${sessionScope.userPermissions.contains('VIEW_LEAVE_BALANCE')}">
-        <a href="${pageContext.request.contextPath}/v1/manager/leave-balances">
+        <a href="${pageContext.request.contextPath}/v1/manager/forms/leave-balances">
             Ngày phép
         </a>
     </c:if>
 
     <c:if test="${sessionScope.userPermissions.contains('PROCESS_RECRUITMENT')}">
         <div class="nav-section">Tuyển dụng</div>
-        <a href="${pageContext.request.contextPath}/v1/manager/recruitment-list">
+        <a href="${pageContext.request.contextPath}/v1/manager/recruitment/list">
             Danh sách ứng viên
         </a>
     </c:if>

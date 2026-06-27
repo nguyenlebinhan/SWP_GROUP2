@@ -57,7 +57,7 @@
 <div class="main">
     <jsp:include page="/public/components/businessAdminTopBar.jsp">
         <jsp:param name="title" value="Nhân viên phòng ban" />
-        <jsp:param name="backUrl" value="/v1/businessadmin/department" />
+        <jsp:param name="backUrl" value="/v1/businessadmin/department/list" />
     </jsp:include>
 
     <c:if test="${not empty sessionScope.success}">
@@ -83,7 +83,7 @@
                 <div class="dept-code">${department.departmentCode}</div>
             </div>
             <div>
-                <a href="${pageContext.request.contextPath}/v1/businessadmin/update-department?id=${department.departmentId}"
+                <a href="${pageContext.request.contextPath}/v1/businessadmin/department/update?id=${department.departmentId}"
                    class="btn btn-sm btn-outline-primary me-2">
                    <i class="fa-solid fa-pen"></i> Chỉnh sửa
                 </a>
@@ -165,7 +165,7 @@
                                         </c:choose>
                                     </td>
                                     <td class="text-center">
-                                        <a href="${pageContext.request.contextPath}/v1/businessadmin/employee-detail?id=${emp.employeeId}"
+                                        <a href="${pageContext.request.contextPath}/v1/businessadmin/employee_info/detail?id=${emp.employeeId}"
                                            class="btn btn-sm btn-outline-primary">
                                             <i class="fa-solid fa-eye"></i> Chi tiết
                                         </a>

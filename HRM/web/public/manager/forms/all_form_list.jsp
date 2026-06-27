@@ -77,7 +77,7 @@
             </c:if>
             <%-- Filter theo ngày / tháng / năm / phòng ban / mã nhân viên --%>
             <div class="section-card">
-                <form method="get" action="${pageContext.request.contextPath}/v1/employee/all-forms"
+                <form method="get" action="${pageContext.request.contextPath}/v1/employee/forms/all"
                       class="row g-3 align-items-end">
                     <div class="col-md-2">
                         <label class="form-label">Ngày</label>
@@ -141,7 +141,7 @@
                                         <c:forEach var="f" items="${forms}">
                                         <tr>
                                             <td>
-                                                <a href="${pageContext.request.contextPath}/v1/employee/form-detail?id=${f.formId}" class="text-decoration-none fw-bold">
+                                                <a href="${pageContext.request.contextPath}/v1/employee/forms/detail?id=${f.formId}" class="text-decoration-none fw-bold">
                                                     ${f.formCode}
                                                 </a>
                                             </td>
@@ -152,7 +152,7 @@
                                             <td><span class="badge-status status-${f.status}">${f.statusLabel}</span></td>
                                             <td>${f.createdAt}</td>
                                             <td>
-                                                <a href="${pageContext.request.contextPath}/v1/employee/form-detail?id=${f.formId}"
+                                                <a href="${pageContext.request.contextPath}/v1/employee/forms/detail?id=${f.formId}"
                                                    class="btn btn-sm btn-outline-primary">
                                                     <i class="fa-solid fa-eye me-1"></i> Xem chi tiết
                                                 </a>

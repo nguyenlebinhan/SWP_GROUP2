@@ -159,7 +159,7 @@
     <div class="row g-4 mt-4">
         <c:if test="${sessionScope.userPermissions.contains('ADD_EMPLOYMENT_CONTRACT')}">
             <div class="col-md-4">
-                <a href="${pageContext.request.contextPath}/v1/employee/add-contract" class="feature-card">
+                <a href="${pageContext.request.contextPath}/v1/employee/contract/add" class="feature-card">
                     <div class="feature-icon" style="background: #e3f2fd; color: #1565c0;">
                         <i class="fas fa-file-contract"></i>
                     </div>

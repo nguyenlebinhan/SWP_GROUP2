@@ -69,7 +69,7 @@
                 <h5 class="fw-bold mb-1">Nhân viên</h5>
                 <span class="text-muted small">${employees.size()} nhân viên</span>
             </div>
-            <a href="${pageContext.request.contextPath}/v1/businessadmin/assign-department"
+            <a href="${pageContext.request.contextPath}/v1/businessadmin/employee_info/department-assign"
                class="btn btn-primary btn-sm" style="background:#2563eb;border:none">
                 <i class="fa-solid fa-plus me-1"></i> Phân công nhân viên
             </a>
@@ -133,7 +133,7 @@
                                         </c:choose>
                                     </td>
                                     <td class="text-center">
-                                        <a href="${pageContext.request.contextPath}/v1/businessadmin/employee-detail?id=${emp.employeeId}"
+                                        <a href="${pageContext.request.contextPath}/v1/businessadmin/employee_info/detail?id=${emp.employeeId}"
                                            class="btn btn-sm btn-outline-primary">
                                             <i class="fa-solid fa-eye"></i> Chi tiết
                                         </a>

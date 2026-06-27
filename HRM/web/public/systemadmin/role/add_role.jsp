@@ -105,7 +105,7 @@
 <div class="main-content">
     <jsp:include page="/public/components/systemAdminTopBar.jsp">
         <jsp:param name="title" value="Thêm vai trò" />
-        <jsp:param name="backUrl" value="/v1/systemadmin/role-list" />
+        <jsp:param name="backUrl" value="/v1/systemadmin/role/list" />
     </jsp:include>
 
     <c:if test="${not empty error}">
@@ -115,7 +115,7 @@
         </div>
     </c:if>
 
-    <form action="${pageContext.request.contextPath}/v1/systemadmin/add-role" method="POST">
+    <form action="${pageContext.request.contextPath}/v1/systemadmin/role/add" method="POST">
         <div class="card">
             <div class="card-body p-4">
                 <div class="section-label"><i class="fa fa-shield-halved"></i>Thông tin vai trò</div>
@@ -147,7 +147,7 @@
                     <button type="submit" class="btn-save">
                         <i class="fa fa-floppy-disk me-2"></i>Lưu vai trò
                     </button>
-                    <a href="${pageContext.request.contextPath}/v1/systemadmin/role-list" class="btn-cancel-link">
+                    <a href="${pageContext.request.contextPath}/v1/systemadmin/role/list" class="btn-cancel-link">
                         Hủy
                     </a>
                 </div>

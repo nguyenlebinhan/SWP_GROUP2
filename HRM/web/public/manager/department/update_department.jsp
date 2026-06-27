@@ -143,7 +143,7 @@
 <div class="main">
     <jsp:include page="/public/components/employeeTopBar.jsp">
         <jsp:param name="title" value="Cập nhật phòng ban" />
-        <jsp:param name="backUrl" value="/v1/employee/department-detail?id=${department.departmentId}" />
+        <jsp:param name="backUrl" value="/v1/employee/department/detail?id=${department.departmentId}" />
     </jsp:include>
 
     <c:if test="${not empty error}">
@@ -168,7 +168,7 @@
             </div>
         </div>
 
-        <form action="${pageContext.request.contextPath}/v1/employee/update-department"
+        <form action="${pageContext.request.contextPath}/v1/employee/department/update"
               method="post" id="updateDeptForm" novalidate>
             <input type="hidden" name="departmentId" value="${department.departmentId}">
 
@@ -244,7 +244,7 @@
                 <button type="submit" class="btn btn-primary">
                     <i class="fa-solid fa-save"></i> Lưu
                 </button>
-                <a href="${pageContext.request.contextPath}/v1/employee/department-detail?id=${department.departmentId}" class="btn-cancel">
+                <a href="${pageContext.request.contextPath}/v1/employee/department/detail?id=${department.departmentId}" class="btn-cancel">
                     <i class="fa-solid fa-xmark"></i> Hủy
                 </a>
                 <span class="text-muted ms-auto" style="font-size:12px">

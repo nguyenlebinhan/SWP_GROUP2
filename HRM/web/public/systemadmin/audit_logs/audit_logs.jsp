@@ -111,7 +111,7 @@
 
             <%-- Bộ lọc số dòng hiển thị --%>
             <form method="get"
-                  action="${pageContext.request.contextPath}/v1/systemadmin/audit-logs"
+                  action="${pageContext.request.contextPath}/v1/systemadmin/audit_logs/list"
                   class="search-bar">
                 <span class="total-label">Hiển thị</span>
                 <select name="limit" onchange="this.form.submit()">

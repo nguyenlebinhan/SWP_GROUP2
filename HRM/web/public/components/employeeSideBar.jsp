@@ -92,7 +92,7 @@
 
     <c:if test="${sessionScope.userPermissions.contains('PROCESS_RECRUITMENT')}">
         <div class="nav-section">Tuyển dụng</div>
-        <a href="${pageContext.request.contextPath}/v1/employee/recruitment-list">
+        <a href="${pageContext.request.contextPath}/v1/employee/recruitment/list">
             Danh sách ứng viên
         </a>
     </c:if>

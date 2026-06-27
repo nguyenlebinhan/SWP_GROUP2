@@ -146,7 +146,7 @@
             <h5 class="mb-0 fw-bold" style="color:#0B0E2A;">
                 Danh sách Phòng ban
             </h5>
-            <a href="${pageContext.request.contextPath}/v1/businessadmin/add-department" class="btn btn-assign">
+            <a href="${pageContext.request.contextPath}/v1/businessadmin/department/add" class="btn btn-assign">
                 Thêm phòng ban
             </a>
         </div>
@@ -216,7 +216,7 @@
                                            class="btn btn-unassign me-1" style="color:#1565C0;border-color:#1565C0;">
                                             Nhân viên
                                         </a>
-                                        <a href="${pageContext.request.contextPath}/v1/businessadmin/update-department?id=${dept.departmentId}"
+                                        <a href="${pageContext.request.contextPath}/v1/businessadmin/department/update?id=${dept.departmentId}"
                                            class="btn btn-unassign me-1" style="color:#475569;border-color:#cbd5e1;">
                                             Sửa
                                         </a>

@@ -173,7 +173,7 @@
                             <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                         </div>
                         <form method="post"
-                              action="${pageContext.request.contextPath}/v1/manager/recruitment-review">
+                              action="${pageContext.request.contextPath}/v1/manager/recruitment/review">
                             <div class="modal-body">
                                 <input type="hidden" name="candidateId" value="${candidate.candidateId}"/>
                                 <input type="hidden" name="result" id="resultInput"/>

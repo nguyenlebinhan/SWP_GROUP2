@@ -144,7 +144,7 @@
 <div class="main">
     <jsp:include page="/public/components/businessAdminTopBar.jsp">
         <jsp:param name="title" value="Assign Manager" />
-        <jsp:param name="backUrl" value="/v1/businessadmin/department" />
+        <jsp:param name="backUrl" value="/v1/businessadmin/department/list" />
     </jsp:include>
 
     <%-- Dept banner --%>

@@ -140,7 +140,7 @@ public class EmployeeController extends HttpServlet {
             case "/department/update":
                 displayUpdateDepartmentForm(request, response, user);
                 break;
-            case "/my-profile":
+            case "/employee_info/my-profile":
                 displayMyProfile(request, response, user);
                 break;
             case "/attendance/import":
@@ -194,13 +194,13 @@ public class EmployeeController extends HttpServlet {
             case "/forms/transfer/new":
                 displayRequestTransferForm(request, response, user);
                 break;
-            case "/recruitment-list":
+            case "/recruitment/list":
                 displayRecruitmentList(request, response, user);
                 break;
-            case "/recruitment-detail":
+            case "/recruitment/detail":
                 displayRecruitmentDetail(request, response, user);
                 break;
-            case "/recruitment-import":
+            case "/recruitment/import":
                 displayRecruitmentImport(request, response, user);
                 break;
             default:
@@ -244,7 +244,7 @@ public class EmployeeController extends HttpServlet {
             case "/department/update":
                 handleUpdateDepartment(request, response, user);
                 break;
-            case "/my-profile/update":
+            case "/employee_info/my-profile/update":
                 handleUpdateMyProfile(request, response, user);
                 break;
             case "/attendance/import":
@@ -253,7 +253,7 @@ public class EmployeeController extends HttpServlet {
             case "/attendance/update":
                 handleUpdateAttendance(request, response, user);
                 break;
-            case "/update-employee-detail":
+            case "/employee_info/update-detail":
                 handleUpdateEmployeeDetail(request, response, user);
                 break;
             case "/forms/leave/submit":
@@ -265,10 +265,10 @@ public class EmployeeController extends HttpServlet {
             case "/forms/transfer/submit":
                 handleRequestTransfer(request, response, user);
                 break;
-            case "/recruitment-review":
+            case "/recruitment/review":
                 handleRecruitmentReview(request, response, user);
                 break;
-            case "/recruitment-import":
+            case "/recruitment/import":
                 handleImportCandidates(request, response, user);
                 break;
             case "/salary/generate":
@@ -1816,7 +1816,7 @@ public class EmployeeController extends HttpServlet {
         EmployeeDetailDTO myEmployee = employeeDAO.getEmployeeByUserId(user.getUserId());
         if (myEmployee == null) {
             request.getSession().setAttribute("error", "Không tìm thấy hồ sơ nhân viên.");
-            response.sendRedirect(request.getContextPath() + "/v1/employee/my-profile");
+            response.sendRedirect(request.getContextPath() + "/v1/employee/employee_info/my-profile");
             return;
         }
 
@@ -1832,7 +1832,7 @@ public class EmployeeController extends HttpServlet {
         } else {
             request.getSession().setAttribute("error", "Cập nhật thất bại. Vui lòng thử lại.");
         }
-        response.sendRedirect(request.getContextPath() + "/v1/employee/my-profile");
+        response.sendRedirect(request.getContextPath() + "/v1/employee/employee_info/my-profile");
     }
 
     private boolean isBlank(String v) {
@@ -2390,13 +2390,13 @@ public class EmployeeController extends HttpServlet {
         }
         Integer candidateId = parseIntOrNull(request.getParameter("id"));
         if (candidateId == null) {
-            response.sendRedirect(request.getContextPath() + "/v1/employee/recruitment-list");
+            response.sendRedirect(request.getContextPath() + "/v1/employee/recruitment/list");
             return;
         }
         Candidate candidate = candidateDAO.getById(candidateId);
         if (candidate == null) {
             request.getSession().setAttribute("error", "Khong tim thay ung vien.");
-            response.sendRedirect(request.getContextPath() + "/v1/employee/recruitment-list");
+            response.sendRedirect(request.getContextPath() + "/v1/employee/recruitment/list");
             return;
         }
         Set<String> perms = getPermissions(user);
@@ -2425,7 +2425,7 @@ public class EmployeeController extends HttpServlet {
         if (candidateId == null || isBlank(result) || isBlank(toEmail)
                 || isBlank(emailSubject) || isBlank(emailBody)) {
             request.getSession().setAttribute("error", "Thieu thong tin xu ly tuyen dung.");
-            response.sendRedirect(request.getContextPath() + "/v1/employee/recruitment-list");
+            response.sendRedirect(request.getContextPath() + "/v1/employee/recruitment/list");
             return;
         }
 
@@ -2433,7 +2433,7 @@ public class EmployeeController extends HttpServlet {
         EmployeeDetailDTO reviewer = employeeDAO.getEmployeeByUserId(user.getUserId());
         if (candidate == null || reviewer == null) {
             request.getSession().setAttribute("error", "Khong tim thay du lieu ung vien hoac nguoi xu ly.");
-            response.sendRedirect(request.getContextPath() + "/v1/employee/recruitment-list");
+            response.sendRedirect(request.getContextPath() + "/v1/employee/recruitment/list");
             return;
         }
 
@@ -2460,7 +2460,7 @@ public class EmployeeController extends HttpServlet {
         int logId = candidateDAO.insertLog(log);
         if (logId <= 0) {
             request.getSession().setAttribute("error", "Khong the luu lich su xu ly ung vien.");
-            response.sendRedirect(request.getContextPath() + "/v1/employee/recruitment-detail?id=" + candidateId);
+            response.sendRedirect(request.getContextPath() + "/v1/employee/recruitment/detail?id=" + candidateId);
             return;
         }
 
@@ -2470,13 +2470,13 @@ public class EmployeeController extends HttpServlet {
         candidateDAO.updateEmailStatus(logId, sent ? "SENT" : "FAILED");
         if (!sent) {
             request.getSession().setAttribute("error", "Gui email that bai, trang thai ung vien chua duoc cap nhat.");
-            response.sendRedirect(request.getContextPath() + "/v1/employee/recruitment-detail?id=" + candidateId);
+            response.sendRedirect(request.getContextPath() + "/v1/employee/recruitment/detail?id=" + candidateId);
             return;
         }
 
         candidateDAO.updateStage(candidateId, toStage);
         request.getSession().setAttribute("success", "Da xu ly ung vien va gui email thanh cong.");
-        response.sendRedirect(request.getContextPath() + "/v1/employee/recruitment-list?stage=" + toStage);
+        response.sendRedirect(request.getContextPath() + "/v1/employee/recruitment/list?stage=" + toStage);
     }
 
     private void displayRecruitmentImport(HttpServletRequest request, HttpServletResponse response,
@@ -2503,13 +2503,13 @@ public class EmployeeController extends HttpServlet {
         Part filePart = request.getPart("file");
         if (filePart == null || filePart.getSize() == 0) {
             request.getSession().setAttribute("error", "Vui long chon file Excel.");
-            response.sendRedirect(request.getContextPath() + "/v1/employee/recruitment-import");
+            response.sendRedirect(request.getContextPath() + "/v1/employee/recruitment/import");
             return;
         }
         String submittedName = filePart.getSubmittedFileName();
         if (submittedName == null || !submittedName.toLowerCase(Locale.ROOT).endsWith(".xlsx")) {
             request.getSession().setAttribute("error", "File phai co dinh dang .xlsx.");
-            response.sendRedirect(request.getContextPath() + "/v1/employee/recruitment-import");
+            response.sendRedirect(request.getContextPath() + "/v1/employee/recruitment/import");
             return;
         }
 
@@ -2525,7 +2525,7 @@ public class EmployeeController extends HttpServlet {
         EmployeeDetailDTO me = employeeDAO.getEmployeeByUserId(user.getUserId());
         if (me == null || me.getDepartmentId() <= 0) {
             request.getSession().setAttribute("error", "Khong tim thay phong ban cua ban.");
-            response.sendRedirect(request.getContextPath() + "/v1/employee/recruitment-import");
+            response.sendRedirect(request.getContextPath() + "/v1/employee/recruitment/import");
             return;
         }
 
@@ -2542,7 +2542,7 @@ public class EmployeeController extends HttpServlet {
         int fileId = uploadedFileDAO.createUploadedFile(uf);
         if (fileId <= 0) {
             request.getSession().setAttribute("error", "Khong the tao ban ghi file import.");
-            response.sendRedirect(request.getContextPath() + "/v1/employee/recruitment-import");
+            response.sendRedirect(request.getContextPath() + "/v1/employee/recruitment/import");
             return;
         }
 

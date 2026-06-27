@@ -70,8 +70,11 @@ public class BusinessAdminController extends HttpServlet {
             case "/dashboard":
                 displayDashboard(request, response);
                 break;
-            case "/my-profile":
+            case "/employee_info/my-profile":
                 displayMyProfile(request, response);
+                break;
+            case "/employee_info/my-profile/update":
+                handleUpdateMyProfile(request, response, user);
                 break;
             case "/department":
                 displayDepartmentList(request, response);
@@ -82,22 +85,22 @@ public class BusinessAdminController extends HttpServlet {
             case "/department/employees":
                 displayDepartmentEmployees(request, response);
                 break;
-            case "/employee-list":
+            case "/employee_info/list":
                 displayEmployeeList(request, response, user);
                 break;
-            case "/employee-detail":
+            case "/employee_info/detail":
                 displayEmployeeDetail(request, response);
                 break;
-            case "/assign-department":
+            case "/employee_info/department-assign":
                 displayAssignDepartmentForm(request, response, user);
                 break;
-            case "/add-department":
+            case "/department/add":
                 displayAddDepartmentForm(request, response);
                 break;
-            case "/update-department":
+            case "/department/update":
                 displayUpdateDepartmentForm(request, response);
                 break;
-            case "/holiday":
+            case "/holiday/list":
                 displayHolidayList(request, response);
                 break;
             case "/holiday/add":
@@ -106,8 +109,7 @@ public class BusinessAdminController extends HttpServlet {
             case "/holiday/edit":
                 displayHolidayForm(request, response, true);
                 break;
-            case "/payroll-config":
-            case "/payrol-config":
+            case "/payroll/config":
                 displayPayrollConfig(request, response);
                 break;
             case "/attendance/overview":
@@ -119,13 +121,13 @@ public class BusinessAdminController extends HttpServlet {
             case "/attendance/export":
                 exportAttendanceReport(request, response);
                 break;
-            case "/forms":
+            case "/overtime/list":
                 displayFormRequests(request, response);
                 break;
-            case "/forms/ot-detail":
+            case "/overtime/ot-detail":
                 displayOTDetail(request, response);
                 break;
-            case "/forms/transfer-detail":
+            case "/overtime/transfer-detail":
                 displayTransferDetail(request, response);
                 break;
             default:
@@ -147,7 +149,10 @@ public class BusinessAdminController extends HttpServlet {
             return;
         }
         switch (action) {
-            case "/my-profile":
+            case "/employee_info/my-profile":
+                displayMyProfile(request, response);
+                break;
+            case "/employee_info/my-profile/update":
                 handleUpdateMyProfile(request, response, user);
                 break;
             case "/department/assign":
@@ -156,13 +161,13 @@ public class BusinessAdminController extends HttpServlet {
             case "/department/unassign":
                 handleUnassignManager(request, response);
                 break;
-            case "/assign-department":
+            case "/employee_info/department-assign":
                 handleAssignDepartment(request, response, user);
                 break;
-            case "/add-department":
+            case "/department/add":
                 handleAddDepartment(request, response, user);
                 break;
-            case "/update-department":
+            case "/department/update":
                 handleUpdateDepartment(request, response);
                 break;
             case "/holiday/add":
@@ -174,22 +179,22 @@ public class BusinessAdminController extends HttpServlet {
             case "/holiday/delete":
                 handleDeleteHoliday(request, response);
                 break;
-            case "/payroll-config/setting/save":
+            case "/payroll/config/setting/save":
                 handleSavePayrollSetting(request, response);
                 break;
-            case "/payroll-config/deduction/save":
+            case "/payroll/config/deduction/save":
                 handleSavePayrollDeduction(request, response);
                 break;
-            case "/payroll-config/deduction/delete":
+            case "/payroll/config/deduction/delete":
                 handleDeletePayrollDeduction(request, response);
                 break;
-            case "/payroll-config/tax/save":
+            case "/payroll/config/tax/save":
                 handleSavePayrollTaxBracket(request, response);
                 break;
-            case "/forms/approve":
+            case "/overtime/approve":
                 handleApproveForm(request, response, user);
                 break;
-            case "/forms/reject":
+            case "/overtime/reject":
                 handleRejectForm(request, response, user);
                 break;
             default:
@@ -230,7 +235,7 @@ public class BusinessAdminController extends HttpServlet {
         }
         User currentUser = userDAO.getUserById(sessionUser.getUserId());
         request.setAttribute("currentUser", currentUser);
-        request.getRequestDispatcher("/public/businessadmin/employee/my_profile.jsp").forward(request, response);
+        request.getRequestDispatcher("/public/businessadmin/employee_info/my_profile.jsp").forward(request, response);
     }
 
     private void handleUpdateMyProfile(HttpServletRequest request, HttpServletResponse response, User sessionUser)
@@ -243,7 +248,7 @@ public class BusinessAdminController extends HttpServlet {
         if (isBlank(username) || isBlank(fullName)) {
             request.setAttribute("error", "Vui lòng nhập đầy đủ tên đăng nhập và họ tên");
             request.setAttribute("currentUser", userDAO.getUserById(sessionUser.getUserId()));
-            request.getRequestDispatcher("/public/businessadmin/employee/my_profile.jsp").forward(request, response);
+            request.getRequestDispatcher("/public/businessadmin/employee_info/my_profile.jsp").forward(request, response);
             return;
         }
 
@@ -255,7 +260,7 @@ public class BusinessAdminController extends HttpServlet {
         if (userDAO.isUsernameExists(username, sessionUser.getUserId())) {
             request.setAttribute("error", "Tên đăng nhập đã tồn tại");
             request.setAttribute("currentUser", userDAO.getUserById(sessionUser.getUserId()));
-            request.getRequestDispatcher("/public/businessadmin/employee/my_profile.jsp").forward(request, response);
+            request.getRequestDispatcher("/public/businessadmin/employee_info/my_profile.jsp").forward(request, response);
             return;
         }
 
@@ -263,14 +268,14 @@ public class BusinessAdminController extends HttpServlet {
         if (!updated) {
             request.setAttribute("error", "Cập nhật hồ sơ thất bại. Vui lòng thử lại");
             request.setAttribute("currentUser", userDAO.getUserById(sessionUser.getUserId()));
-            request.getRequestDispatcher("/public/businessadmin/employee/my_profile.jsp").forward(request, response);
+            request.getRequestDispatcher("/public/businessadmin/employee_info/my_profile.jsp").forward(request, response);
             return;
         }
 
         User updatedUser = userDAO.getUserById(sessionUser.getUserId());
         request.getSession().setAttribute("user", updatedUser);
         request.getSession().setAttribute("success", "Cập nhật hồ sơ thành công");
-        response.sendRedirect(request.getContextPath() + "/v1/businessadmin/my-profile");
+        response.sendRedirect(request.getContextPath() + "/v1/businessadmin/employee_info/my-profile");
     }
 
 
@@ -313,21 +318,21 @@ public class BusinessAdminController extends HttpServlet {
             throws ServletException, IOException {
         String idParam = request.getParameter("id");
         if (idParam == null) {
-            response.sendRedirect(request.getContextPath() + "/v1/businessadmin/department");
+            response.sendRedirect(request.getContextPath() + "/v1/businessadmin/department/list");
             return;
         }
         int departmentId;
         try {
             departmentId = Integer.parseInt(idParam);
         } catch (NumberFormatException e) {
-            response.sendRedirect(request.getContextPath() + "/v1/businessadmin/department");
+            response.sendRedirect(request.getContextPath() + "/v1/businessadmin/department/list");
             return;
         }
 
         Department dept = departmentDAO.getDepartmentById(departmentId);
         if (dept == null || dept.getStatus() == 0) {
             request.getSession().setAttribute("deptError", "Phòng ban không tồn tại hoặc đã bị vô hiệu hóa.");
-            response.sendRedirect(request.getContextPath() + "/v1/businessadmin/department");
+            response.sendRedirect(request.getContextPath() + "/v1/businessadmin/department/list");
             return;
         }
 
@@ -348,7 +353,7 @@ public class BusinessAdminController extends HttpServlet {
 
         if (isBlank(deptIdParam) || isBlank(empIdParam)) {
             request.getSession().setAttribute("deptError", "Dữ liệu không hợp lệ.");
-            response.sendRedirect(request.getContextPath() + "/v1/businessadmin/department");
+            response.sendRedirect(request.getContextPath() + "/v1/businessadmin/department/list");
             return;
         }
 
@@ -358,14 +363,14 @@ public class BusinessAdminController extends HttpServlet {
             employeeId = Integer.parseInt(empIdParam.trim());
         } catch (NumberFormatException e) {
             request.getSession().setAttribute("deptError", "Dữ liệu không hợp lệ.");
-            response.sendRedirect(request.getContextPath() + "/v1/businessadmin/department");
+            response.sendRedirect(request.getContextPath() + "/v1/businessadmin/department/list");
             return;
         }
 
         Department dept = departmentDAO.getDepartmentById(departmentId);
         if (dept == null || dept.getStatus() == 0) {
             request.getSession().setAttribute("deptError", "Phòng ban không tồn tại.");
-            response.sendRedirect(request.getContextPath() + "/v1/businessadmin/department");
+            response.sendRedirect(request.getContextPath() + "/v1/businessadmin/department/list");
             return;
         }
 
@@ -384,7 +389,7 @@ public class BusinessAdminController extends HttpServlet {
         } else {
             request.getSession().setAttribute("deptError", "Assign thất bại. Vui lòng thử lại.");
         }
-        response.sendRedirect(request.getContextPath() + "/v1/businessadmin/department");
+        response.sendRedirect(request.getContextPath() + "/v1/businessadmin/department/list");
     }
 
     private void handleUnassignManager(HttpServletRequest request, HttpServletResponse response)
@@ -393,7 +398,7 @@ public class BusinessAdminController extends HttpServlet {
 
         if (isBlank(deptIdParam)) {
             request.getSession().setAttribute("deptError", "Dữ liệu không hợp lệ.");
-            response.sendRedirect(request.getContextPath() + "/v1/businessadmin/department");
+            response.sendRedirect(request.getContextPath() + "/v1/businessadmin/department/list");
             return;
         }
 
@@ -402,14 +407,14 @@ public class BusinessAdminController extends HttpServlet {
             departmentId = Integer.parseInt(deptIdParam.trim());
         } catch (NumberFormatException e) {
             request.getSession().setAttribute("deptError", "Dữ liệu không hợp lệ.");
-            response.sendRedirect(request.getContextPath() + "/v1/businessadmin/department");
+            response.sendRedirect(request.getContextPath() + "/v1/businessadmin/department/list");
             return;
         }
 
         Department dept = departmentDAO.getDepartmentById(departmentId);
         if (dept == null) {
             request.getSession().setAttribute("deptError", "Phòng ban không tồn tại.");
-            response.sendRedirect(request.getContextPath() + "/v1/businessadmin/department");
+            response.sendRedirect(request.getContextPath() + "/v1/businessadmin/department/list");
             return;
         }
 
@@ -420,7 +425,7 @@ public class BusinessAdminController extends HttpServlet {
         } else {
             request.getSession().setAttribute("deptError", "Gỡ manager thất bại. Vui lòng thử lại.");
         }
-        response.sendRedirect(request.getContextPath() + "/v1/businessadmin/department");
+        response.sendRedirect(request.getContextPath() + "/v1/businessadmin/department/list");
     }
 
 
@@ -428,51 +433,51 @@ public class BusinessAdminController extends HttpServlet {
             throws ServletException, IOException {
         List<EmployeeDetailDTO> employees = employeeDAO.getAllEmployees(user.getUserId());
         request.setAttribute("employees", employees);
-        request.getRequestDispatcher("/public/businessadmin/employee/employee_list.jsp").forward(request, response);
+        request.getRequestDispatcher("/public/businessadmin/employee_info/employee_list.jsp").forward(request, response);
     }
 
     private void displayEmployeeDetail(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         String idParam = request.getParameter("id");
         if (isBlank(idParam)) {
-            response.sendRedirect(request.getContextPath() + "/v1/businessadmin/employee-list");
+            response.sendRedirect(request.getContextPath() + "/v1/businessadmin/employee_info/list");
             return;
         }
         int employeeId;
         try {
             employeeId = Integer.parseInt(idParam.trim());
         } catch (NumberFormatException e) {
-            response.sendRedirect(request.getContextPath() + "/v1/businessadmin/employee-list");
+            response.sendRedirect(request.getContextPath() + "/v1/businessadmin/employee_info/list");
             return;
         }
         EmployeeDetailDTO employee = employeeDAO.getEmployeeById(employeeId);
         if (employee == null) {
             request.getSession().setAttribute("error", "Không tìm thấy nhân viên.");
-            response.sendRedirect(request.getContextPath() + "/v1/businessadmin/employee-list");
+            response.sendRedirect(request.getContextPath() + "/v1/businessadmin/employee_info/list");
             return;
         }
         request.setAttribute("employee", employee);
-        request.getRequestDispatcher("/public/businessadmin/employee/employee_detail.jsp").forward(request, response);
+        request.getRequestDispatcher("/public/businessadmin/employee_info/employee_detail.jsp").forward(request, response);
     }
 
     private void displayDepartmentEmployees(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         String idParam = request.getParameter("id");
         if (isBlank(idParam)) {
-            response.sendRedirect(request.getContextPath() + "/v1/businessadmin/department");
+            response.sendRedirect(request.getContextPath() + "/v1/businessadmin/department/list");
             return;
         }
         int departmentId;
         try {
             departmentId = Integer.parseInt(idParam.trim());
         } catch (NumberFormatException e) {
-            response.sendRedirect(request.getContextPath() + "/v1/businessadmin/department");
+            response.sendRedirect(request.getContextPath() + "/v1/businessadmin/department/list");
             return;
         }
         Department department = departmentDAO.getDepartmentById(departmentId);
         if (department == null) {
             request.getSession().setAttribute("deptError", "Không tìm thấy phòng ban.");
-            response.sendRedirect(request.getContextPath() + "/v1/businessadmin/department");
+            response.sendRedirect(request.getContextPath() + "/v1/businessadmin/department/list");
             return;
         }
         List<EmployeeDetailDTO> employees = employeeDAO.getEmployeesByDepartmentId(departmentId);
@@ -561,7 +566,7 @@ public class BusinessAdminController extends HttpServlet {
         }
 
         request.getSession().setAttribute("success", "Phân công nhân viên vào phòng ban thành công.");
-        response.sendRedirect(request.getContextPath() + "/v1/businessadmin/employee-list");
+        response.sendRedirect(request.getContextPath() + "/v1/businessadmin/employee_info/list");
     }
 
     private void repopulateAssignForm(HttpServletRequest request, HttpServletResponse response,
@@ -623,26 +628,26 @@ public class BusinessAdminController extends HttpServlet {
         }
 
         request.getSession().setAttribute("deptSuccess", "Thêm phòng ban \"" + name.trim() + "\" thành công.");
-        response.sendRedirect(request.getContextPath() + "/v1/businessadmin/department");
+        response.sendRedirect(request.getContextPath() + "/v1/businessadmin/department/list");
     }
 
     private void displayUpdateDepartmentForm(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         String idParam = request.getParameter("id");
         if (isBlank(idParam)) {
-            response.sendRedirect(request.getContextPath() + "/v1/businessadmin/department");
+            response.sendRedirect(request.getContextPath() + "/v1/businessadmin/department/list");
             return;
         }
         int deptId;
         try {
             deptId = Integer.parseInt(idParam);
         } catch (NumberFormatException e) {
-            response.sendRedirect(request.getContextPath() + "/v1/businessadmin/department");
+            response.sendRedirect(request.getContextPath() + "/v1/businessadmin/department/list");
             return;
         }
         Department dept = departmentDAO.getDepartmentById(deptId);
         if (dept == null) {
-            response.sendRedirect(request.getContextPath() + "/v1/businessadmin/department");
+            response.sendRedirect(request.getContextPath() + "/v1/businessadmin/department/list");
             return;
         }
 
@@ -669,7 +674,7 @@ public class BusinessAdminController extends HttpServlet {
 
         if (isBlank(idParam) || isBlank(name)) {
             request.getSession().setAttribute("error", "Tên phòng ban là bắt buộc.");
-            response.sendRedirect(request.getContextPath() + "/v1/businessadmin/update-department?id="
+            response.sendRedirect(request.getContextPath() + "/v1/businessadmin/department/update?id="
                     + (idParam != null ? idParam : ""));
             return;
         }
@@ -678,13 +683,13 @@ public class BusinessAdminController extends HttpServlet {
         try {
             deptId = Integer.parseInt(idParam);
         } catch (NumberFormatException e) {
-            response.sendRedirect(request.getContextPath() + "/v1/businessadmin/department");
+            response.sendRedirect(request.getContextPath() + "/v1/businessadmin/department/list");
             return;
         }
 
         Department dept = departmentDAO.getDepartmentById(deptId);
         if (dept == null) {
-            response.sendRedirect(request.getContextPath() + "/v1/businessadmin/department");
+            response.sendRedirect(request.getContextPath() + "/v1/businessadmin/department/list");
             return;
         }
 
@@ -695,10 +700,10 @@ public class BusinessAdminController extends HttpServlet {
         if (success) {
             departmentDAO.replaceDepartmentRoles(deptId, roleIds);
             request.getSession().setAttribute("deptSuccess", "Cập nhật phòng ban thành công.");
-            response.sendRedirect(request.getContextPath() + "/v1/businessadmin/department");
+            response.sendRedirect(request.getContextPath() + "/v1/businessadmin/department/list");
         } else {
             request.getSession().setAttribute("error", "Cập nhật thất bại. Vui lòng thử lại.");
-            response.sendRedirect(request.getContextPath() + "/v1/businessadmin/update-department?id=" + deptId);
+            response.sendRedirect(request.getContextPath() + "/v1/businessadmin/department/update?id=" + deptId);
         }
     }
 
@@ -856,7 +861,7 @@ public class BusinessAdminController extends HttpServlet {
             Holiday holiday = (holidayId != null) ? holidayDAO.getHolidayById(holidayId) : null;
             if (holiday == null) {
                 request.getSession().setAttribute("holidayError", "Không tìm thấy ngày lễ.");
-                response.sendRedirect(request.getContextPath() + "/v1/businessadmin/holiday");
+                response.sendRedirect(request.getContextPath() + "/v1/businessadmin/holiday/list");
                 return;
             }
             request.setAttribute("holiday", holiday);
@@ -884,7 +889,7 @@ public class BusinessAdminController extends HttpServlet {
         } else {
             request.getSession().setAttribute("holidayError", "Thêm ngày lễ thất bại. Vui lòng thử lại.");
         }
-        response.sendRedirect(request.getContextPath() + "/v1/businessadmin/holiday");
+        response.sendRedirect(request.getContextPath() + "/v1/businessadmin/holiday/list");
     }
 
     private void handleUpdateHoliday(HttpServletRequest request, HttpServletResponse response)
@@ -892,7 +897,7 @@ public class BusinessAdminController extends HttpServlet {
         Integer holidayId = parseIntParam(request.getParameter("holidayId"));
         if (holidayId == null || holidayDAO.getHolidayById(holidayId) == null) {
             request.getSession().setAttribute("holidayError", "Không tìm thấy ngày lễ.");
-            response.sendRedirect(request.getContextPath() + "/v1/businessadmin/holiday");
+            response.sendRedirect(request.getContextPath() + "/v1/businessadmin/holiday/list");
             return;
         }
 
@@ -913,7 +918,7 @@ public class BusinessAdminController extends HttpServlet {
         } else {
             request.getSession().setAttribute("holidayError", "Cập nhật ngày lễ thất bại. Vui lòng thử lại.");
         }
-        response.sendRedirect(request.getContextPath() + "/v1/businessadmin/holiday");
+        response.sendRedirect(request.getContextPath() + "/v1/businessadmin/holiday/list");
     }
 
     private void handleDeleteHoliday(HttpServletRequest request, HttpServletResponse response)
@@ -926,7 +931,7 @@ public class BusinessAdminController extends HttpServlet {
         } else {
             request.getSession().setAttribute("holidayError", "Xóa ngày lễ thất bại. Vui lòng thử lại.");
         }
-        response.sendRedirect(request.getContextPath() + "/v1/businessadmin/holiday");
+        response.sendRedirect(request.getContextPath() + "/v1/businessadmin/holiday/list");
     }
 
     /**
@@ -1050,7 +1055,7 @@ public class BusinessAdminController extends HttpServlet {
         } else {
             setPayrollConfigError(request, "Lưu tham số payroll thất bại.");
         }
-        response.sendRedirect(request.getContextPath() + "/v1/businessadmin/payroll-config");
+        response.sendRedirect(request.getContextPath() + "/v1/businessadmin/payroll/config");
     }
 
     private BigDecimal parsePayrollSettingValue(String key, String rawValue) {
@@ -1149,7 +1154,7 @@ public class BusinessAdminController extends HttpServlet {
                 setPayrollConfigError(request, "Lưu khoản khấu trừ thất bại.");
             }
         }
-        response.sendRedirect(request.getContextPath() + "/v1/businessadmin/payroll-config");
+        response.sendRedirect(request.getContextPath() + "/v1/businessadmin/payroll/config");
     }
 
     private void handleDeletePayrollDeduction(HttpServletRequest request, HttpServletResponse response)
@@ -1160,7 +1165,7 @@ public class BusinessAdminController extends HttpServlet {
         } else {
             setPayrollConfigError(request, "Xóa khoản khấu trừ thất bại.");
         }
-        response.sendRedirect(request.getContextPath() + "/v1/businessadmin/payroll-config");
+        response.sendRedirect(request.getContextPath() + "/v1/businessadmin/payroll/config");
     }
 
     private void handleSavePayrollTaxBracket(HttpServletRequest request, HttpServletResponse response)
@@ -1179,7 +1184,7 @@ public class BusinessAdminController extends HttpServlet {
         } else {
             setPayrollConfigError(request, "Lưu bậc thuế thất bại.");
         }
-        response.sendRedirect(request.getContextPath() + "/v1/businessadmin/payroll-config");
+        response.sendRedirect(request.getContextPath() + "/v1/businessadmin/payroll/config");
     }
 
     private List<PayrollTaxBracket> buildTaxBrackets(String[] ids, String[] minIncomes,
@@ -1307,7 +1312,7 @@ public class BusinessAdminController extends HttpServlet {
             throws ServletException, IOException {
         String idParam = request.getParameter("id");
         if (idParam == null || idParam.trim().isEmpty()) {
-            response.sendRedirect(request.getContextPath() + "/v1/businessadmin/forms");
+            response.sendRedirect(request.getContextPath() + "/v1/businessadmin/overtime/list");
             return;
         }
         try {
@@ -1315,7 +1320,7 @@ public class BusinessAdminController extends HttpServlet {
             OvertimeRequestDTO otRequest = overtimeDAO.getOvertimeRequestById(formId);
             if (otRequest == null) {
                 request.getSession().setAttribute("error", "Không tìm thấy đơn OT.");
-                response.sendRedirect(request.getContextPath() + "/v1/businessadmin/forms");
+                response.sendRedirect(request.getContextPath() + "/v1/businessadmin/overtime/list");
                 return;
             }
 
@@ -1326,7 +1331,7 @@ public class BusinessAdminController extends HttpServlet {
             request.getRequestDispatcher("/public/businessadmin/overtime/ot_detail.jsp").forward(request, response);
             
         } catch (NumberFormatException e) {
-            response.sendRedirect(request.getContextPath() + "/v1/businessadmin/forms");
+            response.sendRedirect(request.getContextPath() + "/v1/businessadmin/overtime/list");
         }
     }
 
@@ -1334,7 +1339,7 @@ public class BusinessAdminController extends HttpServlet {
             throws ServletException, IOException {
         String idParam = request.getParameter("id");
         if (idParam == null || idParam.trim().isEmpty()) {
-            response.sendRedirect(request.getContextPath() + "/v1/businessadmin/forms");
+            response.sendRedirect(request.getContextPath() + "/v1/businessadmin/overtime/list");
             return;
         }
         try {
@@ -1342,7 +1347,7 @@ public class BusinessAdminController extends HttpServlet {
             FormRequestDTO form = formRequestDAO.getFormRequestById(formId);
             if (form == null || !"TRANSFER".equals(form.getFormTypeCode())) {
                 request.getSession().setAttribute("error", "Không tìm thấy đơn chuyển phòng ban.");
-                response.sendRedirect(request.getContextPath() + "/v1/businessadmin/forms");
+                response.sendRedirect(request.getContextPath() + "/v1/businessadmin/overtime/list");
                 return;
             }
 
@@ -1350,7 +1355,7 @@ public class BusinessAdminController extends HttpServlet {
             request.getRequestDispatcher("/public/businessadmin/overtime/transfer_detail.jsp").forward(request, response);
 
         } catch (NumberFormatException e) {
-            response.sendRedirect(request.getContextPath() + "/v1/businessadmin/forms");
+            response.sendRedirect(request.getContextPath() + "/v1/businessadmin/overtime/list");
         }
     }
 
@@ -1361,13 +1366,13 @@ public class BusinessAdminController extends HttpServlet {
             String note = request.getParameter("note");
             if (formId == null) {
                 request.getSession().setAttribute("error", "Không tìm thấy mã đơn.");
-                response.sendRedirect(request.getContextPath() + "/v1/businessadmin/forms");
+                response.sendRedirect(request.getContextPath() + "/v1/businessadmin/overtime/list");
                 return;
             }
             FormRequestDTO form = formRequestDAO.getFormRequestById(formId);
             if (form == null) {
                 request.getSession().setAttribute("error", "Không tìm thấy đơn.");
-                response.sendRedirect(request.getContextPath() + "/v1/businessadmin/forms");
+                response.sendRedirect(request.getContextPath() + "/v1/businessadmin/overtime/list");
                 return;
             }
             
@@ -1396,7 +1401,7 @@ public class BusinessAdminController extends HttpServlet {
             LOGGER.log(java.util.logging.Level.SEVERE, "Error approving form", e);
             request.getSession().setAttribute("error", "Lỗi hệ thống khi duyệt đơn.");
         }
-        response.sendRedirect(request.getContextPath() + "/v1/businessadmin/forms");
+        response.sendRedirect(request.getContextPath() + "/v1/businessadmin/overtime/list");
     }
 
     private void onApproveTransfer(FormRequestDTO form, int approverId) {
@@ -1445,7 +1450,7 @@ public class BusinessAdminController extends HttpServlet {
             String note = request.getParameter("note");
             if (formId == null) {
                 request.getSession().setAttribute("error", "Không tìm thấy mã đơn.");
-                response.sendRedirect(request.getContextPath() + "/v1/businessadmin/forms");
+                response.sendRedirect(request.getContextPath() + "/v1/businessadmin/overtime/list");
                 return;
             }
             
@@ -1462,7 +1467,9 @@ public class BusinessAdminController extends HttpServlet {
             LOGGER.log(java.util.logging.Level.SEVERE, "Error rejecting form", e);
             request.getSession().setAttribute("error", "Lỗi hệ thống khi từ chối đơn.");
         }
-        response.sendRedirect(request.getContextPath() + "/v1/businessadmin/forms");
+        response.sendRedirect(request.getContextPath() + "/v1/businessadmin/overtime/list");
     }
 
 }
+
+

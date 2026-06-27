@@ -65,7 +65,7 @@
             </div>
         </c:if>
 
-        <form method="post" action="${pageContext.request.contextPath}/v1/employee/attendance-update">
+        <form method="post" action="${pageContext.request.contextPath}/v1/employee/attendance/update">
             <input type="hidden" name="attendanceId" value="${attendance.attendanceId}">
             <%-- giữ lại bộ lọc để quay về đúng trang danh sách --%>
             <input type="hidden" name="month" value="${filterMonth}">

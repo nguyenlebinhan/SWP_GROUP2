@@ -214,7 +214,7 @@
                 </div>
             </c:when>
             <c:otherwise>
-                <form action="${pageContext.request.contextPath}/v1/employee/assign-department"
+                <form action="${pageContext.request.contextPath}/v1/employee/department/assign"
                       method="post" id="assignForm" novalidate>
 
                     <div class="section-title">Thông tin bắt buộc</div>

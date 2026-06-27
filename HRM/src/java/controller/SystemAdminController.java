@@ -66,46 +66,49 @@ public class SystemAdminController extends HttpServlet {
             case "/dashboard":
                 displayDashboard(request, response);
                 break;
-            case "/user-list":
+            case "/user/list":
                 displayUserList(request, response);
                 break;
-            case "/add-user":
+            case "/user/add":
                 displayAddUserForm(request, response);
                 break;
-            case "/update-user":
+            case "/user/update":
                 displayUpdateUserForm(request, response);
                 break;
-            case "/view-user-detail":
+            case "/user/detail":
                 displayUserDetail(request, response);
                 break;
-            case "/my-profile":
+            case "/user/my-profile":
                 displayMyProfile(request, response);
                 break;
-            case "/role-list":
+            case "/user/my-profile/update":
+                displayMyProfile(request, response);
+                break;
+            case "/role/list":
                 displayRoleList(request, response);
                 break;
-            case "/role-detail":
+            case "/role/detail":
                 displayRoleDetail(request, response);
                 break;
-            case "/update-role":
+            case "/role/update":
                 displayUpdateRoleForm(request, response);
                 break;
-            case "/delete-role":
+            case "/role/delete":
                 handleDeleteRole(request, response);
                 break;
-            case "/add-role":
+            case "/role/add":
                 displayAddRoleForm(request, response);
                 break;
-            case "/edit-role-permissions":
+            case "/permissions/edit":
                 displayEditRolePermissionsForm(request, response);
                 break;
-            case "/change-status":
+            case "/user/status":
                 handleChangingStatus(request, response, user);
                 break;
-            case "/change-status-role":
+            case "/role/status":
                 handleChangingStatusRole(request, response);
                 break;
-            case "/audit-logs":
+            case "/audit_logs/list":
                 displayAuditLogs(request, response);
                 break;
             default:
@@ -127,22 +130,25 @@ public class SystemAdminController extends HttpServlet {
             return;
         }
         switch (action) {
-            case "/add-user":
+            case "/user/add":
                 handleAddUser(request, response);
                 break;
-            case "/update-user":
+            case "/user/update":
                 handleUpdateUserInfo(request, response);
                 break;
-            case "/my-profile":
+            case "/user/my-profile":
+                displayMyProfile(request, response);
+                break;
+            case "/user/my-profile/update":
                 handleUpdateMyProfile(request, response, user);
                 break;
-            case "/update-role":
+            case "/role/update":
                 handleUpdateRole(request, response);
                 break;
-            case "/add-role":
+            case "/role/add":
                 handleAddRole(request, response);
                 break;
-            case "/edit-role-permissions":
+            case "/permissions/edit":
                 handleUpdateRolePermissions(request, response);
                 break;
             default:
@@ -258,7 +264,7 @@ public class SystemAdminController extends HttpServlet {
         emailService.sendResetPasswordEmailAsync(email, password);
         LOGGER.log(Level.INFO, "User added and password sent to: {0}", email);
         request.getSession().setAttribute("success", "Thêm người dùng thành công. Mật khẩu tạm thời đã được gửi đến email.");
-        response.sendRedirect(request.getContextPath() + "/v1/systemadmin/user-list");
+        response.sendRedirect(request.getContextPath() + "/v1/systemadmin/user/list");
     }
 
     private void handleUpdateUserInfo(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
@@ -295,7 +301,7 @@ public class SystemAdminController extends HttpServlet {
         emailService.sendResetPasswordEmailAsync(email, password);
         LOGGER.log(Level.INFO, "User updated  and password sent to: {0}", email);
         request.getSession().setAttribute("success", "Cập nhật người dùng thành công. Mật khẩu tạm thời đã được gửi đến email.");
-        response.sendRedirect(request.getContextPath() + "/v1/systemadmin/user-list");
+        response.sendRedirect(request.getContextPath() + "/v1/systemadmin/user/list");
     }
 
     private void handleChangingStatus(HttpServletRequest request, HttpServletResponse response, User user) throws ServletException, IOException {
@@ -303,7 +309,7 @@ public class SystemAdminController extends HttpServlet {
         int userId = Integer.parseInt(request.getParameter("id"));
         if (userId == user.getUserId()) {
             request.getSession().setAttribute("error", "Không thể tự activate/deactive bản thân");
-            response.sendRedirect(request.getContextPath() + "/v1/systemadmin/user-list");
+            response.sendRedirect(request.getContextPath() + "/v1/systemadmin/user/list");
             return;
         }
         boolean isUpdated = userDAO.handleStatus(status, userId);
@@ -313,7 +319,7 @@ public class SystemAdminController extends HttpServlet {
         } else {
             request.getSession().setAttribute("error", "Cập nhật trạng thái không thành công");
         }
-        response.sendRedirect(request.getContextPath() + "/v1/systemadmin/user-list");
+        response.sendRedirect(request.getContextPath() + "/v1/systemadmin/user/list");
     }
 
     private void handleChangingStatusRole(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
@@ -325,7 +331,7 @@ public class SystemAdminController extends HttpServlet {
         } else {
             request.getSession().setAttribute("error", "Cập nhật trạng thái vai trò không thành công");
         }
-        response.sendRedirect(request.getContextPath() + "/v1/systemadmin/role-list");
+        response.sendRedirect(request.getContextPath() + "/v1/systemadmin/role/list");
     }
 
     private void displayUpdateRoleForm(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
@@ -376,7 +382,7 @@ public class SystemAdminController extends HttpServlet {
 
         if (isBlank(rawRoleId)) {
             request.getSession().setAttribute("error", "Thiếu mã vai trò");
-            response.sendRedirect(request.getContextPath() + "/v1/systemadmin/role-list");
+            response.sendRedirect(request.getContextPath() + "/v1/systemadmin/role/list");
             return;
         }
 
@@ -385,7 +391,7 @@ public class SystemAdminController extends HttpServlet {
             roleId = Integer.parseInt(rawRoleId);
         } catch (NumberFormatException e) {
             request.getSession().setAttribute("error", "Mã vai trò không hợp lệ");
-            response.sendRedirect(request.getContextPath() + "/v1/systemadmin/role-list");
+            response.sendRedirect(request.getContextPath() + "/v1/systemadmin/role/list");
             return;
         }
 
@@ -402,14 +408,14 @@ public class SystemAdminController extends HttpServlet {
 
         LOGGER.log(Level.INFO, "Role updated successfully: roleId={0}", roleId);
         request.getSession().setAttribute("success", "Cập nhật vai trò thành công");
-        response.sendRedirect(request.getContextPath() + "/v1/systemadmin/role-list");
+        response.sendRedirect(request.getContextPath() + "/v1/systemadmin/role/list");
     }
 
     private void handleDeleteRole(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
         String rawRoleId = request.getParameter("id");
         if (isBlank(rawRoleId)) {
             request.getSession().setAttribute("error", "Thiếu mã vai trò");
-            response.sendRedirect(request.getContextPath() + "/v1/systemadmin/role-list");
+            response.sendRedirect(request.getContextPath() + "/v1/systemadmin/role/list");
             return;
         }
 
@@ -418,18 +424,18 @@ public class SystemAdminController extends HttpServlet {
             roleId = Integer.parseInt(rawRoleId);
         } catch (NumberFormatException e) {
             request.getSession().setAttribute("error", "Mã vai trò không hợp lệ");
-            response.sendRedirect(request.getContextPath() + "/v1/systemadmin/role-list");
+            response.sendRedirect(request.getContextPath() + "/v1/systemadmin/role/list");
             return;
         }
         boolean deleted = roleDAO.deleteRole(roleId);
         if (!deleted) {
             request.getSession().setAttribute("error", "Xóa vai trò thất bại");
-            response.sendRedirect(request.getContextPath() + "/v1/systemadmin/role-detail?id=" + roleId);
+            response.sendRedirect(request.getContextPath() + "/v1/systemadmin/role/detail?id=" + roleId);
             return;
         }
         LOGGER.log(Level.INFO, "Role deleted successfully: roleId={0}", roleId);
         request.getSession().setAttribute("success", "Xóa vai trò thành công");
-        response.sendRedirect(request.getContextPath() + "/v1/systemadmin/role-list");
+        response.sendRedirect(request.getContextPath() + "/v1/systemadmin/role/list");
     }
 
     private void displayAddRoleForm(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
@@ -460,7 +466,7 @@ public class SystemAdminController extends HttpServlet {
 
         LOGGER.log(Level.INFO, "Role added successfully: roleCode={0}", roleCode);
         request.getSession().setAttribute("success", "Thêm vai trò thành công");
-        response.sendRedirect(request.getContextPath() + "/v1/systemadmin/role-list");
+        response.sendRedirect(request.getContextPath() + "/v1/systemadmin/role/list");
     }
 
     private void displayRoleList(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
@@ -572,14 +578,14 @@ public class SystemAdminController extends HttpServlet {
         User updatedUser = userDAO.getUserById(sessionUser.getUserId());
         request.getSession().setAttribute("user", updatedUser);
         request.getSession().setAttribute("success", "Cập nhật hồ sơ thành công");
-        response.sendRedirect(request.getContextPath() + "/v1/systemadmin/my-profile");
+        response.sendRedirect(request.getContextPath() + "/v1/systemadmin/user/my-profile");
     }
 
     private void displayEditRolePermissionsForm(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
         String rawRoleId = request.getParameter("id");
         if (isBlank(rawRoleId)) {
             request.getSession().setAttribute("error", "Thiếu mã vai trò");
-            response.sendRedirect(request.getContextPath() + "/v1/systemadmin/role-list");
+            response.sendRedirect(request.getContextPath() + "/v1/systemadmin/role/list");
             return;
         }
 
@@ -588,20 +594,20 @@ public class SystemAdminController extends HttpServlet {
             roleId = Integer.parseInt(rawRoleId);
         } catch (NumberFormatException e) {
             request.getSession().setAttribute("error", "Mã vai trò không hợp lệ");
-            response.sendRedirect(request.getContextPath() + "/v1/systemadmin/role-list");
+            response.sendRedirect(request.getContextPath() + "/v1/systemadmin/role/list");
             return;
         }
 
         Role selectedRole = roleDAO.getRoleById(roleId);
         if (selectedRole == null) {
             request.getSession().setAttribute("error", "Không tìm thấy vai trò");
-            response.sendRedirect(request.getContextPath() + "/v1/systemadmin/role-list");
+            response.sendRedirect(request.getContextPath() + "/v1/systemadmin/role/list");
             return;
         }
 
         if (isProtectedPermissionRole(selectedRole)) {
             request.getSession().setAttribute("error", "Không được chỉnh sửa phân quyền của vai trò này.");
-            response.sendRedirect(request.getContextPath() + "/v1/systemadmin/role-list");
+            response.sendRedirect(request.getContextPath() + "/v1/systemadmin/role/list");
             return;
         }
 
@@ -623,7 +629,7 @@ public class SystemAdminController extends HttpServlet {
         String rawRoleId = request.getParameter("roleId");
         if (isBlank(rawRoleId)) {
             request.getSession().setAttribute("error", "Thiếu mã vai trò");
-            response.sendRedirect(request.getContextPath() + "/v1/systemadmin/role-list");
+            response.sendRedirect(request.getContextPath() + "/v1/systemadmin/role/list");
             return;
         }
 
@@ -632,7 +638,7 @@ public class SystemAdminController extends HttpServlet {
             roleId = Integer.parseInt(rawRoleId);
         } catch (NumberFormatException e) {
             request.getSession().setAttribute("error", "Mã vai trò không hợp lệ");
-            response.sendRedirect(request.getContextPath() + "/v1/systemadmin/role-list");
+            response.sendRedirect(request.getContextPath() + "/v1/systemadmin/role/list");
             return;
         }
 
@@ -640,7 +646,7 @@ public class SystemAdminController extends HttpServlet {
         Role roleToUpdate = roleDAO.getRoleById(roleId);
         if (roleToUpdate != null && ("SA".equalsIgnoreCase(roleToUpdate.getRoleCode()) || "BA".equalsIgnoreCase(roleToUpdate.getRoleCode()))) {
             request.getSession().setAttribute("error", "Không thể chỉnh sửa quyền của vai trò System Admin hoặc Business Admin.");
-            response.sendRedirect(request.getContextPath() + "/v1/systemadmin/role-list");
+            response.sendRedirect(request.getContextPath() + "/v1/systemadmin/role/list");
             return;
         }
 
@@ -667,7 +673,7 @@ public class SystemAdminController extends HttpServlet {
                 LOGGER.log(Level.INFO, "Session permissions refreshed for userId: {0}", currentUser.getUserId());
             }
         }
-        response.sendRedirect(request.getContextPath() + "/v1/systemadmin/role-list");
+        response.sendRedirect(request.getContextPath() + "/v1/systemadmin/role/list");
     }
 
     /** Xem nhật ký hệ thống. Chỉ admin truy cập được (đã chặn role ở doGet), không cần kiểm tra quyền. */
@@ -704,3 +710,5 @@ public class SystemAdminController extends HttpServlet {
     }
 
 }
+
+

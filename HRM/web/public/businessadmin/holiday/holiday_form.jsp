@@ -41,7 +41,7 @@
         </h5>
 
         <form method="post"
-              action="${pageContext.request.contextPath}/v1/businessadmin/holiday/${editMode ? 'edit' : 'add'}">
+              action="${pageContext.request.contextPath}/v1/businessadmin/holiday/list/${editMode ? 'edit' : 'add'}">
             <c:if test="${editMode}">
                 <input type="hidden" name="holidayId" value="${holiday.holidayId}">
             </c:if>
@@ -77,7 +77,7 @@
                 <button type="submit" class="btn btn-primary-x text-white px-4">
                     <i class="fa-solid fa-floppy-disk me-1"></i> Lưu
                 </button>
-                <a href="${pageContext.request.contextPath}/v1/businessadmin/holiday" class="btn btn-secondary">
+                <a href="${pageContext.request.contextPath}/v1/businessadmin/holiday/list" class="btn btn-secondary">
                     <i class="fa-solid fa-arrow-left me-1"></i> Quay lại
                 </a>
             </div>

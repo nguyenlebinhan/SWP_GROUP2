@@ -207,7 +207,7 @@
 <div class="main-content">
     <jsp:include page="/public/components/systemAdminTopBar.jsp">
         <jsp:param name="title" value="Chi tiết người dùng" />
-        <jsp:param name="backUrl" value="/v1/systemadmin/user-list" />
+        <jsp:param name="backUrl" value="/v1/systemadmin/user/list" />
     </jsp:include>
 
     <c:if test="${not empty error}">
