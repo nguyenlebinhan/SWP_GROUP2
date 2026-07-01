@@ -65,8 +65,6 @@
     <div class="section-card">
         <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
             <div>
-                <a href="${backUrl}" class="text-decoration-none text-muted small">
-                    <i class="fa-solid fa-arrow-left me-1"></i>Quay lại tổng quan</a>
                 <h4 class="mb-1 mt-2">${sm.fullName} <span class="text-muted fs-6">(${sm.employeeCode})</span></h4>
                 <div class="text-muted">${sm.departmentName} &middot; ${sm.positionName} &middot; Tháng ${selectedMonth}/${selectedYear}</div>
             </div>

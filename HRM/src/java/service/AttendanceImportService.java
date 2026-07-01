@@ -177,6 +177,11 @@ public class AttendanceImportService {
             throw new RowValidationException("employeeCode không tồn tại: " + employeeCode);
         }
 
+        // Giữ NGUYÊN giờ thực (timeIn/timeOut) để lưu và hiển thị.
+        // Mọi tính toán bên dưới (giờ công, trạng thái) dùng bản chuẩn hóa theo block.
+        Time calcTimeIn = timeIn;
+        Time calcTimeOut = timeOut;
+
         BigDecimal hoursWorked;
         if (timeIn != null && timeOut != null) {
             if (timeOut.getTime() - timeIn.getTime() < 0) {
@@ -187,15 +192,15 @@ public class AttendanceImportService {
 
             // Chuẩn hóa thời gian theo block 30 phút: giờ vào làm tròn LÊN
             // (đi muộn trong block nào mất trọn block đó), giờ ra làm tròn XUỐNG.
-            timeIn = utils.WorkHoursCalculator.ceilToBlock(timeIn);
-            timeOut = utils.WorkHoursCalculator.floorToBlock(timeOut);
+            calcTimeIn = utils.WorkHoursCalculator.ceilToBlock(timeIn);
+            calcTimeOut = utils.WorkHoursCalculator.floorToBlock(timeOut);
 
             // Không có đơn OT được duyệt: phần làm thêm chỉ được tính tới 17:00.
-            if (!hasOT && timeOut.after(WORK_END)) {
-                timeOut = WORK_END;
+            if (!hasOT && calcTimeOut.after(WORK_END)) {
+                calcTimeOut = WORK_END;
             }
 
-            hoursWorked = utils.WorkHoursCalculator.hoursWorked(timeIn, timeOut);
+            hoursWorked = utils.WorkHoursCalculator.hoursWorked(calcTimeIn, calcTimeOut);
 
             // Không OT thì giờ công không vượt quá 8 tiếng chuẩn.
             if (!hasOT && hoursWorked.compareTo(STANDARD_HOURS) > 0) {
@@ -227,7 +232,7 @@ public class AttendanceImportService {
 
         Position position = attendanceDAO.getEmployeePosition(employeeId);
 
-        AttendanceStatus baseStatus = deriveStatus(timeIn, timeOut);
+        AttendanceStatus baseStatus = deriveStatus(calcTimeIn, calcTimeOut);
         AttendanceStatus finalStatus = determineFinalStatus(baseStatus, employeeId, workDate, conn);
 
         Attendance att = new Attendance();
