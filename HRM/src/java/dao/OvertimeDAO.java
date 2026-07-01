@@ -306,6 +306,29 @@ public class OvertimeDAO {
         }
     }
 
+    public boolean reviveAndCompleteOTForm(int employeeId, java.sql.Date workDate) {
+        try (Connection conn = dbContext.getConnection()) {
+            return reviveAndCompleteOTForm(conn, employeeId, workDate);
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Cannot revive/complete OT form for employee " + employeeId, e);
+            return false;
+        }
+    }
+
+    public boolean reviveAndCompleteOTForm(Connection conn, int employeeId, java.sql.Date workDate) throws SQLException {
+        String sql = "UPDATE Form_Requests fr " +
+                     "JOIN Overtime_Details od ON fr.formId = od.formId " +
+                     "JOIN Overtime_Assignees oa ON fr.formId = oa.formId " +
+                     "SET fr.status = 4 " +
+                     "WHERE oa.employeeId = ? AND od.otDate = ? AND fr.status IN (1, 3)";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, employeeId);
+            ps.setDate(2, workDate);
+            return ps.executeUpdate() > 0;
+        }
+    }
+
+
     public void cancelUnfulfilledOTForms(Connection conn, java.sql.Date workDate) throws SQLException {
         String sql = "UPDATE Form_Requests fr " +
                      "JOIN Overtime_Details od ON fr.formId = od.formId " +
