@@ -132,9 +132,8 @@
                 <c:otherwise>
                     <c:set var="p" value="${payrollPreview.payroll}" />
                     <c:set var="totalDeduction" value="${payrollPreview.totalDeduction}" />
-                    <c:set var="personalAllowance" value="${15500000}" />
-                    <c:set var="taxableIncomeBeforeFloor" value="${p.grossSalary - p.insuranceDeduction - personalAllowance}" />
-                    <c:set var="taxableIncome" value="${taxableIncomeBeforeFloor < 0 ? 0 : taxableIncomeBeforeFloor}" />
+                    <c:set var="familyAllowance" value="${payrollPreview.familyAllowance}" />
+                    <c:set var="taxableIncome" value="${payrollPreview.taxableIncome}" />
 
                     <div class="panel">
                         <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
@@ -185,9 +184,9 @@
                                 <thead><tr><th>Khoản mục</th><th>Ghi chú</th><th class="text-end">Số tiền</th></tr></thead>
                                 <tbody>
                                     <tr>
-                                        <td>Giảm trừ cá nhân</td>
-                                        <td class="text-muted">Khoản này chỉ dùng để tính thuế TNCN.</td>
-                                        <td class="text-end fw-bold text-primary"><fmt:formatNumber value="${personalAllowance}" type="number" groupingUsed="true" />đ</td>
+                                        <td>Giam tru gia canh</td>
+                                        <td class="text-muted">Muc goc ca nhan trong config payroll + so nguoi phu thuoc x muc giam tru phu thuoc.</td>
+                                        <td class="text-end fw-bold text-primary"><fmt:formatNumber value="${familyAllowance}" type="number" groupingUsed="true" />đ</td>
                                     </tr>
                                     <tr>
                                         <td>Thu nhập tính thuế</td>
@@ -218,3 +217,6 @@
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     </body>
 </html>
+
+
+

@@ -167,6 +167,7 @@
                                 <th>Phòng ban</th>
                                 <th>Vị trí</th>
                                 <th>Số điện thoại</th>
+                                <th>Số NPT</th>
                                 <th>Trạng thái</th>
                                 <th>Thao tác</th>
                             </tr>
@@ -197,6 +198,7 @@
                                             <c:otherwise><span class="text-muted">—</span></c:otherwise>
                                         </c:choose>
                                     </td>
+                                    <td>${emp.dependentCount}</td>
                                     <td>
                                         <c:choose>
                                             <c:when test="${emp.status == 1}">

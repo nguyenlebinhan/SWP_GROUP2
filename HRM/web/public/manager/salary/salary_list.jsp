@@ -304,7 +304,7 @@
                     Tháng lương: Tháng <span id="pillMonth">${selectedMonth}</span>/<span id="pillYear">${selectedYear}</span>
                 </div>
                 <div class="action-group">
-                    <c:if test="${canViewAllSalary}">
+                    <c:if test="${canViewAllSalary && attendanceLocked}">
                         <form id="generateForm" method="post"
                               action="${pageContext.request.contextPath}/v1/manager/salary/generate"
                               class="m-0">
@@ -317,7 +317,7 @@
                             </button>
                         </form>
                     </c:if>
-                    <c:if test="${canExportPayroll}">
+                    <c:if test="${canExportPayroll && attendanceLocked}">
                         <a id="exportLink" class="btn-blue"
                            href="${pageContext.request.contextPath}/v1/manager/salary/export?month=${selectedMonth}&year=${selectedYear}&departmentId=${selectedDepartmentId}">
                             <i class="fa-solid fa-file-export me-1"></i> Xuất bảng lương
@@ -339,6 +339,13 @@
                     </c:if>
                 </div>
             </div>
+
+            <c:if test="${canViewAllSalary && !attendanceLocked}">
+                <div class="alert alert-warning">
+                    <i class="fa-solid fa-circle-info me-2"></i>
+                    Bảng chấm công kỳ này chưa được BA chốt nên chưa thể tạo hoặc xuất bảng lương.
+                </div>
+            </c:if>
 
             <%-- Filter form --%>
             <div class="filter-card">

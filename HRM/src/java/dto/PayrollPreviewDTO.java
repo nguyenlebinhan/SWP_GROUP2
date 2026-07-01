@@ -27,6 +27,10 @@ public class PayrollPreviewDTO {
     private BigDecimal attendanceBonus;
     private BigDecimal latePenalty;
     private BigDecimal unauthorizedAbsentPenalty;
+    private BigDecimal personalAllowance;
+    private int dependentCount;
+    private BigDecimal dependentAllowance;
+    private BigDecimal familyAllowance;
     private BigDecimal taxableIncome;
     private BigDecimal totalDeduction;
     private String generationError;
@@ -209,6 +213,38 @@ public class PayrollPreviewDTO {
 
     public void setUnauthorizedAbsentPenalty(BigDecimal unauthorizedAbsentPenalty) {
         this.unauthorizedAbsentPenalty = unauthorizedAbsentPenalty;
+    }
+
+    public BigDecimal getPersonalAllowance() {
+        return personalAllowance;
+    }
+
+    public void setPersonalAllowance(BigDecimal personalAllowance) {
+        this.personalAllowance = personalAllowance;
+    }
+
+    public int getDependentCount() {
+        return dependentCount;
+    }
+
+    public void setDependentCount(int dependentCount) {
+        this.dependentCount = Math.max(0, dependentCount);
+    }
+
+    public BigDecimal getDependentAllowance() {
+        return dependentAllowance;
+    }
+
+    public void setDependentAllowance(BigDecimal dependentAllowance) {
+        this.dependentAllowance = dependentAllowance;
+    }
+
+    public BigDecimal getFamilyAllowance() {
+        return familyAllowance;
+    }
+
+    public void setFamilyAllowance(BigDecimal familyAllowance) {
+        this.familyAllowance = familyAllowance;
     }
 
     public BigDecimal getTaxableIncome() {

@@ -20,6 +20,7 @@ public class Employee {
     private String skills;
     private String experience;
     private String degree;
+    private int dependentCount;
     private int status;
     private Integer managerId;
 
@@ -114,6 +115,14 @@ public class Employee {
 
     public void setDegree(String degree) {
         this.degree = degree;
+    }
+
+    public int getDependentCount() {
+        return dependentCount;
+    }
+
+    public void setDependentCount(int dependentCount) {
+        this.dependentCount = Math.max(0, dependentCount);
     }
 
     public int getStatus() {

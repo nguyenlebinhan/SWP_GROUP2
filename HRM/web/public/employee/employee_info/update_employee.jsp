@@ -55,6 +55,10 @@
                     <input type="text" name="phoneNumber" class="form-control" value="<c:out value='${employee.phoneNumber}'/>">
                 </div>
                 <div class="col-md-6">
+                    <label class="form-label">So nguoi phu thuoc</label>
+                    <input type="number" name="dependentCount" class="form-control" min="0" step="1" value="${employee.dependentCount}">
+                </div>
+                <div class="col-md-6">
                     <label class="form-label">Kỹ năng</label>
                     <textarea name="skills" class="form-control" rows="3"><c:out value="${employee.skills}"/></textarea>
                 </div>

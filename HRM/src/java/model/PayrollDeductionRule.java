@@ -6,16 +6,12 @@ public class PayrollDeductionRule {
 
     public static final String CALC_PERCENT = "PERCENT";
     public static final String CALC_FIXED = "FIXED";
-    public static final String BASE_CONTRACT_SALARY = "CONTRACT_SALARY";
-    public static final String BASE_GROSS_SALARY = "GROSS_SALARY";
-    public static final String BASE_TAXABLE_INCOME = "TAXABLE_INCOME";
 
     private int ruleId;
     private String ruleCode;
     private String ruleName;
     private String ruleType;
     private String calculationType;
-    private String baseType;
     private BigDecimal rate;
     private BigDecimal employerRate;
     private BigDecimal fixedAmount;
@@ -60,14 +56,6 @@ public class PayrollDeductionRule {
 
     public void setCalculationType(String calculationType) {
         this.calculationType = calculationType;
-    }
-
-    public String getBaseType() {
-        return baseType;
-    }
-
-    public void setBaseType(String baseType) {
-        this.baseType = baseType;
     }
 
     public BigDecimal getRate() {

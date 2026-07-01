@@ -110,6 +110,10 @@
                 <span class="info-label">Số điện thoại</span>
                 <div class="info-value"><c:out value="${empty employee.phoneNumber ? '-' : employee.phoneNumber}"/></div>
             </div>
+            <div class="col-md-4">
+                <span class="info-label">So nguoi phu thuoc</span>
+                <div class="info-value"><c:out value="${employee.dependentCount}"/></div>
+            </div>
             <div class="col-md-6">
                 <span class="info-label">Kỹ năng</span>
                 <div class="info-value"><c:out value="${empty employee.skills ? '-' : employee.skills}"/></div>
