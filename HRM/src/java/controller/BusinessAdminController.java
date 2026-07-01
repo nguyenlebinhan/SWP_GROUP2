@@ -52,6 +52,7 @@ public class BusinessAdminController extends HttpServlet {
     private static final OvertimeDAO overtimeDAO = new OvertimeDAO();
     private static final PayrollConfigDAO payrollConfigDAO = new PayrollConfigDAO();
     private static final service.AttendanceService attendanceService = new service.AttendanceService();
+    private static final service.AttendanceClosingService attendanceClosingService = new service.AttendanceClosingService();
     private static final utils.AttendanceExcelExporter attendanceExporter = new utils.AttendanceExcelExporter();
 
     @Override
@@ -111,7 +112,10 @@ public class BusinessAdminController extends HttpServlet {
                 displayPayrollConfig(request, response);
                 break;
             case "/attendance/overview":
-                displayAttendanceOverview(request, response);
+                response.sendRedirect(request.getContextPath() + "/v1/businessadmin/attendance/closing");
+                break;
+            case "/attendance/closing":
+                displayAttendanceClosing(request, response);
                 break;
             case "/attendance/detail":
                 displayAttendanceDetail(request, response);
@@ -191,6 +195,9 @@ public class BusinessAdminController extends HttpServlet {
                 break;
             case "/forms/reject":
                 handleRejectForm(request, response, user);
+                break;
+            case "/attendance/approve":
+                handleApproveAttendancePeriod(request, response, user);
                 break;
             default:
                 response.sendRedirect(request.getContextPath() + "/");
@@ -745,16 +752,16 @@ public class BusinessAdminController extends HttpServlet {
         return defaultValue;
     }
 
-    private void displayAttendanceOverview(HttpServletRequest request, HttpServletResponse response)
+    private void displayAttendanceClosing(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         Integer departmentId = resolveDepartmentFilter(request);
-        java.time.LocalDate now = java.time.LocalDate.now();
-        int month = paramOr(request, "month", now.getMonthValue());
-        int year = paramOr(request, "year", now.getYear());
+        java.time.LocalDate prev = java.time.LocalDate.now().minusMonths(1);
+        int month = paramOr(request, "month", prev.getMonthValue());
+        int year = paramOr(request, "year", prev.getYear());
 
+        // Cùng dữ liệu tổng hợp như trang overview của employee.
         java.util.List<dto.AttendanceSummaryDTO> summaries =
                 attendanceService.getMonthlySummaries(departmentId, month, year);
-
         request.setAttribute("summaries", summaries);
         request.setAttribute("pagedSummaries", utils.Paging.page(request, summaries));
         request.setAttribute("departments", departmentDAO.getAllActiveDepartments());
@@ -766,8 +773,39 @@ public class BusinessAdminController extends HttpServlet {
         }
         request.setAttribute("selectedMonth", month);
         request.setAttribute("selectedYear", year);
+
+        // Trạng thái chốt của toàn bộ phòng ban trong kỳ (bỏ qua bộ lọc phòng).
+        java.util.List<model.AttendancePeriod> closingPeriods =
+                attendanceClosingService.getClosingOverview(year, month);
+        boolean hasData = !closingPeriods.isEmpty();
+        boolean allSubmitted = hasData;
+        boolean allLocked = hasData;
+        for (model.AttendancePeriod p : closingPeriods) {
+            if (p.getStatus() != 3) {
+                allSubmitted = false;
+            }
+            if (p.getStatus() != 4) {
+                allLocked = false;
+            }
+        }
+        request.setAttribute("closingPeriods", closingPeriods);
+        request.setAttribute("closingHasData", hasData);
+        request.setAttribute("closingCanApprove", allSubmitted);
+        request.setAttribute("closingLocked", allLocked);
         setBusinessAdminAttendanceLayout(request);
-        request.getRequestDispatcher("/public/businessadmin/attendance/attendance_overview.jsp").forward(request, response);
+        request.getRequestDispatcher("/public/businessadmin/attendance/attendance_closing.jsp").forward(request, response);
+    }
+
+    private void handleApproveAttendancePeriod(HttpServletRequest request, HttpServletResponse response,
+            User user) throws IOException {
+        java.time.LocalDate prev = java.time.LocalDate.now().minusMonths(1);
+        int month = paramOr(request, "month", prev.getMonthValue());
+        int year = paramOr(request, "year", prev.getYear());
+        service.AttendanceClosingService.ClosingResult result =
+                attendanceClosingService.approveByBa(year, month, user);
+        request.getSession().setAttribute(result.isSuccess() ? "success" : "error", result.getMessage());
+        response.sendRedirect(request.getContextPath()
+                + "/v1/businessadmin/attendance/closing?month=" + month + "&year=" + year);
     }
 
     private void setBusinessAdminAttendanceLayout(HttpServletRequest request) {
@@ -794,6 +832,10 @@ public class BusinessAdminController extends HttpServlet {
             request.getRequestDispatcher("/public/businessadmin/attendance/attendance_detail.jsp").forward(request, response);
             return;
         }
+        java.util.List<Integer> approvedOTDays =
+                overtimeDAO.getApprovedOTDaysInMonth(employeeId, month, year);
+        request.setAttribute("approvedOTDays", approvedOTDays);
+
         int day = paramOr(request, "day", 0);
         List<Attendance> filtered = detail.getDailyRows();
         if (day >= 1 && day <= 31) {

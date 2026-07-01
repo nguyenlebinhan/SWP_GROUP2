@@ -1,31 +1,30 @@
 <%@ page contentType="text/html;charset=UTF-8" %>
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
+<%@ taglib prefix="fn" uri="http://java.sun.com/jsp/jstl/functions" %>
 <!DOCTYPE html>
-<html>
+<html lang="vi">
 <head>
+    <meta charset="UTF-8">
     <title>Chấm công phòng ban - HRM</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
     <style>
         body { background: #f5f6fa; font-family: 'Segoe UI', sans-serif; }
         .main { margin-left: 250px; padding: 25px; }
-        .section-card {
-            background: white;
-            border-radius: 14px;
-            box-shadow: 0 2px 12px rgba(0,0,0,0.07);
-            padding: 24px;
-            margin-bottom: 24px;
-        }
+        .section-card { background:#fff; border-radius:14px; box-shadow:0 2px 12px rgba(0,0,0,0.07); padding:24px; margin-bottom:24px; }
+        .kpi { background:#fff; border-radius:14px; box-shadow:0 2px 12px rgba(0,0,0,0.06); padding:18px 20px; }
+        .kpi .label { font-size:12px; color:#64748b; text-transform:uppercase; letter-spacing:.05em; }
+        .kpi .value { font-size:26px; font-weight:700; color:#0B0E2A; }
+        .att-table th { background:#0B0E2A; color:#fff; font-size:12.5px; font-weight:600; white-space:nowrap; }
+        .att-table td { vertical-align:middle; font-size:13.5px; }
         .badge-s0 { background:#d1fae5; color:#065f46; }
         .badge-s1 { background:#fef3c7; color:#92400e; }
         .badge-s2 { background:#fee2e2; color:#991b1b; }
-        .badge-s3 { background:#e5e7eb; color:#374151; }
         .badge-s4 { background:#dbeafe; color:#1e40af; }
         .badge-s5 { background:#ede9fe; color:#5b21b6; }
         .badge-s6 { background:#f3f4f6; color:#4b5563; }
-        .badge-private { background:#fef3c7; color:#92400e; }
-        .badge-public  { background:#d1fae5; color:#065f46; }
-        .badge-st { padding:4px 10px; border-radius:20px; font-size:12px; font-weight:600; }
+        .cnt { display:inline-block; min-width:26px; text-align:center; padding:3px 7px; border-radius:8px; font-size:12px; font-weight:600; }
+        .progress { height:8px; border-radius:6px; }
     </style>
 </head>
 <body>
@@ -37,6 +36,21 @@
         <jsp:param name="title" value="Chấm công phòng ban" />
     </jsp:include>
 
+    <c:if test="${not empty sessionScope.success}">
+        <div class="alert alert-success alert-dismissible fade show">
+            <i class="fa-solid fa-circle-check me-2"></i>${sessionScope.success}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        <c:remove var="success" scope="session" />
+    </c:if>
+    <c:if test="${not empty sessionScope.error}">
+        <div class="alert alert-danger alert-dismissible fade show">
+            <i class="fa-solid fa-circle-xmark me-2"></i>${sessionScope.error}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        <c:remove var="error" scope="session" />
+    </c:if>
+
     <c:if test="${not empty error}">
         <div class="alert alert-danger alert-dismissible fade show">
             <i class="fa-solid fa-circle-xmark me-2"></i>${error}
@@ -45,83 +59,175 @@
     </c:if>
 
     <c:if test="${empty error}">
+
+    <%-- Bộ lọc --%>
     <div class="section-card">
-        <h5 class="mb-4">Phòng ban: <strong class="text-primary">${departmentName}</strong></h5>
-        <form method="get" action="${pageContext.request.contextPath}/v1/manager/attendance/my-department-attendance" class="row g-3">
-            <div class="col-md-2">
+        <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+            <h5 class="mb-0">Phòng ban: <strong class="text-primary">${departmentName}</strong></h5>
+        </div>
+        <form method="get" action="${pageContext.request.contextPath}/v1/manager/attendance/my-department-attendance" class="row g-3 align-items-end">
+            <div class="col-md-3">
                 <label class="form-label">Tháng</label>
                 <select name="month" class="form-select">
-                    <option value="">Tất cả</option>
                     <c:forEach var="m" begin="1" end="12">
-                        <option value="${m}" ${filterMonth == m ? 'selected' : ''}>Tháng ${m}</option>
+                        <option value="${m}" ${selectedMonth == m ? 'selected' : ''}>Tháng ${m}</option>
+                    </c:forEach>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Năm</label>
+                <select name="year" class="form-select">
+                    <c:forEach var="y" begin="2022" end="2030">
+                        <option value="${y}" ${selectedYear == y ? 'selected' : ''}>${y}</option>
                     </c:forEach>
                 </select>
             </div>
             <div class="col-md-2">
-                <label class="form-label">Năm</label>
-                <input type="number" name="year" class="form-control" min="2000" max="2100" value="${filterYear}">
-            </div>
-            <div class="col-md-3">
-                <label class="form-label">Mã nhân viên</label>
-                <input type="text" name="employeeCode" class="form-control"
-                       value="<c:out value='${filterEmployeeCode}'/>" placeholder="VD: EMP001">
-            </div>
-            <div class="col-md-2 d-flex align-items-end">
-                <button type="submit" class="btn btn-primary w-100">
-                    <i class="fa-solid fa-magnifying-glass me-1"></i> Lọc
-                </button>
+                <button type="submit" class="btn btn-primary w-100"><i class="fa-solid fa-filter me-1"></i> Lọc</button>
             </div>
         </form>
     </div>
+
+    <%-- Quy trình chốt bảng chấm công --%>
+    <c:if test="${closingHasData}">
     <div class="section-card">
+        <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+            <h5 class="mb-0">
+                <i class="fa-solid fa-lock me-2"></i>Quy trình chốt bảng chấm công — Tháng ${selectedMonth}/${selectedYear}
+            </h5>
+            <div class="d-flex gap-2 flex-wrap">
+                <c:if test="${canManagerConfirm}">
+                    <form method="post" action="${pageContext.request.contextPath}/v1/manager/attendance/confirm"
+                          onsubmit="return confirm('Xác nhận chốt bảng chấm công của phòng? Sau khi chốt sẽ không sửa được nữa.');">
+                        <input type="hidden" name="month" value="${selectedMonth}">
+                        <input type="hidden" name="year" value="${selectedYear}">
+                        <input type="hidden" name="departmentId" value="${closingDepartmentId}">
+                        <button class="btn btn-warning"><i class="fa-solid fa-check me-1"></i>Chốt bảng chấm công phòng</button>
+                    </form>
+                </c:if>
+                <c:if test="${closingConfirmed}">
+                    <span class="badge bg-success align-self-center p-2">
+                        <i class="fa-solid fa-circle-check me-1"></i>Phòng đã chốt
+                    </span>
+                </c:if>
+            </div>
+        </div>
         <div class="table-responsive">
-            <table class="table table-hover align-middle">
-                <thead class="table-light">
-                    <tr>
-                        <th>Mã NV</th>
-                        <th>Họ tên</th>
-                        <th>Ngày</th>
-                        <th>Giờ vào</th>
-                        <th>Giờ ra</th>
-                        <th>Số giờ</th>
-                        <th>Trạng thái</th>
-                        <th>Tháng</th>
-                    </tr>
-                </thead>
+            <table class="table table-sm align-middle mb-0">
+                <thead><tr><th>Phòng ban</th><th>Trạng thái chốt</th></tr></thead>
                 <tbody>
-                    <c:choose>
-                        <c:when test="${empty attendances}">
-                            <tr><td colspan="8" class="text-center text-muted py-4">Không có dữ liệu chấm công.</td></tr>
-                        </c:when>
-                        <c:otherwise>
-                            <c:forEach var="a" items="${attendances}">
-                                <tr>
-                                    <td>${a.employeeCode}</td>
-                                    <td><c:out value="${a.fullName}" /></td>
-                                    <td>${a.workDate}</td>
-                                    <td>${a.timeIn}</td>
-                                    <td>${a.timeOut}</td>
-                                    <td><c:out value="${a.hoursWorked}" /></td>
-                                    <td>
-                                        <span class="badge-st badge-s${a.attendanceStatus}">${a.statusLabel}</span>
-                                    </td>
-                                    <td>
-                                        <c:choose>
-                                            <c:when test="${a.periodStatus == 1}">
-                                                <span class="badge-st badge-public">Công khai</span>
-                                            </c:when>
-                                            <c:otherwise>
-                                                <span class="badge-st badge-private">Riêng tư</span>
-                                            </c:otherwise>
-                                        </c:choose>
-                                    </td>
-                                </tr>
-                            </c:forEach>
-                        </c:otherwise>
-                    </c:choose>
+                    <c:forEach var="p" items="${closingPeriods}">
+                        <tr>
+                            <td>${p.departmentName}</td>
+                            <td>
+                                <c:choose>
+                                    <c:when test="${p.status == 0}"><span class="badge bg-secondary">${p.statusLabel}</span></c:when>
+                                    <c:when test="${p.status == 1}"><span class="badge bg-warning text-dark">${p.statusLabel}</span></c:when>
+                                    <c:when test="${p.status == 2}"><span class="badge bg-info text-dark">${p.statusLabel}</span></c:when>
+                                    <c:when test="${p.status == 3}"><span class="badge bg-primary">${p.statusLabel}</span></c:when>
+                                    <c:otherwise><span class="badge bg-success">${p.statusLabel}</span></c:otherwise>
+                                </c:choose>
+                            </td>
+                        </tr>
+                    </c:forEach>
                 </tbody>
             </table>
         </div>
+    </div>
+    </c:if>
+
+    <%-- KPI tổng hợp --%>
+    <c:set var="totWorked" value="0" />
+    <c:set var="totRate" value="0" />
+    <c:set var="empCount" value="${fn:length(summaries)}" />
+    <c:forEach var="s" items="${summaries}">
+        <c:set var="totWorked" value="${totWorked + s.workedHoursRounded}" />
+        <c:set var="totRate" value="${totRate + s.attendanceRate}" />
+    </c:forEach>
+    <c:set var="stdHours" value="${empCount > 0 ? summaries[0].standardHours : 0}" />
+    <div class="row g-3 mb-1">
+        <div class="col-md-3"><div class="kpi"><div class="label">Số nhân viên</div><div class="value">${empCount}</div></div></div>
+        <div class="col-md-3"><div class="kpi"><div class="label">Tổng giờ làm</div><div class="value">${totWorked}h</div></div></div>
+        <div class="col-md-3"><div class="kpi"><div class="label">Giờ chuẩn / NV</div><div class="value">${stdHours}h</div></div></div>
+        <div class="col-md-3"><div class="kpi"><div class="label">Tỷ lệ TB</div>
+            <div class="value">${empCount > 0 ? (totRate / empCount).intValue() : 0}%</div></div></div>
+    </div>
+
+    <%-- Bảng nhân viên --%>
+    <div class="section-card">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle att-table">
+                <thead>
+                    <tr>
+                        <th>Mã NV</th>
+                        <th>Họ tên</th>
+                        <th>Vị trí</th>
+                        <th class="text-center">Giờ làm / chuẩn</th>
+                        <th class="text-center" title="Đúng giờ">P</th>
+                        <th class="text-center" title="Đi muộn">L</th>
+                        <th class="text-center" title="Nghỉ phép">Lv</th>
+                        <th class="text-center" title="Vắng mặt">Ab</th>
+                        <th class="text-center" title="Nghỉ lễ">Ho</th>
+                        <th class="text-center" title="Cuối tuần">We</th>
+                        <th class="text-center" style="min-width:130px">Tỷ lệ</th>
+                        <th class="text-center"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <c:forEach var="s" items="${pagedSummaries}">
+                        <tr>
+                            <td><strong>${s.employeeCode}</strong></td>
+                            <td>${s.fullName}</td>
+                            <td>${s.positionName}</td>
+                            <td class="text-center">${s.workedHoursRounded}h / ${s.standardHours}h</td>
+                            <td class="text-center"><span class="cnt badge-s0">${s.presentDays}</span></td>
+                            <td class="text-center"><span class="cnt badge-s1">${s.lateDays}</span></td>
+                            <td class="text-center"><span class="cnt badge-s4">${s.leaveDays}</span></td>
+                            <td class="text-center"><span class="cnt badge-s2">${s.absentDays}</span></td>
+                            <td class="text-center"><span class="cnt badge-s5">${s.holidayDays}</span></td>
+                            <td class="text-center"><span class="cnt badge-s6">${s.weekendDays}</span></td>
+                            <td>
+                                <div class="d-flex justify-content-between">
+                                    <small class="fw-semibold ${s.attendanceRate < 80 ? 'text-danger' : 'text-success'}">${s.attendanceRate}%</small>
+                                </div>
+                                <div class="progress">
+                                    <div class="progress-bar ${s.attendanceRate < 80 ? 'bg-danger' : 'bg-success'}"
+                                         style="width:${s.attendanceRate}%"></div>
+                                </div>
+                            </td>
+                            <td class="text-center">
+                                <a class="btn btn-sm btn-outline-primary"
+                                   href="${baseUrl}/detail?employeeId=${s.employeeId}&month=${selectedMonth}&year=${selectedYear}">
+                                    <i class="fa-solid fa-eye me-1"></i>Chi tiết
+                                </a>
+                            </td>
+                        </tr>
+                    </c:forEach>
+                    <c:if test="${empty pagedSummaries}">
+                        <tr><td colspan="12" class="text-center text-muted py-4">Không có dữ liệu nhân viên.</td></tr>
+                    </c:if>
+                </tbody>
+            </table>
+        </div>
+
+        <c:if test="${totalPages > 1}">
+            <c:set var="pageBase" value="${baseUrl}/my-department-attendance?month=${selectedMonth}&year=${selectedYear}" />
+            <nav class="mt-3">
+                <ul class="pagination justify-content-center mb-0">
+                    <li class="page-item ${currentPage == 1 ? 'disabled' : ''}">
+                        <a class="page-link" href="${pageBase}&page=${currentPage - 1}">&laquo;</a>
+                    </li>
+                    <c:forEach var="p" begin="1" end="${totalPages}">
+                        <li class="page-item ${p == currentPage ? 'active' : ''}">
+                            <a class="page-link" href="${pageBase}&page=${p}">${p}</a>
+                        </li>
+                    </c:forEach>
+                    <li class="page-item ${currentPage == totalPages ? 'disabled' : ''}">
+                        <a class="page-link" href="${pageBase}&page=${currentPage + 1}">&raquo;</a>
+                    </li>
+                </ul>
+            </nav>
+        </c:if>
     </div>
     </c:if>
 </div>

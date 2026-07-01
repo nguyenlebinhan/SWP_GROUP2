@@ -284,18 +284,21 @@ public class AttendanceDAO {
                 + "COALESCE(SUM(a.attendanceStatus = 7), 0) AS missingCheckDays "
                 + "FROM Employees e JOIN Attendance a ON a.employeeId = e.employeeId "
                 + "WHERE e.status = 1 "
+                + "  AND MONTH(a.workDate) = ? AND YEAR(a.workDate) = ? "
                 + "  AND (? IS NULL OR e.departmentId = ?) "
                 + "GROUP BY a.employeeId, a.employeeCode, a.fullName, a.positionName, a.departmentName "
                 + "ORDER BY a.departmentName, e.employeeCode";
 
         try (Connection conn = dbContext.getConnection();
                 PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, month);
+            ps.setInt(2, year);
             if (departmentId != null) {
-                ps.setInt(1, departmentId);
-                ps.setInt(2, departmentId);
+                ps.setInt(3, departmentId);
+                ps.setInt(4, departmentId);
             } else {
-                ps.setNull(1, Types.INTEGER);
-                ps.setNull(2, Types.INTEGER);
+                ps.setNull(3, Types.INTEGER);
+                ps.setNull(4, Types.INTEGER);
             }
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {

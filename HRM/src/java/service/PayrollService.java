@@ -58,6 +58,7 @@ public class PayrollService {
     private final PermissionDAO permissionDAO;
     private final RoleDAO roleDAO;
     private final AuditLogService auditLogService;
+    private final AttendanceClosingService attendanceClosingService;
 
     public PayrollService() {
         this.dbContext = new DBContext();
@@ -67,6 +68,7 @@ public class PayrollService {
         this.permissionDAO = new PermissionDAO();
         this.roleDAO = new RoleDAO();
         this.auditLogService = new AuditLogService();
+        this.attendanceClosingService = new AttendanceClosingService();
     }
 
     // Permissions
@@ -277,6 +279,15 @@ public class PayrollService {
     }
 
     public int saveGeneratedPayrollForPeriod(int year, int month, Integer departmentId) {
+        // Chặn cứng: chỉ lưu bảng lương khi bảng chấm công đã được BA chốt (LOCKED).
+        boolean locked = departmentId == null
+                ? attendanceClosingService.isPeriodLocked(year, month)
+                : attendanceClosingService.isDepartmentLocked(year, month, departmentId);
+        if (!locked) {
+            LOGGER.log(Level.WARNING, "Refuse to generate payroll: attendance period {0}-{1} dept {2} is not LOCKED.",
+                    new Object[]{year, month, departmentId});
+            return 0;
+        }
         int saved = 0;
         for (PayrollPreviewDTO preview : generatePayrollForAll(year, month, departmentId, true)) {
             if (preview.getPayroll() != null && !preview.isGenerationBlocked()) {
