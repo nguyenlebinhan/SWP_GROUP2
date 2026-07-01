@@ -1042,15 +1042,7 @@ public class EmployeeController extends HttpServlet {
             response.sendRedirect(redirectUrl);
             return;
         }
-        
-        if(timeOut != null){
-            Time timeMax =Time.valueOf("19:00:00");
-            if(timeOut.after(timeMax)){
-                request.getSession().setAttribute("error", "Giờ vào phải sau 7h tối.");
-                response.sendRedirect(redirectUrl);
-                return;
-            }
-        }
+       
 
         if (timeIn != null && timeOut != null && timeOut.before(timeIn)) {
             request.getSession().setAttribute("error", "Giờ ra phải sau giờ vào.");
@@ -1075,12 +1067,21 @@ public class EmployeeController extends HttpServlet {
 
         BigDecimal hoursWorked;
         if (calcTimeIn != null && calcTimeOut != null && (status == 0 || status == 1)) {
+            boolean hasOT = new dao.OvertimeDAO().hasApprovedOT(
+                    attendance.getEmployeeId(), attendance.getWorkDate());
+
+            // Không có đơn OT được duyệt: phần làm sau 17:00 không được tính công,
+            // nên phải cắt giờ ra về 17:00 TRƯỚC khi tính (giống lúc import).
+            Time workEnd = Time.valueOf("17:00:00");
+            if (!hasOT && calcTimeOut.after(workEnd)) {
+                calcTimeOut = workEnd;
+            }
+
             hoursWorked = utils.WorkHoursCalculator.hoursWorked(calcTimeIn, calcTimeOut);
-            // Không có đơn OT được duyệt cho ngày này thì giới hạn giờ công ở 8 tiếng chuẩn,
-            // dù nhân viên đến sớm hơn hay về muộn hơn.
+
+            // Không OT thì giờ công không vượt quá 8 tiếng chuẩn.
             BigDecimal standardHours = new BigDecimal("8.00");
-            if (hoursWorked.compareTo(standardHours) > 0
-                    && !new dao.OvertimeDAO().hasApprovedOT(attendance.getEmployeeId(), attendance.getWorkDate())) {
+            if (!hasOT && hoursWorked.compareTo(standardHours) > 0) {
                 hoursWorked = standardHours;
             }
         } else {
