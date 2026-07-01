@@ -1054,7 +1054,6 @@ public class EmployeeController extends HttpServlet {
             response.sendRedirect(redirectUrl);
             return;
         }
-       
 
         if (timeIn != null && timeOut != null && timeOut.before(timeIn)) {
             request.getSession().setAttribute("error", "Giờ ra phải sau giờ vào.");
