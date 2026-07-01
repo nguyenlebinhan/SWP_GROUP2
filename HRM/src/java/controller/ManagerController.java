@@ -58,6 +58,7 @@ import service.PayrollService;
 import service.EmploymentContractService;
 import dal.DBContext;
 import java.time.LocalTime;
+import java.sql.Time;
 import utils.AttendanceExcelExporter;
 
 @MultipartConfig(
@@ -2298,10 +2299,41 @@ public class ManagerController extends HttpServlet {
             LOGGER.log(Level.WARNING, "Complaint formId={0} missing date/time data, skipping attendance update.", form.getFormId());
             return;
         }
-        long minutes = java.time.Duration.between(
-                compForm.getStartTime().toLocalTime(),
-                compForm.getEndTime().toLocalTime()).toMinutes();
+        Time timeIn = compForm.getStartTime() != null ? Time.valueOf(compForm.getStartTime().toLocalTime()) : null;
+        Time timeOut = compForm.getEndTime() != null ? Time.valueOf(compForm.getEndTime().toLocalTime()) : null;
+
+        dao.OvertimeDAO overtimeDAO = new dao.OvertimeDAO();
+        boolean hasOT = overtimeDAO.hasApprovedOT(form.getEmployeeId(), compForm.getStartDate());
+
+        Time maxTime = hasOT ? Time.valueOf("19:00:00") : Time.valueOf("17:00:00");
+
+        if (timeOut != null && timeOut.after(maxTime)) {
+            boolean otRevived = overtimeDAO.reviveAndCompleteOTForm(form.getEmployeeId(), compForm.getStartDate());
+            if (otRevived && !hasOT) {
+                hasOT = true;
+                maxTime = Time.valueOf("19:00:00");
+            }
+        }
+
+        Time calcTimeOut = timeOut;
+        if (calcTimeOut != null && calcTimeOut.after(maxTime)) {
+            calcTimeOut = maxTime;
+        }
+
+        // Nếu giờ vào cũng quá giới hạn (ví dụ > 17h/19h) thì giờ làm việc = 0
+        long minutes = 0;
+        if (timeIn != null && calcTimeOut != null && !timeIn.after(maxTime)) {
+            minutes = java.time.Duration.between(
+                    timeIn.toLocalTime(),
+                    calcTimeOut.toLocalTime()).toMinutes();
+        }
         BigDecimal hoursWorked = BigDecimal.valueOf(Math.max(0, minutes) / 60.0);
+
+        BigDecimal standardHours = new BigDecimal("8.00");
+        if (!hasOT && hoursWorked.compareTo(standardHours) > 0) {
+            hoursWorked = standardHours;
+        }
+
         LocalTime stdStart = LocalTime.of(8, 30);
         int newStatus = compForm.getStartTime().toLocalTime().isAfter(stdStart) ? 2 : 1;
 

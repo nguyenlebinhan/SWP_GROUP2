@@ -10,7 +10,6 @@ import model.EmploymentContract;
 import model.ValidationError;
 import model.ValidationResult;
 
-import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.Date;
 import java.sql.SQLException;
@@ -19,7 +18,7 @@ import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import model.ContractType;
-import model.Employee;
+
 
 /**
  * Service Layer for Employee Contract Management.
@@ -44,6 +43,7 @@ public class EmploymentContractService {
         this.employeeDAO = employeeDAO;
         this.dbContext = dbContext;
     }
+
 
     private ValidationResult validateEmployee(int employeeId) {
         if (employeeId <= 0) {
@@ -291,9 +291,9 @@ public class EmploymentContractService {
             boolean updated = contractDAO.updateContractStatus(conn, contractId, targetStatus, null, null, signedDate);
             if (!updated) {
                 conn.rollback();
-                return new ContractOperationResult(false,ContractOperationResult.SQL_ERROR, "Khong the cap nhat trang thai hop dong."); 
+                return new ContractOperationResult(false, ContractOperationResult.SQL_ERROR, "Khong the cap nhat trang thai hop dong.");
             }
-            
+
             contractDAO.insertAuditLog(conn, contractId, oldStatus, newStatus, userId, auditNote);
             conn.commit();
             return new ContractOperationResult(true, null, "Phe duyet thanh cong.");
@@ -489,7 +489,7 @@ public class EmploymentContractService {
                 conn.rollback();
                 return new ContractOperationResult(false, ContractOperationResult.SQL_ERROR, "Khong the tu choi hop dong.");
             }
-            
+
             boolean reasonUpdated = contractDAO.updateRejectionReason(conn, contractId, reason);
             if (!reasonUpdated) {
                 conn.rollback();
@@ -535,11 +535,11 @@ public class EmploymentContractService {
             }
 
             String roleName = roleDAO.getRoleByUserId(userId);
-            boolean isHrStaff = roleName != null 
+            boolean isHrStaff = roleName != null
                     && (roleName.equalsIgnoreCase("HRManager")
                     || roleName.equalsIgnoreCase("HREmployee"));
-            
-            if(!isHrStaff) {
+
+            if (!isHrStaff) {
                 conn.rollback();
                 return new ContractOperationResult(false, "FORBIDDEN", "Chi nhan su phong HR moi co quen huy hop dong.");
             }

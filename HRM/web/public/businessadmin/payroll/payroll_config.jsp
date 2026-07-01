@@ -72,8 +72,8 @@
             <div class="col-md-2">
                 <select name="baseType" class="form-select">
                     <option value="CONTRACT_SALARY">Lương hợp đồng</option>
-                    <option value="GROSS_SALARY">Gross</option>
-                    <option value="TAXABLE_INCOME">Thu nhập tính thuế</option>
+<!--                    <option value="GROSS_SALARY">Gross</option>
+                    <option value="TAXABLE_INCOME">Thu nhập tính thuế</option>-->
                 </select>
             </div>
             <div class="col-md-1"><input name="rate" class="form-control" placeholder="Tổng %" value="0"></div>
@@ -101,8 +101,8 @@
                             <td>
                                 <select name="baseType" class="form-select">
                                     <option value="CONTRACT_SALARY" ${r.baseType == 'CONTRACT_SALARY' ? 'selected' : ''}>Hợp đồng</option>
-                                    <option value="GROSS_SALARY" ${r.baseType == 'GROSS_SALARY' ? 'selected' : ''}>Gross</option>
-                                    <option value="TAXABLE_INCOME" ${r.baseType == 'TAXABLE_INCOME' ? 'selected' : ''}>Taxable</option>
+<!--                                    <option value="GROSS_SALARY" ${r.baseType == 'GROSS_SALARY' ? 'selected' : ''}>Gross</option> 
+                                    <option value="TAXABLE_INCOME" ${r.baseType == 'TAXABLE_INCOME' ? 'selected' : ''}>Taxable</option>-->
                                 </select>
                             </td>
                             <td><input name="rate" class="form-control mini-input" value="${totalRatePercent}"></td>

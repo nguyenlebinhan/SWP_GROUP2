@@ -21,8 +21,8 @@ import model.EmploymentContract;
 public class EmploymentContractDAO {
 
     private static final Logger LOGGER = Logger.getLogger(EmploymentContractDAO.class.getName());
-    private static final String BASE_COLUMNS =
-            "contractId, contractCode, employeeId, contractType, signedDate, "
+    private static final String BASE_COLUMNS
+            = "contractId, contractCode, employeeId, contractType, signedDate, "
             + "effectiveDate, endDate, actualEndDate, salary, status, note, "
             + "previousContractId, terminationReason, rejectionReason, "
             + "createdBy, createdAt, updatedAt";
@@ -150,21 +150,30 @@ public class EmploymentContractDAO {
     }
 
     public EmploymentContract getCurrentOrUpcomingContract(int employeeId) {
+      try (Connection conn = getInternalConnection()) {
+          return getCurrentOrUpcomingContract(conn, employeeId);
+      } catch (SQLException e) {
+          LOGGER.log(Level.SEVERE, "Cannot retrieve current/upcoming contract for employeeId: " + employeeId, e);
+      }
+      return null;
+  }
+
+    public EmploymentContract getCurrentOrUpcomingContract(Connection conn, int employeeId) throws SQLException {
         String SQL = "SELECT " + BASE_COLUMNS + " FROM Employment_Contracts WHERE employeeId = ? "
                 + "AND status IN ('ACTIVE', 'PENDING_ACTIVATION') "
                 + "ORDER BY CASE WHEN status = 'ACTIVE' THEN 0 ELSE 1 END, "
                 + "effectiveDate ASC "
                 + "LIMIT 1";
-        try (Connection conn = getInternalConnection(); PreparedStatement ps = conn.prepareStatement(SQL)) {
+
+        try (PreparedStatement ps = conn.prepareStatement(SQL)) {
             ps.setInt(1, employeeId);
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
                     return mapContract(rs);
                 }
             }
-        } catch (SQLException e) {
-            LOGGER.log(Level.SEVERE, "Cannot retrieve current/upcoming contract for employeeId: " + employeeId, e);
         }
+
         return null;
     }
 
@@ -201,7 +210,7 @@ public class EmploymentContractDAO {
         }
         return contracts;
     }
-    
+
     public boolean hasOverlappingContract(Connection conn, int employeeId, java.sql.Date newStart,
             java.sql.Date newEnd, Integer excludeContractId) throws SQLException {
         String SQL = "SELECT 1 FROM Employment_Contracts "
@@ -523,10 +532,12 @@ public class EmploymentContractDAO {
                     EmploymentContract contract = mapContract(rs);
                     try {
                         contract.setDepartmentName(rs.getString("departmentName"));
-                    } catch (SQLException ignored) {}
+                    } catch (SQLException ignored) {
+                    }
                     try {
                         contract.setPositionName(rs.getString("positionName"));
-                    } catch (SQLException ignored) {}
+                    } catch (SQLException ignored) {
+                    }
                     contracts.add(contract);
                 }
             }

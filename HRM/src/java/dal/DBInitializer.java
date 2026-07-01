@@ -170,6 +170,7 @@ public class DBInitializer {
         execute(conn, SQL, "CREATE EMPLOYEES TABLE SUCCESSFULLY");
     }
 
+    // ==================== HỢP ĐỒNG ====================
     public void createTableEmploymentContracts(Connection conn) {
         String SQL = "CREATE TABLE Employment_Contracts("
                 + "contractId INT PRIMARY KEY AUTO_INCREMENT,"
@@ -238,6 +239,38 @@ public class DBInitializer {
                 + ")";
         execute(conn, SQL, "CREATE CANDIDATES TABLE SUCCESSFULLY");
     }
+    
+    public void createTableContractAmendments(Connection conn) {
+        String SQL = "CREATE TABLE Contract_Amendments("
+                + "amendmentId INT PRIMARY KEY AUTO_INCREMENT,"
+                + "contractId INT NOT NULL,"
+                + "amendmentCode VARCHAR(50) NOT NULL UNIQUE,"
+                + "amendmentType VARCHAR(50) NOT NULL,"
+                + "effectiveDate DATE NOT NULL,"
+                + "oldDepartmentId INT NULL,"
+                + "newDepartmentId INT NULL,"
+                + "oldPositionId INT NULL,"
+                + "newPositionId INT NULL,"
+                + "oldSalary DECIMAL(15,2) NULL,"
+                + "newSalary DECIMAL(15,2) NULL,"
+                + "reason NVARCHAR(500),"
+                + "sourceFormId INT NULL,"
+                + "status VARCHAR(50) NOT NULL DEFAULT 'APPROVED',"
+                + "createdBy INT NOT NULL,"
+                + "approvedBy INT NULL,"
+                + "createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,"
+                + "approvedAt TIMESTAMP NULL,"
+                + "FOREIGN KEY (contractId) REFERENCES Employment_Contracts(contractId),"
+                + "FOREIGN KEY (oldDepartmentId) REFERENCES Departments(departmentId),"
+                + "FOREIGN KEY (newDepartmentId) REFERENCES Departments(departmentId),"
+                + "FOREIGN KEY (oldPositionId) REFERENCES Positions(positionId),"
+                + "FOREIGN KEY (newPositionId) REFERENCES Positions(positionId),"
+                + "FOREIGN KEY (sourceFormId) REFERENCES Form_Requests(formId),"
+                + "FOREIGN KEY (createdBy) REFERENCES Users(userId),"
+                + "FOREIGN KEY (approvedBy) REFERENCES Users(userId)"
+                + ")";
+      execute(conn, SQL, "CREATE CONTRACT_AMENDMENTS TABLE SUCCESSFULLY");
+  }
 
     // ==================== NGHỈ PHÉP ====================
     public void createTableApplicationStageLogs(Connection conn) {
@@ -587,6 +620,7 @@ public class DBInitializer {
                 "Overtime_Details",
                 "Form_Requests",
                 "Form_Types",
+                "Contract_Amendments",
                 "Contract_Audit_Log",
                 "Employment_Contracts",
                 "Employees",
@@ -612,6 +646,7 @@ public class DBInitializer {
                 "Employees",
                 "Employment_Contracts",
                 "Contract_Audit_Log",
+                "Contract_Amendments",
                 "Uploaded_Files",
                 "Candidates",
                 "Application_Stage_Logs",
@@ -658,6 +693,7 @@ public class DBInitializer {
                         case "Users":             createTableUsers(conn);             break;
                         case "Employees":         createTableEmployees(conn);         break;
                         case "Employment_Contracts": createTableEmploymentContracts(conn); break;
+                        case "Amendment_Contracts": createTableContractAmendments(conn); break;
                         case "Uploaded_Files":    createTableUploadedFiles(conn);     break;
                         case "Candidates":        createTableCandidates(conn);        break;
                         case "Application_Stage_Logs": createTableApplicationStageLogs(conn); break;

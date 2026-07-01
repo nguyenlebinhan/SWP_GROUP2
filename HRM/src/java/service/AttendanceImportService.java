@@ -200,16 +200,27 @@ public class AttendanceImportService {
 
             boolean hasOT = overtimeDAO.hasApprovedOT(conn, employeeId, workDate);
 
+            Time maxTime = hasOT ? Time.valueOf("19:00:00") : Time.valueOf("17:00:00");
+
+            if (timeOut.after(maxTime)) {
+                boolean otRevived = overtimeDAO.reviveAndCompleteOTForm(conn, employeeId, workDate);
+                if (otRevived && !hasOT) {
+                    hasOT = true;
+                    maxTime = Time.valueOf("19:00:00");
+                }
+            }
+
+            if (timeIn.after(maxTime)) {
+                throw new RowValidationException("Thời gian Check-in tối đa là " + (hasOT ? "19:00" : "17:00") + ".");
+            }
+
             // Chuẩn hóa thời gian theo block 30 phút: giờ vào làm tròn LÊN
             // (đi muộn trong block nào mất trọn block đó), giờ ra làm tròn XUỐNG.
             calcTimeIn = utils.WorkHoursCalculator.ceilToBlock(timeIn);
             calcTimeOut = utils.WorkHoursCalculator.floorToBlock(timeOut);
 
-            // Không có đơn OT được duyệt: phần làm thêm chỉ được tính tới 17:00.
-            if (!hasOT && calcTimeOut.after(WORK_END)) {
-                calcTimeOut = WORK_END;
-            } else if (hasOT && calcTimeOut.after(WORK_END)) {
-                overtimeDAO.completeOTForm(conn, employeeId, workDate);
+            if (calcTimeOut.after(maxTime)) {
+                calcTimeOut = maxTime;
             }
 
             hoursWorked = utils.WorkHoursCalculator.hoursWorked(calcTimeIn, calcTimeOut);

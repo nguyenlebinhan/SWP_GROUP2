@@ -54,6 +54,9 @@ public class BusinessAdminController extends HttpServlet {
     private static final service.AttendanceService attendanceService = new service.AttendanceService();
     private static final service.AttendanceClosingService attendanceClosingService = new service.AttendanceClosingService();
     private static final utils.AttendanceExcelExporter attendanceExporter = new utils.AttendanceExcelExporter();
+    private static final dao.EmploymentContractDAO contractDAO = new dao.EmploymentContractDAO();
+    private static final service.ContractAmendmentService contractAmendmentService
+            = new service.ContractAmendmentService(new dao.ContractAmendmentDAO(), contractDAO, new dal.DBContext());
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
@@ -213,7 +216,6 @@ public class BusinessAdminController extends HttpServlet {
     // =========================================================
     // Existing methods (unchanged)
     // =========================================================
-
     private void preventBackCache(HttpServletResponse response) {
         response.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
         response.setHeader("Pragma", "no-cache");
@@ -285,7 +287,6 @@ public class BusinessAdminController extends HttpServlet {
         response.sendRedirect(request.getContextPath() + "/v1/businessadmin/employee_info/my-profile");
     }
 
-
     private void displayDepartmentList(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         List<Department> departments = departmentDAO.getAllDepartments();
@@ -295,8 +296,9 @@ public class BusinessAdminController extends HttpServlet {
         for (Department d : departments) {
             if (d.getManagerId() != null) {
                 EmployeeDetailDTO mgr = departmentDAO.getCurrentManager(d.getDepartmentId());
-                if (mgr != null)
+                if (mgr != null) {
                     managerMap.put(d.getDepartmentId(), mgr);
+                }
             }
         }
 
@@ -434,7 +436,6 @@ public class BusinessAdminController extends HttpServlet {
         }
         response.sendRedirect(request.getContextPath() + "/v1/businessadmin/department/list");
     }
-
 
     private void displayEmployeeList(HttpServletRequest request, HttpServletResponse response, User user)
             throws ServletException, IOException {
@@ -588,7 +589,6 @@ public class BusinessAdminController extends HttpServlet {
     // =========================================================
     // Add / Update department (kế thừa từ Employee)
     // =========================================================
-
     private void displayAddDepartmentForm(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         request.setAttribute("roles", roleDAO.getAllActiveRoles());
@@ -730,10 +730,11 @@ public class BusinessAdminController extends HttpServlet {
     // =========================================================
     // Quản lý ngày lễ (Holiday)
     // =========================================================
-
     // ===================== Attendance Dashboard (Overview / Detail / Export) =====================
-
-    /** HR/Business Admin: 0 hoặc rỗng = toàn công ty; ngược lại lọc theo phòng ban. */
+    /**
+     * HR/Business Admin: 0 hoặc rỗng = toàn công ty; ngược lại lọc theo phòng
+     * ban.
+     */
     private Integer resolveDepartmentFilter(HttpServletRequest request) {
         String raw = request.getParameter("departmentId");
         if (raw != null && !raw.trim().isEmpty()) {
@@ -765,8 +766,8 @@ public class BusinessAdminController extends HttpServlet {
         int year = paramOr(request, "year", prev.getYear());
 
         // Cùng dữ liệu tổng hợp như trang overview của employee.
-        java.util.List<dto.AttendanceSummaryDTO> summaries =
-                attendanceService.getMonthlySummaries(departmentId, month, year);
+        java.util.List<dto.AttendanceSummaryDTO> summaries
+                = attendanceService.getMonthlySummaries(departmentId, month, year);
         request.setAttribute("summaries", summaries);
         request.setAttribute("pagedSummaries", utils.Paging.page(request, summaries));
         request.setAttribute("departments", departmentDAO.getAllActiveDepartments());
@@ -780,8 +781,8 @@ public class BusinessAdminController extends HttpServlet {
         request.setAttribute("selectedYear", year);
 
         // Trạng thái chốt của toàn bộ phòng ban trong kỳ (bỏ qua bộ lọc phòng).
-        java.util.List<model.AttendancePeriod> closingPeriods =
-                attendanceClosingService.getClosingOverview(year, month);
+        java.util.List<model.AttendancePeriod> closingPeriods
+                = attendanceClosingService.getClosingOverview(year, month);
         boolean hasData = !closingPeriods.isEmpty();
         boolean allSubmitted = hasData;
         boolean allLocked = hasData;
@@ -806,8 +807,8 @@ public class BusinessAdminController extends HttpServlet {
         java.time.LocalDate prev = java.time.LocalDate.now().minusMonths(1);
         int month = paramOr(request, "month", prev.getMonthValue());
         int year = paramOr(request, "year", prev.getYear());
-        service.AttendanceClosingService.ClosingResult result =
-                attendanceClosingService.approveByBa(year, month, user);
+        service.AttendanceClosingService.ClosingResult result
+                = attendanceClosingService.approveByBa(year, month, user);
         request.getSession().setAttribute(result.isSuccess() ? "success" : "error", result.getMessage());
         response.sendRedirect(request.getContextPath()
                 + "/v1/businessadmin/attendance/closing?month=" + month + "&year=" + year);
@@ -837,8 +838,8 @@ public class BusinessAdminController extends HttpServlet {
             request.getRequestDispatcher("/public/businessadmin/attendance/attendance_detail.jsp").forward(request, response);
             return;
         }
-        java.util.List<Integer> approvedOTDays =
-                overtimeDAO.getApprovedOTDaysInMonth(employeeId, month, year);
+        java.util.List<Integer> approvedOTDays
+                = overtimeDAO.getApprovedOTDaysInMonth(employeeId, month, year);
         request.setAttribute("approvedOTDays", approvedOTDays);
 
         int day = paramOr(request, "day", 0);
@@ -859,7 +860,6 @@ public class BusinessAdminController extends HttpServlet {
         request.setAttribute("selectedYear", year);
         request.getRequestDispatcher("/public/businessadmin/attendance/attendance_detail.jsp").forward(request, response);
     }
-
 
     private void exportAttendanceReport(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
@@ -977,8 +977,9 @@ public class BusinessAdminController extends HttpServlet {
     }
 
     /**
-     * Đọc tham số form vào holiday và validate. Trả về null nếu hợp lệ, ngược lại trả về
-     * thông báo lỗi (đồng thời giữ lại giá trị đã nhập trong holiday để hiển thị lại form).
+     * Đọc tham số form vào holiday và validate. Trả về null nếu hợp lệ, ngược
+     * lại trả về thông báo lỗi (đồng thời giữ lại giá trị đã nhập trong holiday
+     * để hiển thị lại form).
      */
     private String bindAndValidateHoliday(HttpServletRequest request, Holiday holiday) {
         String name = request.getParameter("holidayName");
@@ -1287,7 +1288,6 @@ public class BusinessAdminController extends HttpServlet {
         return null;
     }
 
-
     private BigDecimal parseDecimal(String raw) {
         if (isBlank(raw)) {
             return null;
@@ -1322,31 +1322,30 @@ public class BusinessAdminController extends HttpServlet {
     // =========================================================
     // Quản lý Đơn từ (Form Requests)
     // =========================================================
-
     private void displayFormRequests(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         String dayStr = request.getParameter("day");
         String monthStr = request.getParameter("month");
         String yearStr = request.getParameter("year");
         String keyword = request.getParameter("keyword");
-        
+
         Integer day = parseIntParam(dayStr);
         Integer month = parseIntParam(monthStr);
         Integer year = parseIntParam(yearStr);
-        
+
         List<FormRequestDTO> forms = formRequestDAO.getAllFormRequests(day, month, year, keyword)
                 .stream()
-                .filter(f -> "OVERTIME".equals(f.getFormTypeCode()) 
-                          || "TRANSFER".equals(f.getFormTypeCode())
-                          || "PROMOTION_DEMOTION".equals(f.getFormTypeCode()))
+                .filter(f -> "OVERTIME".equals(f.getFormTypeCode())
+                || "TRANSFER".equals(f.getFormTypeCode())
+                || "PROMOTION_DEMOTION".equals(f.getFormTypeCode()))
                 .collect(java.util.stream.Collectors.toList());
-        
+
         request.setAttribute("forms", forms);
         request.setAttribute("filterDay", day);
         request.setAttribute("filterMonth", month);
         request.setAttribute("filterYear", year);
         request.setAttribute("keyword", keyword);
-        
+
         request.getRequestDispatcher("/public/businessadmin/overtime/form_requests.jsp").forward(request, response);
     }
 
@@ -1369,9 +1368,9 @@ public class BusinessAdminController extends HttpServlet {
             List<EmployeeDetailDTO> assignees = overtimeDAO.getOvertimeAssignees(formId);
             request.setAttribute("otRequest", otRequest);
             request.setAttribute("assignees", assignees);
-            
+
             request.getRequestDispatcher("/public/businessadmin/overtime/ot_detail.jsp").forward(request, response);
-            
+
         } catch (NumberFormatException e) {
             response.sendRedirect(request.getContextPath() + "/v1/businessadmin/overtime/list");
         }
@@ -1417,23 +1416,23 @@ public class BusinessAdminController extends HttpServlet {
                 response.sendRedirect(request.getContextPath() + "/v1/businessadmin/overtime/list");
                 return;
             }
-            
+
             EmployeeDetailDTO approver = employeeDAO.getEmployeeByUserId(user.getUserId());
             int approverId = approver != null ? approver.getEmployeeId() : 0;
-            
+
             int newStatus = ("TRANSFER".equals(form.getFormTypeCode()) || "PROMOTION_DEMOTION".equals(form.getFormTypeCode())) ? 3 : 1;
             boolean ok = formRequestDAO.updateFormRequest(formId, newStatus, approverId, note != null ? note.trim() : "");
-            
+
             if (ok) {
                 switch (form.getFormTypeCode()) {
-                        case "TRANSFER":
-                            onApproveTransfer(form, approverId);
-                            break;
-                        case "PROMOTION_DEMOTION":
-                            onApprovePromotion(form, approverId);
-                            break;
-                        default:
-                            break;                  
+                    case "TRANSFER":
+                        onApproveTransfer(form, approverId);
+                        break;
+                    case "PROMOTION_DEMOTION":
+                        onApprovePromotion(form, approverId);
+                        break;
+                    default:
+                        break;
                 }
                 request.getSession().setAttribute("success", "Đã duyệt đơn thành công.");
             } else {
@@ -1447,16 +1446,23 @@ public class BusinessAdminController extends HttpServlet {
     }
 
     private void onApproveTransfer(FormRequestDTO form, int approverId) {
-        if (!(form instanceof TransferRequestDTO)) return;
+        if (!(form instanceof TransferRequestDTO)) {
+            return;
+        }
         TransferRequestDTO tf = (TransferRequestDTO) form;
-        
+
         if (tf.getTargetDepartmentId() != null) {
             EmployeeDetailDTO emp = employeeDAO.getEmployeeById(tf.getEmployeeId());
             if (emp != null) {
+                model.ContractOperationResult amendmentResult = contractAmendmentService.createTransferAmendment(tf, emp, approverId);
+                if (!amendmentResult.isSuccess()) {
+                    LOGGER.log(java.util.logging.Level.WARNING,
+                            "Tao phu luc that bai : " + amendmentResult.getMessage());
+                }
                 // Update position and department
                 int currentPosId = emp.getPositionId(); //!= null) ? emp.getPositionId() : 0;
                 employeeDAO.reassignEmployeeDepartment(tf.getEmployeeId(), tf.getTargetDepartmentId(), currentPosId);
-                
+
                 // Update role if targetRoleId exists
                 if (tf.getTargetRoleId() != null) {
                     userDAO.updateUserRole(emp.getUserId(), tf.getTargetRoleId());
@@ -1466,22 +1472,24 @@ public class BusinessAdminController extends HttpServlet {
     }
 
     private void onApprovePromotion(FormRequestDTO form, int approverId) {
-        if (!(form instanceof TransferRequestDTO)) return;
+        if (!(form instanceof TransferRequestDTO)) {
+            return;
+        }
         TransferRequestDTO tf = (TransferRequestDTO) form;
-        
+
         EmployeeDetailDTO emp = employeeDAO.getEmployeeById(tf.getEmployeeId());
         if (emp != null) {
             // Update role
             if (tf.getTargetRoleId() != null) {
                 userDAO.updateUserRole(emp.getUserId(), tf.getTargetRoleId());
-                
+
                 // If it's a manager role, also set them as the department manager
                 Role newRole = roleDAO.getRoleById(tf.getTargetRoleId());
                 if (newRole != null && newRole.getRoleName() != null && newRole.getRoleName().toLowerCase().contains("manager")) {
                     departmentDAO.assignManager(emp.getDepartmentId(), emp.getEmployeeId());
                 }
             }
-            
+
         }
     }
 
@@ -1495,10 +1503,10 @@ public class BusinessAdminController extends HttpServlet {
                 response.sendRedirect(request.getContextPath() + "/v1/businessadmin/overtime/list");
                 return;
             }
-            
+
             EmployeeDetailDTO approver = employeeDAO.getEmployeeByUserId(user.getUserId());
             int approverId = approver != null ? approver.getEmployeeId() : 0;
-            
+
             boolean ok = formRequestDAO.rejectFormRequest(formId, approverId, note != null ? note.trim() : "");
             if (ok) {
                 request.getSession().setAttribute("success", "Đã từ chối đơn thành công.");
@@ -1513,5 +1521,3 @@ public class BusinessAdminController extends HttpServlet {
     }
 
 }
-
-
