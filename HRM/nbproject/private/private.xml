@@ -73,30 +73,6 @@
             <file>file:/C:/Users/ADMIN/Desktop/SWP_GROUP2/HRM/src/java/dto/AttendanceImportResultDTO.java</file>
             <file>file:/C:/Users/ADMIN/Desktop/SWP_GROUP2/HRM/src/java/utils/ConfigManager.java</file>
             <file>file:/C:/Users/ADMIN/Desktop/SWP_GROUP2/HRM/src/java/dao/CandidateDAO.java</file>
-            <file>file:/C:/Users/FPT/SWP_GROUP2/HRM/src/java/dao/DepartmentDAO.java</file>
-            <file>file:/C:/Users/FPT/SWP_GROUP2/HRM/web/public/employee/attendance/attendance_import.jsp</file>
-            <file>file:/C:/Users/FPT/SWP_GROUP2/HRM/src/java/filter/AuthorizationFilter.java</file>
-            <file>file:/C:/Users/FPT/SWP_GROUP2/HRM/src/java/controller/SystemAdminController.java</file>
-            <file>file:/C:/Users/FPT/SWP_GROUP2/HRM/web/public/businessadmin/employee/my_profile.jsp</file>
-            <file>file:/C:/Users/FPT/SWP_GROUP2/HRM/web/public/employee/attendance/attendance_overview.jsp</file>
-            <file>file:/C:/Users/FPT/SWP_GROUP2/HRM/src/java/dal/DBInitializer.java</file>
-            <file>file:/C:/Users/FPT/SWP_GROUP2/HRM/src/java/dao/PermissionDAO.java</file>
-            <file>file:/C:/Users/FPT/SWP_GROUP2/HRM/web/public/employee/attendance/attendance_detail.jsp</file>
-            <file>file:/C:/Users/FPT/SWP_GROUP2/HRM/src/java/controller/EmployeeController.java</file>
-            <file>file:/C:/Users/FPT/SWP_GROUP2/HRM/web/public/manager/forms/ot_requests.jsp</file>
-            <file>file:/C:/Users/FPT/SWP_GROUP2/HRM/src/java/dao/EmployeeDAO.java</file>
-            <file>file:/C:/Users/FPT/SWP_GROUP2/HRM/src/java/exception/InvalidFormatException.java</file>
-            <file>file:/C:/Users/FPT/SWP_GROUP2/HRM/src/java/controller/ManagerController.java</file>
-            <file>file:/C:/Users/FPT/SWP_GROUP2/HRM/src/java/config/.env</file>
-            <file>file:/C:/Users/FPT/SWP_GROUP2/HRM/src/java/controller/BusinessAdminController.java</file>
-            <file>file:/C:/Users/FPT/SWP_GROUP2/HRM/src/java/model/Department.java</file>
-            <file>file:/C:/Users/FPT/SWP_GROUP2/HRM/web/public/systemadmin/permissions/edit_role_permissions.jsp</file>
-            <file>file:/C:/Users/FPT/SWP_GROUP2/HRM/src/java/filter/AuditLogFilter.java</file>
-            <file>file:/C:/Users/FPT/SWP_GROUP2/HRM/web/public/manager/forms/ot_create.jsp</file>
-            <file>file:/C:/Users/FPT/SWP_GROUP2/HRM/src/java/model/Attendance.java</file>
-            <file>file:/C:/Users/FPT/SWP_GROUP2/HRM/web/public/businessadmin/overtime/form_requests.jsp</file>
-            <file>file:/C:/Users/FPT/SWP_GROUP2/HRM/web/public/manager/attendance/attendance_import.jsp</file>
-            <file>file:/C:/Users/FPT/SWP_GROUP2/HRM/src/java/service/AttendanceImportService.java</file>
         </group>
     </open-files>
 </project-private>
