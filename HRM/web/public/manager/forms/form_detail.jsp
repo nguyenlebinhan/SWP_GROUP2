@@ -194,7 +194,7 @@
                     </c:choose>
                 </div>
 
-                <c:if test="${form.status == 1 || form.status == 2 || form.status == 3}">
+                <c:if test="${form.status == 1 || form.status == 2 || form.status == 3 || form.status == 4}">
                     <hr class="my-4">
                     <h5 class="text-success"><i class="fa-solid fa-clipboard-check me-2"></i>Kết quả xử lý</h5>
 
