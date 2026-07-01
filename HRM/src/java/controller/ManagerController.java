@@ -2680,10 +2680,7 @@ public class ManagerController extends HttpServlet {
         response.sendRedirect(request.getContextPath() + "/v1/manager/forms/all");
     }
 
-    /**
-     * HR duyệt COMPLAINT (bước 2): update Attendance nếu record tồn tại, không
-     * INSERT mới nếu không có dữ liệu chấm công.
-     */
+
     private void onHrApproveComplaint(FormRequestDTO form, EmployeeDetailDTO me, HttpServletRequest request) {
         if (!(form instanceof ComplaintFormRequestDTO)) {
             return;

@@ -86,9 +86,6 @@ public class EmployeeController extends HttpServlet {
     private final AttendanceExcelExporter attendanceExporter = new AttendanceExcelExporter();
     private final String UPLOAD_DIR = config.getProperty("UPLOAD_DIR");
     private final String FILE_PART = config.getProperty("FILE_PART");
-    private final CandidateDAO candidateDAO = new CandidateDAO();
-    private final EmailService emailService = new EmailService();
-    private final CandidateImportService candidateImportService = new CandidateImportService();
     private final PayrollService payrollService = new PayrollService();
     private final AttendanceClosingService attendanceClosingService = new AttendanceClosingService();
     private final PayrollConfigDAO payrollConfigDAO = new PayrollConfigDAO();
