@@ -62,7 +62,7 @@
         <c:if test="${editLocked}">
             <div class="alert alert-warning">
                 <i class="fa-solid fa-lock me-2"></i>
-                Đã quá hạn chỉnh sửa. Chấm công chỉ được sửa đến hết ngày 5 của tháng kế tiếp tháng chấm công.
+                <c:out value="${lockMessage}" default="Đã quá hạn chỉnh sửa. Chấm công chỉ được sửa đến hết ngày 5 của tháng kế tiếp tháng chấm công."/>
             </div>
         </c:if>
 

@@ -976,8 +976,13 @@ public class EmployeeController extends HttpServlet {
             return;
         }
         request.setAttribute("attendance", attendance);
-        request.setAttribute("editLocked",
-                attendanceClosingService.isEditLocked(attendance.getWorkDate(), attendance.getDepartmentId()));
+        boolean deadlineLocked =
+                attendanceClosingService.isEditLocked(attendance.getWorkDate(), attendance.getDepartmentId());
+        boolean weekendLocked = isWeekend(attendance.getWorkDate());
+        request.setAttribute("editLocked", deadlineLocked || weekendLocked);
+        request.setAttribute("lockMessage", weekendLocked
+                ? "Không thể chỉnh sửa chấm công của ngày cuối tuần (thứ Bảy/Chủ Nhật)."
+                : "Đã quá hạn chỉnh sửa. Chấm công chỉ được sửa đến hết ngày 5 của tháng kế tiếp tháng chấm công.");
         request.setAttribute("adjustmentHistory", attendanceDAO.getAdjustmentHistory(attendanceId));
         request.setAttribute("backUrl", backUrl);
         request.setAttribute("filterMonth", trimToNull(request.getParameter("month")));
@@ -1028,6 +1033,13 @@ public class EmployeeController extends HttpServlet {
             request.getSession().setAttribute("error",
                     "Đã quá hạn chỉnh sửa. Chấm công chỉ được sửa đến hết ngày 5 của tháng kế tiếp "
                     + "hoặc khi bảng chấm công đã được gửi đi chốt.");
+            response.sendRedirect(redirectUrl);
+            return;
+        }
+
+        if (isWeekend(attendance.getWorkDate())) {
+            request.getSession().setAttribute("error",
+                    "Không thể chỉnh sửa chấm công của ngày cuối tuần (thứ Bảy/Chủ Nhật).");
             response.sendRedirect(redirectUrl);
             return;
         }
@@ -2606,6 +2618,18 @@ public class EmployeeController extends HttpServlet {
 
     private String trimToNull(String value) {
         return isBlank(value) ? null : value.trim();
+    }
+
+    /**
+     * Trả về true nếu ngày chấm công rơi vào thứ Bảy hoặc Chủ Nhật.
+     * Dùng để chặn chỉnh sửa chấm công của ngày cuối tuần.
+     */
+    private boolean isWeekend(java.sql.Date date) {
+        if (date == null) {
+            return false;
+        }
+        DayOfWeek dow = date.toLocalDate().getDayOfWeek();
+        return dow == DayOfWeek.SATURDAY || dow == DayOfWeek.SUNDAY;
     }
 
     private Integer parseIntOrNull(String v) {
