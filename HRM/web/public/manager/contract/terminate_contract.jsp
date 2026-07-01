@@ -5,9 +5,9 @@
 <html lang="vi">
 <head>
     <meta charset="UTF-8"/>
-    <title>Chi tiết hợp đồng - HRM</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet"/>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet"/>
+    <title>Xác nhận chấm dứt hợp đồng - HRM</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
     <style>
         body { background: #f5f6fa; font-family: "Segoe UI", sans-serif; }
         .main { margin-left: 250px; padding: 24px; }
@@ -16,13 +16,11 @@
         .detail-item { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 14px 16px; }
         .detail-label { display: block; font-size: 12px; font-weight: 700; color: #64748b; text-transform: uppercase; margin-bottom: 6px; }
         .detail-value { font-size: 15px; color: #0f172a; }
-        .note-box { min-height: 100px; white-space: pre-line; }
-        .toolbar { max-width: 980px; margin: 0 auto 16px; display: flex; justify-content: space-between; gap: 12px; align-items: center; }
         .section-title { font-size: 18px; font-weight: 700; margin: 20px 0 12px; }
+        .terminate-warning { background: #fff3cd; border: 1px solid #ffc107; border-radius: 12px; padding: 16px; color: #664d03; }
         @media (max-width: 768px) {
             .main { margin-left: 0; padding: 16px; }
             .detail-grid { grid-template-columns: 1fr; }
-            .toolbar { flex-direction: column; align-items: stretch; }
         }
     </style>
 </head>
@@ -31,64 +29,29 @@
 
 <div class="main">
     <jsp:include page="/public/components/managerTopBar.jsp">
-        <jsp:param name="title" value="Chi tiết hợp đồng" />
-        <jsp:param name="backUrl" value="${backUrl}" />
+        <jsp:param name="title" value="Xác nhận chấm dứt hợp đồng" />
+        <jsp:param name="backUrl" value="/v1/manager/contract/terminate" />
     </jsp:include>
 
-    <c:if test="${not empty sessionScope.success}">
-        <div class="alert alert-success alert-dismissible fade show mx-auto mb-3" style="max-width:980px;" role="alert">
-            ${sessionScope.success}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-        <c:remove var="success" scope="session"/>
-    </c:if>
-    <c:if test="${not empty sessionScope.error}">
+    <c:if test="${not empty error}">
         <div class="alert alert-danger alert-dismissible fade show mx-auto mb-3" style="max-width:980px;" role="alert">
-            ${sessionScope.error}
+            <i class="fa-solid fa-circle-exclamation me-1"></i>${error}
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
-        <c:remove var="error" scope="session"/>
     </c:if>
-
-    <div class="toolbar">
-        <a href="${pageContext.request.contextPath}${backUrl}" class="btn btn-outline-secondary">
-            <i class="fa-solid fa-arrow-left me-1"></i>Quay lại
-        </a>
-        <div class="d-flex flex-wrap gap-2">
-            <c:if test="${canApproveContract and contract.status == 'PENDING_APPROVAL'}">
-                <form method="post" action="${pageContext.request.contextPath}/v1/manager/contract/approve">
-                    <input type="hidden" name="contractId" value="${contract.contractId}">
-                    <button type="submit" class="btn btn-success">
-                        <i class="fa-solid fa-check me-1"></i>Phê duyệt
-                    </button>
-                </form>
-            </c:if>
-            <c:if test="${canRejectContract and contract.status == 'PENDING_APPROVAL'}">
-                <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#rejectModal">
-                    <i class="fa-solid fa-xmark me-1"></i>Từ chối
-                </button>
-            </c:if>
-            <c:if test="${canAddEmploymentContract and contract.status == 'PENDING_APPROVAL'}">
-                <form method="post" action="${pageContext.request.contextPath}/v1/manager/contract/cancel">
-                    <input type="hidden" name="contractId" value="${contract.contractId}">
-                    <button type="submit" class="btn btn-outline-warning">
-                        <i class="fa-solid fa-ban me-1"></i>Hủy
-                    </button>
-                </form>
-            </c:if>
-            <c:if test="${canTerminateContract and (contract.status == 'ACTIVE' or contract.status == 'PENDING_ACTIVATION')}">
-                <form method="post" action="${pageContext.request.contextPath}/v1/manager/contract/terminate">
-                    <input type="hidden" name="contractId" value="${contract.contractId}">
-                    <input type="hidden" name="note" value="Terminated by HR Manager">
-                    <button type="submit" class="btn btn-outline-dark">
-                        <a href="${pageContext.request.contextPath}/v1/manager/contract/terminate?id=${contract.contractId} class="btn btn-outliner-dark"></a><i class="fa-solid fa-stop me-1"></i>Chấm dứt
-                    </button>
-                </form>
-            </c:if>
-        </div>
-    </div>
 
     <div class="page-card">
+        <div class="terminate-warning mb-4">
+            <i class="fa-solid fa-triangle-exclamation me-2"></i>
+            <strong>Cảnh báo:</strong> Hành động này sẽ chấm dứt hợp đồng ngay lập tức. Dữ liệu sẽ được ghi nhận trong lịch sử và không thể hoàn tác.
+            <c:if test="${contract.status == 'PENDING_ACTIVATION'}">
+                <br/><span class="mt-2 d-inline-block"><i class="fa-regular fa-clock me-1"></i>Hợp đồng đang chờ kích hoạt. Ngày chấm dứt phải <strong>trước hoặc bằng</strong> ngày hiệu lực.</span>
+            </c:if>
+            <c:if test="${contract.status == 'ACTIVE'}">
+                <br/><span class="mt-2 d-inline-block"><i class="fa-regular fa-clock me-1"></i>Hợp đồng đang hiệu lực. Ngày chấm dứt phải <strong>từ ngày hiệu lực trở đi</strong>${not empty contract.endDate ? ' và không sau ngày kết thúc.' : '.'}</span>
+            </c:if>
+        </div>
+
         <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
             <div>
                 <h1 class="h3 mb-1">Hợp đồng ${empty contract.contractCode ? contract.contractId : contract.contractCode}</h1>
@@ -112,22 +75,11 @@
         <div class="detail-grid">
             <div class="detail-item">
                 <span class="detail-label">Loại hợp đồng</span>
-                <div class="detail-value">${contract.contractType}</div>
+                <div class="detail-value">${contract.contractType.displayName}</div>
             </div>
             <div class="detail-item">
                 <span class="detail-label">Lương</span>
                 <div class="detail-value"><fmt:formatNumber value="${contract.salary}" type="number" groupingUsed="true"/> VND</div>
-            </div>
-            <div class="detail-item">
-                <span class="detail-label">Ngày ký</span>
-                <div class="detail-value">
-                    <c:choose>
-                        <c:when test="${not empty contract.signedDate}">
-                            <fmt:formatDate value="${contract.signedDate}" pattern="dd/MM/yyyy"/>
-                        </c:when>
-                        <c:otherwise>Chưa ký</c:otherwise>
-                    </c:choose>
-                </div>
             </div>
             <div class="detail-item">
                 <span class="detail-label">Ngày hiệu lực</span>
@@ -139,19 +91,6 @@
                     <c:choose>
                         <c:when test="${empty contract.endDate}">Không xác định thời hạn</c:when>
                         <c:otherwise><fmt:formatDate value="${contract.endDate}" pattern="dd/MM/yyyy"/></c:otherwise>
-                    </c:choose>
-                </div>
-            </div>
-            <div class="detail-item">
-                <span class="detail-label">Hợp đồng trước đó</span>
-                <div class="detail-value">
-                    <c:choose>
-                        <c:when test="${not empty contract.previousContractId}">
-                            <a href="${pageContext.request.contextPath}/v1/manager/contract/detail?contractId=${contract.previousContractId}">
-                                #${contract.previousContractId}
-                            </a>
-                        </c:when>
-                        <c:otherwise>Không có</c:otherwise>
                     </c:choose>
                 </div>
             </div>
@@ -177,32 +116,44 @@
             </div>
         </div>
 
-        <div class="section-title">Ghi chú</div>
-        <div class="detail-item note-box">
-            <c:out value="${empty contract.note ? 'Không có ghi chú.' : contract.note}"/>
-        </div>
-    </div>
-</div>
+        <div class="section-title">Thông tin chấm dứt</div>
+        <form method="post" action="${pageContext.request.contextPath}/v1/manager/contract/terminate">
+            <input type="hidden" name="contractId" value="${contract.contractId}">
 
-<div class="modal fade" id="rejectModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <form method="post" action="${pageContext.request.contextPath}/v1/manager/contract/reject">
-                <div class="modal-header">
-                    <h5 class="modal-title">Từ chối hợp đồng</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            <div class="detail-grid">
+                <div class="detail-item">
+                    <span class="detail-label">Ngày chấm dứt <span class="text-danger">*</span></span>
+                    <input type="date" class="form-control" name="terminationDate"
+                           value="${not empty terminationDate ? terminationDate : ''}"
+                           max="<fmt:formatDate value="<%= new java.sql.Date(System.currentTimeMillis()) %>" pattern="yyyy-MM-dd"/>"
+                           required>
                 </div>
-                <div class="modal-body">
-                    <input type="hidden" name="contractId" value="${contract.contractId}">
-                    <label class="form-label">Lý do từ chối</label>
-                    <textarea class="form-control" name="rejectReason" rows="4" required></textarea>
+                <div class="detail-item">
+                    <span class="detail-label">Ngày hiệu lực</span>
+                    <div class="detail-value"><fmt:formatDate value="${contract.effectiveDate}" pattern="dd/MM/yyyy"/></div>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Đóng</button>
-                    <button type="submit" class="btn btn-danger">Xác nhận từ chối</button>
+                <c:if test="${not empty contract.endDate}">
+                <div class="detail-item">
+                    <span class="detail-label">Ngày kết thúc hợp đồng</span>
+                    <div class="detail-value"><fmt:formatDate value="${contract.endDate}" pattern="dd/MM/yyyy"/></div>
                 </div>
-            </form>
-        </div>
+                </c:if>
+                <div class="detail-item" style="grid-column: 1 / -1;">
+                    <span class="detail-label">Lý do chấm dứt <span class="text-danger">*</span></span>
+                    <textarea class="form-control" name="terminationReason" rows="4"
+                              placeholder="Nhập lý do chấm dứt hợp đồng..." required>${not empty terminationReason ? terminationReason : ''}</textarea>
+                </div>
+            </div>
+
+            <div class="d-flex justify-content-between gap-3 mt-4">
+                <a href="${pageContext.request.contextPath}/v1/manager/contract/terminate" class="btn btn-outline-secondary">
+                    <i class="fa-solid fa-arrow-left me-1"></i>Quay lại danh sách
+                </a>
+                <button type="submit" class="btn btn-danger" onclick="return confirm('Xác nhận chấm dứt hợp đồng này? Hành động này không thể hoàn tác.');">
+                    <i class="fa-solid fa-stop me-1"></i>Chấm dứt hợp đồng
+                </button>
+            </div>
+        </form>
     </div>
 </div>
 
