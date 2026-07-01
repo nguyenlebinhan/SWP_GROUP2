@@ -50,6 +50,7 @@ import model.User;
 import service.CandidateImportService;
 import service.EmailService;
 import service.AttendanceImportService;
+import service.AttendanceClosingService;
 import service.PayrollService;
 import dal.DBContext;
 import java.time.LocalTime;
@@ -82,6 +83,7 @@ public class ManagerController extends HttpServlet {
     private static final EmailService emailService = new EmailService();
     private static final AttendanceImportService importService = new AttendanceImportService();
     private static final PayrollService payrollService = new PayrollService();
+    private static final AttendanceClosingService attendanceClosingService = new AttendanceClosingService();
     private static final String UPLOAD_DIR = "uploads";
     private static final String ATTENDANCE_FILE_PART = "attendanceFile";
 
@@ -268,6 +270,9 @@ public class ManagerController extends HttpServlet {
             case "/attendance/import":
                 handleImportAttendance(request, response, user);
                 break;
+            case "/attendance/confirm":
+                handleConfirmDeptAttendance(request, response, user);
+                break;
             case "/salary/generate":
                 handleGeneratePayroll(request, response, user);
                 break;
@@ -359,41 +364,43 @@ public class ManagerController extends HttpServlet {
         Set<String> perms = getPermissions(user);
         request.getSession().setAttribute("userPermissions", perms);
         setPermissionFlags(request, perms);
+        setManagerLayout(request);
 
         EmployeeDetailDTO manager = employeeDAO.getEmployeeByUserId(user.getUserId());
         if (manager == null || manager.getDepartmentId() <= 0) {
-            request.setAttribute("error", "Bạn chưa được phân cóng vào phòng ban nào.");
+            request.setAttribute("error", "Bạn chưa được phân công vào phòng ban nào.");
             request.getRequestDispatcher("/public/manager/attendance/department_attendance.jsp").forward(request, response);
             return;
         }
 
-        String rawMonth = request.getParameter("month");
-        String rawYear = request.getParameter("year");
-        String employeeCode = request.getParameter("employeeCode");
-        if (employeeCode != null) {
-            employeeCode = employeeCode.trim();
-        }
+        int departmentId = manager.getDepartmentId();
+        LocalDate now = LocalDate.now();
+        int month = paramOr(request, "month", now.minusMonths(1).getMonthValue());
+        int year = paramOr(request, "year", now.minusMonths(1).getYear());
 
-        Integer month = null;
-        Integer year = null;
-        try {
-            if (rawMonth != null && !rawMonth.trim().isEmpty() && !rawMonth.equals("0")) {
-                month = Integer.parseInt(rawMonth.trim());
-            }
-            if (rawYear != null && !rawYear.trim().isEmpty()) {
-                year = Integer.parseInt(rawYear.trim());
-            }
-        } catch (NumberFormatException ignored) {
-        }
-
-        List<Attendance> attendances = attendanceDAO.getAttendanceList(
-                manager.getDepartmentId(), month, year, employeeCode, null);
-
-        request.setAttribute("attendances", attendances);
-        request.setAttribute("filterMonth", month);
-        request.setAttribute("filterYear", year);
-        request.setAttribute("filterEmployeeCode", employeeCode);
+        // Cùng dữ liệu tổng hợp như trang tổng quan, nhưng khoá cứng vào phòng của trưởng phòng.
+        java.util.List<dto.AttendanceSummaryDTO> summaries =
+                attendanceService.getMonthlySummaries(departmentId, month, year);
+        request.setAttribute("summaries", summaries);
+        request.setAttribute("pagedSummaries", utils.Paging.page(request, summaries));
+        request.setAttribute("canViewAll", false);
+        request.setAttribute("selectedDepartmentId", departmentId);
         request.setAttribute("departmentName", manager.getDepartmentName());
+        request.setAttribute("selectedMonth", month);
+        request.setAttribute("selectedYear", year);
+
+        // Panel chốt bảng chấm công cho trưởng phòng.
+        model.AttendancePeriod closingRow =
+                attendanceClosingService.getClosingRow(year, month, departmentId);
+        java.util.List<model.AttendancePeriod> closingPeriods = new java.util.ArrayList<>();
+        closingPeriods.add(closingRow);
+        request.setAttribute("closingPeriods", closingPeriods);
+        request.setAttribute("closingHasData", true);
+        request.setAttribute("canManagerConfirm",
+                closingRow.getStatus() == enums.AttendancePeriodStatus.WAITING_MANAGER.getRelatedNum());
+        request.setAttribute("closingConfirmed",
+                closingRow.getStatus() >= enums.AttendancePeriodStatus.MANAGER_CONFIRMED.getRelatedNum());
+        request.setAttribute("closingDepartmentId", departmentId);
 
         request.getRequestDispatcher("/public/manager/attendance/department_attendance.jsp").forward(request, response);
     }
@@ -404,26 +411,43 @@ public class ManagerController extends HttpServlet {
         request.getSession().setAttribute("userPermissions", perms);
         setPermissionFlags(request, perms);
 
-        String rawMonth = request.getParameter("month");
-        String rawYear = request.getParameter("year");
-        Integer month = null;
-        Integer year = null;
-        try {
-            if (rawMonth != null && !rawMonth.trim().isEmpty() && !rawMonth.equals("0")) {
-                month = Integer.parseInt(rawMonth.trim());
-            }
-            if (rawYear != null && !rawYear.trim().isEmpty()) {
-                year = Integer.parseInt(rawYear.trim());
-            }
-        } catch (NumberFormatException ignored) {
-        }
+        LocalDate now = LocalDate.now();
+        int month = paramOr(request, "month", now.minusMonths(1).getMonthValue());
+        int year = paramOr(request, "year", now.minusMonths(1).getYear());
 
         EmployeeDetailDTO me = employeeDAO.getEmployeeByUserId(user.getUserId());
-        List<Attendance> attendances = (me != null)
-                ? attendanceDAO.getAttendanceListByEmployeeId(me.getEmployeeId(), month, year)
+        List<Attendance> monthRows = (me != null)
+                ? attendanceDAO.getDailyAttendance(me.getEmployeeId(), month, year)
                 : new java.util.ArrayList<>();
 
-        request.setAttribute("attendances", attendances);
+        dto.AttendanceSummaryDTO summary = new dto.AttendanceSummaryDTO();
+        BigDecimal worked = BigDecimal.ZERO;
+        for (Attendance a : monthRows) {
+            switch (a.getAttendanceStatus()) {
+                case 0: summary.setPresentDays(summary.getPresentDays() + 1); break;
+                case 1: summary.setLateDays(summary.getLateDays() + 1); break;
+                case 4: summary.setLeaveDays(summary.getLeaveDays() + 1); break;
+                case 2:
+                case 3: summary.setAbsentDays(summary.getAbsentDays() + 1); break;
+                case 5: summary.setHolidayDays(summary.getHolidayDays() + 1); break;
+                case 6: summary.setWeekendDays(summary.getWeekendDays() + 1); break;
+                case 7: summary.setMissingCheckDays(summary.getMissingCheckDays() + 1); break;
+                default: break;
+            }
+            if (a.getHoursWorked() != null) {
+                worked = worked.add(a.getHoursWorked());
+            }
+        }
+        summary.setWorkedHours(worked);
+        summary.setStandardDays(attendanceService.standardWorkingDays(month, year));
+        request.setAttribute("summary", summary);
+        request.setAttribute("monthRows", monthRows);
+
+        if (me != null) {
+            request.setAttribute("approvedOTDays",
+                    overtimeDAO.getApprovedOTDaysInMonth(me.getEmployeeId(), month, year));
+        }
+
         request.setAttribute("selectedMonth", month);
         request.setAttribute("selectedYear", year);
         request.getRequestDispatcher("/public/manager/attendance/own_attendance_list.jsp").forward(request, response);
@@ -560,11 +584,45 @@ public class ManagerController extends HttpServlet {
         }
         int[] period = parseSalaryPeriod(request);
         Integer departmentId = parseIntOrNull(request.getParameter("departmentId"));
+
+        boolean locked = departmentId == null
+                ? attendanceClosingService.isPeriodLocked(period[0], period[1])
+                : attendanceClosingService.isDepartmentLocked(period[0], period[1], departmentId);
+        if (!locked) {
+            request.getSession().setAttribute("error",
+                    "Bảng chấm công kỳ này chưa được BA chốt. Chưa thể tính lương.");
+            response.sendRedirect(request.getContextPath() + "/v1/manager/salary/all?month=" + period[1]
+                    + "&year=" + period[0]
+                    + (departmentId == null ? "" : "&departmentId=" + departmentId));
+            return;
+        }
+
         int generated = payrollService.saveGeneratedPayrollForPeriod(period[0], period[1], departmentId);
         request.getSession().setAttribute("success", "Đã tạo bảng lương cho " + generated + " nhân sự.");
         response.sendRedirect(request.getContextPath() + "/v1/manager/salary/all?month=" + period[1]
                 + "&year=" + period[0]
                 + (departmentId == null ? "" : "&departmentId=" + departmentId));
+    }
+
+    private void handleConfirmDeptAttendance(HttpServletRequest request, HttpServletResponse response,
+            User user) throws IOException {
+        LocalDate prev = LocalDate.now().minusMonths(1);
+        int month = paramOr(request, "month", prev.getMonthValue());
+        int year = paramOr(request, "year", prev.getYear());
+        Integer departmentId = parseIntOrNull(request.getParameter("departmentId"));
+        if (departmentId == null) {
+            departmentId = resolveManagerDepartmentId(user);
+        }
+        if (departmentId == null) {
+            request.getSession().setAttribute("error", "Bạn chưa được phân công vào phòng ban nào.");
+            response.sendRedirect(request.getContextPath() + "/v1/manager/attendance/overview");
+            return;
+        }
+        AttendanceClosingService.ClosingResult result =
+                attendanceClosingService.confirmByManager(year, month, departmentId, user);
+        request.getSession().setAttribute(result.isSuccess() ? "success" : "error", result.getMessage());
+        response.sendRedirect(request.getContextPath()
+                + "/v1/manager/attendance/my-department-attendance?month=" + month + "&year=" + year);
     }
 
     // ===================== Attendance Dashboard (Overview / Detail / Export) =====================
@@ -646,6 +704,21 @@ public class ManagerController extends HttpServlet {
         request.setAttribute("selectedDepartmentId", departmentId);
         request.setAttribute("selectedMonth", month);
         request.setAttribute("selectedYear", year);
+
+        // Trạng thái chốt của phòng đang xem: hiển thị nút "Chốt phòng" khi đang chờ trưởng phòng.
+        if (departmentId != null) {
+            model.AttendancePeriod closingRow =
+                    attendanceClosingService.getClosingRow(year, month, departmentId);
+            java.util.List<model.AttendancePeriod> closingPeriods = new java.util.ArrayList<>();
+            closingPeriods.add(closingRow);
+            request.setAttribute("closingPeriods", closingPeriods);
+            request.setAttribute("closingHasData", true);
+            request.setAttribute("canManagerConfirm",
+                    closingRow.getStatus() == enums.AttendancePeriodStatus.WAITING_MANAGER.getRelatedNum());
+            request.setAttribute("closingConfirmed",
+                    closingRow.getStatus() >= enums.AttendancePeriodStatus.MANAGER_CONFIRMED.getRelatedNum());
+            request.setAttribute("closingDepartmentId", departmentId);
+        }
         request.getRequestDispatcher("/public/manager/attendance/attendance_overview.jsp").forward(request, response);
     }
 

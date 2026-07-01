@@ -21,11 +21,6 @@ public final class WorkHoursCalculator {
     private WorkHoursCalculator() {
     }
 
-    /**
-     * Làm tròn LÊN thời điểm vào theo block {@link #BLOCK_MINUTES} phút.
-     * Đi muộn dù chỉ vài phút trong một block sẽ mất trọn cả block đó.
-     * Ví dụ (block 30 phút): 08:00 -> 08:00, 08:01 -> 08:30, 08:30 -> 08:30, 08:31 -> 09:00.
-     */
     public static Time ceilToBlock(Time t) {
         if (t == null) {
             return null;
@@ -38,11 +33,6 @@ public final class WorkHoursCalculator {
         return Time.valueOf(java.time.LocalTime.ofSecondOfDay(rounded * 60L));
     }
 
-    /**
-     * Làm tròn XUỐNG thời điểm ra theo block {@link #BLOCK_MINUTES} phút.
-     * Block cuối cùng chưa đủ sẽ không được tính.
-     * Ví dụ (block 30 phút): 17:00 -> 17:00, 16:59 -> 16:30, 16:29 -> 16:00.
-     */
     public static Time floorToBlock(Time t) {
         if (t == null) {
             return null;
