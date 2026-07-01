@@ -382,6 +382,12 @@ public class ManagerController extends HttpServlet {
             case "/attendance/import":
                 handleImportAttendance(request, response, user);
                 break;
+            case "/attendance/close-period":
+                handleCloseAttendancePeriod(request, response, user);
+                break;
+            case "/attendance/finalize":
+                handleFinalizeAttendancePeriod(request, response, user);
+                break;
             case "/attendance/confirm":
                 handleConfirmDeptAttendance(request, response, user);
                 break;
@@ -1073,6 +1079,28 @@ public class ManagerController extends HttpServlet {
                 + "/v1/manager/attendance/my-department-attendance?month=" + month + "&year=" + year);
     }
 
+    private void handleCloseAttendancePeriod(HttpServletRequest request, HttpServletResponse response,
+            User user) throws IOException {
+        LocalDate prev = LocalDate.now().minusMonths(1);
+        int month = paramOr(request, "month", prev.getMonthValue());
+        int year = paramOr(request, "year", prev.getYear());
+        ClosingResult result = attendanceClosingService.openPeriodForManagers(year, month, user);
+        request.getSession().setAttribute(result.isSuccess() ? "success" : "error", result.getMessage());
+        response.sendRedirect(request.getContextPath()
+                + "/v1/manager/attendance/overview?month=" + month + "&year=" + year);
+    }
+
+    private void handleFinalizeAttendancePeriod(HttpServletRequest request, HttpServletResponse response,
+            User user) throws IOException {
+        LocalDate prev = LocalDate.now().minusMonths(1);
+        int month = paramOr(request, "month", prev.getMonthValue());
+        int year = paramOr(request, "year", prev.getYear());
+        ClosingResult result = attendanceClosingService.approveByHr(year, month, user);
+        request.getSession().setAttribute(result.isSuccess() ? "success" : "error", result.getMessage());
+        response.sendRedirect(request.getContextPath()
+                + "/v1/manager/attendance/overview?month=" + month + "&year=" + year);
+    }
+
     // ===================== Attendance Dashboard (Overview / Detail / Export) =====================
     private Integer resolveManagerDepartmentId(User user) {
         EmployeeDetailDTO manager = employeeDAO.getEmployeeByUserId(user.getUserId());
@@ -1152,21 +1180,49 @@ public class ManagerController extends HttpServlet {
         request.setAttribute("selectedMonth", month);
         request.setAttribute("selectedYear", year);
 
-        // Trạng thái chốt của phòng đang xem: hiển thị nút "Chốt phòng" khi đang chờ trưởng phòng.
-        if (departmentId != null) {
+        boolean hrClosingMode = isHrManager(user);
+        request.setAttribute("hrClosingMode", hrClosingMode);
+        if (hrClosingMode) {
+            setClosingOverviewAttributes(request, year, month);
+        } else if (departmentId != null) {
+            // Trang tổng quan chỉ hiển thị trạng thái; thao tác chốt phòng nằm ở trang chấm công phòng ban.
             model.AttendancePeriod closingRow
                     = attendanceClosingService.getClosingRow(year, month, departmentId);
             java.util.List<model.AttendancePeriod> closingPeriods = new java.util.ArrayList<>();
             closingPeriods.add(closingRow);
             request.setAttribute("closingPeriods", closingPeriods);
             request.setAttribute("closingHasData", true);
-            request.setAttribute("canManagerConfirm",
-                    closingRow.getStatus() == enums.AttendancePeriodStatus.WAITING_MANAGER.getRelatedNum());
             request.setAttribute("closingConfirmed",
                     closingRow.getStatus() >= enums.AttendancePeriodStatus.MANAGER_CONFIRMED.getRelatedNum());
-            request.setAttribute("closingDepartmentId", departmentId);
         }
         request.getRequestDispatcher("/public/manager/attendance/attendance_overview.jsp").forward(request, response);
+    }
+
+    private void setClosingOverviewAttributes(HttpServletRequest request, int year, int month) {
+        List<model.AttendancePeriod> closingPeriods
+                = attendanceClosingService.getClosingOverview(year, month);
+        boolean hasData = !closingPeriods.isEmpty();
+        boolean anyOpen = false;
+        boolean allReadyForHrFinalization = hasData;
+        boolean allLocked = hasData;
+        for (model.AttendancePeriod period : closingPeriods) {
+            int status = period.getStatus();
+            if (status == enums.AttendancePeriodStatus.OPEN.getRelatedNum()) {
+                anyOpen = true;
+            }
+            if (status != enums.AttendancePeriodStatus.MANAGER_CONFIRMED.getRelatedNum()
+                    && status != enums.AttendancePeriodStatus.WAITING_HR_FINAL_CHECK.getRelatedNum()) {
+                allReadyForHrFinalization = false;
+            }
+            if (status != enums.AttendancePeriodStatus.LOCKED.getRelatedNum()) {
+                allLocked = false;
+            }
+        }
+        request.setAttribute("closingPeriods", closingPeriods);
+        request.setAttribute("closingHasData", hasData);
+        request.setAttribute("closingCanOpen", anyOpen);
+        request.setAttribute("closingCanFinalize", allReadyForHrFinalization);
+        request.setAttribute("closingLocked", allLocked);
     }
 
     private void displayAttendanceDetail(HttpServletRequest request, HttpServletResponse response,
