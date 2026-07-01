@@ -23,7 +23,10 @@ import java.sql.Date;
 import java.sql.SQLException;
 import java.sql.Time;
 import java.time.DayOfWeek;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import model.Attendance;
@@ -89,11 +92,13 @@ public class AttendanceImportService {
             conn.setAutoCommit(false);
             try {
                 int imported = 0;
+                Set<java.sql.Date> importedDates = new HashSet<>();
                 for (AttendanceDataDTO ad : attendanceDataDTOs) {
                     try {
                         Attendance att = buildAndValidate(conn, ad, departmentId, month, year, fileId);
                         if (attendanceDAO.upsertAttendance(conn, att)) {
                             imported++;
+                            importedDates.add(att.getWorkDate());
                         } else {
                             result.addError(ad.getRowNumber(), ad.getEmployeeCode(),
                                     "Lưu dữ liệu thất bại (lỗi cơ sở dữ liệu).");
@@ -108,6 +113,11 @@ public class AttendanceImportService {
                 applyResultStatus(result, imported);
                 uploadedFileDAO.updateImportResult(conn, fileId, result.getTotalRows(),
                         result.getImportedRows(), result.getFailedRows(), result.getStatus(), result.getNote());
+                
+                for (java.sql.Date d : importedDates) {
+                    overtimeDAO.cancelUnfulfilledOTForms(conn, d);
+                }
+                
                 conn.commit();
                 return result;
             } catch (SQLException | RuntimeException e) {
@@ -198,6 +208,8 @@ public class AttendanceImportService {
             // Không có đơn OT được duyệt: phần làm thêm chỉ được tính tới 17:00.
             if (!hasOT && calcTimeOut.after(WORK_END)) {
                 calcTimeOut = WORK_END;
+            } else if (hasOT && calcTimeOut.after(WORK_END)) {
+                overtimeDAO.completeOTForm(conn, employeeId, workDate);
             }
 
             hoursWorked = utils.WorkHoursCalculator.hoursWorked(calcTimeIn, calcTimeOut);

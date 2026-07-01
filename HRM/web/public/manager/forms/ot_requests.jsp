@@ -33,6 +33,7 @@
             .status-1 { background: #d1fae5; color: #065f46; }
             .status-2 { background: #fee2e2; color: #991b1b; }
             .status-3 { background: #e5e7eb; color: #374151; }
+            .status-4 { background: #dbeafe; color: #1e40af; }
         </style>
     </head>
     <body>
@@ -80,7 +81,7 @@
                         </select>
                     </div>
                     <div class="col-md-3">
-                        <label class="form-label">Ngày OT</label>
+                        <label class="form-label">Ngày tăng ca</label>
                         <input type="date" name="otDate" value="${dateFilter}" class="form-control">
                     </div>
                     <div class="col-md-4">
@@ -98,7 +99,7 @@
                         <thead class="table-light">
                             <tr>
                                 <th>Mã đơn</th>
-                                <th>Ngày OT</th>
+                                <th>Ngày tăng ca</th>
                                 <th>Thời gian</th>
                                 <th>Loại ngày</th>
                                 <th class="text-center">Số lượng NV</th>
@@ -154,7 +155,7 @@
                             <c:if test="${empty otRequests}">
                                 <tr>
                                     <td colspan="8" class="text-center text-muted py-4">
-                                        <i class="fa-solid fa-inbox me-2"></i>Không tìm thấy đơn Overtime nào.
+                                        <i class="fa-solid fa-inbox me-2"></i>Không tìm thấy đơn tăng ca nào.
                                     </td>
                                 </tr>
                             </c:if>

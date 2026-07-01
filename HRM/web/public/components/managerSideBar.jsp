@@ -124,10 +124,10 @@
         </a>
     </c:if>
 
-    <div class="nav-section">Quản lý Overtime</div>
+    <div class="nav-section">Quản lý tăng ca</div>
     <a href="${pageContext.request.contextPath}/v1/manager/forms/ot-requests"
        class="${pageContext.request.servletPath == '/public/manager/forms/ot_requests.jsp' || pageContext.request.servletPath == '/public/manager/forms/ot_create.jsp' ? 'active' : ''}">
-        Overtime
+        Đơn tăng ca
     </a>
 
     <div class="nav-section">Chấm công</div>

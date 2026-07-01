@@ -48,6 +48,7 @@
         .status-1 { background-color: #d1fae5; color: #065f46; }
         .status-2 { background-color: #fee2e2; color: #991b1b; }
         .status-3 { background-color: #f3f4f6; color: #374151; }
+        .status-4 { background-color: #dbeafe; color: #1e40af; }
     </style>
 </head>
 <body>
