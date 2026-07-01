@@ -1216,15 +1216,7 @@ public class EmployeeController extends HttpServlet {
             response.sendRedirect(redirectUrl);
             return;
         }
-        
-        if(timeOut != null){
-            Time timeMax =Time.valueOf("19:00:00");
-            if(timeOut.after(timeMax)){
-                request.getSession().setAttribute("error", "Giờ vào phải sau 7h tối.");
-                response.sendRedirect(redirectUrl);
-                return;
-            }
-        }
+       
 
         if (timeIn != null && timeOut != null && timeOut.before(timeIn)) {
             request.getSession().setAttribute("error", "Giờ ra phải sau giờ vào.");
@@ -1234,8 +1226,32 @@ public class EmployeeController extends HttpServlet {
         
         
 
+        dao.OvertimeDAO overtimeDAO = new dao.OvertimeDAO();
+        boolean hasOT = overtimeDAO.hasApprovedOT(
+                attendance.getEmployeeId(), attendance.getWorkDate());
+
+        Time maxTime = hasOT ? Time.valueOf("19:00:00") : Time.valueOf("17:00:00");
+
+        if (timeOut != null && timeOut.after(maxTime)) {
+            boolean otRevived = overtimeDAO.reviveAndCompleteOTForm(attendance.getEmployeeId(), attendance.getWorkDate());
+            if (otRevived && !hasOT) {
+                hasOT = true;
+                maxTime = Time.valueOf("19:00:00");
+            }
+        }
+
+        if (timeIn != null && timeIn.after(maxTime)) {
+            request.getSession().setAttribute("error", "Thời gian Check-in tối đa là " + (hasOT ? "19:00" : "17:00") + ".");
+            response.sendRedirect(redirectUrl);
+            return;
+        }
+
         Time calcTimeIn = utils.WorkHoursCalculator.ceilToBlock(timeIn);
         Time calcTimeOut = utils.WorkHoursCalculator.floorToBlock(timeOut);
+
+        if (calcTimeOut != null && calcTimeOut.after(maxTime)) {
+            calcTimeOut = maxTime;
+        }
 
         int status;
         try {
@@ -1250,11 +1266,10 @@ public class EmployeeController extends HttpServlet {
         BigDecimal hoursWorked;
         if (calcTimeIn != null && calcTimeOut != null && (status == 0 || status == 1)) {
             hoursWorked = utils.WorkHoursCalculator.hoursWorked(calcTimeIn, calcTimeOut);
-            // Không có đơn OT được duyệt cho ngày này thì giới hạn giờ công ở 8 tiếng chuẩn,
-            // dù nhân viên đến sớm hơn hay về muộn hơn.
+
+            // Không OT thì giờ công không vượt quá 8 tiếng chuẩn.
             BigDecimal standardHours = new BigDecimal("8.00");
-            if (hoursWorked.compareTo(standardHours) > 0
-                    && !new dao.OvertimeDAO().hasApprovedOT(attendance.getEmployeeId(), attendance.getWorkDate())) {
+            if (!hasOT && hoursWorked.compareTo(standardHours) > 0) {
                 hoursWorked = standardHours;
             }
         } else {

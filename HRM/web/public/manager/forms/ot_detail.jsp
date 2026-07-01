@@ -193,14 +193,17 @@
                             <div class="mb-3">
                                 <div class="info-label">Người duyệt</div>
                                 <div class="info-value">
-                                    <c:choose>
-                                        <c:when test="${otRequest.status == 1 || otRequest.status == 2}">
-                                            <i class="fa-solid fa-user-check text-success me-2"></i>Business Admin
-                                        </c:when>
-                                        <c:otherwise>
-                                            <span class="text-muted italic">Không xác định</span>
-                                        </c:otherwise>
-                                    </c:choose>
+                                     <c:choose>
+                                         <c:when test="${otRequest.status == 1 || otRequest.status == 2 || otRequest.status == 4}">
+                                             <i class="fa-solid fa-user-check text-success me-2"></i>Business Admin
+                                         </c:when>
+                                         <c:when test="${not empty otRequest.approverName}">
+                                             <i class="fa-solid fa-user-check text-success me-2"></i>${otRequest.approverName}
+                                         </c:when>
+                                         <c:otherwise>
+                                             <span class="text-muted italic">Hệ thống</span>
+                                         </c:otherwise>
+                                     </c:choose>
                                 </div>
                             </div>
                             <div class="mb-3">

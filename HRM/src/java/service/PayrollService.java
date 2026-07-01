@@ -570,9 +570,9 @@ public class PayrollService {
         OvertimeSummary overtime = new OvertimeSummary();
         overtime.overtimeHours = moneyOrZero(preview.getOvertimeHours());
         BigDecimal attendanceBonus = moneyOrZero(preview.getAttendanceBonus());
-        details.add(new PayrollDetailDTO("CONTRACT_SALARY", "Luong hop dong", PayrollDetailDTO.TYPE_EARNING,
+        details.add(new PayrollDetailDTO("CONTRACT_SALARY", "Lương hợp đồng", PayrollDetailDTO.TYPE_EARNING,
                 moneyOrZero(preview.getContractSalary()),
-                "Luong thang tren hop dong, truoc khi quy doi theo ngay cong."));
+                "Lương tháng trên hợp đồnng, trước khi quy đổi theo ngày công."));
         details.add(new PayrollDetailDTO("BASE_SALARY", "Lương cơ bản", PayrollDetailDTO.TYPE_EARNING,
                 payroll.getBaseSalary(), "Ngày công được tính: " + payroll.getWorkingDays()));
         details.add(new PayrollDetailDTO("OVERTIME_PAY", "Lương tăng ca", PayrollDetailDTO.TYPE_EARNING,
@@ -581,8 +581,8 @@ public class PayrollService {
                 scale(attendanceBonus), null));
         details.add(new PayrollDetailDTO("LATE_PENALTY", "Phạt đi muộn", PayrollDetailDTO.TYPE_DEDUCTION,
                 scale(attendance.latePenalty),
-                "So block phat: " + preview.getLatePenaltyBlocks()
-                + "; mot block phat: " + scale(latePenaltyBlockAmount(preview)) + "d."));
+                "Số block phạt: " + preview.getLatePenaltyBlocks()
+                + "; một block phạt: " + scale(latePenaltyBlockAmount(preview)) + "d."));
         details.add(new PayrollDetailDTO("ABSENT_PENALTY", "Phạt vắng không phép",
                 PayrollDetailDTO.TYPE_DEDUCTION, scale(attendance.unauthorizedAbsentPenalty),
                 "Số ngày vắng không phép: " + attendance.unauthorizedAbsentDays));
@@ -601,6 +601,7 @@ public class PayrollService {
                         scale(employerAmount), buildEmployerContributionNote(rule)));
             }
         }
+<<<<<<< HEAD
         details.add(new PayrollDetailDTO("TAXABLE_INCOME", "Thu nhap tinh thue", PayrollDetailDTO.TYPE_INFO,
                 ZERO, "Sau bao hiem va giam tru gia canh "
                 + scale(moneyOrZero(preview.getFamilyAllowance())) + "d (giam tru ca nhan "
@@ -608,6 +609,10 @@ public class PayrollService {
                 + preview.getDependentCount() + " nguoi phu thuoc x "
                 + scale(moneyOrZero(preview.getDependentAllowance())) + "d): "
                 + scale(preview.getTaxableIncome()) + "d."));
+=======
+        details.add(new PayrollDetailDTO("TAXABLE_INCOME", "Thu nhập tính thuế", PayrollDetailDTO.TYPE_INFO,
+                ZERO, "Sau bảo hiểm va giảm trừ cá nhân: " + scale(preview.getTaxableIncome()) + "d."));
+>>>>>>> main
         return details;
     }
 

@@ -129,8 +129,11 @@
                                     </td>
                                     <td>
                                         <c:choose>
-                                            <c:when test="${req.status == 1 || req.status == 2}">
+                                            <c:when test="${req.status == 1 || req.status == 2 || req.status == 4}">
                                                 Business Admin
+                                            </c:when>
+                                            <c:when test="${not empty req.approverName}">
+                                                ${req.approverName}
                                             </c:when>
                                             <c:otherwise>
                                                 -
