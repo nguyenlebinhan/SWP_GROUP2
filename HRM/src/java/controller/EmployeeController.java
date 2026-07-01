@@ -1064,8 +1064,32 @@ public class EmployeeController extends HttpServlet {
         
         
 
+        dao.OvertimeDAO overtimeDAO = new dao.OvertimeDAO();
+        boolean hasOT = overtimeDAO.hasApprovedOT(
+                attendance.getEmployeeId(), attendance.getWorkDate());
+
+        Time maxTime = hasOT ? Time.valueOf("19:00:00") : Time.valueOf("17:00:00");
+
+        if (timeOut != null && timeOut.after(maxTime)) {
+            boolean otRevived = overtimeDAO.reviveAndCompleteOTForm(attendance.getEmployeeId(), attendance.getWorkDate());
+            if (otRevived && !hasOT) {
+                hasOT = true;
+                maxTime = Time.valueOf("19:00:00");
+            }
+        }
+
+        if (timeIn != null && timeIn.after(maxTime)) {
+            request.getSession().setAttribute("error", "Thời gian Check-in tối đa là " + (hasOT ? "19:00" : "17:00") + ".");
+            response.sendRedirect(redirectUrl);
+            return;
+        }
+
         Time calcTimeIn = utils.WorkHoursCalculator.ceilToBlock(timeIn);
         Time calcTimeOut = utils.WorkHoursCalculator.floorToBlock(timeOut);
+
+        if (calcTimeOut != null && calcTimeOut.after(maxTime)) {
+            calcTimeOut = maxTime;
+        }
 
         int status;
         try {
@@ -1079,16 +1103,6 @@ public class EmployeeController extends HttpServlet {
 
         BigDecimal hoursWorked;
         if (calcTimeIn != null && calcTimeOut != null && (status == 0 || status == 1)) {
-            boolean hasOT = new dao.OvertimeDAO().hasApprovedOT(
-                    attendance.getEmployeeId(), attendance.getWorkDate());
-
-            // Không có đơn OT được duyệt: phần làm sau 17:00 không được tính công,
-            // nên phải cắt giờ ra về 17:00 TRƯỚC khi tính (giống lúc import).
-            Time workEnd = Time.valueOf("17:00:00");
-            if (!hasOT && calcTimeOut.after(workEnd)) {
-                calcTimeOut = workEnd;
-            }
-
             hoursWorked = utils.WorkHoursCalculator.hoursWorked(calcTimeIn, calcTimeOut);
 
             // Không OT thì giờ công không vượt quá 8 tiếng chuẩn.
