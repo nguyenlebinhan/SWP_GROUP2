@@ -25,8 +25,9 @@ public class AttendancePeriodDAO {
 
     private static final String BASE_SELECT =
             "SELECT aps.periodStatusId, aps.periodYear, aps.periodMonth, aps.departmentId, aps.status, "
-            + "aps.managerConfirmedBy, aps.managerConfirmedAt, aps.submittedToBaBy, aps.submittedToBaAt, "
-            + "aps.baApprovedBy, aps.baApprovedAt, aps.note, d.departmentName "
+            + "aps.managerConfirmedBy, aps.managerConfirmedAt, "
+            + "aps.lastCheckByHR, aps.lastCheckedAt, "
+            + "aps.note, d.departmentName "
             + "FROM Attendance_Period_Status aps "
             + "LEFT JOIN Departments d ON d.departmentId = aps.departmentId ";
 
@@ -69,9 +70,7 @@ public class AttendancePeriodDAO {
         return list;
     }
 
-    /**
-     * Tạo dòng trạng thái nếu chưa có; trả về id dòng (mới hoặc đang tồn tại).
-     */
+
     public int insertIfAbsent(int year, int month, int departmentId, int status) {
         AttendancePeriod existing = get(year, month, departmentId);
         if (existing != null) {
@@ -113,30 +112,17 @@ public class AttendancePeriodDAO {
     }
 
 
-    public int markSubmittedToBa(int year, int month, int hrUserId) {
+    public int markLockedByHr(int year, int month, int hrUserId) {
         String sql = "UPDATE Attendance_Period_Status "
-                + "SET status = ?, submittedToBaBy = ?, submittedToBaAt = CURRENT_TIMESTAMP "
-                + "WHERE periodYear = ? AND periodMonth = ? AND status = ?";
+                + "SET status = ?, lastCheckByHR = ?, lastCheckedAt = CURRENT_TIMESTAMP "
+                + "WHERE periodYear = ? AND periodMonth = ? AND status IN (?, ?)";
         return runBulkUpdate(sql, ps -> {
-            ps.setInt(1, AttendancePeriodStatus.SUBMITTED_TO_BA.getRelatedNum());
+            ps.setInt(1, AttendancePeriodStatus.LOCKED.getRelatedNum());
             ps.setInt(2, hrUserId);
             ps.setInt(3, year);
             ps.setInt(4, month);
             ps.setInt(5, AttendancePeriodStatus.MANAGER_CONFIRMED.getRelatedNum());
-        });
-    }
-
-
-    public int markLocked(int year, int month, int baUserId) {
-        String sql = "UPDATE Attendance_Period_Status "
-                + "SET status = ?, baApprovedBy = ?, baApprovedAt = CURRENT_TIMESTAMP "
-                + "WHERE periodYear = ? AND periodMonth = ? AND status = ?";
-        return runBulkUpdate(sql, ps -> {
-            ps.setInt(1, AttendancePeriodStatus.LOCKED.getRelatedNum());
-            ps.setInt(2, baUserId);
-            ps.setInt(3, year);
-            ps.setInt(4, month);
-            ps.setInt(5, AttendancePeriodStatus.SUBMITTED_TO_BA.getRelatedNum());
+            ps.setInt(6, AttendancePeriodStatus.WAITING_HR_FINAL_CHECK.getRelatedNum());
         });
     }
 
@@ -171,12 +157,9 @@ public class AttendancePeriodDAO {
         int mgr = rs.getInt("managerConfirmedBy");
         p.setManagerConfirmedBy(rs.wasNull() ? null : mgr);
         p.setManagerConfirmedAt(rs.getTimestamp("managerConfirmedAt"));
-        int hr = rs.getInt("submittedToBaBy");
-        p.setSubmittedToBaBy(rs.wasNull() ? null : hr);
-        p.setSubmittedToBaAt(rs.getTimestamp("submittedToBaAt"));
-        int ba = rs.getInt("baApprovedBy");
-        p.setBaApprovedBy(rs.wasNull() ? null : ba);
-        p.setBaApprovedAt(rs.getTimestamp("baApprovedAt"));
+        int hr = rs.getInt("lastCheckByHR");
+        p.setLastCheckByHR(rs.wasNull() ? null : hr);
+        p.setLastCheckedAt(rs.getTimestamp("lastCheckedAt"));
         p.setNote(rs.getNString("note"));
         p.setDepartmentName(rs.getNString("departmentName"));
         return p;

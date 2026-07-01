@@ -4,7 +4,7 @@ import enums.AttendancePeriodStatus;
 import java.sql.Timestamp;
 
 /**
- * Một dòng trạng thái chốt bảng chấm công cho (năm, tháng, phòng ban).
+ *
  *
  * @author ADMIN
  */
@@ -18,10 +18,8 @@ public class AttendancePeriod {
 
     private Integer managerConfirmedBy; // userId trưởng phòng
     private Timestamp managerConfirmedAt;
-    private Integer submittedToBaBy;    // userId HR
-    private Timestamp submittedToBaAt;
-    private Integer baApprovedBy;       // userId BusinessAdmin
-    private Timestamp baApprovedAt;
+    private Integer lastCheckByHR;
+    private Timestamp lastCheckedAt;
     private String note;
 
     // Trường hiển thị (join thêm), không có cột riêng.
@@ -93,36 +91,20 @@ public class AttendancePeriod {
         this.managerConfirmedAt = managerConfirmedAt;
     }
 
-    public Integer getSubmittedToBaBy() {
-        return submittedToBaBy;
+    public Integer getLastCheckByHR() {
+        return lastCheckByHR;
     }
 
-    public void setSubmittedToBaBy(Integer submittedToBaBy) {
-        this.submittedToBaBy = submittedToBaBy;
+    public void setLastCheckByHR(Integer lastCheckByHR) {
+        this.lastCheckByHR = lastCheckByHR;
     }
 
-    public Timestamp getSubmittedToBaAt() {
-        return submittedToBaAt;
+    public Timestamp getLastCheckedAt() {
+        return lastCheckedAt;
     }
 
-    public void setSubmittedToBaAt(Timestamp submittedToBaAt) {
-        this.submittedToBaAt = submittedToBaAt;
-    }
-
-    public Integer getBaApprovedBy() {
-        return baApprovedBy;
-    }
-
-    public void setBaApprovedBy(Integer baApprovedBy) {
-        this.baApprovedBy = baApprovedBy;
-    }
-
-    public Timestamp getBaApprovedAt() {
-        return baApprovedAt;
-    }
-
-    public void setBaApprovedAt(Timestamp baApprovedAt) {
-        this.baApprovedAt = baApprovedAt;
+    public void setLastCheckedAt(Timestamp lastCheckedAt) {
+        this.lastCheckedAt = lastCheckedAt;
     }
 
     public String getNote() {

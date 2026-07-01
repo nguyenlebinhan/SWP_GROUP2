@@ -756,7 +756,7 @@ public class ManagerController extends HttpServlet {
                 : attendanceClosingService.isDepartmentLocked(period[0], period[1], departmentId);
         if (!attendanceLocked) {
             request.getSession().setAttribute("error",
-                    "Bảng chấm công kỳ này chưa được BA chốt. Chưa thể xuất bảng lương.");
+                    "Bảng chấm công kỳ này chưa được HR chốt cuối. Chưa thể xuất bảng lương.");
             response.sendRedirect(request.getContextPath() + "/v1/manager/salary/all?month=" + period[1]
                     + "&year=" + period[0]
                     + (departmentId == null ? "" : "&departmentId=" + departmentId));
@@ -813,7 +813,7 @@ public class ManagerController extends HttpServlet {
                 : attendanceClosingService.isDepartmentLocked(period[0], period[1], departmentId);
         if (!locked) {
             request.getSession().setAttribute("error",
-                    "Bảng chấm công kỳ này chưa được BA chốt. Chưa thể tính lương.");
+                    "Bảng chấm công kỳ này chưa được HR chốt cuối. Chưa thể tính lương.");
             response.sendRedirect(request.getContextPath() + "/v1/manager/salary/all?month=" + period[1]
                     + "&year=" + period[0]
                     + (departmentId == null ? "" : "&departmentId=" + departmentId));

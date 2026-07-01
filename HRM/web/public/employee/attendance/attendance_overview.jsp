@@ -138,18 +138,13 @@
                         <button class="btn btn-warning"><i class="fa-solid fa-paper-plane me-1"></i>Đóng kỳ &amp; gửi trưởng phòng</button>
                     </form>
                 </c:if>
-                <c:if test="${closingCanSubmitBa}">
-                    <form method="post" action="${pageContext.request.contextPath}/v1/employee/attendance/submit-ba"
-                          onsubmit="return confirm('Toàn bộ phòng ban đã chốt. Gửi bảng chấm công lên BA duyệt cuối?');">
+                <c:if test="${closingCanFinalize}">
+                    <form method="post" action="${pageContext.request.contextPath}/v1/employee/attendance/finalize"
+                          onsubmit="return confirm('Chốt cuối toàn bộ bảng chấm công kỳ này? Sau khi chốt sẽ có thể tính lương và không thể sửa chấm công.');">
                         <input type="hidden" name="month" value="${selectedMonth}">
                         <input type="hidden" name="year" value="${selectedYear}">
-                        <button class="btn btn-primary"><i class="fa-solid fa-share me-1"></i>Gửi lên BA chốt</button>
+                        <button class="btn btn-success"><i class="fa-solid fa-circle-check me-1"></i>HR chốt cuối</button>
                     </form>
-                </c:if>
-                <c:if test="${closingSubmittedToBa}">
-                    <span class="badge bg-info text-dark align-self-center p-2">
-                        <i class="fa-solid fa-hourglass-half me-1"></i>Đang chờ BA chốt
-                    </span>
                 </c:if>
                 <c:if test="${closingLocked}">
                     <span class="badge bg-success align-self-center p-2">

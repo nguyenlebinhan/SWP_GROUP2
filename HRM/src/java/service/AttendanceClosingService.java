@@ -134,9 +134,9 @@ public class AttendanceClosingService {
     }
 
 
-    public ClosingResult submitToBa(int year, int month, User hrUser) {
+    public ClosingResult approveByHr(int year, int month, User hrUser) {
         if (!isHr(hrUser)) {
-            return ClosingResult.fail("Bạn không có quyền gửi bảng chấm công lên BA.");
+            return ClosingResult.fail("Bạn không có quyền chốt cuối bảng chấm công.");
         }
         List<Integer> deptIds = periodDAO.getDepartmentIdsWithAttendance(year, month);
         if (deptIds.isEmpty()) {
@@ -145,49 +145,20 @@ public class AttendanceClosingService {
         List<String> notReady = new ArrayList<>();
         for (Integer deptId : deptIds) {
             AttendancePeriodStatus status = getEffectiveStatus(year, month, deptId);
-            if (status != AttendancePeriodStatus.MANAGER_CONFIRMED) {
+            if (status != AttendancePeriodStatus.MANAGER_CONFIRMED
+                    && status != AttendancePeriodStatus.WAITING_HR_FINAL_CHECK) {
                 notReady.add(departmentLabel(deptId) + " (" + status.getLabel() + ")");
             }
         }
         if (!notReady.isEmpty()) {
-            return ClosingResult.fail("Chưa thể gửi lên BA vì các phòng sau chưa chốt: "
+            return ClosingResult.fail("Chưa thể chốt cuối vì các phòng sau chưa được trưởng phòng chốt: "
                     + String.join(", ", notReady));
         }
-        int submitted = periodDAO.markSubmittedToBa(year, month, hrUser.getUserId());
-        if (submitted == 0) {
-            return ClosingResult.fail("Không có phòng ban nào để gửi lên BA.");
-        }
-        audit(hrUser, "SUBMIT_ATTENDANCE_TO_BA", periodLabel(year, month),
-                "submittedDepartments=" + submitted);
-        return ClosingResult.ok("Đã gửi bảng chấm công của " + submitted + " phòng ban lên BA duyệt.", submitted);
-    }
-
-    // ── Bước 4: BA chốt cuối cùng ─────────────────────────────────────────
-
-    public ClosingResult approveByBa(int year, int month, User baUser) {
-        if (!isBusinessAdmin(baUser)) {
-            return ClosingResult.fail("Bạn không có quyền chốt bảng chấm công.");
-        }
-        List<Integer> deptIds = periodDAO.getDepartmentIdsWithAttendance(year, month);
-        if (deptIds.isEmpty()) {
-            return ClosingResult.fail("Chưa có dữ liệu chấm công trong kỳ này.");
-        }
-        List<String> notReady = new ArrayList<>();
-        for (Integer deptId : deptIds) {
-            AttendancePeriodStatus status = getEffectiveStatus(year, month, deptId);
-            if (status != AttendancePeriodStatus.SUBMITTED_TO_BA) {
-                notReady.add(departmentLabel(deptId) + " (" + status.getLabel() + ")");
-            }
-        }
-        if (!notReady.isEmpty()) {
-            return ClosingResult.fail("Chưa thể chốt vì các phòng sau chưa được HR gửi lên: "
-                    + String.join(", ", notReady));
-        }
-        int locked = periodDAO.markLocked(year, month, baUser.getUserId());
+        int locked = periodDAO.markLockedByHr(year, month, hrUser.getUserId());
         if (locked == 0) {
-            return ClosingResult.fail("Không có phòng ban nào để chốt.");
+            return ClosingResult.fail("Không có phòng ban nào để chốt cuối.");
         }
-        audit(baUser, "APPROVE_ATTENDANCE_PERIOD", periodLabel(year, month),
+        audit(hrUser, "HR_FINALIZE_ATTENDANCE_PERIOD", periodLabel(year, month),
                 "lockedDepartments=" + locked);
         return ClosingResult.ok("Đã chốt bảng chấm công kỳ " + periodLabel(year, month)
                 + ". Có thể tiến hành tính lương.", locked);
@@ -221,14 +192,6 @@ public class AttendanceClosingService {
         }
         String role = roleDAO.getRoleByUserId(user.getUserId());
         return role != null && role.contains("HR");
-    }
-
-    private boolean isBusinessAdmin(User user) {
-        if (user == null) {
-            return false;
-        }
-        String role = roleDAO.getRoleByUserId(user.getUserId());
-        return role != null && role.equalsIgnoreCase("BusinessAdmin");
     }
 
     private boolean isManagerOf(User user, int departmentId) {
