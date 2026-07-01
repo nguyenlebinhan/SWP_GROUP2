@@ -124,6 +124,38 @@
         </a>
     </c:if>
 
+    <div class="nav-section">Hợp đồng</div>
+
+    <c:if test="${sessionScope.userPermissions.contains('ADD_EMPLOYMENT_CONTRACT')}">
+        <a href="${pageContext.request.contextPath}/v1/manager/contract/add">
+            Tạo hợp đồng
+        </a>
+    </c:if>
+
+    <c:if test="${sessionScope.userPermissions.contains('VIEW_PENDING_CONTRACTS')}">
+        <a href="${pageContext.request.contextPath}/v1/manager/contract/pending">
+            Hợp đồng chờ duyệt
+        </a>
+    </c:if>
+
+    <c:if test="${sessionScope.userPermissions.contains('TERMINATE_CONTRACT')}">
+        <a href="${pageContext.request.contextPath}/v1/manager/contract/terminate">
+            Chấm dứt hợp đồng sớm
+        </a>
+
+    </c:if>
+    <c:if test="${sessionScope.userPermissions.contains('VIEW_OWN_CONTRACT')}">
+        <a href="${pageContext.request.contextPath}/v1/manager/contract/history?scope=own">
+            Lịch sử hợp đồng của bản thân
+        </a>
+    </c:if>
+
+    <c:if test="${sessionScope.userPermissions.contains('VIEW_ALL_CONTRACTS')}">
+        <a href="${pageContext.request.contextPath}/v1/manager/contract/history">
+            Lịch sử hợp đồng nhân viên
+        </a>
+    </c:if>
+
     <div class="nav-section">Quản lý tăng ca</div>
     <a href="${pageContext.request.contextPath}/v1/manager/forms/ot-requests"
        class="${pageContext.request.servletPath == '/public/manager/forms/ot_requests.jsp' || pageContext.request.servletPath == '/public/manager/forms/ot_create.jsp' ? 'active' : ''}">

@@ -39,7 +39,7 @@ public class PermissionDAO {
         }
         return permissions;
     }
-
+    
     public Set<String> getPermissionCodeByUserId(int userId) {
         LOGGER.log(Level.INFO, "Getting permissions by userId through role_permissions: {0}", userId);
         Set<String> permissions = new HashSet<>();

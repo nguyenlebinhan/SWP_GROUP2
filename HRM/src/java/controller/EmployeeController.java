@@ -53,6 +53,7 @@ import service.PayrollService;
 import utils.AttendanceExcelExporter;
 import utils.Paging;
 import utils.ConfigManager;
+import service.EmploymentContractService;
 
 @MultipartConfig(fileSizeThreshold = 1024 * 1024, // 1MB ghi ra đĩa
         maxFileSize = 10L * 1024 * 1024, // 10MB / file
@@ -76,6 +77,7 @@ public class EmployeeController extends HttpServlet {
     private final LeaveBalanceDAO leaveBalanceDAO = new LeaveBalanceDAO();
     private final HolidayDAO holidayDAO = new HolidayDAO();
     private final AttendanceImportService importService = new AttendanceImportService();
+    private final EmploymentContractService contractService = new EmploymentContractService(contractDAO, employeeDAO, new dal.DBContext());
     private final AttendanceService attendanceService = new AttendanceService();
     private final AttendanceExcelExporter attendanceExporter = new AttendanceExcelExporter();
     private final String UPLOAD_DIR = config.getProperty("UPLOAD_DIR");
@@ -117,6 +119,12 @@ public class EmployeeController extends HttpServlet {
                 break;
             case "/contract/preview":
                 displayContractPreview(request, response, user);
+                break;
+            case "/contract/current":
+                displayCurrentContract(request, response, user);
+                break;
+            case "/contract/history":
+                displayContractHistory(request, response, user);
                 break;
             case "/department/detail":
                 displayEmployeeDepartmentDetail(request, response, user);
@@ -224,6 +232,9 @@ public class EmployeeController extends HttpServlet {
                 break;
             case "/contract/add":
                 handleAddContract(request, response, user);
+                break;
+            case "/contract/detail":
+                handleContractDetailAction(request, response, user);
                 break;
             case "/department/unassign":
                 handleUnassignDepartment(request, response, user);
@@ -380,7 +391,7 @@ public class EmployeeController extends HttpServlet {
 
         Set<String> perms = getPermissions(user);
         request.getSession().setAttribute("userPermissions", perms);
-        request.setAttribute("employees", employeeDAO.getAllEmployees());
+        request.setAttribute("employees", employeeDAO.getAllEmployees(user.getUserId()));
         setPermissionFlags(request, perms);
         request.getRequestDispatcher("/public/employee/contract/add_contract.jsp").forward(request, response);
     }
@@ -400,14 +411,14 @@ public class EmployeeController extends HttpServlet {
 
         EmploymentContract contract = getContractFromRequest(request);
         if (contract == null) {
-            response.sendRedirect(request.getContextPath() + "/v1/employee/employee-list");
+            response.sendRedirect(request.getContextPath() + "/v1/employee/employee_info/list");
             return;
         }
 
         EmployeeDetailDTO employee = employeeDAO.getEmployeeById(contract.getEmployeeId());
         if (employee == null) {
             request.getSession().setAttribute("error", "Không tìm thấy nhân viên của hợp đồng.");
-            response.sendRedirect(request.getContextPath() + "/v1/employee/employee-list");
+            response.sendRedirect(request.getContextPath() + "/v1/employee/employee_info/list");
             return;
         }
 
@@ -419,6 +430,54 @@ public class EmployeeController extends HttpServlet {
         request.getRequestDispatcher("/public/employee/contract/contract_preview.jsp").forward(request, response);
     }
 
+    private void displayCurrentContract(HttpServletRequest request, HttpServletResponse response,
+            User user) throws ServletException, IOException {
+        EmployeeDetailDTO employee = employeeDAO.getEmployeeByUserId(user.getUserId());
+        EmploymentContract contract = contractDAO.getCurrentOrUpcomingContract(employee.getEmployeeId());
+        request.setAttribute("activeContract", contract);
+        request.setAttribute("employee", employee);
+        request.getRequestDispatcher("/public/employee/contract/contract_current.jsp").forward(request, response);
+    }
+
+    private void displayContractHistory(HttpServletRequest request, HttpServletResponse response,
+            User user) throws ServletException, IOException {
+        EmployeeDetailDTO employee = employeeDAO.getEmployeeByUserId(user.getUserId());
+        java.util.List<EmploymentContract> history = contractDAO.getContractHistory(employee.getEmployeeId());
+        request.setAttribute("contractHistory", history);
+        request.getRequestDispatcher("/public/employee/contract/contract_history.jsp").forward(request, response);
+    }
+
+    private void handleContractDetailAction(HttpServletRequest request, HttpServletResponse response,
+            User user) throws ServletException, IOException {
+        String action = trimToNull(request.getParameter("action"));
+        if (!"cancel".equalsIgnoreCase(action)) {
+            request.getSession().setAttribute("error", "Thao tác hợp đồng không hợp lệ.");
+            response.sendRedirect(request.getContextPath() + "/v1/employee/dashboard");
+            return;
+        }
+        if (!isHrStaff(user) || !hasPermission(user, "ADD_EMPLOYMENT_CONTRACT")) {
+            request.getSession().setAttribute("error", "Bạn không có quyền hủy hợp đồng.");
+            response.sendRedirect(request.getContextPath() + "/v1/employee/dashboard");
+            return;
+        }
+
+        EmploymentContract contract = getContractFromRequest(request);
+        if (contract == null) {
+            response.sendRedirect(request.getContextPath() + "/v1/employee/dashboard");
+            return;
+        }
+        if (contract.getStatus() != ContractStatus.PENDING_APPROVAL) {
+            request.getSession().setAttribute("error", "Chỉ hợp đồng chờ duyệt mới được hủy.");
+            response.sendRedirect(request.getContextPath() + "/v1/employee/contract/preview?id=" + contract.getContractId());
+            return;
+        }
+
+        ContractOperationResult cancelResult = contractService.cancelContract(contract.getContractId(), user.getUserId());
+        request.getSession().setAttribute(cancelResult.isSuccess() ? "success" : "error",
+                cancelResult.isSuccess() ? "Đã hủy hợp đồng." : cancelResult.getMessage());
+        response.sendRedirect(request.getContextPath() + "/v1/employee/contract/preview?id=" + contract.getContractId());
+    }
+
     private void displayOwnAttendanceList(HttpServletRequest request, HttpServletResponse response,
             User user) throws ServletException, IOException {
         Set<String> perms = getPermissions(user);
@@ -428,7 +487,7 @@ public class EmployeeController extends HttpServlet {
         java.time.LocalDate now = java.time.LocalDate.now();
         int month = attParam(request, "month", now.minusMonths(1).getMonthValue());
         int year = attParam(request, "year", now.minusMonths(1).getYear());
-        int day = attParam(request, "day", 0); 
+        int day = attParam(request, "day", 0);
 
         EmployeeDetailDTO me = employeeDAO.getEmployeeByUserId(user.getUserId());
         List<Attendance> monthRows = (me != null)
@@ -486,7 +545,7 @@ public class EmployeeController extends HttpServlet {
 
         request.setAttribute("attendances", Paging.page(request, filtered));
         request.setAttribute("monthRows", monthRows);
-        
+
         if (me != null) {
             java.util.List<Integer> approvedOTDays = new dao.OvertimeDAO().getApprovedOTDaysInMonth(me.getEmployeeId(), month, year);
             request.setAttribute("approvedOTDays", approvedOTDays);
@@ -655,8 +714,8 @@ public class EmployeeController extends HttpServlet {
         LocalDate prev = LocalDate.now().minusMonths(1);
         int month = attParam(request, "month", prev.getMonthValue());
         int year = attParam(request, "year", prev.getYear());
-        AttendanceClosingService.ClosingResult result =
-                attendanceClosingService.openPeriodForManagers(year, month, user);
+        AttendanceClosingService.ClosingResult result
+                = attendanceClosingService.openPeriodForManagers(year, month, user);
         request.getSession().setAttribute(result.isSuccess() ? "success" : "error", result.getMessage());
         response.sendRedirect(request.getContextPath()
                 + "/v1/employee/attendance/overview?month=" + month + "&year=" + year);
@@ -667,8 +726,8 @@ public class EmployeeController extends HttpServlet {
         LocalDate prev = LocalDate.now().minusMonths(1);
         int month = attParam(request, "month", prev.getMonthValue());
         int year = attParam(request, "year", prev.getYear());
-        AttendanceClosingService.ClosingResult result =
-                attendanceClosingService.submitToBa(year, month, user);
+        AttendanceClosingService.ClosingResult result
+                = attendanceClosingService.submitToBa(year, month, user);
         request.getSession().setAttribute(result.isSuccess() ? "success" : "error", result.getMessage());
         response.sendRedirect(request.getContextPath()
                 + "/v1/employee/attendance/overview?month=" + month + "&year=" + year);
@@ -720,12 +779,12 @@ public class EmployeeController extends HttpServlet {
     }
 
     /**
-     * Nạp trạng thái quy trình chốt bảng chấm công (theo tháng, toàn bộ phòng ban)
-     * để hiển thị panel + các nút "Đóng kỳ" / "Gửi lên BA" cho HR.
+     * Nạp trạng thái quy trình chốt bảng chấm công (theo tháng, toàn bộ phòng
+     * ban) để hiển thị panel + các nút "Đóng kỳ" / "Gửi lên BA" cho HR.
      */
     private void setClosingOverviewAttributes(HttpServletRequest request, int year, int month) {
-        java.util.List<model.AttendancePeriod> closingPeriods =
-                attendanceClosingService.getClosingOverview(year, month);
+        java.util.List<model.AttendancePeriod> closingPeriods
+                = attendanceClosingService.getClosingOverview(year, month);
         boolean hasData = !closingPeriods.isEmpty();
         boolean anyOpen = false;
         boolean allManagerConfirmed = hasData;
@@ -781,7 +840,7 @@ public class EmployeeController extends HttpServlet {
             request.getRequestDispatcher("/public/employee/attendance/attendance_detail.jsp").forward(request, response);
             return;
         }
-        
+
         java.util.List<Integer> approvedOTDays = new dao.OvertimeDAO().getApprovedOTDaysInMonth(employeeId, month, year);
         request.setAttribute("approvedOTDays", approvedOTDays);
 
@@ -925,7 +984,6 @@ public class EmployeeController extends HttpServlet {
         request.getRequestDispatcher("/public/employee/attendance/attendance_import.jsp").forward(request, response);
     }
 
-
     private void setImportWindowAttributes(HttpServletRequest request) {
         LocalDate today = LocalDate.now();
         LocalDate prevMonth = today.minusMonths(1);
@@ -1042,15 +1100,12 @@ public class EmployeeController extends HttpServlet {
             response.sendRedirect(redirectUrl);
             return;
         }
-       
 
         if (timeIn != null && timeOut != null && timeOut.before(timeIn)) {
             request.getSession().setAttribute("error", "Giờ ra phải sau giờ vào.");
             response.sendRedirect(redirectUrl);
             return;
         }
-        
-        
 
         dao.OvertimeDAO overtimeDAO = new dao.OvertimeDAO();
         boolean hasOT = overtimeDAO.hasApprovedOT(
@@ -1689,14 +1744,14 @@ public class EmployeeController extends HttpServlet {
         String code = trimToNull(request.getParameter("contractCode"));
         String type = trimToNull(request.getParameter("contractType"));
         String employeeParam = request.getParameter("employeeId");
-        String startDate = request.getParameter("startDate");
+        String effectiveDate = request.getParameter("effectiveDate");
         String endDate = request.getParameter("endDate");
         String salaryParam = request.getParameter("salary");
 
-        if (code == null || type == null || isBlank(employeeParam) || isBlank(startDate) || isBlank(salaryParam)) {
+        if (code == null || type == null || isBlank(employeeParam) || isBlank(effectiveDate) || isBlank(salaryParam)) {
             request.setAttribute("error",
-                    "Vui lêng nhập đầy đủ mã hợp đồng, nhân viên, loại hợp đồng, ngày bắt đầu và lương.");
-            request.setAttribute("employees", employeeDAO.getAllEmployees());
+                    "Vui lòng nhập đầy đủ mã hợp đồng, nhân viên, loại hợp đồng, ngày bắt đầu và lương.");
+            request.setAttribute("employees", employeeDAO.getAllEmployees(user.getUserId()));
             setPermissionFlags(request, getPermissions(user));
             request.getRequestDispatcher("/public/employee/contract/add_contract.jsp").forward(request, response);
             return;
@@ -1705,70 +1760,64 @@ public class EmployeeController extends HttpServlet {
         EmploymentContract contract = new EmploymentContract();
         try {
             contract.setEmployeeId(Integer.parseInt(employeeParam));
-            contract.setStartDate(java.sql.Date.valueOf(startDate));
+            contract.setEffectiveDate(java.sql.Date.valueOf(effectiveDate));
             contract.setEndDate(isBlank(endDate) ? null : java.sql.Date.valueOf(endDate));
             contract.setSalary(new BigDecimal(salaryParam));
         } catch (IllegalArgumentException e) {
             request.setAttribute("error", "Dữ liệu hợp đồng không hợp lệ.");
-            request.setAttribute("employees", employeeDAO.getAllEmployees());
+            request.setAttribute("employees", employeeDAO.getAllEmployees(user.getUserId()));
             setPermissionFlags(request, getPermissions(user));
             request.getRequestDispatcher("/public/employee/contract/add_contract.jsp").forward(request, response);
             return;
         }
 
-        if (!isValidContractType(type) || contract.getSalary().compareTo(BigDecimal.ZERO) < 0) {
-            request.setAttribute("error", "Loại hợp đồng hoặc lương không hợp lệ.");
-            request.setAttribute("employees", employeeDAO.getAllEmployees());
+        try {
+            ContractType.valueOf(type.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            request.setAttribute("error", "Loại hợp đồng không hợp lệ.");
+            request.setAttribute("employees", employeeDAO.getAllEmployees(user.getUserId()));
             setPermissionFlags(request, getPermissions(user));
             request.getRequestDispatcher("/public/employee/contract/add_contract.jsp").forward(request, response);
             return;
         }
-
-        if (employeeDAO.getEmployeeById(contract.getEmployeeId()) == null) {
-            request.setAttribute("error", "Nhân viên được chọn không tồn tại.");
-            request.setAttribute("employees", employeeDAO.getAllEmployees());
-            setPermissionFlags(request, getPermissions(user));
-            request.getRequestDispatcher("/public/employee/contract/add_contract.jsp").forward(request, response);
-            return;
-        }
-
-        if (contractDAO.hasActiveContract(contract.getEmployeeId())) {
-            request.setAttribute("error", "Hợp đồng của nhân viên vẫn cón hiệu lực");
-            request.setAttribute("employees", employeeDAO.getAllEmployees());
-            setPermissionFlags(request, getPermissions(user));
-            request.getRequestDispatcher("/public/employee/contract/add_contract.jsp").forward(request, response);
-            return;
-        }
-
-        if (contract.getEndDate() != null && contract.getEndDate().before(contract.getStartDate())) {
-            request.setAttribute("error", "Ngày kết thúc không được trước ngày bắt đầu.");
-            request.setAttribute("employees", employeeDAO.getAllEmployees());
-            setPermissionFlags(request, getPermissions(user));
-            request.getRequestDispatcher("/public/employee/contract/add_contract.jsp").forward(request, response);
-            return;
-        }
-
         contract.setContractCode(code);
-        contract.setContractType(type);
-        contract.setStatus(1);
+
+        try {
+            contract.setContractType(ContractType.valueOf(type.toUpperCase()));
+        } catch (IllegalArgumentException ex) {
+            request.setAttribute("error",
+                    "Loại hợp đồng không hợp lệ.");
+            request.setAttribute("employees",
+                    employeeDAO.getAllEmployees(user.getUserId()));
+            setPermissionFlags(request, getPermissions(user));
+            request.getRequestDispatcher(
+                    "/public/employee/contract/add_contract.jsp")
+                    .forward(request, response);
+            return;
+        }
+
+        contract.setStatus(ContractStatus.PENDING_APPROVAL);
         contract.setNote(trimToNull(request.getParameter("note")));
         contract.setCreatedBy(user.getUserId());
 
-        boolean success = contractDAO.addContract(contract);
-        if (success) {
-            request.getSession().setAttribute("success", "Thêm hợp đồng lao động thành cóng.");
+        ContractOperationResult result = contractService.createContract(contract);
+        if (result.isSuccess()) {
+            request.getSession().setAttribute("success", "Thêm hợp đồng lao động thành công.");
             response.sendRedirect(
                     request.getContextPath() + "/v1/employee/contract/preview?employeeId=" + contract.getEmployeeId());
         } else {
-            request.setAttribute("error", "Thêm hợp đồng thất bại. Mã hợp đồng có thể đã tồn tại.");
-            request.setAttribute("employees", employeeDAO.getAllEmployees());
+            request.setAttribute("error", "Thêm hợp đồng thất bại: " + result.getMessage());
+            request.setAttribute("employees", employeeDAO.getAllEmployees(user.getUserId()));
             setPermissionFlags(request, getPermissions(user));
             request.getRequestDispatcher("/public/employee/contract/add_contract.jsp").forward(request, response);
         }
     }
 
     private EmploymentContract getContractFromRequest(HttpServletRequest request) {
-        String contractIdParam = request.getParameter("id");
+        String contractIdParam = request.getParameter("contractId");
+        if (isBlank(contractIdParam)) {
+            contractIdParam = request.getParameter("id");
+        }
         if (!isBlank(contractIdParam)) {
             try {
                 EmploymentContract contract = contractDAO.getContractById(Integer.parseInt(contractIdParam));
@@ -1846,7 +1895,6 @@ public class EmployeeController extends HttpServlet {
         }
         response.sendRedirect(request.getContextPath() + "/v1/employee/my-profile");
     }
-
 
     private void handleUpdateEmployeeDetail(HttpServletRequest request, HttpServletResponse response,
             User user) throws ServletException, IOException {
@@ -2041,7 +2089,7 @@ public class EmployeeController extends HttpServlet {
 
     private void handleLeaveFormSubmit(HttpServletRequest request, HttpServletResponse response, User user)
             throws ServletException, IOException {
-        
+
         FormType ft = formTypeDAO.getByCode("LEAVE");
         if (ft == null) {
             request.getSession().setAttribute("error", "Loại đơn LEAVE không tồn tại.");
@@ -2106,7 +2154,9 @@ public class EmployeeController extends HttpServlet {
 
             boolean isHoliday = false;
             for (Holiday h : holidays) {
-                if (!h.isActive()) continue;
+                if (!h.isActive()) {
+                    continue;
+                }
                 LocalDate hStart = h.getStartDate().toLocalDate();
                 LocalDate hEnd = h.getEndDate().toLocalDate();
                 if (!current.isBefore(hStart) && !current.isAfter(hEnd)) {
@@ -2130,10 +2180,10 @@ public class EmployeeController extends HttpServlet {
         int currentYear = LocalDate.now().getYear();
         LeaveBalance lb = leaveBalanceDAO.getLeaveBalance(me.getEmployeeId(), currentYear);
         int remaining = 0;
-        if(lb != null) {
+        if (lb != null) {
             remaining = lb.getRemainingDays();
         }
-        if(totalDays > remaining) {
+        if (totalDays > remaining) {
             request.setAttribute("error", "Số ngày nghỉ vượt quá số ngày phép còn lại (" + remaining + " ngày).");
             setPermissionFlags(request, getPermissions(user));
             request.getRequestDispatcher("/public/employee/forms/leave_form.jsp").forward(request, response);
@@ -2156,7 +2206,7 @@ public class EmployeeController extends HttpServlet {
             if (submitted != null && !submitted.isEmpty()) {
                 String ext = submitted.contains(".") ? submitted.substring(submitted.lastIndexOf('.')).toLowerCase()
                         : "";
-                String[] allowed = { ".xlsx", ".pdf", ".docx", ".doc", ".xls", ".jpg", ".png", ".zip" };
+                String[] allowed = {".xlsx", ".pdf", ".docx", ".doc", ".xls", ".jpg", ".png", ".zip"};
                 boolean ok = false;
                 for (String a : allowed) {
                     if (a.equals(ext)) {
@@ -2709,7 +2759,14 @@ public class EmployeeController extends HttpServlet {
         request.setAttribute("canViewOwnSalary", perms.contains("VIEW_OWN_SALARY"));
         request.setAttribute("canViewAllSalary", perms.contains("VIEW_ALL_SALARY"));
         request.setAttribute("canExportPayroll", perms.contains("EXPORT_PAYROLL"));
+        request.setAttribute("canViewOwnContract", perms.contains("VIEW_OWN_CONTRACT"));
+        request.setAttribute("canViewAllContracts", perms.contains("VIEW_ALL_CONTRACTS"));
+        request.setAttribute("canViewPendingContracts", perms.contains("VIEW_PENDING_CONTRACTS"));
+        request.setAttribute("canApproveContract", perms.contains("APPROVE_CONTRACT"));
+        request.setAttribute("canRejectContract", perms.contains("REJECT_CONTRACT"));
+        request.setAttribute("canTerminateContract", perms.contains("TERMINATE_CONTRACT"));
     }
+
     private boolean isBlank(String v) {
         return v == null || v.trim().isEmpty();
     }
@@ -2725,7 +2782,7 @@ public class EmployeeController extends HttpServlet {
             throws ServletException, IOException {
         request.setAttribute("departments", departmentDAO.getAllActiveDepartments());
         request.setAttribute("positions", departmentDAO.getAllPositions());
-            request.getRequestDispatcher("/public/employee/forms/transfer_form.jsp").forward(request, response);
+        request.getRequestDispatcher("/public/employee/forms/transfer_form.jsp").forward(request, response);
     }
 
     private void handleRequestTransfer(HttpServletRequest request, HttpServletResponse response, User user)
