@@ -77,7 +77,7 @@ public class EmployeeController extends HttpServlet {
     private final LeaveBalanceDAO leaveBalanceDAO = new LeaveBalanceDAO();
     private final HolidayDAO holidayDAO = new HolidayDAO();
     private final AttendanceImportService importService = new AttendanceImportService();
-    private final EmploymentContractService contractService = new EmploymentContractService(contractDAO, new dal.DBContext());
+    private final EmploymentContractService contractService = new EmploymentContractService(contractDAO, employeeDAO, new dal.DBContext());
     private final String UPLOAD_DIR = config.getProperty("UPLOAD_DIR");
     private final String FILE_PART = config.getProperty("FILE_PART");
     private final EmailService emailService = new EmailService();
@@ -465,9 +465,9 @@ public class EmployeeController extends HttpServlet {
             return;
         }
 
-        boolean cancelled = contractDAO.updateContractStatus(contract.getContractId(), ContractStatus.CANCELLED, null, "Cancelled by HR");
-        request.getSession().setAttribute(cancelled ? "success" : "error",
-                cancelled ? "Đã hủy hợp đồng." : "Hủy hợp đồng thất bại.");
+        ContractOperationResult cancelResult = contractService.cancelContract(contract.getContractId(), user.getUserId());
+        request.getSession().setAttribute(cancelResult.isSuccess() ? "success" : "error",
+                cancelResult.isSuccess() ? "Đã hủy hợp đồng." : cancelResult.getMessage());
         response.sendRedirect(request.getContextPath() + "/v1/employee/contract/preview?id=" + contract.getContractId());
     }
 
@@ -1686,39 +1686,6 @@ public class EmployeeController extends HttpServlet {
             request.getRequestDispatcher("/public/employee/contract/add_contract.jsp").forward(request, response);
             return;
         }
-        if (contract.getSalary().compareTo(BigDecimal.ZERO) < 0) {
-            request.setAttribute("error", "Loại hợp đồng hoặc lương không hợp lệ.");
-            request.setAttribute("employees", employeeDAO.getAllEmployees(user.getUserId()));
-            setPermissionFlags(request, getPermissions(user));
-            request.getRequestDispatcher("/public/employee/contract/add_contract.jsp").forward(request, response);
-            return;
-        }
-
-        if (employeeDAO.getEmployeeById(contract.getEmployeeId()) == null) {
-            request.setAttribute("error", "Nhân viên được chọn không tồn tại.");
-            request.setAttribute("employees", employeeDAO.getAllEmployees(user.getUserId()));
-            setPermissionFlags(request, getPermissions(user));
-            request.getRequestDispatcher("/public/employee/contract/add_contract.jsp").forward(request, response);
-            return;
-        }
-
-        EmploymentContract existing = contractDAO.getCurrentOrUpcomingContract(contract.getEmployeeId());
-        if (existing != null) {
-            request.setAttribute("error", "Hợp đồng của nhân viên vẫn còn hiệu lực hoặc đang chờ kích hoạt (không thể tạo thêm).");
-            request.setAttribute("employees", employeeDAO.getAllEmployees(user.getUserId()));
-            setPermissionFlags(request, getPermissions(user));
-            request.getRequestDispatcher("/public/employee/contract/add_contract.jsp").forward(request, response);
-            return;
-        }
-
-        if (contract.getEndDate() != null && contract.getEndDate().before(contract.getEffectiveDate())) {
-            request.setAttribute("error", "Ngày kết thúc không được trước ngày bắt đầu.");
-            request.setAttribute("employees", employeeDAO.getAllEmployees(user.getUserId()));
-            setPermissionFlags(request, getPermissions(user));
-            request.getRequestDispatcher("/public/employee/contract/add_contract.jsp").forward(request, response);
-            return;
-        }
-
         contract.setContractCode(code);
 
         try {

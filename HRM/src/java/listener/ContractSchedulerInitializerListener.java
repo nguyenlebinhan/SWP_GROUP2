@@ -2,6 +2,7 @@ package listener;
 
 import dal.DBContext;
 import dao.EmploymentContractDAO;
+import dao.EmployeeDAO;
 import jakarta.servlet.ServletContext;
 import jakarta.servlet.ServletContextEvent;
 import jakarta.servlet.ServletContextListener;
@@ -15,7 +16,6 @@ import service.EmploymentContractService;
 public class ContractSchedulerInitializerListener implements ServletContextListener {
 
     private static final Logger LOGGER = Logger.getLogger(ContractSchedulerInitializerListener.class.getName());
-
 
     private volatile ScheduledExecutorService scheduler;
 
@@ -84,10 +84,10 @@ public class ContractSchedulerInitializerListener implements ServletContextListe
 
         try {
             EmploymentContractDAO contractDAO = new EmploymentContractDAO();
+            EmployeeDAO employeeDAO = new EmployeeDAO();
             DBContext dbContext = new DBContext();
             
-
-            EmploymentContractService contractService = new EmploymentContractService(contractDAO, dbContext);
+            EmploymentContractService contractService = new EmploymentContractService(contractDAO, employeeDAO, dbContext);
 
             contractService.processDailyContractUpdates();
 
@@ -115,4 +115,3 @@ public class ContractSchedulerInitializerListener implements ServletContextListe
         return secondsUntilMidnight;
     }
 }
-

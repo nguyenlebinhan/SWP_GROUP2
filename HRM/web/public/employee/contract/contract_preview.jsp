@@ -37,7 +37,18 @@
                 <h1 class="h3 mb-1">Hợp đồng ${empty contract.contractCode ? contract.contractId : contract.contractCode}</h1>
                 <div class="text-muted">${employee.fullName} (${employee.employeeCode})</div>
             </div>
-            <span class="badge text-bg-secondary fs-6">${contract.status}</span>
+            <span class="badge" style="font-size:15px;">
+                <c:choose>
+                    <c:when test="${contract.status == 'PENDING_APPROVAL'}"><span style="background:#fef3c7;color:#92400e;border:1px solid #fbbf24;padding:4px 14px;border-radius:999px;">Chờ duyệt</span></c:when>
+                    <c:when test="${contract.status == 'PENDING_ACTIVATION'}"><span style="background:#ede9fe;color:#5b21b6;border:1px solid #a78bfa;padding:4px 14px;border-radius:999px;">Chờ hiệu lực</span></c:when>
+                    <c:when test="${contract.status == 'ACTIVE'}"><span style="background:#d1fae5;color:#065f46;border:1px solid #34d399;padding:4px 14px;border-radius:999px;">Đang hiệu lực</span></c:when>
+                    <c:when test="${contract.status == 'EXPIRED'}"><span style="background:#f1f5f9;color:#475569;border:1px solid #94a3b8;padding:4px 14px;border-radius:999px;">Đã hết hạn</span></c:when>
+                    <c:when test="${contract.status == 'TERMINATED'}"><span style="background:#ffe4e6;color:#9f1239;border:1px solid #fb7185;padding:4px 14px;border-radius:999px;">Đã chấm dứt</span></c:when>
+                    <c:when test="${contract.status == 'CANCELLED'}"><span style="background:#f8fafc;color:#334155;border:1px solid #cbd5e1;padding:4px 14px;border-radius:999px;">Đã hủy</span></c:when>
+                    <c:when test="${contract.status == 'REJECTED'}"><span style="background:#fef2f2;color:#991b1b;border:1px solid #fca5a5;padding:4px 14px;border-radius:999px;">Bị từ chối</span></c:when>
+                    <c:otherwise><span class="badge text-bg-secondary">${contract.status}</span></c:otherwise>
+                </c:choose>
+            </span>
         </div>
 
         <div class="detail-grid">

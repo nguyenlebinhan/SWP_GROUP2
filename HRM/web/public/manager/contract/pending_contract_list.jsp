@@ -67,7 +67,18 @@
                                         <span class="meta-chip"><i class="fa-regular fa-id-badge"></i>${contract.contractType}</span>
                                         <span class="meta-chip"><i class="fa-regular fa-calendar"></i><fmt:formatDate value="${contract.effectiveDate}" pattern="dd/MM/yyyy"/></span>
                                         <span class="meta-chip"><i class="fa-solid fa-money-bill-wave"></i><fmt:formatNumber value="${contract.salary}" type="number" groupingUsed="true"/> VND</span>
-                                        <span class="meta-chip"><i class="fa-regular fa-clock"></i>${contract.status}</span>
+                                        <span class="meta-chip"><i class="fa-regular fa-clock"></i>
+                                            <c:choose>
+                                                <c:when test="${contract.status == 'PENDING_APPROVAL'}"><span style="background:#fef3c7;color:#92400e;border:1px solid #fbbf24;padding:2px 10px;border-radius:999px;font-size:12px;">Chờ duyệt</span></c:when>
+                                                <c:when test="${contract.status == 'PENDING_ACTIVATION'}"><span style="background:#ede9fe;color:#5b21b6;border:1px solid #a78bfa;padding:2px 10px;border-radius:999px;font-size:12px;">Chờ hiệu lực</span></c:when>
+                                                <c:when test="${contract.status == 'ACTIVE'}"><span style="background:#d1fae5;color:#065f46;border:1px solid #34d399;padding:2px 10px;border-radius:999px;font-size:12px;">Đang hiệu lực</span></c:when>
+                                                <c:when test="${contract.status == 'EXPIRED'}"><span style="background:#f1f5f9;color:#475569;border:1px solid #94a3b8;padding:2px 10px;border-radius:999px;font-size:12px;">Đã hết hạn</span></c:when>
+                                                <c:when test="${contract.status == 'TERMINATED'}"><span style="background:#ffe4e6;color:#9f1239;border:1px solid #fb7185;padding:2px 10px;border-radius:999px;font-size:12px;">Đã chấm dứt</span></c:when>
+                                                <c:when test="${contract.status == 'CANCELLED'}"><span style="background:#f8fafc;color:#334155;border:1px solid #cbd5e1;padding:2px 10px;border-radius:999px;font-size:12px;">Đã hủy</span></c:when>
+                                                <c:when test="${contract.status == 'REJECTED'}"><span style="background:#fef2f2;color:#991b1b;border:1px solid #fca5a5;padding:2px 10px;border-radius:999px;font-size:12px;">Bị từ chối</span></c:when>
+                                                <c:otherwise>${contract.status}</c:otherwise>
+                                            </c:choose>
+                                        </span>
                                     </div>
                                 </div>
                                 <div class="d-flex gap-2 flex-wrap">

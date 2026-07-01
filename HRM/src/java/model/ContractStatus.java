@@ -1,13 +1,13 @@
 package model;
 
 public enum ContractStatus {
-    DRAFT("Nháp"),
     PENDING_APPROVAL("Chờ duyệt"),
     PENDING_ACTIVATION("Chờ hiệu lực"),
     ACTIVE("Đang hiệu lực"),
     EXPIRED("Đã hết hạn"),
     TERMINATED("Đã chấm dứt"),
-    CANCELLED("Đã hủy");
+    CANCELLED("Đã hủy"),
+    REJECTED("Bị từ chối");
 
     private final String displayName;
 
@@ -20,7 +20,7 @@ public enum ContractStatus {
     }
 
     public boolean isEditable() {
-        return this == DRAFT || this == PENDING_APPROVAL || this == PENDING_ACTIVATION;
+        return this == PENDING_APPROVAL || this == PENDING_ACTIVATION;
     }
 
     public boolean isActiveLike() {
@@ -28,7 +28,7 @@ public enum ContractStatus {
     }
 
     public boolean isFinalStatus() {
-        return this == EXPIRED || this == TERMINATED || this == CANCELLED;
+        return this == EXPIRED || this == TERMINATED || this == CANCELLED || this == REJECTED;
     }
 }
 

@@ -288,10 +288,7 @@ public class EmploymentContract {
         if (status == null) {
             return "UNKNOWN";
         }
-        if (status == ContractStatus.PENDING_APPROVAL) {
-            return "PENDING_APPROVE";
-        }
-        return status.name();
+        return status.getDisplayName();
     }
 
     public boolean isTerminalStatus() {

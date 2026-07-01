@@ -76,7 +76,7 @@ public class BusinessAdminController extends HttpServlet {
             case "/employee_info/my-profile/update":
                 handleUpdateMyProfile(request, response, user);
                 break;
-            case "/department":
+            case "/department/list":
                 displayDepartmentList(request, response);
                 break;
             case "/department/assign":

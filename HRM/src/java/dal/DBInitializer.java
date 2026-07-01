@@ -181,7 +181,7 @@ public class DBInitializer {
                 + "endDate DATE NULL,"
                 + "actualEndDate DATE NULL,"
                 + "salary DECIMAL(15,2) NOT NULL DEFAULT 0,"
-                + "status VARCHAR(50) DEFAULT 'DRAFT',"
+                + "status VARCHAR(50) DEFAULT 'PENDING_APPROVAL',"
                 + "note NVARCHAR(500),"
                 + "previousContractId INT,"
                 + "terminationReason NVARCHAR(255),"

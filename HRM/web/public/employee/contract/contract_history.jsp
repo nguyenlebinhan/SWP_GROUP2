@@ -117,8 +117,8 @@
                                     <c:when test="${contract.status == 'CANCELLED'}">
                                         <span class="timeline-marker" style="background: #1f2937;"></span>
                                     </c:when>
-                                    <c:when test="${contract.status == 'DRAFT'}">
-                                        <span class="timeline-marker" style="background: #e5e7eb; border-color: #9ca3af;"></span>
+                                    <c:when test="${contract.status == 'REJECTED'}">
+                                        <span class="timeline-marker" style="background: #dc2626;"></span>
                                     </c:when>
                                     <c:otherwise>
                                         <span class="timeline-marker" style="background: #6b7280;"></span>
@@ -167,8 +167,8 @@
                                             <c:when test="${contract.status == 'CANCELLED'}">
                                                 <span class="badge bg-dark badge-custom">Đã hủy</span>
                                             </c:when>
-                                            <c:when test="${contract.status == 'DRAFT'}">
-                                                <span class="badge bg-light text-dark border badge-custom">Nháp</span>
+                                            <c:when test="${contract.status == 'REJECTED'}">
+                                                <span class="badge bg-danger badge-custom">Bị từ chối</span>
                                             </c:when>
                                             <c:otherwise>
                                                 <span class="badge bg-info badge-custom">${contract.status}</span>

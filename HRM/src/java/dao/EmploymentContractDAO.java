@@ -333,43 +333,6 @@ public class EmploymentContractDAO {
         return contracts;
     }
 
-    public ContractOperationResult approveContract(Connection conn, int contractId) {
-        String SQL = "UPDATE Employment_Contracts "
-                + "SET status = 'PENDING_ACTIVATION', updatedAt = CURRENT_TIMESTAMP "
-                + "WHERE contractId = ? AND status = 'PENDING_APPROVAL'";
-        try (PreparedStatement ps = conn.prepareStatement(SQL)) {
-            ps.setInt(1, contractId);
-            int rows = ps.executeUpdate();
-            if (rows > 0) {
-                return new ContractOperationResult(true, null, "Duyệt hợp đồng thành công");
-            } else {
-                return new ContractOperationResult(false, ContractOperationResult.INVALID_STATUS, "Hợp đồng không ở trạng thái 'Chờ duyệt'");
-            }
-        } catch (SQLException e) {
-            LOGGER.log(Level.SEVERE, "Cannot approve contract: " + contractId, e);
-            return new ContractOperationResult(false, ContractOperationResult.SQL_ERROR, "Lỗi cơ sở dữ liệu");
-        }
-    }
-
-    public ContractOperationResult rejectContract(Connection conn, int contractId, String reason) {
-        String SQL = "UPDATE Employment_Contracts "
-                + "SET status = 'CANCELLED', rejectionReason = ?, updatedAt = CURRENT_TIMESTAMP "
-                + "WHERE contractId = ? AND status = 'PENDING_APPROVAL'";
-        try (PreparedStatement ps = conn.prepareStatement(SQL)) {
-            ps.setString(1, reason);
-            ps.setInt(2, contractId);
-            int rows = ps.executeUpdate();
-            if (rows > 0) {
-                return new ContractOperationResult(true, null, "Từ chối hợp đồng thành công");
-            } else {
-                return new ContractOperationResult(false, ContractOperationResult.INVALID_STATUS, "Hợp đồng không ở trạng thái 'Chờ duyệt'");
-            }
-        } catch (SQLException e) {
-            LOGGER.log(Level.SEVERE, "Cannot reject contract: " + contractId, e);
-            return new ContractOperationResult(false, ContractOperationResult.SQL_ERROR, "Lỗi cơ sở dữ liệu");
-        }
-    }
-
     public boolean updateContractStatusWithoutEndDate(Connection conn, int contractId, ContractStatus newStatus) throws SQLException {
         String SQL = "UPDATE Employment_Contracts SET status = ?, updatedAt = CURRENT_TIMESTAMP WHERE contractId = ?";
         try (PreparedStatement ps = conn.prepareStatement(SQL)) {
@@ -573,90 +536,31 @@ public class EmploymentContractDAO {
         return contracts;
     }
 
-    public EmploymentContract getDraftByEmployee(int employeeId) {
-        String SQL = "SELECT " + BASE_COLUMNS + " FROM Employment_Contracts WHERE employeeId = ? AND status = ? "
-                + "LIMIT 1";
-        try (Connection conn = getInternalConnection(); PreparedStatement ps = conn.prepareStatement(SQL)) {
-            ps.setInt(1, employeeId);
-            ps.setString(2, ContractStatus.DRAFT.name());
-            try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) {
-                    return mapContract(rs);
-                }
-            }
-        } catch (SQLException e) {
-            LOGGER.log(Level.SEVERE, "Cannot retrieve draft for employeeId: " + employeeId, e);
-        }
-        return null;
-    }
-
-    public int saveDraft(Connection conn, EmploymentContract contract) throws SQLException {
-        String SQL = "INSERT INTO Employment_Contracts "
-                + "(contractCode, employeeId, contractType, signedDate, effectiveDate, endDate, "
-                + "salary, status, note, previousContractId, terminationReason, createdBy) "
-                + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
-        try (PreparedStatement ps = conn.prepareStatement(SQL, Statement.RETURN_GENERATED_KEYS)) {
-            ps.setString(1, contract.getContractCode());
-            ps.setInt(2, contract.getEmployeeId());
-            ps.setString(3, contract.getContractType() != null ? contract.getContractType().name() : null);
-            ps.setDate(4, contract.getSignedDate());
-            ps.setDate(5, contract.getEffectiveDate());
-            if (contract.getEndDate() == null) {
-                ps.setNull(6, Types.DATE);
-            } else {
-                ps.setDate(6, contract.getEndDate());
-            }
-            ps.setBigDecimal(7, contract.getSalary());
-            ps.setString(8, ContractStatus.DRAFT.name());
-            ps.setNString(9, contract.getNote());
-            if (contract.getPreviousContractId() != null) {
-                ps.setInt(10, contract.getPreviousContractId());
-            } else {
-                ps.setNull(10, Types.INTEGER);
-            }
-            ps.setString(11, contract.getTerminationReason());
-            ps.setInt(12, contract.getCreatedBy());
-
-            int affected = ps.executeUpdate();
-            if (affected > 0) {
-                try (ResultSet keys = ps.getGeneratedKeys()) {
-                    if (keys.next()) return keys.getInt(1);
-                }
-            }
-            return -1;
-        }
-    }
-
-    public boolean updateDraft(Connection conn, EmploymentContract contract) throws SQLException {
-        String SQL = "UPDATE Employment_Contracts SET "
-                + "contractCode = ?, contractType = ?, effectiveDate = ?, endDate = ?, "
-                + "salary = ?, note = ?, updatedAt = CURRENT_TIMESTAMP "
-                + "WHERE contractId = ? AND status = ?";
+    public boolean updateRejectionReason(Connection conn, int contractId, String reason) throws SQLException {
+        String SQL = "UPDATE Employment_Contracts SET rejectionReason = ?, updatedAt = CURRENT_TIMESTAMP WHERE contractId = ?";
         try (PreparedStatement ps = conn.prepareStatement(SQL)) {
-            ps.setString(1, contract.getContractCode());
-            ps.setString(2, contract.getContractType() != null ? contract.getContractType().name() : null);
-            ps.setDate(3, contract.getEffectiveDate());
-            if (contract.getEndDate() == null) {
-                ps.setNull(4, Types.DATE);
-            } else {
-                ps.setDate(4, contract.getEndDate());
-            }
-            ps.setBigDecimal(5, contract.getSalary());
-            ps.setNString(6, contract.getNote());
-            ps.setInt(7, contract.getContractId());
-            ps.setString(8, ContractStatus.DRAFT.name());
+            ps.setString(1, reason);
+            ps.setInt(2, contractId);
             return ps.executeUpdate() > 0;
         }
     }
 
-    public boolean deleteDraft(int contractId) {
-        String SQL = "DELETE FROM Employment_Contracts WHERE contractId = ? AND status = ?";
+    public boolean existsByContractCode(String contractCode, Integer excludeContractId) {
+        String SQL = "SELECT 1 FROM Employment_Contracts WHERE contractCode = ?";
+        if (excludeContractId != null) {
+            SQL += " AND contractId != ?";
+        }
+        SQL += " LIMIT 1";
         try (Connection conn = getInternalConnection(); PreparedStatement ps = conn.prepareStatement(SQL)) {
-            ps.setInt(1, contractId);
-            ps.setString(2, ContractStatus.DRAFT.name());
-            return ps.executeUpdate() > 0;
+            ps.setString(1, contractCode);
+            if (excludeContractId != null) {
+                ps.setInt(2, excludeContractId);
+            }
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next();
+            }
         } catch (SQLException e) {
-            LOGGER.log(Level.SEVERE, "Cannot delete draft: " + contractId, e);
+            LOGGER.log(Level.SEVERE, "Error checking duplicate contractCode: " + contractCode, e);
         }
         return false;
     }
