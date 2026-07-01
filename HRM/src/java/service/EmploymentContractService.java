@@ -2,6 +2,7 @@ package service;
 
 import dao.EmploymentContractDAO;
 import dal.DBContext;
+import dao.RoleDAO;
 import dto.EmployeeDetailDTO;
 import model.ContractOperationResult;
 import model.ContractStatus;
@@ -36,6 +37,7 @@ public class EmploymentContractService {
     private final EmploymentContractDAO contractDAO;
     private final dao.EmployeeDAO employeeDAO;
     private final DBContext dbContext;
+    private final RoleDAO roleDAO = new RoleDAO();
 
     public EmploymentContractService(EmploymentContractDAO contractDAO, dao.EmployeeDAO employeeDAO, DBContext dbContext) {
         this.contractDAO = contractDAO;
@@ -286,9 +288,13 @@ public class EmploymentContractService {
             String newStatus = targetStatus.name();
             String auditNote = "Phe duyet";
 
-            contractDAO.updateContractStatus(conn, contractId, targetStatus, null, null, signedDate);
+            boolean updated = contractDAO.updateContractStatus(conn, contractId, targetStatus, null, null, signedDate);
+            if (!updated) {
+                conn.rollback();
+                return new ContractOperationResult(false,ContractOperationResult.SQL_ERROR, "Khong the cap nhat trang thai hop dong."); 
+            }
+            
             contractDAO.insertAuditLog(conn, contractId, oldStatus, newStatus, userId, auditNote);
-
             conn.commit();
             return new ContractOperationResult(true, null, "Phe duyet thanh cong.");
         } catch (SQLException e) {
@@ -478,8 +484,17 @@ public class EmploymentContractService {
 
             String oldStatus = contract.getStatus().name();
             String newStatus = ContractStatus.REJECTED.name();
-            contractDAO.updateContractStatus(conn, contractId, ContractStatus.REJECTED, null, null);
-            contractDAO.updateRejectionReason(conn, contractId, reason);
+            boolean updated = contractDAO.updateContractStatus(conn, contractId, ContractStatus.REJECTED, null, null);
+            if (!updated) {
+                conn.rollback();
+                return new ContractOperationResult(false, ContractOperationResult.SQL_ERROR, "Khong the tu choi hop dong.");
+            }
+            
+            boolean reasonUpdated = contractDAO.updateRejectionReason(conn, contractId, reason);
+            if (!reasonUpdated) {
+                conn.rollback();
+                return new ContractOperationResult(false, ContractOperationResult.SQL_ERROR, "Khong the luu ly do tu choi");
+            }
             contractDAO.insertAuditLog(conn, contractId, oldStatus, newStatus, userId,
                     "Tu choi: " + reason);
 
@@ -519,21 +534,25 @@ public class EmploymentContractService {
                         "Chi co the huy hop dong dang cho duyet.");
             }
 
-            dto.EmployeeDetailDTO emp = employeeDAO.getEmployeeByUserId(userId);
-            boolean isCreator = contract.getCreatedBy() == userId;
-            boolean isOwningEmployee = emp != null && emp.getEmployeeId() == contract.getEmployeeId();
-
-            if (!isCreator && !isOwningEmployee) {
+            String roleName = roleDAO.getRoleByUserId(userId);
+            boolean isHrStaff = roleName != null 
+                    && (roleName.equalsIgnoreCase("HRManager")
+                    || roleName.equalsIgnoreCase("HREmployee"));
+            
+            if(!isHrStaff) {
                 conn.rollback();
-                return new ContractOperationResult(false, "FORBIDDEN",
-                        "Ban khong co quyen huy hop dong nay.");
+                return new ContractOperationResult(false, "FORBIDDEN", "Chi nhan su phong HR moi co quen huy hop dong.");
             }
 
             String oldStatus = contract.getStatus().name();
             String newStatus = ContractStatus.CANCELLED.name();
-            contractDAO.updateContractStatus(conn, contractId, ContractStatus.CANCELLED, null, "Huy boi nguoi tao");
+            boolean updated = contractDAO.updateContractStatus(conn, contractId, ContractStatus.CANCELLED, null, "Huy truoc khi duyet");
+            if (!updated) {
+                conn.rollback();
+                return new ContractOperationResult(false, ContractOperationResult.SQL_ERROR, "Khong the huy hop dong.");
+            }
             contractDAO.insertAuditLog(conn, contractId, oldStatus, newStatus, userId,
-                    "Huy hop dong boi nguoi tao");
+                    "Huy hop dong truoc khi duyet");
 
             conn.commit();
             return new ContractOperationResult(true, null, "Huy hop dong thanh cong.");
@@ -562,14 +581,12 @@ public class EmploymentContractService {
                     ContractOperationResult.SYSTEM_ERROR, "Contract not found during auto-activation.");
         }
 
-        // 2. Guard: Must be PENDING_ACTIVATION
         if (contract.getStatus() != ContractStatus.PENDING_ACTIVATION) {
             return new ContractOperationResult(false,
                     ContractOperationResult.INVALID_STATUS,
                     "Contract is not in PENDING_ACTIVATION state.");
         }
 
-        // 3. Timeline Check: effectiveDate must be <= today
         Date today = Date.valueOf(LocalDate.now());
         if (contract.getEffectiveDate().after(today)) {
             return new ContractOperationResult(false,
@@ -577,11 +594,9 @@ public class EmploymentContractService {
                     "Effective date has not arrived yet.");
         }
 
-        // 4. Transition to ACTIVE
         boolean success = contractDAO.updateContractStatus(conn, contractId, ContractStatus.ACTIVE, null, null);
 
         if (success) {
-            // 5. Audit log (throws SQLException to trigger rollback in caller)
             contractDAO.insertAuditLog(conn, contractId,
                     ContractStatus.PENDING_ACTIVATION.name(), ContractStatus.ACTIVE.name(),
                     0, "System auto-activation");

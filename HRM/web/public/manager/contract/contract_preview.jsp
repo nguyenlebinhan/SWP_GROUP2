@@ -81,7 +81,7 @@
                     <input type="hidden" name="contractId" value="${contract.contractId}">
                     <input type="hidden" name="note" value="Terminated by HR Manager">
                     <button type="submit" class="btn btn-outline-dark">
-                        <i class="fa-solid fa-stop me-1"></i>Chấm dứt
+                        <a href="${pageContext.request.contextPath}/v1/manager/contract/terminate?id=${contract.contractId} class="btn btn-outliner-dark"></a><i class="fa-solid fa-stop me-1"></i>Chấm dứt
                     </button>
                 </form>
             </c:if>
@@ -90,10 +90,6 @@
 
     <div class="page-card">
         <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
-            <div>
-                <h1 class="h3 mb-1">Hợp đồng ${empty contract.contractCode ? contract.contractId : contract.contractCode}</h1>
-                <div class="text-muted">${employee.fullName} (${employee.employeeCode})</div>
-            </div>
             <div>
                 <h1 class="h3 mb-1">Hợp đồng ${empty contract.contractCode ? contract.contractId : contract.contractCode}</h1>
                 <div class="text-muted">${employee.fullName} (${employee.employeeCode})</div>

@@ -41,10 +41,12 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.DayOfWeek;
+import java.time.LocalTime;
 import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import model.*;
+import service.AttendanceClosingService;
 import service.AttendanceImportService;
 import service.AttendanceService;
 import service.CandidateImportService;
@@ -86,6 +88,7 @@ public class EmployeeController extends HttpServlet {
     private final CandidateDAO candidateDAO = new CandidateDAO();
     private final PayrollService payrollService = new PayrollService();
     private final CandidateImportService candidateImportService = new CandidateImportService();
+    private final AttendanceClosingService attendanceClosingService = new AttendanceClosingService();
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
@@ -270,6 +273,12 @@ public class EmployeeController extends HttpServlet {
                 break;
             case "/recruitment/import":
                 handleImportCandidates(request, response, user);
+                break;
+            case "/attendance/close-period":
+                handleCloseAttendancePeriod(request, response, user);
+                break;
+            case "/attendance/submit-ba":
+                handleSubmitAttendanceToBa(request, response, user);
                 break;
             case "/salary/generate":
                 handleGeneratePayroll(request, response, user);
@@ -675,11 +684,49 @@ public class EmployeeController extends HttpServlet {
         }
         int[] period = parseSalaryPeriod(request);
         Integer departmentId = parseIntOrNull(request.getParameter("departmentId"));
+
+        // Chặn cứng: chỉ được tính lương khi bảng chấm công đã được BA chốt (LOCKED).
+        boolean locked = departmentId == null
+                ? attendanceClosingService.isPeriodLocked(period[0], period[1])
+                : attendanceClosingService.isDepartmentLocked(period[0], period[1], departmentId);
+        if (!locked) {
+            request.getSession().setAttribute("error",
+                    "Bảng chấm công kỳ này chưa được BA chốt. Chưa thể tính lương.");
+            response.sendRedirect(request.getContextPath() + "/v1/employee/salary/all?month=" + period[1]
+                    + "&year=" + period[0]
+                    + (departmentId == null ? "" : "&departmentId=" + departmentId));
+            return;
+        }
+
         int generated = payrollService.saveGeneratedPayrollForPeriod(period[0], period[1], departmentId);
         request.getSession().setAttribute("success", "Đã tạo bảng lương cho " + generated + " nhân sự.");
         response.sendRedirect(request.getContextPath() + "/v1/employee/salary/all?month=" + period[1]
                 + "&year=" + period[0]
                 + (departmentId == null ? "" : "&departmentId=" + departmentId));
+    }
+
+    private void handleCloseAttendancePeriod(HttpServletRequest request, HttpServletResponse response,
+            User user) throws IOException {
+        LocalDate prev = LocalDate.now().minusMonths(1);
+        int month = attParam(request, "month", prev.getMonthValue());
+        int year = attParam(request, "year", prev.getYear());
+        AttendanceClosingService.ClosingResult result =
+                attendanceClosingService.openPeriodForManagers(year, month, user);
+        request.getSession().setAttribute(result.isSuccess() ? "success" : "error", result.getMessage());
+        response.sendRedirect(request.getContextPath()
+                + "/v1/employee/attendance/overview?month=" + month + "&year=" + year);
+    }
+
+    private void handleSubmitAttendanceToBa(HttpServletRequest request, HttpServletResponse response,
+            User user) throws IOException {
+        LocalDate prev = LocalDate.now().minusMonths(1);
+        int month = attParam(request, "month", prev.getMonthValue());
+        int year = attParam(request, "year", prev.getYear());
+        AttendanceClosingService.ClosingResult result =
+                attendanceClosingService.submitToBa(year, month, user);
+        request.getSession().setAttribute(result.isSuccess() ? "success" : "error", result.getMessage());
+        response.sendRedirect(request.getContextPath()
+                + "/v1/employee/attendance/overview?month=" + month + "&year=" + year);
     }
 
     private int attParam(HttpServletRequest request, String name, int defaultValue) {
@@ -723,7 +770,43 @@ public class EmployeeController extends HttpServlet {
         }
         request.setAttribute("selectedMonth", month);
         request.setAttribute("selectedYear", year);
+        setClosingOverviewAttributes(request, year, month);
         request.getRequestDispatcher("/public/employee/attendance/attendance_overview.jsp").forward(request, response);
+    }
+
+    /**
+     * Nạp trạng thái quy trình chốt bảng chấm công (theo tháng, toàn bộ phòng ban)
+     * để hiển thị panel + các nút "Đóng kỳ" / "Gửi lên BA" cho HR.
+     */
+    private void setClosingOverviewAttributes(HttpServletRequest request, int year, int month) {
+        java.util.List<model.AttendancePeriod> closingPeriods =
+                attendanceClosingService.getClosingOverview(year, month);
+        boolean hasData = !closingPeriods.isEmpty();
+        boolean anyOpen = false;
+        boolean allManagerConfirmed = hasData;
+        boolean allSubmitted = hasData;
+        boolean allLocked = hasData;
+        for (model.AttendancePeriod p : closingPeriods) {
+            int st = p.getStatus();
+            if (st == 0) {
+                anyOpen = true;
+            }
+            if (st != 2) {
+                allManagerConfirmed = false;
+            }
+            if (st != 3) {
+                allSubmitted = false;
+            }
+            if (st != 4) {
+                allLocked = false;
+            }
+        }
+        request.setAttribute("closingPeriods", closingPeriods);
+        request.setAttribute("closingHasData", hasData);
+        request.setAttribute("closingCanOpen", anyOpen);
+        request.setAttribute("closingCanSubmitBa", allManagerConfirmed);
+        request.setAttribute("closingSubmittedToBa", allSubmitted);
+        request.setAttribute("closingLocked", allLocked);
     }
 
     private void displayAttendanceDetail(HttpServletRequest request, HttpServletResponse response,
@@ -897,10 +980,7 @@ public class EmployeeController extends HttpServlet {
         request.getRequestDispatcher("/public/employee/attendance/attendance_import.jsp").forward(request, response);
     }
 
-    /**
-     * Đặt các thuộc tính phục vụ giao diện import: tháng được phép (tháng liền trước),
-     * và cờ cho biết cửa sổ import (2 ngày đầu tháng) còn mở hay không.
-     */
+
     private void setImportWindowAttributes(HttpServletRequest request) {
         LocalDate today = LocalDate.now();
         LocalDate prevMonth = today.minusMonths(1);
@@ -915,11 +995,6 @@ public class EmployeeController extends HttpServlet {
         }
     }
 
-    /**
-     * Kiểm tra ràng buộc thời gian import chấm công:
-     * chỉ cho phép import trong 2 ngày đầu mỗi tháng (ngày 1 và 2),
-     * và chỉ cho tháng liền trước. Trả về thông báo lỗi nếu không hợp lệ, null nếu hợp lệ.
-     */
     private String validateImportWindow(int month, int year) {
         LocalDate today = LocalDate.now();
         LocalDate prevMonth = today.minusMonths(1);
@@ -956,7 +1031,8 @@ public class EmployeeController extends HttpServlet {
             return;
         }
         request.setAttribute("attendance", attendance);
-        request.setAttribute("editLocked", isAttendanceEditLocked(attendance.getWorkDate()));
+        request.setAttribute("editLocked",
+                attendanceClosingService.isEditLocked(attendance.getWorkDate(), attendance.getDepartmentId()));
         request.setAttribute("adjustmentHistory", attendanceDAO.getAdjustmentHistory(attendanceId));
         request.setAttribute("backUrl", backUrl);
         request.setAttribute("filterEmployeeId", trimToNull(request.getParameter("employeeId")));
@@ -1004,9 +1080,10 @@ public class EmployeeController extends HttpServlet {
             return;
         }
 
-        if (isAttendanceEditLocked(attendance.getWorkDate())) {
+        if (attendanceClosingService.isEditLocked(attendance.getWorkDate(), attendance.getDepartmentId())) {
             request.getSession().setAttribute("error",
-                    "Đã quá hạn chỉnh sửa. Chấm công chỉ được sửa đến hết ngày 5 của tháng kế tiếp.");
+                    "Đã quá hạn chỉnh sửa. Chấm công chỉ được sửa đến hết ngày 5 của tháng kế tiếp "
+                    + "hoặc khi bảng chấm công đã được gửi đi chốt.");
             response.sendRedirect(redirectUrl);
             return;
         }
@@ -1021,16 +1098,16 @@ public class EmployeeController extends HttpServlet {
             response.sendRedirect(redirectUrl);
             return;
         }
+       
 
         if (timeIn != null && timeOut != null && timeOut.before(timeIn)) {
             request.getSession().setAttribute("error", "Giờ ra phải sau giờ vào.");
             response.sendRedirect(redirectUrl);
             return;
         }
+        
+        
 
-        // Giữ NGUYÊN giờ thực (timeIn/timeOut) để lưu và hiển thị.
-        // Riêng phần tính toán (trạng thái, số giờ làm) thì dùng bản đã chuẩn hóa
-        // theo block 30 phút: giờ vào làm tròn LÊN, giờ ra làm tròn XUỐNG.
         Time calcTimeIn = utils.WorkHoursCalculator.ceilToBlock(timeIn);
         Time calcTimeOut = utils.WorkHoursCalculator.floorToBlock(timeOut);
 
@@ -1046,12 +1123,21 @@ public class EmployeeController extends HttpServlet {
 
         BigDecimal hoursWorked;
         if (calcTimeIn != null && calcTimeOut != null && (status == 0 || status == 1)) {
+            boolean hasOT = new dao.OvertimeDAO().hasApprovedOT(
+                    attendance.getEmployeeId(), attendance.getWorkDate());
+
+            // Không có đơn OT được duyệt: phần làm sau 17:00 không được tính công,
+            // nên phải cắt giờ ra về 17:00 TRƯỚC khi tính (giống lúc import).
+            Time workEnd = Time.valueOf("17:00:00");
+            if (!hasOT && calcTimeOut.after(workEnd)) {
+                calcTimeOut = workEnd;
+            }
+
             hoursWorked = utils.WorkHoursCalculator.hoursWorked(calcTimeIn, calcTimeOut);
-            // Không có đơn OT được duyệt cho ngày này thì giới hạn giờ công ở 8 tiếng chuẩn,
-            // dù nhân viên đến sớm hơn hay về muộn hơn.
+
+            // Không OT thì giờ công không vượt quá 8 tiếng chuẩn.
             BigDecimal standardHours = new BigDecimal("8.00");
-            if (hoursWorked.compareTo(standardHours) > 0
-                    && !new dao.OvertimeDAO().hasApprovedOT(attendance.getEmployeeId(), attendance.getWorkDate())) {
+            if (!hasOT && hoursWorked.compareTo(standardHours) > 0) {
                 hoursWorked = standardHours;
             }
         } else {
@@ -1092,8 +1178,6 @@ public class EmployeeController extends HttpServlet {
             return;
         }
 
-        // Đảm bảo mọi đường forward về trang import (lỗi hoặc thành công) đều có
-        // tháng/năm được phép và cờ cửa sổ import, tránh mất ngày tháng & hiện thanh vàng.
         setImportWindowAttributes(request);
 
         if (month < 1 || month > 12) {
@@ -2630,17 +2714,6 @@ public class EmployeeController extends HttpServlet {
 
     private boolean isValidEmployeeStatus(int status) {
         return status == 0 || status == 1 || status == 2;
-    }
-
-    private boolean isAttendanceEditLocked(Date workDate) {
-        if (workDate == null) {
-            return false;
-        }
-        LocalDate deadline = workDate.toLocalDate()
-                .withDayOfMonth(1)
-                .plusMonths(1)
-                .withDayOfMonth(5);
-        return LocalDate.now().isAfter(deadline);
     }
 
     private boolean isValidContractType(String type) {

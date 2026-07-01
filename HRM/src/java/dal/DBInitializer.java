@@ -414,6 +414,31 @@ public class DBInitializer {
         execute(conn, SQL, "CREATE ATTENDANCE_ADJUSTMENT_HISTORY TABLE SUCCESSFULLY");
     }
 
+    public void createTableAttendancePeriodStatus(Connection conn) {
+        String SQL = "CREATE TABLE Attendance_Period_Status("
+                + "periodStatusId INT PRIMARY KEY AUTO_INCREMENT,"
+                + "periodYear INT NOT NULL,"
+                + "periodMonth INT NOT NULL,"
+                + "departmentId INT NOT NULL,"
+                + "status TINYINT NOT NULL DEFAULT 0," // 0 OPEN,1 WAITING_MANAGER,2 MANAGER_CONFIRMED,3 SUBMITTED_TO_BA,4 LOCKED
+                + "managerConfirmedBy INT NULL,"
+                + "managerConfirmedAt DATETIME NULL,"
+                + "submittedToBaBy INT NULL,"
+                + "submittedToBaAt DATETIME NULL,"
+                + "baApprovedBy INT NULL,"
+                + "baApprovedAt DATETIME NULL,"
+                + "note NVARCHAR(500),"
+                + "createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,"
+                + "updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,"
+                + "UNIQUE KEY uq_att_period_dept (periodYear, periodMonth, departmentId),"
+                + "FOREIGN KEY (departmentId) REFERENCES Departments(departmentId),"
+                + "FOREIGN KEY (managerConfirmedBy) REFERENCES Users(userId),"
+                + "FOREIGN KEY (submittedToBaBy) REFERENCES Users(userId),"
+                + "FOREIGN KEY (baApprovedBy) REFERENCES Users(userId)"
+                + ")";
+        execute(conn, SQL, "CREATE ATTENDANCE_PERIOD_STATUS TABLE SUCCESSFULLY");
+    }
+
     public void createTableHoliday(Connection conn) {
         String SQL = "CREATE TABLE Holiday("
                 + "holidayId INT PRIMARY KEY AUTO_INCREMENT,"
@@ -550,6 +575,7 @@ public class DBInitializer {
                 "Payroll_Deduction_Rules",
                 "Payroll_Settings",
                 "Payroll",
+                "Attendance_Period_Status",
                 "Attendance_Adjustment_History",
                 "Attendance",
                 "Holiday",
@@ -596,6 +622,7 @@ public class DBInitializer {
                 "Leave_Balances",
                 "Attendance",
                 "Attendance_Adjustment_History",
+                "Attendance_Period_Status",
                 "Holiday",
                 "Payroll",
                 "Payroll_Settings",
@@ -621,90 +648,35 @@ public class DBInitializer {
             for (String table : createOrder) {
                 if (enforceReset || !tableExists(conn, table)) {
                     switch (table) {
-                        case "Roles":
-                            createTableRoles(conn);
-                            break;
-                        case "Permissions":
-                            createTablePermissions(conn);
-                            break;
-                        case "Role_Permissions":
-                            createTableRolePermissions(conn);
-                            break;
-                        case "Email_Templates":
-                            createTableEmailTemplates(conn);
-                            break;
-                        case "Positions":
-                            createTablePosition(conn);
-                            break;
-                        case "Departments":
-                            createTableDepartments(conn);
-                            break;
-                        case "Department_Roles":
-                            createTableDepartmentRoles(conn);
-                            break;
-                        case "Users":
-                            createTableUsers(conn);
-                            break;
-                        case "Employees":
-                            createTableEmployees(conn);
-                            break;
-                        case "Employment_Contracts":
-                            createTableEmploymentContracts(conn);
-                            break;
-                        case "Uploaded_Files":
-                            createTableUploadedFiles(conn);
-                            break;
-                        case "Candidates":
-                            createTableCandidates(conn);
-                            break;
-                        case "Application_Stage_Logs":
-                            createTableApplicationStageLogs(conn);
-                            break;
-                        case "Form_Types":
-                            createTableFormTypes(conn);
-                            break;
-                        case "Form_Requests":
-                            createTableFormRequests(conn);
-                            break;
-                        case "Overtime_Details":
-                            createTableOvertimeDetails(conn);
-                            break;
-                        case "Overtime_Assignees":
-                            createTableOvertimeAssignees(conn);
-                            break;
-                        case "Leave_Balances":
-                            createTableLeaveBalances(conn);
-                            break;
-                        case "Attendance":
-                            createTableAttendance(conn);
-                            break;
-                        case "Attendance_Adjustment_History":
-                            createTableAttendanceAdjustmentHistory(conn);
-                            break;
-                        case "Holiday":
-                            createTableHoliday(conn);
-                            break;
-                        case "Payroll":
-                            createTablePayroll(conn);
-                            break;
-                        case "Payroll_Settings":
-                            createTablePayrollSettings(conn);
-                            break;
-                        case "Payroll_Deduction_Rules":
-                            createTablePayrollDeductionRules(conn);
-                            break;
-                        case "Payroll_Tax_Brackets":
-                            createTablePayrollTaxBrackets(conn);
-                            break;
-                        case "Notifications":
-                            createTableNotifications(conn);
-                            break;
-                        case "Audit_Logs":
-                            createTableAuditLogs(conn);
-                            break;
-                        default:
-                            LOGGER.log(Level.WARNING, "Unknown table: {0}", table);
-                            break;
+                        case "Roles":             createTableRoles(conn);             break;
+                        case "Permissions":       createTablePermissions(conn);       break;
+                        case "Role_Permissions":  createTableRolePermissions(conn);   break;
+                        case "Email_Templates":   createTableEmailTemplates(conn);    break;
+                        case "Positions":         createTablePosition(conn);          break;
+                        case "Departments":       createTableDepartments(conn);       break;
+                        case "Department_Roles":  createTableDepartmentRoles(conn);   break;
+                        case "Users":             createTableUsers(conn);             break;
+                        case "Employees":         createTableEmployees(conn);         break;
+                        case "Employment_Contracts": createTableEmploymentContracts(conn); break;
+                        case "Uploaded_Files":    createTableUploadedFiles(conn);     break;
+                        case "Candidates":        createTableCandidates(conn);        break;
+                        case "Application_Stage_Logs": createTableApplicationStageLogs(conn); break;
+                        case "Form_Types":       createTableFormTypes(conn);         break;
+                        case "Form_Requests":    createTableFormRequests(conn);     break;
+                        case "Overtime_Details": createTableOvertimeDetails(conn);  break;
+                        case "Overtime_Assignees": createTableOvertimeAssignees(conn); break;
+                        case "Leave_Balances":     createTableLeaveBalances(conn);      break;
+                        case "Attendance":        createTableAttendance(conn);        break;
+                        case "Attendance_Adjustment_History": createTableAttendanceAdjustmentHistory(conn); break;
+                        case "Attendance_Period_Status": createTableAttendancePeriodStatus(conn); break;
+                        case "Holiday":           createTableHoliday(conn);           break;
+                        case "Payroll":           createTablePayroll(conn);           break;
+                        case "Payroll_Settings":  createTablePayrollSettings(conn);   break;
+                        case "Payroll_Deduction_Rules": createTablePayrollDeductionRules(conn); break;
+                        case "Payroll_Tax_Brackets": createTablePayrollTaxBrackets(conn); break;
+                        case "Notifications":     createTableNotifications(conn);     break;
+                        case "Audit_Logs":        createTableAuditLogs(conn);         break;
+                        default: LOGGER.log(Level.WARNING,"Unknown table: {0}", table);     break;
                     }
                 }
             }
@@ -905,17 +877,6 @@ public class DBInitializer {
                         ensureRolePermission(conn, "BusinessAdmin", rs.getString("permissionCode"));
                     }
                 }
-            }
-
-            if (countRows(conn, "Role_Permissions") == 0) {
-                // HR Employee (HE) permissions
-                insertRolePermission(conn, "HE", "ADD_EMPLOYMENT_CONTRACT");
-                insertRolePermission(conn, "HE", "VIEW_CONTRACT_PREVIEW");
-                // HR Manager (HM) permissions
-                insertRolePermission(conn, "HM", "ADD_EMPLOYMENT_CONTRACT");
-                insertRolePermission(conn, "HM", "VIEW_CONTRACT_PREVIEW");
-                insertRolePermission(conn, "HM", "PERM_APPROVE_CONTRACT");
-                insertRolePermission(conn, "HM", "PERM_VIEW_ALL_CONTRACTS");
             }
 
             seedPayrollConfig(conn);
