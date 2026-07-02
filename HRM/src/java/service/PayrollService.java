@@ -361,7 +361,17 @@ public class PayrollService {
         try (Connection conn = dbContext.getConnection()) {
             List<EmployeePayrollBase> employees = getActiveEmployeesWithContracts(conn, year, month, departmentId);
             for (EmployeePayrollBase employee : employees) {
-                PayrollPreviewDTO preview = calculatePayroll(conn, employee, year, month);
+                PayrollPreviewDTO preview;
+                try {
+                    preview = calculatePayroll(conn, employee, year, month);
+                } catch (SQLException e) {
+                    // Lỗi của 1 nhân viên không được làm đứt cả lượt tạo lương -
+                    // ghi nhận lỗi cho riêng người đó rồi tiếp tục với những người còn lại.
+                    LOGGER.log(Level.SEVERE, "Cannot calculate payroll for employeeId "
+                            + employee.employeeId + ", period " + year + "-" + month, e);
+                    preview = buildGenerationErrorPreview(employee,
+                            "Lỗi hệ thống khi tính lương, vui lòng thử lại hoặc liên hệ kỹ thuật.");
+                }
                 if (save && preview.getPayroll() != null && !preview.isGenerationBlocked()) {
                     int payrollId = saveGeneratedPayrollIfEditable(preview.getPayroll());
                     preview.getPayroll().setPayrollId(payrollId);

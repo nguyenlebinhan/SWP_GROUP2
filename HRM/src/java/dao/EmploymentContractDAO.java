@@ -123,7 +123,7 @@ public class EmploymentContractDAO {
 
     public EmploymentContract getLatestContractByEmployeeId(int employeeId) {
         String SQL = "SELECT " + BASE_COLUMNS + " FROM Employment_Contracts WHERE employeeId = ? "
-                + "ORDER BY effectiveDate DESC, contractId DESC LIMIT 1";
+                + "ORDER BY createdAt DESC, contractId DESC LIMIT 1";
         try (Connection conn = getInternalConnection(); PreparedStatement ps = conn.prepareStatement(SQL)) {
             ps.setInt(1, employeeId);
             try (ResultSet rs = ps.executeQuery()) {

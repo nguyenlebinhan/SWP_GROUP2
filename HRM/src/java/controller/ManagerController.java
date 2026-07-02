@@ -95,6 +95,7 @@ import java.time.LocalDate;
         maxRequestSize = 11L * 1024 * 1024 // 11MB / request
 )
 public class ManagerController extends HttpServlet {
+
     private static final FormService formService = new FormService();
 
     private static final Logger LOGGER = Logger.getLogger(ManagerController.class.getName());
@@ -861,7 +862,7 @@ public class ManagerController extends HttpServlet {
         if (approvedCount > 0) {
             request.getSession().setAttribute("success",
                     "Đã duyệt " + approvedCount + " bảng lương cho kỳ lương "
-                            + String.format("%02d/%d", period[1], period[0]) + ".");
+                    + String.format("%02d/%d", period[1], period[0]) + ".");
         } else {
             request.getSession().setAttribute("error",
                     "Không có bảng lương nào đang chờ duyệt để xử lý (hoặc tất cả đều là lương của chính bạn).");
@@ -1459,7 +1460,7 @@ public class ManagerController extends HttpServlet {
         try {
             List<EmploymentContract> contracts = contractDAO.getAllContractsForOverview(
                     keyword, contractType, status, null, loggedInEmpId, isHrStaff(user));
-            
+
             Map<Integer, EmployeeDetailDTO> employeeMap = new HashMap<>();
             for (EmploymentContract c : contracts) {
                 if (!employeeMap.containsKey(c.getEmployeeId())) {
@@ -1514,7 +1515,7 @@ public class ManagerController extends HttpServlet {
         request.setAttribute("employee", employee);
         request.setAttribute("backUrl", contract.getStatus() == ContractStatus.PENDING_APPROVAL
                 ? "/v1/manager/contract/pending"
-                : "/v1/employee/contract/status");
+                : "/v1/manager/contract/status");
         setPermissionFlags(request, perms);
         request.getRequestDispatcher("/public/manager/contract/contract_detail.jsp").forward(request, response);
     }
@@ -1547,11 +1548,6 @@ public class ManagerController extends HttpServlet {
 
     private void displayMyContracts(HttpServletRequest request, HttpServletResponse response,
             User user) throws ServletException, IOException {
-        if (!isHrStaff(user)) {
-            request.getSession().setAttribute("error", "Bạn không có quyền xem hợp đồng.");
-            response.sendRedirect(request.getContextPath() + "/v1/manager/dashboard");
-            return;
-        }
 
         Set<String> perms = getPermissions(user);
         request.getSession().setAttribute("userPermissions", perms);
@@ -2113,6 +2109,8 @@ public class ManagerController extends HttpServlet {
         if (code == null || type == null || isBlank(employeeParam) || isBlank(effectiveDate) || isBlank(salaryParam)) {
             request.setAttribute("error", "Vui lòng nhập đầy đủ mã hợp đồng, nhân viên, loại hợp đồng, ngày bắt đầu và lương.");
             request.setAttribute("employees", employeeDAO.getAllEmployees());
+            String newCode = contractService.generateNextContractCode();
+            request.setAttribute("generatedCode", newCode);
             setPermissionFlags(request, getPermissions(user));
             request.getRequestDispatcher("/public/manager/contract/add_contract.jsp").forward(request, response);
             return;
@@ -2142,6 +2140,8 @@ public class ManagerController extends HttpServlet {
         } catch (IllegalArgumentException e) {
             request.setAttribute("error", "Dữ liệu hợp đồng không hợp lệ.");
             request.setAttribute("employees", employeeDAO.getAllEmployees());
+            String newCode = contractService.generateNextContractCode();
+            request.setAttribute("generatedCode", newCode);
             setPermissionFlags(request, getPermissions(user));
             request.getRequestDispatcher("/public/manager/contract/add_contract.jsp").forward(request, response);
             return;
@@ -2152,6 +2152,8 @@ public class ManagerController extends HttpServlet {
         } catch (IllegalArgumentException e) {
             request.setAttribute("error", "Loại hợp đồng không hợp lệ.");
             request.setAttribute("employees", employeeDAO.getAllEmployees());
+            String newCode = contractService.generateNextContractCode();
+            request.setAttribute("generatedCode", newCode);
             setPermissionFlags(request, getPermissions(user));
             request.getRequestDispatcher("/public/manager/contract/add_contract.jsp").forward(request, response);
             return;
@@ -2159,6 +2161,8 @@ public class ManagerController extends HttpServlet {
         if (contract.getSalary().compareTo(BigDecimal.ZERO) < 0) {
             request.setAttribute("error", "Lương không được âm.");
             request.setAttribute("employees", employeeDAO.getAllEmployees());
+            String newCode = contractService.generateNextContractCode();
+            request.setAttribute("generatedCode", newCode);
             setPermissionFlags(request, getPermissions(user));
             request.getRequestDispatcher("/public/manager/contract/add_contract.jsp").forward(request, response);
             return;
@@ -2224,6 +2228,8 @@ public class ManagerController extends HttpServlet {
         } else {
             request.setAttribute("error", "Thêm hợp đồng thất bại: " + result.getMessage());
             request.setAttribute("employees", employeeDAO.getAllEmployees());
+            String newCode = contractService.generateNextContractCode();
+            request.setAttribute("generatedCode", newCode);
             setPermissionFlags(request, getPermissions(user));
             request.getRequestDispatcher("/public/manager/contract/add_contract.jsp").forward(request, response);
         }
@@ -3146,8 +3152,8 @@ public class ManagerController extends HttpServlet {
             resolvedStatus = (timeIn == null && timeOut == null)
                     ? AttendanceStatus.ABSENT
                     : (timeIn == null || timeOut == null)
-                        ? AttendanceStatus.MISSING_CHECK
-                        : timeIn.toLocalTime().isAfter(java.time.LocalTime.of(8, 0))
+                            ? AttendanceStatus.MISSING_CHECK
+                            : timeIn.toLocalTime().isAfter(java.time.LocalTime.of(8, 0))
                             ? AttendanceStatus.LATE
                             : AttendanceStatus.PRESENT;
         }
@@ -3178,7 +3184,7 @@ public class ManagerController extends HttpServlet {
                     new Object[]{form.getFormId(), form.getEmployeeId(), compForm.getStartDate()});
             request.getSession().setAttribute("warning",
                     "Đơn khiếu nại được duyệt nhưng không tìm thấy bản ghi chấm công ngày "
-                            + compForm.getStartDate() + " — không có gì được cập nhật.");
+                    + compForm.getStartDate() + " — không có gì được cập nhật.");
             return false;
         }
     }
@@ -3849,13 +3855,13 @@ public class ManagerController extends HttpServlet {
         Integer year = parseIntOrNull(request.getParameter("year"));
         Integer month = parseIntOrNull(request.getParameter("month"));
         if (year == null || year < 2000 || month == null || month < 1 || month > 12) {
-            return new int[] { latestClosedPeriod.getYear(), latestClosedPeriod.getMonthValue() };
+            return new int[]{latestClosedPeriod.getYear(), latestClosedPeriod.getMonthValue()};
         }
         java.time.YearMonth selected = java.time.YearMonth.of(year, month);
         if (selected.isAfter(latestClosedPeriod)) {
             selected = latestClosedPeriod;
         }
-        return new int[] { selected.getYear(), selected.getMonthValue() };
+        return new int[]{selected.getYear(), selected.getMonthValue()};
     }
 
     private String buildSalaryPeriodMessage(int year, int month) {
@@ -4016,12 +4022,12 @@ public class ManagerController extends HttpServlet {
             throws ServletException, IOException {
         request.setAttribute("formAction",
                 request.getContextPath()
-                        + (request.getRequestURI().contains("manager") ? "/v1/manager/forms/leave/submit"
-                                : "/v1/employee/forms/leave/submit"));
+                + (request.getRequestURI().contains("manager") ? "/v1/manager/forms/leave/submit"
+                : "/v1/employee/forms/leave/submit"));
         request.setAttribute("managerForm", request.getRequestURI().contains("manager"));
         request.getRequestDispatcher(
                 request.getRequestURI().contains("manager") ? "/public/manager/forms/leave_form.jsp"
-                        : "/public/employee/forms/leave_form.jsp")
+                : "/public/employee/forms/leave_form.jsp")
                 .forward(request, response);
     }
 
@@ -4029,12 +4035,12 @@ public class ManagerController extends HttpServlet {
             throws ServletException, IOException {
         request.setAttribute("formAction",
                 request.getContextPath()
-                        + (request.getRequestURI().contains("manager") ? "/v1/manager/forms/complaint/submit"
-                                : "/v1/employee/forms/complaint/submit"));
+                + (request.getRequestURI().contains("manager") ? "/v1/manager/forms/complaint/submit"
+                : "/v1/employee/forms/complaint/submit"));
         request.setAttribute("managerForm", request.getRequestURI().contains("manager"));
         request.getRequestDispatcher(
                 request.getRequestURI().contains("manager") ? "/public/manager/forms/complaint_form.jsp"
-                        : "/public/employee/forms/complaint_form.jsp")
+                : "/public/employee/forms/complaint_form.jsp")
                 .forward(request, response);
     }
 
@@ -4058,15 +4064,15 @@ public class ManagerController extends HttpServlet {
             throws ServletException, IOException {
         request.setAttribute("formAction",
                 request.getContextPath()
-                        + (request.getRequestURI().contains("manager") ? "/v1/manager/forms/dependent/submit"
-                                : "/v1/employee/forms/dependent/submit"));
+                + (request.getRequestURI().contains("manager") ? "/v1/manager/forms/dependent/submit"
+                : "/v1/employee/forms/dependent/submit"));
         request.setAttribute("cancelUrl",
                 request.getContextPath() + (request.getRequestURI().contains("manager") ? "/v1/manager/dashboard"
-                        : "/v1/employee/forms/my-forms"));
+                : "/v1/employee/forms/my-forms"));
         request.setAttribute("managerForm", request.getRequestURI().contains("manager"));
         request.getRequestDispatcher(
                 request.getRequestURI().contains("manager") ? "/public/manager/forms/dependent_form.jsp"
-                        : "/public/employee/forms/dependent_form.jsp")
+                : "/public/employee/forms/dependent_form.jsp")
                 .forward(request, response);
     }
 
@@ -4078,7 +4084,7 @@ public class ManagerController extends HttpServlet {
             request.getSession().setAttribute("error", "Loại đơn LEAVE không tồn tại.");
             response.sendRedirect(
                     request.getContextPath() + (request.getRequestURI().contains("manager") ? "/v1/manager/dashboard"
-                            : "/v1/employee/dashboard"));
+                    : "/v1/employee/dashboard"));
             return;
         }
 
@@ -4087,7 +4093,7 @@ public class ManagerController extends HttpServlet {
             request.getSession().setAttribute("error", "Bạn chưa được gắn hồ sơ nhân viên.");
             response.sendRedirect(
                     request.getContextPath() + (request.getRequestURI().contains("manager") ? "/v1/manager/dashboard"
-                            : "/v1/employee/dashboard"));
+                    : "/v1/employee/dashboard"));
             return;
         }
 
@@ -4140,7 +4146,7 @@ public class ManagerController extends HttpServlet {
         request.getSession().setAttribute("success", "Đã gửi đơn nghỉ phép thành công.");
         response.sendRedirect(
                 request.getContextPath() + (request.getRequestURI().contains("manager") ? "/v1/manager/forms/all"
-                        : "/v1/employee/forms/my-forms"));
+                : "/v1/employee/forms/my-forms"));
     }
 
     private void handleComplaintFormSubmit(HttpServletRequest request, HttpServletResponse response, User user)
@@ -4151,7 +4157,7 @@ public class ManagerController extends HttpServlet {
             request.getSession().setAttribute("error", "Loại đơn COMPLAINT không tồn tại.");
             response.sendRedirect(
                     request.getContextPath() + (request.getRequestURI().contains("manager") ? "/v1/manager/dashboard"
-                            : "/v1/employee/dashboard"));
+                    : "/v1/employee/dashboard"));
             return;
         }
 
@@ -4160,7 +4166,7 @@ public class ManagerController extends HttpServlet {
             request.getSession().setAttribute("error", "Bạn chưa được gắn hồ sơ nhân viên.");
             response.sendRedirect(
                     request.getContextPath() + (request.getRequestURI().contains("manager") ? "/v1/manager/dashboard"
-                            : "/v1/employee/dashboard"));
+                    : "/v1/employee/dashboard"));
             return;
         }
 
@@ -4217,7 +4223,7 @@ public class ManagerController extends HttpServlet {
         request.getSession().setAttribute("success", "Đã gửi đơn khiếu nại thành công.");
         response.sendRedirect(
                 request.getContextPath() + (request.getRequestURI().contains("manager") ? "/v1/manager/forms/all"
-                        : "/v1/employee/forms/my-forms"));
+                : "/v1/employee/forms/my-forms"));
     }
 
     private void handleRequestTransfer(HttpServletRequest request, HttpServletResponse response, User user)
@@ -4228,7 +4234,7 @@ public class ManagerController extends HttpServlet {
             request.getSession().setAttribute("error", "Loại đơn TRANSFER không tồn tại.");
             response.sendRedirect(
                     request.getContextPath() + (request.getRequestURI().contains("manager") ? "/v1/manager/dashboard"
-                            : "/v1/employee/dashboard"));
+                    : "/v1/employee/dashboard"));
             return;
         }
 
@@ -4237,7 +4243,7 @@ public class ManagerController extends HttpServlet {
             request.getSession().setAttribute("error", "Bạn chưa được phân công vào phòng ban nào.");
             response.sendRedirect(request.getContextPath()
                     + (request.getRequestURI().contains("manager") ? "/v1/manager/forms/transfer/new"
-                            : "/v1/employee/forms/transfer/new"));
+                    : "/v1/employee/forms/transfer/new"));
             return;
         }
 
@@ -4290,7 +4296,7 @@ public class ManagerController extends HttpServlet {
         request.getSession().setAttribute("success", "Đã gửi đơn thuyên chuyển thành công.");
         response.sendRedirect(
                 request.getContextPath() + (request.getRequestURI().contains("manager") ? "/v1/manager/forms/all"
-                        : "/v1/employee/forms/my-forms"));
+                : "/v1/employee/forms/my-forms"));
     }
 
     private void handleDependentFormSubmit(HttpServletRequest request, HttpServletResponse response, User user)
@@ -4301,7 +4307,7 @@ public class ManagerController extends HttpServlet {
             request.getSession().setAttribute("error", "Loại đơn DEPENDENT không tồn tại.");
             response.sendRedirect(
                     request.getContextPath() + (request.getRequestURI().contains("manager") ? "/v1/manager/dashboard"
-                            : "/v1/employee/dashboard"));
+                    : "/v1/employee/dashboard"));
             return;
         }
 
@@ -4310,7 +4316,7 @@ public class ManagerController extends HttpServlet {
             request.getSession().setAttribute("error", "Bạn chưa được gắn hồ sơ nhân viên.");
             response.sendRedirect(
                     request.getContextPath() + (request.getRequestURI().contains("manager") ? "/v1/manager/dashboard"
-                            : "/v1/employee/dashboard"));
+                    : "/v1/employee/dashboard"));
             return;
         }
 
@@ -4368,7 +4374,7 @@ public class ManagerController extends HttpServlet {
         request.getSession().setAttribute("success", "Đã gửi đơn đăng ký người phụ thuộc thành công.");
         response.sendRedirect(
                 request.getContextPath() + (request.getRequestURI().contains("manager") ? "/v1/manager/forms/all"
-                        : "/v1/employee/forms/my-forms"));
+                : "/v1/employee/forms/my-forms"));
     }
 
     private void handleGetTransferRoles(HttpServletRequest request, HttpServletResponse response) throws IOException {
@@ -4389,8 +4395,9 @@ public class ManagerController extends HttpServlet {
                 model.Role r = roles.get(i);
                 json.append("{\"id\":").append(r.getRoleId()).append(",\"name\":\"").append(r.getRoleName())
                         .append("\"}");
-                if (i < roles.size() - 1)
+                if (i < roles.size() - 1) {
                     json.append(",");
+                }
             }
             json.append("]");
             response.getWriter().write(json.toString());
