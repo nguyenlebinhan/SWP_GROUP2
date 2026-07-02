@@ -1203,6 +1203,10 @@ public class ManagerController extends HttpServlet {
             return;
         }
 
+        java.util.List<Integer> approvedOTDays = new dao.OvertimeDAO().getApprovedOTDaysInMonth(employeeId, month, year);
+        request.setAttribute("approvedOTDays", approvedOTDays);
+
+
         int day = paramOr(request, "day", 0);
         List<Attendance> filtered = detail.getDailyRows();
         if (day >= 1 && day <= 31) {
@@ -2539,14 +2543,21 @@ public class ManagerController extends HttpServlet {
     private void setImportWindowAttributes(HttpServletRequest request) {
         LocalDate today = LocalDate.now();
         LocalDate prevMonth = today.minusMonths(1);
-        request.setAttribute("allowedMonth", prevMonth.getMonthValue());
-        request.setAttribute("allowedYear", prevMonth.getYear());
+        int allowedMonth = prevMonth.getMonthValue();
+        int allowedYear = prevMonth.getYear();
+
+        request.setAttribute("allowedMonth", allowedMonth);
+        request.setAttribute("allowedYear", allowedYear);
         request.setAttribute("importWindowOpen", today.getDayOfMonth() <= 2);
+        
+        boolean locked = attendanceClosingService.isPeriodLocked(allowedYear, allowedMonth);
+        request.setAttribute("isLocked", locked);
+
         if (request.getAttribute("selectedMonth") == null) {
-            request.setAttribute("selectedMonth", prevMonth.getMonthValue());
+            request.setAttribute("selectedMonth", allowedMonth);
         }
         if (request.getAttribute("selectedYear") == null) {
-            request.setAttribute("selectedYear", prevMonth.getYear());
+            request.setAttribute("selectedYear", allowedYear);
         }
     }
 
@@ -2594,6 +2605,17 @@ public class ManagerController extends HttpServlet {
         } catch (NumberFormatException e) {
             request.getSession().setAttribute("error", "Dữ liệu tháng, năm hoặc phòng ban không hợp lệ.");
             response.sendRedirect(request.getContextPath() + "/v1/manager/attendance/import");
+            return;
+        }
+
+        boolean locked = (departmentId == 0)
+                ? attendanceClosingService.isPeriodLocked(year, month)
+                : attendanceClosingService.isDepartmentLocked(year, month, departmentId);
+
+        if (locked) {
+            request.getSession().setAttribute("error",
+                    "Kỳ chấm công tháng " + month + "/" + year + " đã được đóng/khóa. Không thể import dữ liệu mới!");
+            response.sendRedirect(request.getContextPath() + "/v1/manager/attendance/import?month=" + month + "&year=" + year);
             return;
         }
 
@@ -3220,63 +3242,9 @@ public class ManagerController extends HttpServlet {
         response.sendRedirect(request.getContextPath() + "/v1/manager/my-profile");
     }
 
-    private void displayDependentForm(HttpServletRequest request, HttpServletResponse response, User user)
-            throws ServletException, IOException {
-        request.getSession().setAttribute("userPermissions", getPermissions(user));
-        request.setAttribute("formAction", request.getContextPath() + "/v1/manager/forms/dependent/submit");
-        request.setAttribute("cancelUrl", request.getContextPath() + "/v1/manager/dashboard");
-        request.setAttribute("managerForm", true);
-        request.getRequestDispatcher("/public/employee/forms/dependent_form.jsp").forward(request, response);
-    }
 
-    private void handleDependentFormSubmit(HttpServletRequest request, HttpServletResponse response, User user)
-            throws ServletException, IOException {
-        FormType ft = formTypeDAO.getByCode("DEPENDENT");
-        EmployeeDetailDTO me = employeeDAO.getEmployeeByUserId(user.getUserId());
-        if (ft == null || me == null) {
-            request.getSession().setAttribute("error", "Không thể tạo đơn người phụ thuộc.");
-            response.sendRedirect(request.getContextPath() + "/v1/manager/forms/dependent/new");
-            return;
-        }
 
-        String fullName = trimToNull(request.getParameter("fullName"));
-        String relationship = trimToNull(request.getParameter("relationship"));
-        String rawDateOfBirth = trimToNull(request.getParameter("dateOfBirth"));
-        String taxCode = trimToNull(request.getParameter("taxCode"));
-        String note = trimToNull(request.getParameter("note"));
-        java.sql.Date dateOfBirth = null;
-        try {
-            if (rawDateOfBirth != null) {
-                dateOfBirth = java.sql.Date.valueOf(rawDateOfBirth);
-            }
-        } catch (IllegalArgumentException e) {
-            dateOfBirth = null;
-        }
-        boolean invalidTaxCode = taxCode != null && !taxCode.matches("\\d+");
-        if (fullName == null || relationship == null || dateOfBirth == null || taxCode == null || invalidTaxCode) {
-            request.setAttribute("error", invalidTaxCode
-                    ? "Mã số thuế chỉ được nhập số."
-                    : "Vui lòng nhập đầy đủ tên, quan hệ, ngày sinh và mã số thuế người phụ thuộc.");
-            displayDependentForm(request, response, user);
-            return;
-        }
 
-        FormRequest fr = new FormRequest();
-        fr.setFormCode("DEPENDENT-" + me.getEmployeeId() + "-" + System.currentTimeMillis());
-        fr.setEmployeeId(me.getEmployeeId());
-        fr.setFormTypeId(ft.getFormTypeId());
-        fr.setReason("Tên: " + fullName + "\nQuan hệ: " + relationship
-                + "\nNgày sinh: " + dateOfBirth
-                + (taxCode == null ? "" : "\nMã số thuế: " + taxCode)
-                + (note == null ? "" : "\nGhi chú: " + note));
-
-        int formId = formRequestDAO.addFormRequest(fr);
-        boolean ok = formId > 0 && dependentDAO.addPending(formId, me.getEmployeeId(), fullName, relationship, dateOfBirth, taxCode, note);
-        request.getSession().setAttribute(ok ? "success" : "error",
-                ok ? "Đã gửi đơn đăng ký người phụ thuộc, chờ HR duyệt."
-                        : "Gửi đơn người phụ thuộc thất bại.");
-        response.sendRedirect(request.getContextPath() + "/v1/manager/forms/all");
-    }
 
     private void handleUpdateMyProfile(HttpServletRequest request, HttpServletResponse response,
             User user) throws ServletException, IOException {
