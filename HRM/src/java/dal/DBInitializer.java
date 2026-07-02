@@ -82,17 +82,7 @@ public class DBInitializer {
         execute(conn, SQL, "CREATE DEPARTMENT_ROLES TABLE SUCCESSFULLY");
     }
 
-    public void createTableEmailTemplates(Connection conn) {
-        String SQL = "CREATE TABLE Email_Templates("
-                + "templateId INT PRIMARY KEY AUTO_INCREMENT,"
-                + "templateCode VARCHAR(50) NOT NULL UNIQUE,"
-                + "subject NVARCHAR(200) NOT NULL,"
-                + "body NVARCHAR(2000) NOT NULL,"
-                + "createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,"
-                + "updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"
-                + ")";
-        execute(conn, SQL, "CREATE EMAIL_TEMPLATES TABLE SUCCESSFULLY");
-    }
+
 
     public void createTableUsers(Connection conn) {
         String SQL = "CREATE TABLE Users("
@@ -273,28 +263,6 @@ public class DBInitializer {
     }
 
     // ==================== NGHỈ PHÉP ====================
-    public void createTableApplicationStageLogs(Connection conn) {
-        String SQL = "CREATE TABLE Application_Stage_Logs("
-                + "logId INT PRIMARY KEY AUTO_INCREMENT,"
-                + "candidateId INT NOT NULL,"
-                + "fromStage VARCHAR(20),"
-                + "toStage VARCHAR(20) NOT NULL,"
-                + "result VARCHAR(20) NOT NULL,"
-                + "reviewedBy INT NOT NULL,"
-                + "reviewedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,"
-                + "note NVARCHAR(500),"
-                + "toEmail VARCHAR(100) NOT NULL,"
-                + "emailSubject NVARCHAR(200),"
-                + "emailBody NVARCHAR(3000),"
-                + "emailType VARCHAR(30),"
-                + "emailStatus VARCHAR(20) DEFAULT 'PENDING',"
-                + "sentAt TIMESTAMP NULL,"
-                + "FOREIGN KEY (candidateId) REFERENCES Candidates(candidateId),"
-                + "FOREIGN KEY (reviewedBy) REFERENCES Employees(employeeId)"
-                + ")";
-        execute(conn, SQL, "CREATE APPLICATION_STAGE_LOGS TABLE SUCCESSFULLY");
-    }
-
     public void createTableFormTypes(Connection conn) {
         String SQL = "CREATE TABLE Form_Types("
                 + "formTypeId INT PRIMARY KEY AUTO_INCREMENT,"
@@ -472,18 +440,8 @@ public class DBInitializer {
         execute(conn, SQL, "CREATE ATTENDANCE_PERIOD_STATUS TABLE SUCCESSFULLY");
     }
 
-    public void createTableHoliday(Connection conn) {
-        String SQL = "CREATE TABLE Holiday("
-                + "holidayId INT PRIMARY KEY AUTO_INCREMENT,"
-                + "holidayName NVARCHAR(255) NOT NULL,"
-                + "startDate DATE NOT NULL,"
-                + "endDate DATE NOT NULL,"
-                + "isActive TINYINT(1) NOT NULL DEFAULT 1,"
-                + "INDEX idx_holiday_range (startDate, endDate)"
-                + ")";
-        execute(conn, SQL, "CREATE HOLIDAY TABLE SUCCESSFULLY");
-    }
 
+   
     public void createTablePayroll(Connection conn) {
         String SQL = "CREATE TABLE Payroll("
                 + "payrollId INT PRIMARY KEY AUTO_INCREMENT,"
@@ -595,22 +553,6 @@ public class DBInitializer {
         execute(conn, SQL, "CREATE PAYROLL_CONFIG_CHANGE_REQUESTS TABLE SUCCESSFULLY");
     }
 
-    public void createTableNotifications(Connection conn) {
-        String SQL = "CREATE TABLE Notifications("
-                + "notificationId INT PRIMARY KEY AUTO_INCREMENT,"
-                + "userId INT NOT NULL,"
-                + "title NVARCHAR(200),"
-                + "content NVARCHAR(500),"
-                + "type VARCHAR(50)," // 'LEAVE', 'SALARY', 'TASK', 'ATTENDANCE'
-                + "referenceId INT,"
-                + "referenceType VARCHAR(50),"
-                + "isRead BIT DEFAULT 0,"
-                + "createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,"
-                + "FOREIGN KEY (userId) REFERENCES Users(userId)"
-                + ")";
-        execute(conn, SQL, "CREATE NOTIFICATIONS TABLE SUCCESSFULLY");
-    }
-
     public void createTableAuditLogs(Connection conn) {
         String SQL = "CREATE TABLE Audit_Logs("
                 + "logId INT PRIMARY KEY AUTO_INCREMENT,"
@@ -649,8 +591,6 @@ public class DBInitializer {
                 "Attendance_Period_Status",
                 "Attendance_Adjustment_History",
                 "Attendance",
-                "Holiday",
-                "Application_Stage_Logs",
                 "Candidates",
                 "Uploaded_Files",
                 "Leave_Balances",
@@ -687,7 +627,6 @@ public class DBInitializer {
                 "Contract_Amendments",
                 "Uploaded_Files",
                 "Candidates",
-                "Application_Stage_Logs",
                 "Form_Types",
                 "Form_Requests",
                 "Overtime_Details",
@@ -696,7 +635,6 @@ public class DBInitializer {
                 "Attendance",
                 "Attendance_Adjustment_History",
                 "Attendance_Period_Status",
-                "Holiday",
                 "Payroll",
                 "Payroll_Settings",
                 "Payroll_Deduction_Rules",
@@ -725,7 +663,6 @@ public class DBInitializer {
                         case "Roles":             createTableRoles(conn);             break;
                         case "Permissions":       createTablePermissions(conn);       break;
                         case "Role_Permissions":  createTableRolePermissions(conn);   break;
-                        case "Email_Templates":   createTableEmailTemplates(conn);    break;
                         case "Positions":         createTablePosition(conn);          break;
                         case "Departments":       createTableDepartments(conn);       break;
                         case "Department_Roles":  createTableDepartmentRoles(conn);   break;
@@ -736,7 +673,6 @@ public class DBInitializer {
                         case "Contract_Amendments": createTableContractAmendments(conn); break;
                         case "Uploaded_Files":    createTableUploadedFiles(conn);     break;
                         case "Candidates":        createTableCandidates(conn);        break;
-                        case "Application_Stage_Logs": createTableApplicationStageLogs(conn); break;
                         case "Form_Types":       createTableFormTypes(conn);         break;
                         case "Form_Requests":    createTableFormRequests(conn);     break;
                         case "Overtime_Details": createTableOvertimeDetails(conn);  break;
@@ -745,13 +681,11 @@ public class DBInitializer {
                         case "Attendance":        createTableAttendance(conn);        break;
                         case "Attendance_Adjustment_History": createTableAttendanceAdjustmentHistory(conn); break;
                         case "Attendance_Period_Status": createTableAttendancePeriodStatus(conn); break;
-                        case "Holiday":           createTableHoliday(conn);           break;
                         case "Payroll":           createTablePayroll(conn);           break;
                         case "Payroll_Settings":  createTablePayrollSettings(conn);   break;
                         case "Payroll_Deduction_Rules": createTablePayrollDeductionRules(conn); break;
                         case "Payroll_Tax_Brackets": createTablePayrollTaxBrackets(conn); break;
                         case "Payroll_Config_Change_Requests": createTablePayrollConfigChangeRequests(conn); break;
-                        case "Notifications":     createTableNotifications(conn);     break;
                         case "Audit_Logs":        createTableAuditLogs(conn);         break;
                         default: LOGGER.log(Level.WARNING,"Unknown table: {0}", table);     break;
                     }
@@ -820,7 +754,6 @@ public class DBInitializer {
                 insertPermission(conn, "VIEW_DEPARTMENT_EMPLOYEES_DETAIL", "Xem danh sách nhân viên của phòng ban khác", "Quyền xem dữ liệu nhân viên của phòng ban khác");
                 insertPermission(conn, "VIEW_ALL_FORMS", "Xem tất cả đơn", "Quyền xem toàn bộ đơn yêu cầu của mọi phòng ban (chỉ HR)");
                 insertPermission(conn, "VIEW_ALL_DEPT_FORMS", "Xem tất cả đơn của phòng ban", "Quyền xem toàn bộ đơn yêu cầu của một phòng ban cụ thể");
-                insertPermission(conn, "PROCESS_RECRUITMENT", "Xử lý tuyển dụng", "Quyền import, duyệt và gửi thông báo kết quả tuyển dụng");
                 insertPermission(conn, "VIEW_ALL_SALARY", "Xem tất cả lương nhân viên", "Quyền xem lương của tất cả nhân viên");
                 insertPermission(conn, "VIEW_OWN_SALARY", "Xem lương cá nhân", "Quyền xem, gửi đơn khiếu nại về lương của cá nhân");
                 insertPermission(conn, "APPROVE_PAYROLL", "Duyệt bảng lương", "Quyền duyệt bảng lương trước khi thanh toán");
@@ -982,7 +915,6 @@ public class DBInitializer {
             insertPayrollSetting(conn, "OVERTIME_BLOCK_MINUTES", "30", "Số phút của một block tính OT");
             insertPayrollSetting(conn, "OVERTIME_WORKDAY_MULTIPLIER", "1.5", "Hệ số OT ngày làm việc");
             insertPayrollSetting(conn, "OVERTIME_WEEKEND_MULTIPLIER", "2.0", "Hệ số OT cuối tuần");
-            insertPayrollSetting(conn, "OVERTIME_HOLIDAY_MULTIPLIER", "3.0", "Hệ số OT ngày lễ");
         }
 
         if (tableExists(conn, "Payroll_Deduction_Rules")) {

@@ -14,7 +14,7 @@ import java.util.logging.Logger;
 import model.AttendancePeriod;
 
 /**
- * Truy xuất trạng thái chốt bảng chấm công theo (năm, tháng, phòng ban).
+ * 
  *
  * @author ADMIN
  */
@@ -132,10 +132,7 @@ public class AttendancePeriodDAO {
         });
     }
 
-    /**
-     * BA chốt cuối cùng: mọi phòng đang SUBMITTED_TO_BA -> LOCKED.
-     * Trả về số phòng được cập nhật.
-     */
+
     public int markLocked(int year, int month, int baUserId) {
         String sql = "UPDATE Attendance_Period_Status "
                 + "SET status = ?, baApprovedBy = ?, baApprovedAt = CURRENT_TIMESTAMP "
@@ -149,9 +146,7 @@ public class AttendancePeriodDAO {
         });
     }
 
-    /**
-     * Các phòng ban có dữ liệu chấm công trong tháng (bỏ qua bản ghi chưa gán phòng).
-     */
+
     public List<Integer> getDepartmentIdsWithAttendance(int year, int month) {
         List<Integer> list = new ArrayList<>();
         String sql = "SELECT DISTINCT departmentId FROM Attendance "

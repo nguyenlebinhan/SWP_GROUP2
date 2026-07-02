@@ -214,7 +214,6 @@
                         <th class="text-center" title="Đi muộn">L</th>
                         <th class="text-center" title="Nghỉ phép">Lv</th>
                         <th class="text-center" title="Vắng mặt">Ab</th>
-                        <th class="text-center" title="Nghỉ lễ">Ho</th>
                         <th class="text-center" title="Cuối tuần">We</th>
                         <th class="text-center" title="Quên chấm công">Mc</th>
                         <th class="text-center" title="Tăng ca (số ngày có đơn OT được duyệt)"> OT</th>
@@ -234,7 +233,6 @@
                             <td class="text-center"><span class="cnt badge-s1">${s.lateDays}</span></td>
                             <td class="text-center"><span class="cnt badge-s4">${s.leaveDays}</span></td>
                             <td class="text-center"><span class="cnt badge-s2">${s.absentDays}</span></td>
-                            <td class="text-center"><span class="cnt badge-s5">${s.holidayDays}</span></td>
                             <td class="text-center"><span class="cnt badge-s6">${s.weekendDays}</span></td>
                             <td class="text-center"><span class="cnt badge-s7">${s.missingCheckDays}</span></td>
                             <td class="text-center">

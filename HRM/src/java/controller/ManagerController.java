@@ -67,6 +67,7 @@ import java.time.LocalTime;
 import java.sql.Time;
 import utils.AttendanceExcelExporter;
 import dao.ContractAmendmentDAO;
+import dto.ClosingResult;
 import model.ContractAmendment;
 import java.util.stream.Collectors;
 
@@ -889,7 +890,7 @@ public class ManagerController extends HttpServlet {
             response.sendRedirect(request.getContextPath() + "/v1/manager/attendance/overview");
             return;
         }
-        AttendanceClosingService.ClosingResult result
+        ClosingResult result
                 = attendanceClosingService.confirmByManager(year, month, departmentId, user);
         request.getSession().setAttribute(result.isSuccess() ? "success" : "error", result.getMessage());
         response.sendRedirect(request.getContextPath()

@@ -19,7 +19,9 @@ import dao.HolidayDAO;
 import dto.AttendanceDetailDTO;
 import dto.AttendanceImportResultDTO;
 import dto.AttendanceReportDTO;
+import dto.AttendanceSummaryDTO;
 import dto.CandidateImportResultDTO;
+import dto.ClosingResult;
 import dto.EmployeeDetailDTO;
 import dto.FormRequestDTO;
 import dto.PayrollPreviewDTO;
@@ -42,7 +44,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.DayOfWeek;
-import java.time.LocalTime;
+import java.time.YearMonth;
 import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -921,7 +923,7 @@ public class EmployeeController extends HttpServlet {
         LocalDate prev = LocalDate.now().minusMonths(1);
         int month = attParam(request, "month", prev.getMonthValue());
         int year = attParam(request, "year", prev.getYear());
-        AttendanceClosingService.ClosingResult result
+        ClosingResult result
                 = attendanceClosingService.openPeriodForManagers(year, month, user);
         request.getSession().setAttribute(result.isSuccess() ? "success" : "error", result.getMessage());
         response.sendRedirect(request.getContextPath()
@@ -933,7 +935,7 @@ public class EmployeeController extends HttpServlet {
         LocalDate prev = LocalDate.now().minusMonths(1);
         int month = attParam(request, "month", prev.getMonthValue());
         int year = attParam(request, "year", prev.getYear());
-        AttendanceClosingService.ClosingResult result
+        ClosingResult result
                 = attendanceClosingService.submitToBa(year, month, user);
         request.getSession().setAttribute(result.isSuccess() ? "success" : "error", result.getMessage());
         response.sendRedirect(request.getContextPath()
@@ -969,7 +971,7 @@ public class EmployeeController extends HttpServlet {
         int year = attParam(request, "year", now.minusMonths(1).getYear());
         Integer departmentId = attDepartmentParam(request);
 
-        java.util.List<dto.AttendanceSummaryDTO> summaries
+        List<AttendanceSummaryDTO> summaries
                 = attendanceService.getMonthlySummaries(departmentId, month, year);
         request.setAttribute("summaries", summaries);
         request.setAttribute("pagedSummaries", Paging.page(request, summaries));
@@ -985,12 +987,8 @@ public class EmployeeController extends HttpServlet {
         request.getRequestDispatcher("/public/employee/attendance/attendance_overview.jsp").forward(request, response);
     }
 
-    /**
-     * Nạp trạng thái quy trình chốt bảng chấm công (theo tháng, toàn bộ phòng
-     * ban) để hiển thị panel + các nút "Đóng kỳ" / "Gửi lên BA" cho HR.
-     */
     private void setClosingOverviewAttributes(HttpServletRequest request, int year, int month) {
-        java.util.List<model.AttendancePeriod> closingPeriods
+        List<AttendancePeriod> closingPeriods
                 = attendanceClosingService.getClosingOverview(year, month);
         boolean hasData = !closingPeriods.isEmpty();
         boolean anyOpen = false;
@@ -2934,7 +2932,7 @@ public class EmployeeController extends HttpServlet {
     }
 
     private int[] parseSalaryPeriod(HttpServletRequest request) {
-        java.time.YearMonth latestClosedPeriod = java.time.YearMonth.now().minusMonths(1);
+        YearMonth latestClosedPeriod = YearMonth.now().minusMonths(1);
         Integer year = parseIntOrNull(request.getParameter("year"));
         Integer month = parseIntOrNull(request.getParameter("month"));
         if (year == null || year < 2000 || month == null || month < 1 || month > 12) {
