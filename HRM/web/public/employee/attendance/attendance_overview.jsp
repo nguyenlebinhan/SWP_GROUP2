@@ -23,6 +23,7 @@
         .badge-s4 { background:#dbeafe; color:#1e40af; }
         .badge-s5 { background:#ede9fe; color:#5b21b6; }
         .badge-s6 { background:#f3f4f6; color:#4b5563; }
+        .badge-s7 { background:#ffedd5; color:#9a3412; }
         .badge-ot { background:#fef3c7; color:#92400e; }
         .cnt { display:inline-block; min-width:26px; text-align:center; padding:3px 7px; border-radius:8px; font-size:12px; font-weight:600; }
         .progress { height:8px; border-radius:6px; }
@@ -139,6 +140,7 @@
                         <th class="text-center" title="Vắng mặt">Ab</th>
                         <th class="text-center" title="Nghỉ lễ">Ho</th>
                         <th class="text-center" title="Cuối tuần">We</th>
+                        <th class="text-center" title="Quên chấm công">Mc</th>
                         <th class="text-center" title="Tăng ca (số ngày có đơn OT được duyệt)"> OT</th>
                         <th class="text-center" style="min-width:130px">Tỷ lệ</th>
                         <th class="text-center"></th>
@@ -158,6 +160,7 @@
                             <td class="text-center"><span class="cnt badge-s2">${s.absentDays}</span></td>
                             <td class="text-center"><span class="cnt badge-s5">${s.holidayDays}</span></td>
                             <td class="text-center"><span class="cnt badge-s6">${s.weekendDays}</span></td>
+                            <td class="text-center"><span class="cnt badge-s7">${s.missingCheckDays}</span></td>
                             <td class="text-center">
                                 <c:choose>
                                     <c:when test="${s.otDays > 0}">
@@ -188,7 +191,7 @@
                         </tr>
                     </c:forEach>
                     <c:if test="${empty pagedSummaries}">
-                        <tr><td colspan="${canViewAll ? 14 : 13}" class="text-center text-muted py-4">Không có dữ liệu nhân viên.</td></tr>
+                        <tr><td colspan="${canViewAll ? 15 : 14}" class="text-center text-muted py-4">Không có dữ liệu nhân viên.</td></tr>
                     </c:if>
                 </tbody>
             </table>

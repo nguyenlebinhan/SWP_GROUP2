@@ -281,8 +281,14 @@ public class AttendanceImportService {
 
 
     private AttendanceStatus deriveStatus(Time timeIn, Time timeOut) {
-        if (timeIn == null || timeOut == null) {
+        // Thiếu cả hai: chưa chấm công ngày đó -> Vắng mặt (có thể được xét lại
+        // thành nghỉ phép/lễ/cuối tuần ở determineFinalStatus).
+        if (timeIn == null && timeOut == null) {
             return AttendanceStatus.ABSENT;
+        }
+        // Chỉ có một trong hai: quên chấm công vào hoặc ra -> đánh dấu riêng để HR xử lý.
+        if (timeIn == null || timeOut == null) {
+            return AttendanceStatus.MISSING_CHECK;
         }
         if (timeIn.after(WORK_START)) {
             return AttendanceStatus.LATE;
@@ -292,7 +298,8 @@ public class AttendanceImportService {
 
     private AttendanceStatus determineFinalStatus(AttendanceStatus base, int employeeId,
             Date workDate, Connection conn) throws SQLException {
-        if (base == AttendanceStatus.PRESENT || base == AttendanceStatus.LATE) {
+        if (base == AttendanceStatus.PRESENT || base == AttendanceStatus.LATE
+                || base == AttendanceStatus.MISSING_CHECK) {
             return base;
         }
         if (holidayDAO.isHoliday(conn, workDate)) {

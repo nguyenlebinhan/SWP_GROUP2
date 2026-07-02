@@ -15,7 +15,8 @@ public enum AttendanceStatus {
     UNEXCUSED(3),   // giữ lại cho dữ liệu cũ, không còn được tạo khi import
     LEAVE(4),
     HOLIDAY(5),
-    WEEKEND(6);
+    WEEKEND(6),
+    MISSING_CHECK(7);   // Quên chấm công: chỉ có giờ vào hoặc chỉ có giờ ra
 
     private final int relatedNum;
 
