@@ -1,12 +1,14 @@
 package service;
 
 import dao.PayrollConfigChangeRequestDAO;
+import dao.PayrollConfigChangeHistoryDAO;
 import dao.PayrollConfigDAO;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import model.PayrollConfigChangeRequest;
+import model.PayrollConfigChangeHistory;
 import model.PayrollDeductionRule;
 import model.PayrollSetting;
 import model.PayrollTaxBracket;
@@ -16,9 +18,14 @@ public class PayrollConfigWorkflowService {
 
     private final PayrollConfigDAO payrollConfigDAO = new PayrollConfigDAO();
     private final PayrollConfigChangeRequestDAO requestDAO = new PayrollConfigChangeRequestDAO();
+    private final PayrollConfigChangeHistoryDAO historyDAO = new PayrollConfigChangeHistoryDAO();
 
     public List<PayrollConfigChangeRequest> getPendingRequests() {
         return requestDAO.getRequests(PayrollConfigChangeRequest.STATUS_PENDING);
+    }
+
+    public List<PayrollConfigChangeHistory> getRecentHistory() {
+        return historyDAO.getRecentHistory(50);
     }
 
     public boolean approveRequest(int requestId, User user, String note) {
@@ -93,8 +100,14 @@ public class PayrollConfigWorkflowService {
         }
         String key = setting.getSettingKey();
         BigDecimal value = setting.getSettingValue();
+        if (value.signum() < 0) {
+            return "Gia tri tham so payroll khong duoc am.";
+        }
+        if ("INSURANCE_SALARY_FLOOR".equals(key) && value.signum() <= 0) {
+            return "Muc tran bao hiem phai lon hon 0.";
+        }
         if (isWorkScheduleSetting(key)) {
-            return "Cáº¥u hĂ¬nh giá» lĂ m viá»‡c thuá»™c module chĂ¢m cĂ´ng, khĂ´ng chá»‰nh trong payroll.";
+            return "Cấu hình giờ làm việc thuộc module chấm công, không chỉnh trong payroll.";
         }
         if (isWorkTimeSetting(key)
                 && (value.signum() < 0 || value.compareTo(new BigDecimal("1439")) > 0)) {

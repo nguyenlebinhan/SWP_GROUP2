@@ -7,7 +7,16 @@ import dao.OvertimeDAO;
 import dto.AttendanceDetailDTO;
 import dto.AttendanceReportDTO;
 import dto.AttendanceSummaryDTO;
+import dto.PayrollAttendanceSummaryDTO;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.sql.Connection;
+import java.sql.Date;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.time.DayOfWeek;
+import java.time.LocalTime;
 import java.time.LocalDate;
 import java.util.List;
 import model.Department;
@@ -75,6 +84,78 @@ public class AttendanceService {
         return count;
     }
 
+    public PayrollAttendanceSummaryDTO getPayrollSummary(Connection conn, int employeeId, int year, int month,
+            BigDecimal dailyRate, BigDecimal minuteRate, LocalTime standardStartTime, int lateDeductionBlockMinutes)
+            throws SQLException {
+        PayrollAttendanceSummaryDTO summary = new PayrollAttendanceSummaryDTO();
+        String sql = "SELECT attendanceStatus, COALESCE(hoursWorked, 0) AS hoursWorked, timeIn, workDate "
+                + "FROM Attendance "
+                + "WHERE employeeId = ? AND YEAR(workDate) = ? AND MONTH(workDate) = ?";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, employeeId);
+            ps.setInt(2, year);
+            ps.setInt(3, month);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    summary.incrementRecordCount();
+
+                    Date workDate = rs.getDate("workDate");
+                    if (workDate == null || isWeekend(workDate)) {
+                        continue;
+                    }
+
+                    int status = rs.getInt("attendanceStatus");
+                    summary.addHoursWorked(rs.getBigDecimal("hoursWorked"));
+
+                    if (status == 0) {
+                        summary.incrementPaidWorkingDays();
+                    } else if (status == 1) {
+                        summary.incrementPaidWorkingDays();
+                        summary.incrementLateCount();
+
+                        LocalTime timeIn = rs.getTime("timeIn") == null
+                                ? standardStartTime
+                                : rs.getTime("timeIn").toLocalTime();
+                        int lateMinutes = Math.max(0,
+                                (int) java.time.Duration.between(standardStartTime, timeIn).toMinutes());
+                        int lateDeductionMinutes = roundUpToBlock(lateMinutes, lateDeductionBlockMinutes);
+
+                        summary.addLateMinutes(lateMinutes);
+                        summary.addLateDeductionMinutes(lateDeductionMinutes);
+                        summary.addLateDeductionBlocks(lateDeductionMinutes / lateDeductionBlockMinutes);
+                        summary.addLateDeduction(moneyOrZero(minuteRate).multiply(new BigDecimal(lateDeductionMinutes)));
+                    } else if (status == 4) {
+                        summary.incrementPaidLeaveDays();
+                        summary.incrementPaidWorkingDays();
+                    } else if (status == 2 || status == 3) {
+                        summary.incrementUnauthorizedAbsentDays();
+                        summary.addUnauthorizedAbsentDeduction(dailyRate);
+                    }
+                }
+            }
+        }
+        return summary;
+    }
+
+    private boolean isWeekend(Date workDate) {
+        DayOfWeek dow = workDate.toLocalDate().getDayOfWeek();
+        return dow == DayOfWeek.SATURDAY || dow == DayOfWeek.SUNDAY;
+    }
+
+    private int roundUpToBlock(int minutes, int blockMinutes) {
+        if (minutes <= 0) {
+            return 0;
+        }
+        if (blockMinutes <= 0) {
+            return minutes;
+        }
+        return ((minutes + blockMinutes - 1) / blockMinutes) * blockMinutes;
+    }
+
+    private BigDecimal moneyOrZero(BigDecimal value) {
+        return value == null ? BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP) : value;
+    }
+
     private boolean isHoliday(LocalDate date, List<Holiday> holidays) {
         for (Holiday h : holidays) {
             if (!h.isActive() || h.getStartDate() == null || h.getEndDate() == null) {
@@ -89,3 +170,4 @@ public class AttendanceService {
         return false;
     }
 }
+

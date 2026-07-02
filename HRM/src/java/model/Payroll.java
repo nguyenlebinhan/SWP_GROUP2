@@ -17,7 +17,7 @@ public class Payroll {
     private BigDecimal allowance;
     private BigDecimal bonus;
     private BigDecimal overtimePay;
-    private BigDecimal penalty;
+    private BigDecimal unpaidDeduction;
     private BigDecimal grossSalary;
     private BigDecimal insuranceDeduction;
     private BigDecimal personalIncomeTax;
@@ -128,12 +128,12 @@ public class Payroll {
         this.overtimePay = overtimePay;
     }
 
-    public BigDecimal getPenalty() {
-        return penalty;
+    public BigDecimal getUnpaidDeduction() {
+        return unpaidDeduction;
     }
 
-    public void setPenalty(BigDecimal penalty) {
-        this.penalty = penalty;
+    public void setUnpaidDeduction(BigDecimal unpaidDeduction) {
+        this.unpaidDeduction = unpaidDeduction;
     }
 
     public BigDecimal getGrossSalary() {
@@ -233,3 +233,4 @@ public class Payroll {
         }
     }
 }
+

@@ -73,7 +73,7 @@
             }
             .stat-grid {
                 display:grid;
-                grid-template-columns:repeat(4,minmax(160px,1fr));
+                grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
                 gap:16px;
                 margin-bottom:20px;
             }
@@ -280,20 +280,23 @@
             </c:if>
 
             <%-- Tính tổng thống kê --%>
-            <c:set var="totalGross" value="${0}" />
-            <c:set var="totalApproved" value="${0}" />
-            <c:set var="totalPending" value="${0}" />
+            <c:set var="totalEmployees" value="${0}" />
+            <c:set var="totalCompanyInsurance" value="${0}" />
+            <c:set var="totalEmployeeInsurance" value="${0}" />
+            <c:set var="totalNetSalary" value="${0}" />
+            <c:set var="totalCompanyCost" value="${0}" />
             <c:forEach var="row" items="${payrollPreviews}">
                 <c:if test="${not row.generationBlocked}">
-                    <c:set var="totalGross" value="${totalGross + row.payroll.grossSalary}" />
-                    <c:choose>
-                        <c:when test="${row.payroll.status == 1}">
-                            <c:set var="totalApproved" value="${totalApproved + row.payroll.netSalary}" />
-                        </c:when>
-                        <c:otherwise>
-                            <c:set var="totalPending" value="${totalPending + row.payroll.netSalary}" />
-                        </c:otherwise>
-                    </c:choose>
+                    <c:set var="totalEmployees" value="${totalEmployees + 1}" />
+                    <c:set var="totalEmployeeInsurance" value="${totalEmployeeInsurance + row.payroll.insuranceDeduction}" />
+                    <c:set var="totalNetSalary" value="${totalNetSalary + row.payroll.netSalary}" />
+                    <c:set var="totalCompanyCost" value="${totalCompanyCost + row.payroll.grossSalary}" />
+                    <c:forEach var="detail" items="${row.details}">
+                        <c:if test="${detail.companyCost}">
+                            <c:set var="totalCompanyInsurance" value="${totalCompanyInsurance + detail.amount}" />
+                            <c:set var="totalCompanyCost" value="${totalCompanyCost + detail.amount}" />
+                        </c:if>
+                    </c:forEach>
                 </c:if>
             </c:forEach>
 
@@ -392,26 +395,34 @@
             <%-- Stat cards --%>
             <div class="stat-grid">
                 <div class="stat-card">
-                    <div class="stat-label">Tổng quỹ lương</div>
+                    <div class="stat-label">Nhân viên tính lương</div>
                     <div class="stat-value stat-blue">
-                        <fmt:formatNumber value="${totalGross / 1000000}" maxFractionDigits="0" />M
+                        <fmt:formatNumber value="${totalEmployees}" type="number" groupingUsed="true" />
                     </div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-label">HR đã duyệt</div>
+                    <div class="stat-label">BH công ty trả</div>
                     <div class="stat-value stat-green">
-                        <fmt:formatNumber value="${totalApproved / 1000000}" maxFractionDigits="0" />M
+                        <fmt:formatNumber value="${totalCompanyInsurance / 1000000}" maxFractionDigits="0" />M
                     </div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-label">Chờ xử lý</div>
+                    <div class="stat-label">BH nhân viên trả</div>
                     <div class="stat-value stat-orange">
-                        <fmt:formatNumber value="${totalPending / 1000000}" maxFractionDigits="0" />M
+                        <fmt:formatNumber value="${totalEmployeeInsurance / 1000000}" maxFractionDigits="0" />M
                     </div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-label">Tổng nhân sự</div>
-                    <div class="stat-value stat-purple">${fn:length(payrollPreviews)}</div>
+                    <div class="stat-label">Nhân viên nhận</div>
+                    <div class="stat-value stat-purple">
+                        <fmt:formatNumber value="${totalNetSalary / 1000000}" maxFractionDigits="0" />M
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Tổng chi trả</div>
+                    <div class="stat-value stat-blue">
+                        <fmt:formatNumber value="${totalCompanyCost / 1000000}" maxFractionDigits="0" />M
+                    </div>
                 </div>
             </div>
 
@@ -425,14 +436,14 @@
                         <thead>
                             <tr>
                                 <th>STT</th>
-                                <th>Nhân sự</th>
-                                <th>Phòng ban</th>
-                                <th>Lương cơ bản</th>
-                                <th>Thưởng</th>
-                                <th>Khấu trừ</th>
-                                <th>Thực lĩnh</th>
-                                <th>Trạng thái</th>
-                                <th>Chi tiết</th>
+                                <th>Employee</th>
+                                <th>Department</th>
+                                <th>Base Salary</th>
+                                <th>Gross Salary</th>
+                                <th>Total Deductions</th>
+                                <th>Net Salary</th>
+                                <th>Status</th>
+                                <th>Detail</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -477,10 +488,9 @@
                                                 </tr>
                                             </c:when>
                                             <c:otherwise>
-                                                <c:set var="earning"
-                                                       value="${row.payroll.bonus + row.payroll.overtimePay + row.payroll.allowance}" />
+                                                <c:set var="earning" value="${row.payroll.grossSalary}" />
                                                 <c:set var="deduction"
-                                                       value="${row.payroll.insuranceDeduction + row.payroll.personalIncomeTax + row.payroll.penalty}" />
+                                                       value="${row.payroll.insuranceDeduction + row.payroll.personalIncomeTax + row.payroll.unpaidDeduction}" />
                                                 <tr>
                                                     <td>${st.index + 1}</td>
                                                     <td>
@@ -493,7 +503,7 @@
                                                                           type="number" groupingUsed="true" />đ
                                                     </td>
                                                     <td class="money money-green">
-                                                        +<fmt:formatNumber value="${earning}"
+                                                        <fmt:formatNumber value="${earning}"
                                                                           type="number" groupingUsed="true" />đ
                                                     </td>
                                                     <td class="money money-red">

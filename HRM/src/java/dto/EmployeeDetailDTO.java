@@ -19,6 +19,7 @@ public class EmployeeDetailDTO {
     private String experience;
     private String degree;
     private int dependentCount;
+    private boolean unionMember;
     private int status;
     private Integer managerId;
     private String fullName;
@@ -130,6 +131,14 @@ public class EmployeeDetailDTO {
 
     public void setDependentCount(int dependentCount) {
         this.dependentCount = Math.max(0, dependentCount);
+    }
+
+    public boolean isUnionMember() {
+        return unionMember;
+    }
+
+    public void setUnionMember(boolean unionMember) {
+        this.unionMember = unionMember;
     }
 
     public int getStatus() {

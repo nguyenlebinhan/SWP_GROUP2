@@ -1033,6 +1033,7 @@ public class BusinessAdminController extends HttpServlet {
         request.setAttribute("deductionRules", payrollConfigDAO.getDeductionRules(false));
         request.setAttribute("taxBrackets", payrollConfigDAO.getTaxBrackets(false));
         request.setAttribute("pendingRequests", payrollConfigWorkflowService.getPendingRequests());
+        request.setAttribute("changeHistory", payrollConfigWorkflowService.getRecentHistory());
         request.setAttribute("payrollConfigBaseUrl", request.getContextPath() + "/v1/businessadmin/payroll-config");
         request.setAttribute("canEditPayrollConfig", false);
         request.setAttribute("canApprovePayrollConfig", true);
@@ -1051,7 +1052,7 @@ public class BusinessAdminController extends HttpServlet {
                 session.removeAttribute("payrollConfigError");
             }
         }
-        request.getRequestDispatcher("/public/businessadmin/payroll/payroll_config.jsp").forward(request, response);
+        request.getRequestDispatcher("/public/businessadmin/salary/payroll_config.jsp").forward(request, response);
     }
 
     private String displayPayrollSettingValue(PayrollSetting setting) {
@@ -1328,3 +1329,4 @@ public class BusinessAdminController extends HttpServlet {
     }
 
 }
+

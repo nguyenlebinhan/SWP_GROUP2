@@ -120,21 +120,55 @@ public class PayrollConfigChangeRequestDAO {
     }
 
     private boolean updateReviewStatus(int requestId, int status, int reviewedBy, String note) {
+        PayrollConfigChangeRequest request = getById(requestId);
+        if (request == null || request.getStatus() != PayrollConfigChangeRequest.STATUS_PENDING) {
+            return false;
+        }
         String sql = "UPDATE Payroll_Config_Change_Requests "
                 + "SET status = ?, reviewedBy = ?, reviewedAt = CURRENT_TIMESTAMP, reviewNote = ? "
                 + "WHERE requestId = ? AND status = ?";
         try (Connection conn = dbContext.getConnection();
                 PreparedStatement ps = conn.prepareStatement(sql)) {
+            conn.setAutoCommit(false);
             ps.setInt(1, status);
             ps.setInt(2, reviewedBy);
             ps.setNString(3, note);
             ps.setInt(4, requestId);
             ps.setInt(5, PayrollConfigChangeRequest.STATUS_PENDING);
-            return ps.executeUpdate() > 0;
+            boolean updated = ps.executeUpdate() > 0;
+            if (updated) {
+                insertHistory(conn, request, status, reviewedBy, note);
+                conn.commit();
+                return true;
+            }
+            conn.rollback();
         } catch (SQLException e) {
             LOGGER.log(Level.SEVERE, "Cannot update payroll config request review status", e);
         }
         return false;
+    }
+
+    private void insertHistory(Connection conn, PayrollConfigChangeRequest request, int status,
+            int reviewedBy, String note) throws SQLException {
+        String sql = "INSERT INTO Payroll_Config_Change_History "
+                + "(requestId, requestType, actionLabel, targetKey, targetId, oldValue, newValue, "
+                + "status, requestedBy, requestedAt, reviewedBy, reviewedAt, reviewNote) "
+                + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, ?)";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, request.getRequestId());
+            ps.setString(2, request.getRequestType());
+            ps.setNString(3, request.getActionLabel());
+            ps.setString(4, request.getTargetKey());
+            setInteger(ps, 5, request.getTargetId());
+            ps.setNString(6, request.getOldValue());
+            ps.setNString(7, request.getNewValue());
+            ps.setInt(8, status);
+            ps.setInt(9, request.getRequestedBy());
+            ps.setTimestamp(10, request.getRequestedAt());
+            ps.setInt(11, reviewedBy);
+            ps.setNString(12, note);
+            ps.executeUpdate();
+        }
     }
 
     public String serializeTaxBrackets(List<PayrollTaxBracket> brackets) {

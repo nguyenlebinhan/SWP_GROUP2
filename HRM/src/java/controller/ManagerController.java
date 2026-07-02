@@ -522,6 +522,7 @@ public class ManagerController extends HttpServlet {
         request.setAttribute("sidebarPath", "/public/components/managerSideBar.jsp");
         request.setAttribute("topbarPath", "/public/components/managerTopBar.jsp");
         request.setAttribute("pendingRequests", payrollConfigWorkflowService.getPendingRequests());
+        request.setAttribute("changeHistory", payrollConfigWorkflowService.getRecentHistory());
         HttpSession session = request.getSession(false);
         if (session != null) {
             String success = (String) session.getAttribute("payrollConfigSuccess");
@@ -535,7 +536,7 @@ public class ManagerController extends HttpServlet {
                 session.removeAttribute("payrollConfigError");
             }
         }
-        request.getRequestDispatcher("/public/businessadmin/payroll/payroll_config.jsp").forward(request, response);
+        request.getRequestDispatcher("/public/manager/salary/payroll_config.jsp").forward(request, response);
     }
 
     private void displayAllSalary(HttpServletRequest request, HttpServletResponse response,
@@ -1549,6 +1550,7 @@ public class ManagerController extends HttpServlet {
         emp.setStatus(status);
         emp.setManagerId(current.getManagerId());
         emp.setDependentCount(dependentCount);
+        emp.setUnionMember(request.getParameter("unionMember") != null);
         emp.setPhoneNumber(trimToNull(request.getParameter("phoneNumber")));
         emp.setSkills(trimToNull(request.getParameter("skills")));
         emp.setExperience(trimToNull(request.getParameter("experience")));

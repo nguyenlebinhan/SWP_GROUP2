@@ -74,7 +74,7 @@ public class EmployeeDAO {
     public List<EmployeeDetailDTO> getAllEmployees() {
         List<EmployeeDetailDTO> list = new ArrayList<>();
         String SQL = "SELECT e.employeeId, e.employeeCode, e.userId, e.departmentId, e.positionId, "
-                + "e.phoneNumber, e.skills, e.experience, e.degree, e.dependentCount, e.status, e.managerId, "
+                + "e.phoneNumber, e.skills, e.experience, e.degree, e.dependentCount, e.unionMember, e.status, e.managerId, "
                 + "u.fullName, u.email, u.username, "
                 + "d.departmentName, p.positionName, r.roleName "
                 + "FROM Employees e "
@@ -99,7 +99,7 @@ public class EmployeeDAO {
     public List<EmployeeDetailDTO> getAllEmployeesByDepartmentId(int departmentId) {
         List<EmployeeDetailDTO> list = new ArrayList<>();
         String SQL = "SELECT e.employeeId, e.employeeCode, e.userId, e.departmentId, e.positionId, "
-                + "e.phoneNumber, e.skills, e.experience, e.degree, e.dependentCount, e.status, e.managerId, "
+                + "e.phoneNumber, e.skills, e.experience, e.degree, e.dependentCount, e.unionMember, e.status, e.managerId, "
                 + "u.fullName, u.email, u.username, "
                 + "d.departmentName, p.positionName, r.roleName "
                 + "FROM Employees e "
@@ -125,7 +125,7 @@ public class EmployeeDAO {
 
     public EmployeeDetailDTO getEmployeeById(int employeeId) {
         String SQL = "SELECT e.employeeId, e.employeeCode, e.userId, e.departmentId, e.positionId, "
-                + "e.phoneNumber, e.skills, e.experience, e.degree, e.dependentCount, e.status, e.managerId, "
+                + "e.phoneNumber, e.skills, e.experience, e.degree, e.dependentCount, e.unionMember, e.status, e.managerId, "
                 + "u.fullName, u.email, u.username, "
                 + "d.departmentName, p.positionName, r.roleName "
                 + "FROM Employees e "
@@ -149,7 +149,7 @@ public class EmployeeDAO {
 
     public EmployeeDetailDTO getEmployeeByUserId(int userId) {
         String SQL = "SELECT e.employeeId, e.employeeCode, e.userId, e.departmentId, e.positionId, "
-                + "e.phoneNumber, e.skills, e.experience, e.degree, e.dependentCount, e.status, e.managerId, "
+                + "e.phoneNumber, e.skills, e.experience, e.degree, e.dependentCount, e.unionMember, e.status, e.managerId, "
                 + "u.fullName, u.email, u.username, "
                 + "d.departmentName, p.positionName, r.roleName "
                 + "FROM Employees e "
@@ -174,7 +174,7 @@ public class EmployeeDAO {
     public List<EmployeeDetailDTO> getEmployeesByDepartmentId(int departmentId) {
         List<EmployeeDetailDTO> list = new ArrayList<>();
         String SQL = "SELECT e.employeeId, e.employeeCode, e.userId, e.departmentId, e.positionId, "
-                + "e.phoneNumber, e.skills, e.experience, e.degree, e.dependentCount, e.status, e.managerId, "
+                + "e.phoneNumber, e.skills, e.experience, e.degree, e.dependentCount, e.unionMember, e.status, e.managerId, "
                 + "u.fullName, u.email, u.username, "
                 + "d.departmentName, p.positionName, r.roleName "
                 + "FROM Employees e "
@@ -250,7 +250,7 @@ public class EmployeeDAO {
         List<EmployeeDetailDTO> list = new ArrayList<>();
         StringBuilder sql = new StringBuilder(
                 "SELECT e.employeeId, e.employeeCode, e.userId, e.departmentId, e.positionId, "
-                + "e.phoneNumber, e.skills, e.experience, e.degree, e.dependentCount, e.status, e.managerId, "
+                + "e.phoneNumber, e.skills, e.experience, e.degree, e.dependentCount, e.unionMember, e.status, e.managerId, "
                 + "u.fullName, u.email, u.username, "
                 + "d.departmentName, p.positionName, r.roleName "
                 + "FROM Employees e "
@@ -331,8 +331,8 @@ public class EmployeeDAO {
         String SQL = """
                 INSERT INTO employees
                 (employeeCode, userId, departmentId, positionId, phoneNumber, skills,
-                 experience, degree, dependentCount, status, managerId)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ? )
+                 experience, degree, dependentCount, unionMember, status, managerId)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ? )
                 """;
         try (Connection conn = dbContext.getConnection(); PreparedStatement ps = conn.prepareStatement(SQL)) {
             ps.setString(1, generateNextEmployeeCode(conn));
@@ -344,7 +344,8 @@ public class EmployeeDAO {
             ps.setString(7, emp.getExperience());
             ps.setString(8, emp.getDegree());
             ps.setInt(9, emp.getDependentCount());
-            ps.setInt(10, emp.getManagerId());
+            ps.setBoolean(10, emp.isUnionMember());
+            ps.setInt(11, emp.getManagerId());
             int rowsAffected = ps.executeUpdate();
             if (rowsAffected > 0) {
                 LOGGER.log(Level.INFO, "Employee added successfully with code: {0}", emp.getEmployeeCode());
@@ -361,7 +362,7 @@ public class EmployeeDAO {
 
     public boolean updateEmployee(Employee emp) {
         LOGGER.log(Level.INFO, "Updating employee with employeeId: {0}", emp.getEmployeeId());
-        String SQL = "UPDATE employees SET departmentId = ?, positionId = ?, phoneNumber = ?, skills = ?, experience = ?, degree = ?, dependentCount = ?, status = ?, managerId = ? WHERE employeeId = ?";
+        String SQL = "UPDATE employees SET departmentId = ?, positionId = ?, phoneNumber = ?, skills = ?, experience = ?, degree = ?, dependentCount = ?, unionMember = ?, status = ?, managerId = ? WHERE employeeId = ?";
         try (Connection conn = dbContext.getConnection(); PreparedStatement ps = conn.prepareStatement(SQL)) {
             ps.setInt(1, emp.getDepartmentId());
             ps.setInt(2, emp.getPositionId());
@@ -370,15 +371,16 @@ public class EmployeeDAO {
             ps.setString(5, emp.getExperience());
             ps.setString(6, emp.getDegree());
             ps.setInt(7, emp.getDependentCount());
-            ps.setInt(8, emp.getStatus());
+            ps.setBoolean(8, emp.isUnionMember());
+            ps.setInt(9, emp.getStatus());
             
             if (emp.getManagerId() != null && emp.getManagerId() > 0) {
-                ps.setInt(9, emp.getManagerId());
+                ps.setInt(10, emp.getManagerId());
             } else {
-                ps.setNull(9, java.sql.Types.INTEGER);
+                ps.setNull(10, java.sql.Types.INTEGER);
             }
 
-            ps.setInt(10, emp.getEmployeeId());
+            ps.setInt(11, emp.getEmployeeId());
 
             int rowsAffected = ps.executeUpdate();
             if (rowsAffected > 0) {
@@ -562,7 +564,7 @@ public class EmployeeDAO {
     public List<EmployeeDetailDTO> getAssignedEmployees(int userId) {
         List<EmployeeDetailDTO> list = new ArrayList<>();
         String SQL = "SELECT e.employeeId, e.employeeCode, e.userId, e.departmentId, e.positionId, "
-                + "e.phoneNumber, e.skills, e.experience, e.degree, e.dependentCount, e.status, e.managerId, "
+                + "e.phoneNumber, e.skills, e.experience, e.degree, e.dependentCount, e.unionMember, e.status, e.managerId, "
                 + "u.fullName, u.email, u.username, "
                 + "d.departmentName, p.positionName, r.roleName "
                 + "FROM Employees e "
@@ -773,6 +775,7 @@ public class EmployeeDAO {
         e.setExperience(rs.getNString("experience"));
         e.setDegree(rs.getNString("degree"));
         e.setDependentCount(rs.getInt("dependentCount"));
+        e.setUnionMember(rs.getBoolean("unionMember"));
         e.setStatus(rs.getInt("status"));
         int mgr = rs.getInt("managerId");
         e.setManagerId(rs.wasNull() ? null : mgr);

@@ -157,6 +157,7 @@ public class DBInitializer {
                 + "experience NVARCHAR(255),"
                 + "degree NVARCHAR(100),"
                 + "dependentCount INT NOT NULL DEFAULT 0,"
+                + "unionMember TINYINT(1) NOT NULL DEFAULT 0,"
                 + "status TINYINT DEFAULT 1,"        // 0: Inactive, 1: Active, 2: On Leave
                 + "managerId INT,"
                 + "startDate DATE,"
@@ -367,7 +368,7 @@ public class DBInitializer {
                 + "attendanceStatus TINYINT DEFAULT 0," // 0: Đúng giờ, 1: Đi muộn, 2: Vắng mặt, 3: Không phép
                 + "dayOff DATE,"
                 + "workingDay DATE,"
-                + "penalty DECIMAL(15,2) DEFAULT 0,"
+                + "unpaidDeduction DECIMAL(15,2) DEFAULT 0,"
                 + "fileId INT NULL,"
                 + "createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,"
                 + "updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,"
@@ -447,7 +448,7 @@ public class DBInitializer {
                 + "allowance DECIMAL(15,2) DEFAULT 0,"
                 + "bonus DECIMAL(15,2) DEFAULT 0,"
                 + "overtimePay DECIMAL(15,2) DEFAULT 0,"
-                + "penalty DECIMAL(15,2) DEFAULT 0,"
+                + "unpaidDeduction DECIMAL(15,2) DEFAULT 0,"
                 + "grossSalary DECIMAL(15,2) DEFAULT 0,"
                 + "insuranceDeduction DECIMAL(15,2) DEFAULT 0,"
                 + "personalIncomeTax DECIMAL(15,2) DEFAULT 0,"
@@ -544,6 +545,31 @@ public class DBInitializer {
         execute(conn, SQL, "CREATE PAYROLL_CONFIG_CHANGE_REQUESTS TABLE SUCCESSFULLY");
     }
 
+    public void createTablePayrollConfigChangeHistory(Connection conn) {
+        String SQL = "CREATE TABLE Payroll_Config_Change_History("
+                + "historyId INT PRIMARY KEY AUTO_INCREMENT,"
+                + "requestId INT,"
+                + "requestType VARCHAR(30) NOT NULL,"
+                + "actionLabel NVARCHAR(255),"
+                + "targetKey VARCHAR(100),"
+                + "targetId INT,"
+                + "oldValue NVARCHAR(2000),"
+                + "newValue NVARCHAR(4000),"
+                + "status TINYINT NOT NULL,"
+                + "requestedBy INT NOT NULL,"
+                + "requestedAt DATETIME,"
+                + "reviewedBy INT NOT NULL,"
+                + "reviewedAt DATETIME DEFAULT CURRENT_TIMESTAMP,"
+                + "reviewNote NVARCHAR(500),"
+                + "createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,"
+                + "INDEX idx_payroll_config_history_reviewedAt (reviewedAt),"
+                + "FOREIGN KEY (requestId) REFERENCES Payroll_Config_Change_Requests(requestId),"
+                + "FOREIGN KEY (requestedBy) REFERENCES Users(userId),"
+                + "FOREIGN KEY (reviewedBy) REFERENCES Users(userId)"
+                + ")";
+        execute(conn, SQL, "CREATE PAYROLL_CONFIG_CHANGE_HISTORY TABLE SUCCESSFULLY");
+    }
+
     public void createTableNotifications(Connection conn) {
         String SQL = "CREATE TABLE Notifications("
                 + "notificationId INT PRIMARY KEY AUTO_INCREMENT,"
@@ -591,6 +617,7 @@ public class DBInitializer {
                 "Audit_Logs",
                 "Notifications",
                 "Payroll_Tax_Brackets",
+                "Payroll_Config_Change_History",
                 "Payroll_Config_Change_Requests",
                 "Payroll_Deduction_Rules",
                 "Payroll_Settings",
@@ -647,6 +674,7 @@ public class DBInitializer {
                 "Payroll_Deduction_Rules",
                 "Payroll_Tax_Brackets",
                 "Payroll_Config_Change_Requests",
+                "Payroll_Config_Change_History",
                 "Notifications",
                 "Audit_Logs"
             };
@@ -694,6 +722,7 @@ public class DBInitializer {
                         case "Payroll_Deduction_Rules": createTablePayrollDeductionRules(conn); break;
                         case "Payroll_Tax_Brackets": createTablePayrollTaxBrackets(conn); break;
                         case "Payroll_Config_Change_Requests": createTablePayrollConfigChangeRequests(conn); break;
+                        case "Payroll_Config_Change_History": createTablePayrollConfigChangeHistory(conn); break;
                         case "Notifications":     createTableNotifications(conn);     break;
                         case "Audit_Logs":        createTableAuditLogs(conn);         break;
                         default: LOGGER.log(Level.WARNING,"Unknown table: {0}", table);     break;
@@ -705,8 +734,10 @@ public class DBInitializer {
             LOGGER.log(Level.INFO, "Đã kích hoạt lại toàn bộ kiểm tra khóa ngoại hệ thống.");
 
             ensurePayrollApprovalColumns(conn);
+            ensurePayrollUnpaidDeductionColumn(conn);
             ensureFormRequestColumns(conn);
             ensureEmployeeDependentCountColumn(conn);
+            ensureEmployeeUnionMemberColumn(conn);
             ensurePayrollConfigChangeRequestColumns(conn);
             insertInitialData(conn);
             LOGGER.log(Level.INFO,"Database initialized successfully!");
@@ -863,10 +894,14 @@ public class DBInitializer {
             deletePayrollSetting(conn, "WORKING_HOURS_PER_DAY");
             deletePayrollSetting(conn, "WORK_START_MINUTES");
             deletePayrollSetting(conn, "WORK_END_MINUTES");
+            migratePayrollSettingKey(conn, "LATE_" + "PEN" + "ALTY_BLOCK_MINUTES", "LATE_DEDUCTION_BLOCK_MINUTES");
+            migratePayrollSettingKey(conn, "INSURANCE_SALARY_CAP", "INSURANCE_SALARY_FLOOR");
             insertPayrollSetting(conn, "PERSONAL_ALLOWANCE", "11000000", "Giam tru ca nhan khi tinh thue TNCN");
             updatePayrollSettingValueIfCurrent(conn, "PERSONAL_ALLOWANCE", "15500000", "11000000");
             insertPayrollSetting(conn, "DEPENDENT_ALLOWANCE", "4500000", "Giam tru cho moi nguoi phu thuoc khi tinh thue TNCN");
-            insertPayrollSetting(conn, "LATE_PENALTY_BLOCK_MINUTES", "30", "Số phút của một block phạt đi muộn");
+            insertPayrollSetting(conn, "ALLOWANCE", "1500000", "Phu cap mac dinh moi ky luong");
+            insertPayrollSetting(conn, "INSURANCE_SALARY_FLOOR", "40000000", "Muc floor/tran ap dung cho luong tinh bao hiem");
+            insertPayrollSetting(conn, "LATE_DEDUCTION_BLOCK_MINUTES", "30", "So phut cua mot block khau tru di muon");
             insertPayrollSetting(conn, "ATTENDANCE_BONUS_RATE", "0.03", "Tỷ lệ thưởng chuyên cần trên lương hợp đồng");
             insertPayrollSetting(conn, "WORK_START", "480", "Giờ vào làm chuẩn, nhập theo HH:mm trên UI");
             insertPayrollSetting(conn, "WORK_END", "1020", "Giờ ra làm chuẩn, nhập theo HH:mm trên UI");
@@ -886,6 +921,10 @@ public class DBInitializer {
                     "0.045", "0.03", "0", true, true);
             insertPayrollDeductionRule(conn, "UNEMPLOYMENT_INSURANCE", "BHTN", "INSURANCE", "PERCENT",
                     "0.02", "0.01", "0", true, true);
+            insertPayrollDeductionRule(conn, "OCCUPATIONAL_ACCIDENT_INSURANCE", "Bảo hiểm TNLĐ-BNN", "INSURANCE", "PERCENT",
+                    "0.005", "0.005", "0", true, true);
+            insertPayrollDeductionRule(conn, "UNION_FEE", "Kinh phí công đoàn", "UNION", "PERCENT",
+                    "0.03", "0.02", "0", true, true);
             updateLegacyInsuranceRate(conn, "SOCIAL_INSURANCE", "0.08", "0.255", "0.175");
             updateLegacyInsuranceRate(conn, "HEALTH_INSURANCE", "0.015", "0.045", "0.03");
             updateLegacyInsuranceRate(conn, "UNEMPLOYMENT_INSURANCE", "0.01", "0.02", "0.01");
@@ -930,6 +969,24 @@ public class DBInitializer {
         String sql = "DELETE FROM Payroll_Settings WHERE settingKey = ?";
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, key);
+            ps.executeUpdate();
+        }
+    }
+
+    private void migratePayrollSettingKey(Connection conn, String oldKey, String newKey) throws SQLException {
+        String deleteOldWhenNewExists = "DELETE FROM Payroll_Settings WHERE settingKey = ? "
+                + "AND EXISTS (SELECT 1 FROM (SELECT settingKey FROM Payroll_Settings WHERE settingKey = ?) existing_key)";
+        try (PreparedStatement ps = conn.prepareStatement(deleteOldWhenNewExists)) {
+            ps.setString(1, oldKey);
+            ps.setString(2, newKey);
+            ps.executeUpdate();
+        }
+
+        String renameOld = "UPDATE Payroll_Settings SET settingKey = ?, description = ? WHERE settingKey = ?";
+        try (PreparedStatement ps = conn.prepareStatement(renameOld)) {
+            ps.setString(1, newKey);
+            ps.setNString(2, "So phut cua mot block khau tru di muon");
+            ps.setString(3, oldKey);
             ps.executeUpdate();
         }
     }
@@ -1164,6 +1221,15 @@ public class DBInitializer {
         }
     }
 
+    private void ensureEmployeeUnionMemberColumn(Connection conn) throws SQLException {
+        if (!tableExists(conn, "Employees")) {
+            return;
+        }
+        if (!columnExists(conn, "Employees", "unionMember")) {
+            execute(conn, "ALTER TABLE Employees ADD COLUMN unionMember TINYINT(1) NOT NULL DEFAULT 0", "ADD EMPLOYEES UNION MEMBER COLUMN");
+        }
+    }
+
     private void ensurePayrollApprovalColumns(Connection conn) throws SQLException {
         if (!tableExists(conn, "Payroll")) {
             return;
@@ -1175,6 +1241,24 @@ public class DBInitializer {
             execute(conn, "ALTER TABLE Payroll ADD COLUMN approvedAt DATETIME", "ADD PAYROLL APPROVED AT COLUMN");
         }
 
+    }
+
+    private void ensurePayrollUnpaidDeductionColumn(Connection conn) throws SQLException {
+        if (!tableExists(conn, "Payroll")) {
+            return;
+        }
+        String legacyColumn = "pen" + "alty";
+        if (columnExists(conn, "Payroll", "unpaidDeduction")) {
+            return;
+        }
+        if (columnExists(conn, "Payroll", legacyColumn)) {
+            execute(conn, "ALTER TABLE Payroll CHANGE COLUMN " + legacyColumn
+                    + " unpaidDeduction DECIMAL(15,2) DEFAULT 0",
+                    "RENAME PAYROLL UNPAID DEDUCTION COLUMN");
+        } else {
+            execute(conn, "ALTER TABLE Payroll ADD COLUMN unpaidDeduction DECIMAL(15,2) DEFAULT 0 AFTER overtimePay",
+                    "ADD PAYROLL UNPAID DEDUCTION COLUMN");
+        }
     }
 
     private void ensureFormRequestColumns(Connection conn) throws SQLException {

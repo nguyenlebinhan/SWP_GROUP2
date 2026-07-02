@@ -21,14 +21,21 @@ public class PayrollPreviewDTO {
     private int unpaidLeaveDays;
     private int unauthorizedAbsentDays;
     private int lateMinutes;
-    private int latePenaltyBlocks;
-    private int latePenaltyMinutes;
+    private int lateDeductionBlocks;
+    private int lateDeductionMinutes;
+    private int lateDeductionBlockMinutes;
     private BigDecimal overtimeHours;
+    private int overtimeBlocks;
+    private int overtimeBlockMinutes;
+    private BigDecimal overtimeBlockAmount;
+    private BigDecimal overtimeWorkdayMultiplier;
     private BigDecimal attendanceBonus;
-    private BigDecimal latePenalty;
-    private BigDecimal unauthorizedAbsentPenalty;
+    private BigDecimal lateDeduction;
+    private BigDecimal lateDeductionBlockAmount;
+    private BigDecimal unauthorizedAbsentDeduction;
     private BigDecimal personalAllowance;
     private int dependentCount;
+    private boolean unionMember;
     private BigDecimal dependentAllowance;
     private BigDecimal familyAllowance;
     private BigDecimal taxableIncome;
@@ -167,20 +174,28 @@ public class PayrollPreviewDTO {
         this.lateMinutes = lateMinutes;
     }
 
-    public int getLatePenaltyBlocks() {
-        return latePenaltyBlocks;
+    public int getLateDeductionBlocks() {
+        return lateDeductionBlocks;
     }
 
-    public void setLatePenaltyBlocks(int latePenaltyBlocks) {
-        this.latePenaltyBlocks = latePenaltyBlocks;
+    public void setLateDeductionBlocks(int lateDeductionBlocks) {
+        this.lateDeductionBlocks = lateDeductionBlocks;
     }
 
-    public int getLatePenaltyMinutes() {
-        return latePenaltyMinutes;
+    public int getLateDeductionMinutes() {
+        return lateDeductionMinutes;
     }
 
-    public void setLatePenaltyMinutes(int latePenaltyMinutes) {
-        this.latePenaltyMinutes = latePenaltyMinutes;
+    public void setLateDeductionMinutes(int lateDeductionMinutes) {
+        this.lateDeductionMinutes = lateDeductionMinutes;
+    }
+
+    public int getLateDeductionBlockMinutes() {
+        return lateDeductionBlockMinutes;
+    }
+
+    public void setLateDeductionBlockMinutes(int lateDeductionBlockMinutes) {
+        this.lateDeductionBlockMinutes = Math.max(0, lateDeductionBlockMinutes);
     }
 
     public BigDecimal getOvertimeHours() {
@@ -191,6 +206,38 @@ public class PayrollPreviewDTO {
         this.overtimeHours = overtimeHours;
     }
 
+    public int getOvertimeBlocks() {
+        return overtimeBlocks;
+    }
+
+    public void setOvertimeBlocks(int overtimeBlocks) {
+        this.overtimeBlocks = Math.max(0, overtimeBlocks);
+    }
+
+    public int getOvertimeBlockMinutes() {
+        return overtimeBlockMinutes;
+    }
+
+    public void setOvertimeBlockMinutes(int overtimeBlockMinutes) {
+        this.overtimeBlockMinutes = Math.max(0, overtimeBlockMinutes);
+    }
+
+    public BigDecimal getOvertimeBlockAmount() {
+        return overtimeBlockAmount;
+    }
+
+    public void setOvertimeBlockAmount(BigDecimal overtimeBlockAmount) {
+        this.overtimeBlockAmount = overtimeBlockAmount;
+    }
+
+    public BigDecimal getOvertimeWorkdayMultiplier() {
+        return overtimeWorkdayMultiplier;
+    }
+
+    public void setOvertimeWorkdayMultiplier(BigDecimal overtimeWorkdayMultiplier) {
+        this.overtimeWorkdayMultiplier = overtimeWorkdayMultiplier;
+    }
+
     public BigDecimal getAttendanceBonus() {
         return attendanceBonus;
     }
@@ -199,20 +246,28 @@ public class PayrollPreviewDTO {
         this.attendanceBonus = attendanceBonus;
     }
 
-    public BigDecimal getLatePenalty() {
-        return latePenalty;
+    public BigDecimal getLateDeduction() {
+        return lateDeduction;
     }
 
-    public void setLatePenalty(BigDecimal latePenalty) {
-        this.latePenalty = latePenalty;
+    public void setLateDeduction(BigDecimal lateDeduction) {
+        this.lateDeduction = lateDeduction;
     }
 
-    public BigDecimal getUnauthorizedAbsentPenalty() {
-        return unauthorizedAbsentPenalty;
+    public BigDecimal getLateDeductionBlockAmount() {
+        return lateDeductionBlockAmount;
     }
 
-    public void setUnauthorizedAbsentPenalty(BigDecimal unauthorizedAbsentPenalty) {
-        this.unauthorizedAbsentPenalty = unauthorizedAbsentPenalty;
+    public void setLateDeductionBlockAmount(BigDecimal lateDeductionBlockAmount) {
+        this.lateDeductionBlockAmount = lateDeductionBlockAmount;
+    }
+
+    public BigDecimal getUnauthorizedAbsentDeduction() {
+        return unauthorizedAbsentDeduction;
+    }
+
+    public void setUnauthorizedAbsentDeduction(BigDecimal unauthorizedAbsentDeduction) {
+        this.unauthorizedAbsentDeduction = unauthorizedAbsentDeduction;
     }
 
     public BigDecimal getPersonalAllowance() {
@@ -229,6 +284,14 @@ public class PayrollPreviewDTO {
 
     public void setDependentCount(int dependentCount) {
         this.dependentCount = Math.max(0, dependentCount);
+    }
+
+    public boolean isUnionMember() {
+        return unionMember;
+    }
+
+    public void setUnionMember(boolean unionMember) {
+        this.unionMember = unionMember;
     }
 
     public BigDecimal getDependentAllowance() {

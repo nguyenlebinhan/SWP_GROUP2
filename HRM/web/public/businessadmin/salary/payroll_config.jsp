@@ -8,6 +8,7 @@
     <meta charset="UTF-8">
     <title>Cấu hình payroll</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
     <style>
         body { background:#f5f6fa; font-family:'Segoe UI', sans-serif; }
         .main { margin-left:250px; padding:25px; }
@@ -22,15 +23,65 @@
     </style>
 </head>
 <body>
-<jsp:include page="${sidebarPath}" />
+<jsp:include page="/public/components/businessAdminSideBar.jsp" />
 
 <div class="main">
-    <jsp:include page="${topbarPath}">
+    <jsp:include page="/public/components/businessAdminTopBar.jsp">
         <jsp:param name="title" value="Cấu hình payroll" />
+        <jsp:param name="backUrl" value="/v1/businessadmin/dashboard" />
     </jsp:include>
 
     <c:if test="${not empty success}"><div class="alert alert-success">${success}</div></c:if>
     <c:if test="${not empty error}"><div class="alert alert-danger">${error}</div></c:if>
+
+    <div class="d-flex justify-content-end mb-3">
+        <button type="button" id="toggleHistoryBtn" class="btn btn-outline-secondary btn-sm">
+            <i class="fa-solid fa-clock-rotate-left me-1"></i> Change history
+        </button>
+    </div>
+
+    <div id="payrollConfigHistory" class="panel" hidden>
+        <h5 class="fw-bold mb-2">Payroll config change history</h5>
+        <c:choose>
+            <c:when test="${empty changeHistory}">
+                <div class="hint">No payroll config change history yet.</div>
+            </c:when>
+            <c:otherwise>
+                <div class="table-responsive">
+                    <table class="table align-middle">
+                        <thead>
+                            <tr>
+                                <th>#</th><th>Request</th><th>Action</th><th>Target</th><th>Status</th>
+                                <th>Requested by</th><th>Reviewed by</th><th>Reviewed at</th>
+                                <th>Before</th><th>After</th><th>Review note</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        <c:forEach var="h" items="${changeHistory}">
+                            <tr>
+                                <td>${h.historyId}</td>
+                                <td>${h.requestId}</td>
+                                <td><c:out value="${h.actionLabel}" /></td>
+                                <td><c:out value="${empty h.targetKey ? h.targetId : h.targetKey}" /></td>
+                                <td>
+                                    <span class="badge ${h.status == 1 ? 'text-bg-success' : 'text-bg-danger'}">
+                                        <c:out value="${h.statusLabel}" />
+                                    </span>
+                                </td>
+                                <td><c:out value="${h.requestedByName}" /><br><small class="text-muted"><fmt:formatDate value="${h.requestedAt}" pattern="dd/MM/yyyy HH:mm" /></small></td>
+                                <td><c:out value="${h.reviewedByName}" /></td>
+                                <td><fmt:formatDate value="${h.reviewedAt}" pattern="dd/MM/yyyy HH:mm" /></td>
+                                <td class="change-text"><c:out value="${h.oldValue}" /></td>
+                                <td class="change-text"><c:out value="${h.newValue}" /></td>
+                                <td class="change-text"><c:out value="${h.reviewNote}" /></td>
+                            </tr>
+                        </c:forEach>
+                        </tbody>
+                    </table>
+                </div>
+            </c:otherwise>
+        </c:choose>
+    </div>
 
     <c:if test="${canApprovePayrollConfig}">
         <div class="panel">
@@ -45,7 +96,7 @@
                             <thead>
                                 <tr>
                                     <th>#</th><th>Thao tác</th><th>Người gửi</th><th>Thời điểm</th>
-                                    <th>Trước</th><th>Sau</th><th class="text-end">Duyệt</th>
+                                    <th>Trước</th><th>After</th><th class="text-end">Duyệt</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -150,18 +201,6 @@
         <p class="hint mb-3">
             Tỷ lệ nhập theo phần trăm. Tổng % được tính tự động bằng công ty trả % cộng nhân viên trả %.
         </p>
-        <c:if test="${canEditPayrollConfig}">
-            <form method="post" action="${payrollConfigBaseUrl}/deduction/save" class="row g-2 mb-3">
-                <div class="col-md-2"><input name="ruleCode" class="form-control" placeholder="CODE" required></div>
-                <div class="col-md-2"><input name="ruleName" class="form-control" placeholder="Tên khoản" required></div>
-                <div class="col-md-1"><input name="ruleType" class="form-control" value="INSURANCE"></div>
-                <div class="col-md-2"><span class="readonly-value">Lương hợp đồng</span></div>
-                <div class="col-md-1"><input name="employerRate" class="form-control employer-rate" placeholder="Công ty %" value="0"></div>
-                <div class="col-md-1"><input name="employeeRate" class="form-control employee-rate" placeholder="Nhân viên %" value="0"></div>
-                <div class="col-md-1"><input class="form-control total-rate" placeholder="Tổng %" value="0" readonly></div>
-                <div class="col-md-2"><button class="btn btn-primary w-100">Gửi duyệt</button></div>
-            </form>
-        </c:if>
         <div class="table-responsive">
             <table class="table align-middle">
                 <thead>
@@ -181,11 +220,12 @@
                             <c:when test="${canEditPayrollConfig}">
                                 <td>
                                     <input form="deductionForm${st.index}" type="hidden" name="ruleId" value="${r.ruleId}">
-                                    <input form="deductionForm${st.index}" name="ruleCode" class="form-control" value="${r.ruleCode}">
+                                    <input form="deductionForm${st.index}" type="hidden" name="ruleCode" value="${r.ruleCode}">
+                                    <span class="readonly-value fw-semibold"><c:out value="${r.ruleCode}" /></span>
                                 </td>
-                                <td><input form="deductionForm${st.index}" name="ruleName" class="form-control" value="${fn:escapeXml(r.ruleName)}"></td>
-                                <td><input form="deductionForm${st.index}" name="ruleType" class="form-control" value="${r.ruleType}"></td>
-                                <td><span class="readonly-value">Hợp đồng</span></td>
+                                <td><input form="deductionForm${st.index}" type="hidden" name="ruleName" value="${fn:escapeXml(r.ruleName)}"><span class="readonly-value"><c:out value="${r.ruleName}" /></span></td>
+                                <td><input form="deductionForm${st.index}" type="hidden" name="ruleType" value="${r.ruleType}"><span class="readonly-value"><c:out value="${r.ruleType}" /></span></td>
+                                <td><span class="readonly-value">${r.ruleCode == 'UNION_FEE' ? 'Gross payroll' : 'Lương tính bảo hiểm'}</span></td>
                                 <td><input form="deductionForm${st.index}" name="employerRate" class="form-control mini-input employer-rate" value="${employerRatePercent}"></td>
                                 <td><input form="deductionForm${st.index}" name="employeeRate" class="form-control mini-input employee-rate" value="${employeeRatePercent}"></td>
                                 <td><input class="form-control mini-input total-rate fw-semibold" value="${totalRatePercent}" readonly></td>
@@ -194,7 +234,7 @@
                                 <td><span class="readonly-value fw-semibold"><c:out value="${r.ruleCode}" /></span></td>
                                 <td><span class="readonly-value"><c:out value="${r.ruleName}" /></span></td>
                                 <td><span class="readonly-value"><c:out value="${r.ruleType}" /></span></td>
-                                <td><span class="readonly-value">Hợp đồng</span></td>
+                                <td><span class="readonly-value">${r.ruleCode == 'UNION_FEE' ? 'Gross payroll' : 'Lương tính bảo hiểm'}</span></td>
                                 <td><span class="readonly-value"><c:out value="${employerRatePercent}" /></span></td>
                                 <td><span class="readonly-value"><c:out value="${employeeRatePercent}" /></span></td>
                                 <td><span class="readonly-value fw-semibold"><c:out value="${totalRatePercent}" /></span></td>
@@ -204,10 +244,6 @@
                             <td class="text-end">
                                 <form id="deductionForm${st.index}" method="post" action="${payrollConfigBaseUrl}/deduction/save" class="d-inline">
                                     <button class="btn btn-sm btn-outline-primary">Gửi duyệt</button>
-                                </form>
-                                <form method="post" action="${payrollConfigBaseUrl}/deduction/delete" class="d-inline">
-                                    <input type="hidden" name="ruleId" value="${r.ruleId}">
-                                    <button class="btn btn-sm btn-outline-danger" onclick="return confirm('Xóa khoản này?')">Xóa</button>
                                 </form>
                             </td>
                         </c:if>
@@ -290,6 +326,13 @@
     </div>
 </div>
 <script>
+    var historyBtn = document.getElementById('toggleHistoryBtn');
+    var historyPanel = document.getElementById('payrollConfigHistory');
+    if (historyBtn && historyPanel) {
+        historyBtn.addEventListener('click', function () {
+            historyPanel.hidden = !historyPanel.hidden;
+        });
+    }
     function toNumber(value) {
         var parsed = parseFloat(String(value || '').replace(',', '.'));
         return isNaN(parsed) ? 0 : parsed;
