@@ -3,6 +3,7 @@ package service;
 import dao.AttendancePeriodDAO;
 import dao.DepartmentDAO;
 import dao.EmployeeDAO;
+import dao.FormRequestDAO;
 import dao.RoleDAO;
 import dto.ClosingResult;
 import dto.EmployeeDetailDTO;
@@ -123,6 +124,10 @@ public class AttendanceClosingService {
         if (current != AttendancePeriodStatus.WAITING_MANAGER) {
             return ClosingResult.fail("Bảng chấm công phòng này không ở trạng thái chờ chốt "
                     + "(hiện tại: " + current.getLabel() + ").");
+        }
+        FormRequestDAO formRequestDAO = new FormRequestDAO();
+        if (formRequestDAO.hasPendingComplaintsInDepartment(departmentId, year, month)) {
+            return ClosingResult.fail("Phòng ban vẫn còn đơn khiếu nại chấm công đang chờ xử lý (chưa duyệt hết các bước). Chưa thể chốt chấm công.");
         }
         boolean ok = periodDAO.markManagerConfirmed(year, month, departmentId, user.getUserId());
         if (!ok) {

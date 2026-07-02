@@ -45,21 +45,21 @@
     <div class="section-card">
         <form method="post" action="${formAction}" enctype="multipart/form-data">
             <div class="mb-3">
-                <label class="form-label" for="fullName">Tên người phụ thuộc</label>
-                <input class="form-control" id="fullName" name="fullName" required maxlength="150">
+                <label class="form-label fw-semibold" for="fullName">Tên người phụ thuộc <span class="text-danger">*</span></label>
+                <input class="form-control" id="fullName" name="fullName" required maxlength="150" placeholder="Nhập tên người phụ thuộc">
             </div>
             <div class="mb-3">
-                <label class="form-label" for="relationship">Quan hệ phụ thuộc</label>
-                <input class="form-control" id="relationship" name="relationship" required maxlength="100">
+                <label class="form-label fw-semibold" for="relationship">Quan hệ phụ thuộc <span class="text-danger">*</span></label>
+                <input class="form-control" id="relationship" name="relationship" required maxlength="100" placeholder="Ví dụ: Con ruột, Cha mẹ...">
             </div>
             <div class="mb-3">
-                <label class="form-label" for="dateOfBirth">Ngày sinh</label>
+                <label class="form-label fw-semibold" for="dateOfBirth">Ngày sinh <span class="text-muted">(mm/dd/yyyy)</span> <span class="text-danger">*</span></label>
                 <input class="form-control" id="dateOfBirth" name="dateOfBirth" type="date" required>
             </div>
             <div class="mb-3">
-                <label class="form-label" for="taxCode">Mã số thuế</label>
+                <label class="form-label fw-semibold" for="taxCode">Mã số thuế <span class="text-danger">*</span></label>
                 <input class="form-control" id="taxCode" name="taxCode" required inputmode="numeric" pattern="[0-9]*" maxlength="50"
-                       title="Mã số thuế chỉ được nhập số">
+                       placeholder="Nhập mã số thuế (bắt buộc)" title="Mã số thuế chỉ được nhập số">
             </div>
             <div class="mb-3">
                 <label class="form-label" for="note">Ghi chú</label>

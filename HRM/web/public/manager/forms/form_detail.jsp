@@ -231,10 +231,10 @@
                     </div>
                 </c:if>
 
-                <%-- Khu vực duyệt/từ chối: chỉ trưởng phòng của phòng ban này, đơn đang chờ duyệt --%>
-                <c:if test="${form.status == 0 and canApprove and form.formTypeCode ne 'DEPENDENT'}">
+                <%-- Khu vực duyệt/từ chối: chỉ trưởng phòng của phòng ban này, đơn đang chờ duyệt và là LEAVE hoặc COMPLAINT --%>
+                <c:if test="${form.status == 0 and canApprove and (form.formTypeCode eq 'LEAVE' or form.formTypeCode eq 'COMPLAINT')}">
                     <hr class="my-4">
-                    <h5 class="mb-3"><i class="fa-solid fa-gavel me-2"></i>Xử lý đơn</h5>
+                    <h5 class="mb-3"><i class="fa-solid fa-gavel me-2"></i>Xử lý đơn (Trưởng phòng)</h5>
                     <form method="post">
                         <input type="hidden" name="formId" value="${form.formId}">
                         <div class="mb-3 mt-3">
@@ -247,14 +247,14 @@
                                 <i class="fa-solid fa-xmark me-1"></i> Từ chối
                             </button>
                             <button type="submit" formaction="${pageContext.request.contextPath}/v1/manager/forms/approve" class="btn btn-success px-4">
-                                <i class="fa-solid fa-check me-1"></i> Duyệt
+                                <i class="fa-solid fa-check me-1"></i> Duyệt (Bước 1)
                             </button>
                         </div>
                     </form>
                 </c:if>
 
-                <%-- Khu vực duyệt lần 2 (HR): chỉ áp dụng cho đơn Khiếu nại đã được Manager duyệt (status = 1) --%>
-                <c:if test="${((form.status == 1 and form.formTypeCode eq 'COMPLAINT') or (form.status == 0 and form.formTypeCode eq 'DEPENDENT')) and isHrStaff}">
+                <%-- Khu vực duyệt của HR: cho đơn COMPLAINT (status=1) hoặc DEPENDENT, TRANSFER, PROMOTION_DEMOTION (status=0) --%>
+                <c:if test="${((form.status == 1 and form.formTypeCode eq 'COMPLAINT') or (form.status == 0 and (form.formTypeCode eq 'DEPENDENT' or form.formTypeCode eq 'TRANSFER' or form.formTypeCode eq 'PROMOTION_DEMOTION'))) and isHrStaff}">
                     <hr class="my-4">
                     <h5 class="mb-3 text-primary"><i class="fa-solid fa-user-tie me-2"></i>Duyệt (HR)</h5>
                     <form method="post">

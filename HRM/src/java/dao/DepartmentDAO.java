@@ -517,18 +517,37 @@ public class DepartmentDAO {
 
     public boolean unassignManager(int departmentId) {
         String sqlDept = "UPDATE Departments SET managerId = NULL WHERE departmentId = ?";
-        //String sqlEmp = "UPDATE Employee SET departmentId = NULL WHERE ";
-        try (java.sql.Connection conn = dbContext.getConnection(); java.sql.PreparedStatement ps = conn.prepareStatement(sqlDept)) {
-            ps.setInt(1, departmentId);
-            boolean ok = ps.executeUpdate() > 0;
+        String sqlEmp = "UPDATE Employees SET managerId = NULL WHERE departmentId = ?";
+        java.sql.Connection conn = null;
+        try {
+            conn = dbContext.getConnection();
+            conn.setAutoCommit(false);
+
+            try (java.sql.PreparedStatement ps = conn.prepareStatement(sqlEmp)) {
+                ps.setInt(1, departmentId);
+                ps.executeUpdate();
+            }
+
+            boolean ok;
+            try (java.sql.PreparedStatement ps = conn.prepareStatement(sqlDept)) {
+                ps.setInt(1, departmentId);
+                ok = ps.executeUpdate() > 0;
+            }
+
+            conn.commit();
             if (ok) {
-                LOGGER.log(java.util.logging.Level.INFO,
-                        "Unassigned manager from departmentId={0}", departmentId);
+                LOGGER.log(java.util.logging.Level.INFO, "Unassigned manager from departmentId={0}", departmentId);
             }
             return ok;
         } catch (java.sql.SQLException e) {
-            LOGGER.log(java.util.logging.Level.SEVERE,
-                    "Cannot unassign manager for deptId=" + departmentId, e);
+            LOGGER.log(java.util.logging.Level.SEVERE, "Cannot unassign manager for deptId=" + departmentId, e);
+            if (conn != null) {
+                try { conn.rollback(); } catch (java.sql.SQLException ignored) {}
+            }
+        } finally {
+            if (conn != null) {
+                try { conn.setAutoCommit(true); conn.close(); } catch (java.sql.SQLException ignored) {}
+            }
         }
         return false;
     }

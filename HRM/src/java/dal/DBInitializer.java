@@ -258,20 +258,15 @@ public class DBInitializer {
         String SQL = "CREATE TABLE Dependents("
                 + "dependentId INT PRIMARY KEY AUTO_INCREMENT,"
                 + "employeeId INT NOT NULL,"
-                + "formId INT NOT NULL UNIQUE,"
                 + "fullName NVARCHAR(150) NOT NULL,"
                 + "relationship NVARCHAR(100) NOT NULL,"
                 + "dateOfBirth DATE NULL,"
                 + "taxCode VARCHAR(50) NULL,"
                 + "note NVARCHAR(500) NULL,"
-                + "status TINYINT NOT NULL DEFAULT 0,"
-                + "pendingStatus TINYINT NULL,"
-                + "statusFormId INT NULL,"
+                + "status TINYINT NOT NULL DEFAULT 1,"
                 + "createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,"
                 + "updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,"
-                + "approvedAt TIMESTAMP NULL,"
-                + "FOREIGN KEY (employeeId) REFERENCES Employees(employeeId),"
-                + "FOREIGN KEY (formId) REFERENCES Form_Requests(formId) ON DELETE CASCADE"
+                + "FOREIGN KEY (employeeId) REFERENCES Employees(employeeId)"
                 + ")";
         execute(conn, SQL, "CREATE DEPENDENTS TABLE SUCCESSFULLY");
     }
@@ -689,6 +684,7 @@ public class DBInitializer {
             ensurePayrollConfigChangeRequestColumns(conn);
             ensurePayrollAllowanceRequestColumns(conn);
             insertInitialData(conn);
+            ensureDepartmentManagersSeeded(conn);
             LOGGER.log(Level.INFO, "Database initialized successfully!");
 
         } catch (SQLException e) {
@@ -750,9 +746,23 @@ public class DBInitializer {
             insertPermission(conn, "CONFIG_PAYROLL", "Cấu hình lương", "Quyền cấu hình lương và gửi yêu cầu duyệt");
 
             if (countRows(conn, "Positions") == 0) {
-                insertPosition(conn, "Thực tập sinh", 1, "Sinh viên thực tập tại công ty");
-                insertPosition(conn, "Nhân viên chính thức", 2, "Hỗ trợ công việc hành chính");
-                insertPosition(conn, "Trưởng phòng", 3, "Quản lý toàn bộ hoạt động của phòng ban");
+                insertPosition(conn, "Nhân viên chính thức", 1, "Nhân viên chính thức tại công ty");
+                insertPosition(conn, "Trưởng phòng", 2, "Quản lý toàn bộ hoạt động của phòng ban");
+            } else {
+                try {
+                    int empPosId = -1;
+                    try (PreparedStatement ps = conn.prepareStatement("SELECT positionId FROM Positions WHERE positionName LIKE '%Nhân viên%' OR positionId = 2 LIMIT 1");
+                         ResultSet rs = ps.executeQuery()) {
+                        if (rs.next()) empPosId = rs.getInt(1);
+                    }
+                    if (empPosId != -1) {
+                        execute(conn, "UPDATE Employees SET positionId = " + empPosId + " WHERE positionId IN (SELECT positionId FROM Positions WHERE positionName NOT LIKE '%Trưởng phòng%' AND positionId != " + empPosId + ")", "MIGRATE EMPLOYEES TO STANDARD POSITION");
+                        execute(conn, "DELETE FROM Positions WHERE positionName NOT LIKE '%Trưởng phòng%' AND positionId != " + empPosId, "DELETE EXTRA POSITIONS");
+                        execute(conn, "UPDATE Positions SET positionName = 'Nhân viên chính thức' WHERE positionId = " + empPosId + " AND positionName != 'Nhân viên chính thức'", "RENAME TO STANDARD EMPLOYEE POSITION");
+                    }
+                } catch (Exception ex) {
+                    LOGGER.log(Level.WARNING, "Error cleaning up Positions: {0}", ex.getMessage());
+                }
             }
 
             if (countRows(conn, "Departments") == 0) {
@@ -790,17 +800,17 @@ public class DBInitializer {
             }
 
             if (countRows(conn, "Employees") == 0) {
-                // departmentId: 1=IT, 2=HR, 3=FI | positionId: 1=Thực tập sinh, 2=Nhân viên, 3=Trưởng phòng
+                // departmentId: 1=IT, 2=HR, 3=FI | positionId: 1=Nhân viên chính thức, 2=Trưởng phòng
                 // IT — userId 6,7,8
-                insertEmployee(conn, "EMP001", 6, 1, 3, "0901000001", "Java, SQL, Spring Boot", "5 năm phát triển web", "Kỹ sư CNTT");
-                insertEmployee(conn, "EMP002", 7, 1, 2, "0901000002", "React, TypeScript", "2 năm frontend", "Cử nhân CNTT");
+                insertEmployee(conn, "EMP001", 6, 1, 2, "0901000001", "Java, SQL, Spring Boot", "5 năm phát triển web", "Kỹ sư CNTT");
+                insertEmployee(conn, "EMP002", 7, 1, 1, "0901000002", "React, TypeScript", "2 năm frontend", "Cử nhân CNTT");
                 insertEmployee(conn, "EMP003", 8, 1, 1, "0901000003", "DevOps, Docker", "1 năm vận hành", "Cử nhân CNTT");
                 // HR — userId 9,10
-                insertEmployee(conn, "EMP004", 9, 2, 3, "0901000004", "Tuyển dụng, HRIS", "6 năm nhân sự", "Cử nhân Quản trị nhân lực");
-                insertEmployee(conn, "EMP005", 10, 2, 2, "0901000005", "Đào tạo, C&B", "3 năm C&B", "Cử nhân Kinh tế");
+                insertEmployee(conn, "EMP004", 9, 2, 2, "0901000004", "Tuyển dụng, HRIS", "6 năm nhân sự", "Cử nhân Quản trị nhân lực");
+                insertEmployee(conn, "EMP005", 10, 2, 1, "0901000005", "Đào tạo, C&B", "3 năm C&B", "Cử nhân Kinh tế");
                 // FI — userId 11,12
-                insertEmployee(conn, "EMP006", 11, 3, 3, "0901000006", "Kế toán, MISA, Excel", "8 năm kế toán tài chính", "Cử nhân Kế toán");
-                insertEmployee(conn, "EMP007", 12, 3, 2, "0901000007", "Thuế, kiểm toán", "2 năm tài chính", "Cử nhân Tài chính");
+                insertEmployee(conn, "EMP006", 11, 3, 2, "0901000006", "Kế toán, MISA, Excel", "8 năm kế toán tài chính", "Cử nhân Kế toán");
+                insertEmployee(conn, "EMP007", 12, 3, 1, "0901000007", "Thuế, kiểm toán", "2 năm tài chính", "Cử nhân Tài chính");
             }
 
             if (countRows(conn, "Department_Roles") == 0) {
@@ -1300,11 +1310,19 @@ public class DBInitializer {
         if (!tableExists(conn, "Dependents")) {
             createTableDependents(conn);
         }
-        if (!columnExists(conn, "Dependents", "pendingStatus")) {
-            execute(conn, "ALTER TABLE Dependents ADD COLUMN pendingStatus TINYINT NULL", "ADD DEPENDENTS PENDING STATUS COLUMN");
+        if (columnExists(conn, "Dependents", "pendingStatus")) {
+            execute(conn, "ALTER TABLE Dependents DROP COLUMN pendingStatus", "DROP DEPENDENTS PENDING STATUS COLUMN");
         }
-        if (!columnExists(conn, "Dependents", "statusFormId")) {
-            execute(conn, "ALTER TABLE Dependents ADD COLUMN statusFormId INT NULL", "ADD DEPENDENTS STATUS FORM COLUMN");
+        if (columnExists(conn, "Dependents", "statusFormId")) {
+            execute(conn, "ALTER TABLE Dependents DROP COLUMN statusFormId", "DROP DEPENDENTS STATUS FORM COLUMN");
+        }
+        if (columnExists(conn, "Dependents", "formId")) {
+            execute(conn, "SET FOREIGN_KEY_CHECKS=0", "DISABLE FK CHECKS FOR SCHEMA CLEANUP");
+            execute(conn, "ALTER TABLE Dependents DROP COLUMN formId", "DROP DEPENDENTS FORM ID COLUMN");
+            execute(conn, "SET FOREIGN_KEY_CHECKS=1", "ENABLE FK CHECKS AFTER SCHEMA CLEANUP");
+        }
+        if (columnExists(conn, "Dependents", "approvedAt")) {
+            execute(conn, "ALTER TABLE Dependents DROP COLUMN approvedAt", "DROP DEPENDENTS APPROVED AT COLUMN");
         }
         if (!columnExists(conn, "Dependents", "dateOfBirth")) {
             execute(conn, "ALTER TABLE Dependents ADD COLUMN dateOfBirth DATE NULL AFTER relationship", "ADD DEPENDENTS DATE OF BIRTH COLUMN");
@@ -1312,6 +1330,38 @@ public class DBInitializer {
         if (!indexExists(conn, "Dependents", "uq_dependents_taxcode")) {
             execute(conn, "ALTER TABLE Dependents ADD CONSTRAINT uq_dependents_taxcode UNIQUE (taxCode)",
                     "ADD DEPENDENTS TAX CODE UNIQUE CONSTRAINT");
+        }
+    }
+
+    private void ensureDepartmentManagersSeeded(Connection conn) throws SQLException {
+        if (!tableExists(conn, "Departments") || !tableExists(conn, "Employees") || !tableExists(conn, "Positions")) {
+            return;
+        }
+        try {
+            // 1. Làm sạch managerId trên bảng Departments nếu nhân viên giữ chức vụ đã bị giáng chức / không còn là Trưởng phòng
+            String sqlCleanDeptManager = "UPDATE Departments d "
+                    + "SET d.managerId = NULL "
+                    + "WHERE d.managerId IS NOT NULL AND NOT EXISTS ("
+                    + "  SELECT 1 FROM Employees e INNER JOIN Positions p ON e.positionId = p.positionId "
+                    + "  WHERE e.employeeId = d.managerId AND p.positionName = 'Trưởng phòng'"
+                    + ")";
+            execute(conn, sqlCleanDeptManager, "CLEANUP INVALID MANAGERS IN DEPARTMENTS TABLE");
+
+            // 2. Tự động tìm và gán nhân viên là 'Trưởng phòng' vào phòng ban nếu phòng ban chưa có Trưởng phòng
+            String sqlUpdateDept = "UPDATE Departments d "
+                    + "SET d.managerId = (SELECT e.employeeId FROM Employees e "
+                    + "INNER JOIN Positions p ON e.positionId = p.positionId "
+                    + "WHERE e.departmentId = d.departmentId AND p.positionName = 'Trưởng phòng' LIMIT 1) "
+                    + "WHERE d.managerId IS NULL";
+            execute(conn, sqlUpdateDept, "SEED DEPARTMENT MANAGERS INTO DEPARTMENTS TABLE");
+
+            // 3. Đồng bộ hoàn toàn managerId của các nhân viên theo managerId của Phòng ban
+            String sqlUpdateEmp = "UPDATE Employees e "
+                    + "SET e.managerId = (SELECT d.managerId FROM Departments d WHERE d.departmentId = e.departmentId) "
+                    + "WHERE e.departmentId IS NOT NULL";
+            execute(conn, sqlUpdateEmp, "SYNC MANAGER ID INTO EMPLOYEES TABLE");
+        } catch (Exception e) {
+            LOGGER.log(Level.WARNING, "Cannot seed department managers: {0}", e.getMessage());
         }
     }
 

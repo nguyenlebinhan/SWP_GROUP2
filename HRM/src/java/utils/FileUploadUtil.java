@@ -49,7 +49,7 @@ public class FileUploadUtil {
         String serverName = formTypeCode + "_" + employeeId + "_" + System.currentTimeMillis() + UUID.randomUUID().toString().substring(0, 8) + ext;
         String uploadDir = "/uploads/forms";
         Path dir = Paths.get(ctx.getRealPath("/") + uploadDir);
-        Files.createDirectory(dir);       
+        Files.createDirectories(dir);       
         try (InputStream is = filePart.getInputStream()) {
             Files.copy(is, dir.resolve(serverName));
         }

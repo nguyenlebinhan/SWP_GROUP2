@@ -16,6 +16,16 @@
             padding: 28px;
             margin-bottom: 24px;
         }
+        .form-type-tabs .nav-link {
+            color: #475569;
+            font-weight: 600;
+            border-radius: 10px;
+            padding: 10px 20px;
+        }
+        .form-type-tabs .nav-link.active {
+            background: #0d6efd;
+            color: #fff;
+        }
     </style>
 </head>
 <body>
@@ -24,7 +34,11 @@
 
 <div class="main">
     <jsp:include page="/public/components/managerTopBar.jsp">
-        <jsp:param name="title" value="Tạo Đề Xuất Thăng/Giáng Chức" />
+        <jsp:param name="title" value="Tạo Đề Xuất Thăng / Giáng Chức" />
+    </jsp:include>
+
+    <jsp:include page="/public/manager/forms/form_tabs.jsp">
+        <jsp:param name="active" value="promotion" />
     </jsp:include>
 
     <c:if test="${not empty sessionScope.success}">
@@ -44,39 +58,57 @@
 
     <div class="section-card">
         <div class="mb-4">
-            <h5 class="mb-1">Đề Xuất Thăng/Giáng Chức</h5>
-            <p class="text-muted">Đề xuất thay đổi chức vụ (Role) cho nhân viên. Đơn sẽ được gửi lên Business Admin để phê duyệt.</p>
+            <h5 class="mb-1">Đề Xuất Thăng / Giáng Chức</h5>
+            <p class="text-muted">Đề xuất thay đổi chức vụ (Role) cho nhân viên. Đơn sẽ được gửi cho phòng Nhân sự (HR) để phê duyệt.</p>
         </div>
 
         <form action="${pageContext.request.contextPath}/v1/manager/forms/submit-promotion" method="POST" enctype="multipart/form-data">
             <div class="row g-3">
-                <div class="col-md-6">
+                <div class="col-md-4">
+                    <label class="form-label fw-bold">Phòng ban <span class="text-danger">*</span></label>
+                    <select id="deptFilter" class="form-select" onchange="onDepartmentChange()" required>
+                        <c:if test="${isHr}">
+                            <option value="">-- Tất cả phòng ban --</option>
+                        </c:if>
+                        <c:forEach var="dept" items="${departments}">
+                            <option value="${dept.departmentId}" data-roles="${deptRolesMap[dept.departmentId]}"
+                                    <c:if test="${not empty myDepartmentId and myDepartmentId == dept.departmentId}">selected</c:if>>
+                                ${dept.departmentName}
+                            </option>
+                        </c:forEach>
+                    </select>
+                </div>
+
+                <div class="col-md-4">
                     <label class="form-label fw-bold">Nhân viên <span class="text-danger">*</span></label>
-                    <select name="employeeId" class="form-select" required>
+                    <div class="input-group mb-1">
+                        <span class="input-group-text"><i class="fas fa-search"></i></span>
+                        <input type="text" id="empSearchInput" class="form-control form-control-sm" placeholder="Lọc nhanh tên/mã (1000+ nv)..." oninput="filterEmployees()">
+                    </div>
+                    <select name="employeeId" id="employeeSelect" class="form-select" onchange="onEmployeeSelect()" required>
                         <option value="">-- Chọn nhân viên --</option>
                         <c:forEach var="emp" items="${employees}">
-                            <option value="${emp.employeeId}">${emp.employeeCode} - ${emp.fullName}</option>
+                            <option value="${emp.employeeId}" data-dept="${emp.departmentId}">${emp.employeeCode} - ${emp.fullName}</option>
                         </c:forEach>
                     </select>
                 </div>
 
-                <div class="col-md-6">
+                <div class="col-md-4">
                     <label class="form-label fw-bold">Vai trò (Role) mới <span class="text-danger">*</span></label>
-                    <select name="targetRoleId" class="form-select" required>
+                    <select name="targetRoleId" id="targetRoleId" class="form-select" required>
                         <option value="">-- Chọn vai trò mới --</option>
                         <c:forEach var="role" items="${roles}">
-                            <option value="${role.roleId}">${role.roleName}</option>
+                            <option value="${role.roleId}" data-name="${role.roleName}">${role.roleName}</option>
                         </c:forEach>
                     </select>
                 </div>
 
-                <div class="col-12 mt-4">
+                <div class="col-12 mt-3">
                     <label class="form-label fw-bold">Lý do đề xuất <span class="text-danger">*</span></label>
                     <textarea name="reason" class="form-control" rows="4" 
                               placeholder="Trình bày lý do đề xuất thăng chức hoặc giáng chức..." required></textarea>
                 </div>
 
-                
                 <div class="col-md-12">
                     <label class="form-label fw-semibold">File đính kèm <span class="text-muted">(không bắt buộc)</span></label>
                     <input type="file" name="attachment" class="form-control"
@@ -97,5 +129,69 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+function onDepartmentChange() {
+    var deptSelect = document.getElementById("deptFilter");
+    var selectedOption = deptSelect.options[deptSelect.selectedIndex];
+    var deptId = deptSelect.value;
+    var rolesStr = selectedOption ? selectedOption.getAttribute("data-roles") : null;
+    
+    // Lọc danh sách Role theo phòng ban (tuyển tập từ script trang transfer)
+    var roleSelect = document.getElementById("targetRoleId");
+    roleSelect.value = ""; 
+    var allowedRoles = rolesStr ? rolesStr.split(",") : null;
+    for (var i = 1; i < roleSelect.options.length; i++) {
+        var option = roleSelect.options[i];
+        var roleName = option.getAttribute("data-name");
+        if (!deptId || !allowedRoles || (roleName && allowedRoles.includes(roleName))) {
+            option.style.display = "";
+        } else {
+            option.style.display = "none";
+        }
+    }
+    
+    filterEmployees();
+}
+
+function filterEmployees() {
+    var deptId = document.getElementById("deptFilter").value;
+    var searchText = document.getElementById("empSearchInput").value.toLowerCase().trim();
+    var empSelect = document.getElementById("employeeSelect");
+    
+    for (var i = 1; i < empSelect.options.length; i++) {
+        var option = empSelect.options[i];
+        var empDept = option.getAttribute("data-dept");
+        var empText = option.text.toLowerCase();
+        
+        var matchDept = !deptId || empDept === deptId;
+        var matchText = !searchText || empText.indexOf(searchText) > -1;
+        
+        if (matchDept && matchText) {
+            option.style.display = "";
+        } else {
+            option.style.display = "none";
+            if (option.selected) empSelect.value = "";
+        }
+    }
+}
+
+function onEmployeeSelect() {
+    var empSelect = document.getElementById("employeeSelect");
+    var selectedOption = empSelect.options[empSelect.selectedIndex];
+    if (selectedOption && selectedOption.value) {
+        var empDept = selectedOption.getAttribute("data-dept");
+        var deptSelect = document.getElementById("deptFilter");
+        if (deptSelect.value !== empDept && empDept) {
+            deptSelect.value = empDept;
+            onDepartmentChange();
+            empSelect.value = selectedOption.value;
+        }
+    }
+}
+
+document.addEventListener("DOMContentLoaded", function() {
+    onDepartmentChange();
+});
+</script>
 </body>
 </html>
