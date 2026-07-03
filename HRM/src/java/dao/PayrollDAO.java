@@ -59,7 +59,7 @@ public class PayrollDAO {
     }
 
     public PayrollPreviewDTO getPayrollPreviewById(int payrollId) {
-        String SQL = "SELECT p.*, e.employeeCode, u.fullName, d.departmentName, pos.positionName, "
+        String SQL = "SELECT p.*, e.employeeCode, e.unionMember, u.fullName, d.departmentName, pos.positionName, "
                 + "ec.salary AS contractSalary "
                 + "FROM Payroll p "
                 + "JOIN Employees e ON e.employeeId = p.employeeId "
@@ -83,6 +83,7 @@ public class PayrollDAO {
                     PayrollPreviewDTO dto = new PayrollPreviewDTO();
                     dto.setPayroll(mapPayroll(rs));
                     dto.setEmployeeCode(rs.getString("employeeCode"));
+                    dto.setUnionMember(rs.getBoolean("unionMember"));
                     dto.setFullName(rs.getNString("fullName"));
                     dto.setDepartmentName(rs.getNString("departmentName"));
                     dto.setPositionName(rs.getString("positionName"));
@@ -120,7 +121,7 @@ public class PayrollDAO {
             Integer departmentId, Integer status) {
         List<PayrollPreviewDTO> list = new ArrayList<>();
         StringBuilder sql = new StringBuilder(
-                "SELECT p.*, e.employeeCode, u.fullName, d.departmentName, pos.positionName, "
+                "SELECT p.*, e.employeeCode, e.unionMember, u.fullName, d.departmentName, pos.positionName, "
                 + "ec.salary AS contractSalary "
                 + "FROM Payroll p "
                 + "JOIN Employees e ON e.employeeId = p.employeeId "
@@ -158,6 +159,7 @@ public class PayrollDAO {
                     PayrollPreviewDTO dto = new PayrollPreviewDTO();
                     dto.setPayroll(mapPayroll(rs));
                     dto.setEmployeeCode(rs.getString("employeeCode"));
+                    dto.setUnionMember(rs.getBoolean("unionMember"));
                     dto.setFullName(rs.getNString("fullName"));
                     dto.setDepartmentName(rs.getNString("departmentName"));
                     dto.setPositionName(rs.getString("positionName"));
@@ -268,7 +270,7 @@ public class PayrollDAO {
     private int insertPayroll(Connection conn, Payroll payroll) throws SQLException {
         String SQL = "INSERT INTO Payroll "
                 + "(periodStart, periodEnd, employeeId, positionId, departmentId, workingDays, hoursWorked, "
-                + "baseSalary, allowance, bonus, overtimePay, penalty, grossSalary, "
+                + "baseSalary, allowance, bonus, overtimePay, unpaidDeduction, grossSalary, "
                 + "insuranceDeduction, personalIncomeTax, netSalary, note, status, "
                 + "approvedBy, approvedAt) "
                 + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
@@ -288,7 +290,7 @@ public class PayrollDAO {
         String SQL = "UPDATE Payroll SET "
                 + "periodStart = ?, periodEnd = ?, employeeId = ?, positionId = ?, departmentId = ?, "
                 + "workingDays = ?, hoursWorked = ?, baseSalary = ?, allowance = ?, bonus = ?, "
-                + "overtimePay = ?, penalty = ?, grossSalary = ?, insuranceDeduction = ?, personalIncomeTax = ?, "
+                + "overtimePay = ?, unpaidDeduction = ?, grossSalary = ?, insuranceDeduction = ?, personalIncomeTax = ?, "
                 + "netSalary = ?, note = ?, status = ?, "
                 + "approvedBy = ?, approvedAt = ? "
                 + "WHERE payrollId = ?";
@@ -314,7 +316,7 @@ public class PayrollDAO {
         setBigDecimal(ps, 9, p.getAllowance());
         setBigDecimal(ps, 10, p.getBonus());
         setBigDecimal(ps, 11, p.getOvertimePay());
-        setBigDecimal(ps, 12, p.getPenalty());
+        setBigDecimal(ps, 12, p.getUnpaidDeduction());
         setBigDecimal(ps, 13, p.getGrossSalary());
         setBigDecimal(ps, 14, p.getInsuranceDeduction());
         setBigDecimal(ps, 15, p.getPersonalIncomeTax());
@@ -343,7 +345,7 @@ public class PayrollDAO {
 
     private String basePayrollSelect() {
         return "SELECT payrollId, periodStart, periodEnd, employeeId, positionId, departmentId, "
-                + "workingDays, hoursWorked, baseSalary, allowance, bonus, overtimePay, penalty, "
+                + "workingDays, hoursWorked, baseSalary, allowance, bonus, overtimePay, unpaidDeduction, "
                 + "grossSalary, insuranceDeduction, personalIncomeTax, netSalary, note, status, "
                 + "approvedBy, approvedAt, "
                 + "createdAt, updatedAt FROM Payroll";
@@ -364,7 +366,7 @@ public class PayrollDAO {
         p.setAllowance(rs.getBigDecimal("allowance"));
         p.setBonus(rs.getBigDecimal("bonus"));
         p.setOvertimePay(rs.getBigDecimal("overtimePay"));
-        p.setPenalty(rs.getBigDecimal("penalty"));
+        p.setUnpaidDeduction(rs.getBigDecimal("unpaidDeduction"));
         p.setGrossSalary(rs.getBigDecimal("grossSalary"));
         p.setInsuranceDeduction(rs.getBigDecimal("insuranceDeduction"));
         p.setPersonalIncomeTax(rs.getBigDecimal("personalIncomeTax"));

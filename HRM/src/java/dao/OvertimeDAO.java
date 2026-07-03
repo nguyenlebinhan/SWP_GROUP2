@@ -1,12 +1,16 @@
 package dao;
 
 import dal.DBContext;
+import dto.PayrollOvertimeSummaryDTO;
 import dto.OvertimeRequestDTO;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
@@ -291,6 +295,85 @@ public class OvertimeDAO {
             LOGGER.log(Level.SEVERE, "Cannot get approved OT days", e);
         }
         return list;
+    }
+
+    public PayrollOvertimeSummaryDTO getPayrollOvertimeSummary(Connection conn, int employeeId, int year, int month,
+            BigDecimal dailyRate, BigDecimal workingHoursPerDay, int overtimeBlockMinutes,
+            BigDecimal overtimeWorkdayMultiplier, BigDecimal overtimeWeekendMultiplier,
+            BigDecimal overtimeHolidayMultiplier) throws SQLException {
+        PayrollOvertimeSummaryDTO summary = new PayrollOvertimeSummaryDTO();
+        BigDecimal hourlyRate = divide(dailyRate, workingHoursPerDay);
+        String sql = "SELECT od.startTime, od.endTime, od.dayType, a.timeIn, a.timeOut "
+                + "FROM Form_Requests fr "
+                + "JOIN Overtime_Details od ON od.formId = fr.formId "
+                + "LEFT JOIN Overtime_Assignees oa ON oa.formId = fr.formId "
+                + "JOIN Attendance a ON a.employeeId = ? AND a.workDate = od.otDate "
+                + "WHERE fr.status IN (1, 4) "
+                + "AND fr.formTypeId = (SELECT formTypeId FROM Form_Types WHERE formTypeCode = 'OVERTIME') "
+                + "AND (fr.employeeId = ? OR oa.employeeId = ?) "
+                + "AND YEAR(od.otDate) = ? "
+                + "AND MONTH(od.otDate) = ?";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, employeeId);
+            ps.setInt(2, employeeId);
+            ps.setInt(3, employeeId);
+            ps.setInt(4, year);
+            ps.setInt(5, month);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    if (rs.getTime("timeIn") == null || rs.getTime("timeOut") == null) {
+                        continue;
+                    }
+
+                    LocalTime approvedStart = rs.getTime("startTime").toLocalTime();
+                    LocalTime approvedEnd = rs.getTime("endTime").toLocalTime();
+                    LocalTime actualIn = rs.getTime("timeIn").toLocalTime();
+                    LocalTime actualOut = rs.getTime("timeOut").toLocalTime();
+
+                    LocalTime validStart = approvedStart.isAfter(actualIn) ? approvedStart : actualIn;
+                    LocalTime validEnd = approvedEnd.isBefore(actualOut) ? approvedEnd : actualOut;
+                    if (!validEnd.isAfter(validStart)) {
+                        continue;
+                    }
+
+                    long workedMinutes = java.time.Duration.between(validStart, validEnd).toMinutes();
+                    long validBlocks = workedMinutes / overtimeBlockMinutes;
+                    double validHours = (validBlocks * overtimeBlockMinutes) / 60.0;
+                    if (validHours <= 0) {
+                        continue;
+                    }
+
+                    BigDecimal hours = new BigDecimal(String.valueOf(validHours)).setScale(2, RoundingMode.HALF_UP);
+                    BigDecimal pay = hourlyRate
+                            .multiply(hours)
+                            .multiply(overtimeMultiplier(rs.getInt("dayType"), overtimeWorkdayMultiplier,
+                                    overtimeWeekendMultiplier, overtimeHolidayMultiplier));
+                    summary.addOvertimeBlocks((int) validBlocks);
+                    summary.addOvertimeHours(hours);
+                    summary.addOvertimePay(pay);
+                }
+            }
+        }
+        return summary;
+    }
+
+    private BigDecimal divide(BigDecimal amount, BigDecimal divisor) {
+        if (amount == null || divisor == null || divisor.signum() == 0) {
+            return BigDecimal.ZERO;
+        }
+        return amount.divide(divisor, 6, RoundingMode.HALF_UP);
+    }
+
+    private BigDecimal overtimeMultiplier(int dayType, BigDecimal workday, BigDecimal weekend, BigDecimal holiday) {
+        switch (dayType) {
+            case 2:
+                return weekend;
+            case 3:
+                return holiday;
+            case 1:
+            default:
+                return workday;
+        }
     }
 
     public void completeOTForm(Connection conn, int employeeId, java.sql.Date workDate) throws SQLException {

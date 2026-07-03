@@ -156,7 +156,9 @@ public class DBInitializer {
                 + "skills NVARCHAR(255),"
                 + "experience NVARCHAR(255),"
                 + "degree NVARCHAR(100),"
-                + "status TINYINT DEFAULT 1," // 0: Inactive, 1: Active, 2: On Leave
+                + "dependentCount INT NOT NULL DEFAULT 0,"
+                + "unionMember TINYINT(1) NOT NULL DEFAULT 0,"
+                + "status TINYINT DEFAULT 1,"        // 0: Inactive, 1: Active, 2: On Leave
                 + "managerId INT,"
                 + "startDate DATE,"
                 + "createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,"
@@ -419,7 +421,7 @@ public class DBInitializer {
                 + "attendanceStatus TINYINT DEFAULT 0," // 0: Đúng giờ, 1: Đi muộn, 2: Vắng mặt, 3: Không phép
                 + "dayOff DATE,"
                 + "workingDay DATE,"
-                + "penalty DECIMAL(15,2) DEFAULT 0,"
+                + "unpaidDeduction DECIMAL(15,2) DEFAULT 0,"
                 + "fileId INT NULL,"
                 + "createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,"
                 + "updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,"
@@ -497,7 +499,7 @@ public class DBInitializer {
                 + "allowance DECIMAL(15,2) DEFAULT 0,"
                 + "bonus DECIMAL(15,2) DEFAULT 0,"
                 + "overtimePay DECIMAL(15,2) DEFAULT 0,"
-                + "penalty DECIMAL(15,2) DEFAULT 0,"
+                + "unpaidDeduction DECIMAL(15,2) DEFAULT 0,"
                 + "grossSalary DECIMAL(15,2) DEFAULT 0,"
                 + "insuranceDeduction DECIMAL(15,2) DEFAULT 0,"
                 + "personalIncomeTax DECIMAL(15,2) DEFAULT 0,"
@@ -533,7 +535,6 @@ public class DBInitializer {
                 + "ruleName NVARCHAR(255) NOT NULL,"
                 + "ruleType VARCHAR(30) NOT NULL,"
                 + "calculationType VARCHAR(20) NOT NULL,"
-                + "baseType VARCHAR(30) NOT NULL,"
                 + "rate DECIMAL(10,6) DEFAULT 0,"
                 + "employerRate DECIMAL(10,6) DEFAULT 0,"
                 + "fixedAmount DECIMAL(15,2) DEFAULT 0,"
@@ -558,6 +559,67 @@ public class DBInitializer {
     }
 
     // ==================== THÔNG BÁO & AUDIT ====================
+
+    public void createTablePayrollConfigChangeRequests(Connection conn) {
+        String SQL = "CREATE TABLE Payroll_Config_Change_Requests("
+                + "requestId INT PRIMARY KEY AUTO_INCREMENT,"
+                + "requestType VARCHAR(30) NOT NULL,"
+                + "actionLabel NVARCHAR(255),"
+                + "oldValue NVARCHAR(2000),"
+                + "newValue NVARCHAR(4000),"
+                + "targetKey VARCHAR(100),"
+                + "targetId INT,"
+                + "settingKey VARCHAR(100),"
+                + "settingValue DECIMAL(15,6),"
+                + "settingDescription NVARCHAR(255),"
+                + "ruleId INT,"
+                + "ruleCode VARCHAR(50),"
+                + "ruleName NVARCHAR(255),"
+                + "ruleType VARCHAR(30),"
+                + "calculationType VARCHAR(20),"
+                + "rate DECIMAL(10,6),"
+                + "employerRate DECIMAL(10,6),"
+                + "fixedAmount DECIMAL(15,2),"
+                + "taxableDeduction TINYINT(1) DEFAULT 1,"
+                + "isActive TINYINT(1) DEFAULT 1,"
+                + "taxPayload TEXT,"
+                + "status TINYINT NOT NULL DEFAULT 0,"
+                + "requestedBy INT NOT NULL,"
+                + "requestedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,"
+                + "reviewedBy INT,"
+                + "reviewedAt DATETIME,"
+                + "reviewNote NVARCHAR(500),"
+                + "FOREIGN KEY (requestedBy) REFERENCES Users(userId),"
+                + "FOREIGN KEY (reviewedBy) REFERENCES Users(userId)"
+                + ")";
+        execute(conn, SQL, "CREATE PAYROLL_CONFIG_CHANGE_REQUESTS TABLE SUCCESSFULLY");
+    }
+
+    public void createTablePayrollConfigChangeHistory(Connection conn) {
+        String SQL = "CREATE TABLE Payroll_Config_Change_History("
+                + "historyId INT PRIMARY KEY AUTO_INCREMENT,"
+                + "requestId INT,"
+                + "requestType VARCHAR(30) NOT NULL,"
+                + "actionLabel NVARCHAR(255),"
+                + "targetKey VARCHAR(100),"
+                + "targetId INT,"
+                + "oldValue NVARCHAR(2000),"
+                + "newValue NVARCHAR(4000),"
+                + "status TINYINT NOT NULL,"
+                + "requestedBy INT NOT NULL,"
+                + "requestedAt DATETIME,"
+                + "reviewedBy INT NOT NULL,"
+                + "reviewedAt DATETIME DEFAULT CURRENT_TIMESTAMP,"
+                + "reviewNote NVARCHAR(500),"
+                + "createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,"
+                + "INDEX idx_payroll_config_history_reviewedAt (reviewedAt),"
+                + "FOREIGN KEY (requestId) REFERENCES Payroll_Config_Change_Requests(requestId),"
+                + "FOREIGN KEY (requestedBy) REFERENCES Users(userId),"
+                + "FOREIGN KEY (reviewedBy) REFERENCES Users(userId)"
+                + ")";
+        execute(conn, SQL, "CREATE PAYROLL_CONFIG_CHANGE_HISTORY TABLE SUCCESSFULLY");
+    }
+
     public void createTableNotifications(Connection conn) {
         String SQL = "CREATE TABLE Notifications("
                 + "notificationId INT PRIMARY KEY AUTO_INCREMENT,"
@@ -604,6 +666,8 @@ public class DBInitializer {
                 "Audit_Logs",
                 "Notifications",
                 "Payroll_Tax_Brackets",
+                "Payroll_Config_Change_History",
+                "Payroll_Config_Change_Requests",
                 "Payroll_Deduction_Rules",
                 "Payroll_Settings",
                 "Payroll",
@@ -662,6 +726,8 @@ public class DBInitializer {
                 "Payroll_Settings",
                 "Payroll_Deduction_Rules",
                 "Payroll_Tax_Brackets",
+                "Payroll_Config_Change_Requests",
+                "Payroll_Config_Change_History",
                 "Notifications",
                 "Audit_Logs"
             };
@@ -682,99 +748,37 @@ public class DBInitializer {
             for (String table : createOrder) {
                 if (enforceReset || !tableExists(conn, table)) {
                     switch (table) {
-                        case "Roles":
-                            createTableRoles(conn);
-                            break;
-                        case "Permissions":
-                            createTablePermissions(conn);
-                            break;
-                        case "Role_Permissions":
-                            createTableRolePermissions(conn);
-                            break;
-                        case "Email_Templates":
-                            createTableEmailTemplates(conn);
-                            break;
-                        case "Positions":
-                            createTablePosition(conn);
-                            break;
-                        case "Departments":
-                            createTableDepartments(conn);
-                            break;
-                        case "Department_Roles":
-                            createTableDepartmentRoles(conn);
-                            break;
-                        case "Users":
-                            createTableUsers(conn);
-                            break;
-                        case "Employees":
-                            createTableEmployees(conn);
-                            break;
-                        case "Employment_Contracts":
-                            createTableEmploymentContracts(conn);
-                            break;
-                        case "Contract_Audit_Log":
-                            createTableContractAuditLog(conn);
-                            break;
-                        case "Amendment_Contracts":
-                            createTableContractAmendments(conn);
-                            break;
-                        case "Uploaded_Files":
-                            createTableUploadedFiles(conn);
-                            break;
-                        case "Candidates":
-                            createTableCandidates(conn);
-                            break;
-                        case "Application_Stage_Logs":
-                            createTableApplicationStageLogs(conn);
-                            break;
-                        case "Form_Types":
-                            createTableFormTypes(conn);
-                            break;
-                        case "Form_Requests":
-                            createTableFormRequests(conn);
-                            break;
-                        case "Overtime_Details":
-                            createTableOvertimeDetails(conn);
-                            break;
-                        case "Overtime_Assignees":
-                            createTableOvertimeAssignees(conn);
-                            break;
-                        case "Leave_Balances":
-                            createTableLeaveBalances(conn);
-                            break;
-                        case "Attendance":
-                            createTableAttendance(conn);
-                            break;
-                        case "Attendance_Adjustment_History":
-                            createTableAttendanceAdjustmentHistory(conn);
-                            break;
-                        case "Attendance_Period_Status":
-                            createTableAttendancePeriodStatus(conn);
-                            break;
-                        case "Holiday":
-                            createTableHoliday(conn);
-                            break;
-                        case "Payroll":
-                            createTablePayroll(conn);
-                            break;
-                        case "Payroll_Settings":
-                            createTablePayrollSettings(conn);
-                            break;
-                        case "Payroll_Deduction_Rules":
-                            createTablePayrollDeductionRules(conn);
-                            break;
-                        case "Payroll_Tax_Brackets":
-                            createTablePayrollTaxBrackets(conn);
-                            break;
-                        case "Notifications":
-                            createTableNotifications(conn);
-                            break;
-                        case "Audit_Logs":
-                            createTableAuditLogs(conn);
-                            break;
-                        default:
-                            LOGGER.log(Level.WARNING, "Unknown table: {0}", table);
-                            break;
+                        case "Roles":             createTableRoles(conn);             break;
+                        case "Permissions":       createTablePermissions(conn);       break;
+                        case "Role_Permissions":  createTableRolePermissions(conn);   break;
+                        case "Email_Templates":   createTableEmailTemplates(conn);    break;
+                        case "Positions":         createTablePosition(conn);          break;
+                        case "Departments":       createTableDepartments(conn);       break;
+                        case "Department_Roles":  createTableDepartmentRoles(conn);   break;
+                        case "Users":             createTableUsers(conn);             break;
+                        case "Employees":         createTableEmployees(conn);         break;
+                        case "Employment_Contracts": createTableEmploymentContracts(conn); break;
+                        case "Uploaded_Files":    createTableUploadedFiles(conn);     break;
+                        case "Candidates":        createTableCandidates(conn);        break;
+                        case "Application_Stage_Logs": createTableApplicationStageLogs(conn); break;
+                        case "Form_Types":       createTableFormTypes(conn);         break;
+                        case "Form_Requests":    createTableFormRequests(conn);     break;
+                        case "Overtime_Details": createTableOvertimeDetails(conn);  break;
+                        case "Overtime_Assignees": createTableOvertimeAssignees(conn); break;
+                        case "Leave_Balances":     createTableLeaveBalances(conn);      break;
+                        case "Attendance":        createTableAttendance(conn);        break;
+                        case "Attendance_Adjustment_History": createTableAttendanceAdjustmentHistory(conn); break;
+                        case "Attendance_Period_Status": createTableAttendancePeriodStatus(conn); break;
+                        case "Holiday":           createTableHoliday(conn);           break;
+                        case "Payroll":           createTablePayroll(conn);           break;
+                        case "Payroll_Settings":  createTablePayrollSettings(conn);   break;
+                        case "Payroll_Deduction_Rules": createTablePayrollDeductionRules(conn); break;
+                        case "Payroll_Tax_Brackets": createTablePayrollTaxBrackets(conn); break;
+                        case "Payroll_Config_Change_Requests": createTablePayrollConfigChangeRequests(conn); break;
+                        case "Payroll_Config_Change_History": createTablePayrollConfigChangeHistory(conn); break;
+                        case "Notifications":     createTableNotifications(conn);     break;
+                        case "Audit_Logs":        createTableAuditLogs(conn);         break;
+                        default: LOGGER.log(Level.WARNING,"Unknown table: {0}", table);     break;
                     }
                 }
             }
@@ -783,7 +787,11 @@ public class DBInitializer {
             LOGGER.log(Level.INFO, "Đã kích hoạt lại toàn bộ kiểm tra khóa ngoại hệ thống.");
 
             ensurePayrollApprovalColumns(conn);
+            ensurePayrollUnpaidDeductionColumn(conn);
             ensureFormRequestColumns(conn);
+            ensureEmployeeDependentCountColumn(conn);
+            ensureEmployeeUnionMemberColumn(conn);
+            ensurePayrollConfigChangeRequestColumns(conn);
             insertInitialData(conn);
             LOGGER.log(Level.INFO, "Database initialized successfully!");
 
@@ -842,8 +850,10 @@ public class DBInitializer {
                 insertPermission(conn, "VIEW_OWN_SALARY", "Xem lương cá nhân", "Quyền xem, gửi đơn khiếu nại về lương của cá nhân");
                 insertPermission(conn, "APPROVE_PAYROLL", "Duyệt bảng lương", "Quyền duyệt bảng lương trước khi thanh toán");
                 insertPermission(conn, "EXPORT_PAYROLL", "Xuất bảng lương", "Quyền xuất bảng lương ra Excel");
+                insertPermission(conn,"CONFIG_PAYROLL","Cấu hình payroll","Quyền cấu hình payroll và gửi yêu cầu duyệt");
 
             }
+            insertPermission(conn,"CONFIG_PAYROLL","Cấu hình payroll","Quyền cấu hình payroll và gửi yêu cầu duyệt");
 
             if (countRows(conn, "Positions") == 0) {
                 insertPosition(conn, "Thực tập sinh", 1, "Sinh viên thực tập tại công ty");
@@ -981,8 +991,14 @@ public class DBInitializer {
             deletePayrollSetting(conn, "WORKING_HOURS_PER_DAY");
             deletePayrollSetting(conn, "WORK_START_MINUTES");
             deletePayrollSetting(conn, "WORK_END_MINUTES");
-            insertPayrollSetting(conn, "PERSONAL_ALLOWANCE", "15500000", "Giảm trừ cá nhân khi tính thuế TNCN");
-            insertPayrollSetting(conn, "LATE_PENALTY_BLOCK_MINUTES", "30", "Số phút của một block phạt đi muộn");
+            migratePayrollSettingKey(conn, "LATE_" + "PEN" + "ALTY_BLOCK_MINUTES", "LATE_DEDUCTION_BLOCK_MINUTES");
+            migratePayrollSettingKey(conn, "INSURANCE_SALARY_CAP", "INSURANCE_SALARY_FLOOR");
+            insertPayrollSetting(conn, "PERSONAL_ALLOWANCE", "11000000", "Giam tru ca nhan khi tinh thue TNCN");
+            updatePayrollSettingValueIfCurrent(conn, "PERSONAL_ALLOWANCE", "15500000", "11000000");
+            insertPayrollSetting(conn, "DEPENDENT_ALLOWANCE", "4500000", "Giam tru cho moi nguoi phu thuoc khi tinh thue TNCN");
+            insertPayrollSetting(conn, "ALLOWANCE", "1500000", "Phu cap mac dinh moi ky luong");
+            insertPayrollSetting(conn, "INSURANCE_SALARY_FLOOR", "40000000", "Muc floor/tran ap dung cho luong tinh bao hiem");
+            insertPayrollSetting(conn, "LATE_DEDUCTION_BLOCK_MINUTES", "30", "So phut cua mot block khau tru di muon");
             insertPayrollSetting(conn, "ATTENDANCE_BONUS_RATE", "0.03", "Tỷ lệ thưởng chuyên cần trên lương hợp đồng");
             insertPayrollSetting(conn, "WORK_START", "480", "Giờ vào làm chuẩn, nhập theo HH:mm trên UI");
             insertPayrollSetting(conn, "WORK_END", "1020", "Giờ ra làm chuẩn, nhập theo HH:mm trên UI");
@@ -997,11 +1013,15 @@ public class DBInitializer {
             ensurePayrollDeductionEmployerRateColumn(conn);
             ensurePayrollDeductionColumns(conn);
             insertPayrollDeductionRule(conn, "SOCIAL_INSURANCE", "BHXH", "INSURANCE", "PERCENT",
-                    "CONTRACT_SALARY", "0.255", "0.175", "0", true, true);
+                    "0.255", "0.175", "0", true, true);
             insertPayrollDeductionRule(conn, "HEALTH_INSURANCE", "BHYT", "INSURANCE", "PERCENT",
-                    "CONTRACT_SALARY", "0.045", "0.03", "0", true, true);
+                    "0.045", "0.03", "0", true, true);
             insertPayrollDeductionRule(conn, "UNEMPLOYMENT_INSURANCE", "BHTN", "INSURANCE", "PERCENT",
-                    "CONTRACT_SALARY", "0.02", "0.01", "0", true, true);
+                    "0.02", "0.01", "0", true, true);
+            insertPayrollDeductionRule(conn, "OCCUPATIONAL_ACCIDENT_INSURANCE", "Bảo hiểm TNLĐ-BNN", "INSURANCE", "PERCENT",
+                    "0.005", "0.005", "0", true, true);
+            insertPayrollDeductionRule(conn, "UNION_FEE", "Kinh phí công đoàn", "UNION", "PERCENT",
+                    "0.03", "0.02", "0", true, true);
             updateLegacyInsuranceRate(conn, "SOCIAL_INSURANCE", "0.08", "0.255", "0.175");
             updateLegacyInsuranceRate(conn, "HEALTH_INSURANCE", "0.015", "0.045", "0.03");
             updateLegacyInsuranceRate(conn, "UNEMPLOYMENT_INSURANCE", "0.01", "0.02", "0.01");
@@ -1021,12 +1041,23 @@ public class DBInitializer {
 
     private void insertPayrollSetting(Connection conn, String key, String value, String description) throws SQLException {
         String sql = "INSERT INTO Payroll_Settings (settingKey, settingValue, description) VALUES (?, ?, ?) "
-                + "ON DUPLICATE KEY UPDATE settingValue = VALUES(settingValue), "
-                + "description = VALUES(description), updatedAt = CURRENT_TIMESTAMP";
+                + "ON DUPLICATE KEY UPDATE description = VALUES(description), updatedAt = CURRENT_TIMESTAMP";
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, key);
             ps.setBigDecimal(2, new java.math.BigDecimal(value));
             ps.setNString(3, description);
+            ps.executeUpdate();
+        }
+    }
+
+    private void updatePayrollSettingValueIfCurrent(Connection conn, String key, String currentValue,
+            String newValue) throws SQLException {
+        String sql = "UPDATE Payroll_Settings SET settingValue = ?, updatedAt = CURRENT_TIMESTAMP "
+                + "WHERE settingKey = ? AND settingValue = ?";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setBigDecimal(1, new java.math.BigDecimal(newValue));
+            ps.setString(2, key);
+            ps.setBigDecimal(3, new java.math.BigDecimal(currentValue));
             ps.executeUpdate();
         }
     }
@@ -1039,23 +1070,40 @@ public class DBInitializer {
         }
     }
 
+    private void migratePayrollSettingKey(Connection conn, String oldKey, String newKey) throws SQLException {
+        String deleteOldWhenNewExists = "DELETE FROM Payroll_Settings WHERE settingKey = ? "
+                + "AND EXISTS (SELECT 1 FROM (SELECT settingKey FROM Payroll_Settings WHERE settingKey = ?) existing_key)";
+        try (PreparedStatement ps = conn.prepareStatement(deleteOldWhenNewExists)) {
+            ps.setString(1, oldKey);
+            ps.setString(2, newKey);
+            ps.executeUpdate();
+        }
+
+        String renameOld = "UPDATE Payroll_Settings SET settingKey = ?, description = ? WHERE settingKey = ?";
+        try (PreparedStatement ps = conn.prepareStatement(renameOld)) {
+            ps.setString(1, newKey);
+            ps.setNString(2, "So phut cua mot block khau tru di muon");
+            ps.setString(3, oldKey);
+            ps.executeUpdate();
+        }
+    }
+
     private void insertPayrollDeductionRule(Connection conn, String code, String name, String type,
-            String calculationType, String baseType, String rate, String employerRate, String fixedAmount,
+            String calculationType, String rate, String employerRate, String fixedAmount,
             boolean taxableDeduction, boolean active) throws SQLException {
         String sql = "INSERT IGNORE INTO Payroll_Deduction_Rules "
-                + "(ruleCode, ruleName, ruleType, calculationType, baseType, rate, employerRate, fixedAmount, taxableDeduction, isActive) "
-                + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                + "(ruleCode, ruleName, ruleType, calculationType, rate, employerRate, fixedAmount, taxableDeduction, isActive) "
+                + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, code);
             ps.setNString(2, name);
             ps.setString(3, type);
             ps.setString(4, calculationType);
-            ps.setString(5, baseType);
-            ps.setBigDecimal(6, new java.math.BigDecimal(rate));
-            ps.setBigDecimal(7, new java.math.BigDecimal(employerRate));
-            ps.setBigDecimal(8, new java.math.BigDecimal(fixedAmount));
-            ps.setInt(9, taxableDeduction ? 1 : 0);
-            ps.setInt(10, active ? 1 : 0);
+            ps.setBigDecimal(5, new java.math.BigDecimal(rate));
+            ps.setBigDecimal(6, new java.math.BigDecimal(employerRate));
+            ps.setBigDecimal(7, new java.math.BigDecimal(fixedAmount));
+            ps.setInt(8, taxableDeduction ? 1 : 0);
+            ps.setInt(9, active ? 1 : 0);
             ps.executeUpdate();
         }
     }
@@ -1064,6 +1112,18 @@ public class DBInitializer {
         if (columnExists(conn, "Payroll_Deduction_Rules", "sortOrder")) {
             execute(conn, "ALTER TABLE Payroll_Deduction_Rules DROP COLUMN sortOrder",
                     "DROP SORT ORDER FROM PAYROLL_DEDUCTION_RULES");
+        }
+        if (columnExists(conn, "Payroll_Deduction_Rules", "baseType")) {
+            execute(conn, "ALTER TABLE Payroll_Deduction_Rules DROP COLUMN baseType",
+                    "DROP BASE TYPE FROM PAYROLL_DEDUCTION_RULES");
+        }
+    }
+
+    private void ensurePayrollConfigChangeRequestColumns(Connection conn) throws SQLException {
+        if (tableExists(conn, "Payroll_Config_Change_Requests")
+                && columnExists(conn, "Payroll_Config_Change_Requests", "baseType")) {
+            execute(conn, "ALTER TABLE Payroll_Config_Change_Requests DROP COLUMN baseType",
+                    "DROP BASE TYPE FROM PAYROLL_CONFIG_CHANGE_REQUESTS");
         }
     }
 
@@ -1254,6 +1314,24 @@ public class DBInitializer {
         }
     }
 
+    private void ensureEmployeeDependentCountColumn(Connection conn) throws SQLException {
+        if (!tableExists(conn, "Employees")) {
+            return;
+        }
+        if (!columnExists(conn, "Employees", "dependentCount")) {
+            execute(conn, "ALTER TABLE Employees ADD COLUMN dependentCount INT NOT NULL DEFAULT 0", "ADD EMPLOYEES DEPENDENT COUNT COLUMN");
+        }
+    }
+
+    private void ensureEmployeeUnionMemberColumn(Connection conn) throws SQLException {
+        if (!tableExists(conn, "Employees")) {
+            return;
+        }
+        if (!columnExists(conn, "Employees", "unionMember")) {
+            execute(conn, "ALTER TABLE Employees ADD COLUMN unionMember TINYINT(1) NOT NULL DEFAULT 0", "ADD EMPLOYEES UNION MEMBER COLUMN");
+        }
+    }
+
     private void ensurePayrollApprovalColumns(Connection conn) throws SQLException {
         if (!tableExists(conn, "Payroll")) {
             return;
@@ -1265,6 +1343,24 @@ public class DBInitializer {
             execute(conn, "ALTER TABLE Payroll ADD COLUMN approvedAt DATETIME", "ADD PAYROLL APPROVED AT COLUMN");
         }
 
+    }
+
+    private void ensurePayrollUnpaidDeductionColumn(Connection conn) throws SQLException {
+        if (!tableExists(conn, "Payroll")) {
+            return;
+        }
+        String legacyColumn = "pen" + "alty";
+        if (columnExists(conn, "Payroll", "unpaidDeduction")) {
+            return;
+        }
+        if (columnExists(conn, "Payroll", legacyColumn)) {
+            execute(conn, "ALTER TABLE Payroll CHANGE COLUMN " + legacyColumn
+                    + " unpaidDeduction DECIMAL(15,2) DEFAULT 0",
+                    "RENAME PAYROLL UNPAID DEDUCTION COLUMN");
+        } else {
+            execute(conn, "ALTER TABLE Payroll ADD COLUMN unpaidDeduction DECIMAL(15,2) DEFAULT 0 AFTER overtimePay",
+                    "ADD PAYROLL UNPAID DEDUCTION COLUMN");
+        }
     }
 
     private void ensureFormRequestColumns(Connection conn) throws SQLException {

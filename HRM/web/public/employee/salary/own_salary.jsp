@@ -149,7 +149,7 @@
                         </select>
                     </div>
                     <div class="col-md-2">
-                        <label class="form-label fw-semibold">Nam</label>
+                        <label class="form-label fw-semibold">Năm</label>
                         <input type="number" name="year" min="2000" max="2100" class="form-control" value="${selectedYear}">
                     </div>
                     <div class="col-md-2">
@@ -170,21 +170,20 @@
                 <c:otherwise>
                     <c:set var="p" value="${payrollPreview.payroll}" />
                     <c:set var="totalDeduction" value="${payrollPreview.totalDeduction}" />
-                    <c:set var="personalAllowance" value="${15500000}" />
-                    <c:set var="taxableIncomeBeforeFloor" value="${p.grossSalary - p.insuranceDeduction - personalAllowance}" />
-                    <c:set var="taxableIncome" value="${taxableIncomeBeforeFloor < 0 ? 0 : taxableIncomeBeforeFloor}" />
+                    <c:set var="familyAllowance" value="${payrollPreview.familyAllowance}" />
+                    <c:set var="taxableIncome" value="${payrollPreview.taxableIncome}" />
                     <div class="summary-grid">
-                        <div class="summary-card"><div class="summary-label">Lương cơ bản</div><div class="summary-value blue"><fmt:formatNumber value="${p.baseSalary}" type="number" groupingUsed="true" />đ</div></div>
-                        <div class="summary-card"><div class="summary-label">Tổng thu nhập</div><div class="summary-value green"><fmt:formatNumber value="${p.grossSalary}" type="number" groupingUsed="true" />đ</div></div>
-                        <div class="summary-card"><div class="summary-label">Khấu trừ</div><div class="summary-value red"><fmt:formatNumber value="${totalDeduction}" type="number" groupingUsed="true" />đ</div></div>
-                        <div class="summary-card"><div class="summary-label">Thực lĩnh</div><div class="summary-value orange"><fmt:formatNumber value="${p.netSalary}" type="number" groupingUsed="true" />đ</div></div>
+                        <div class="summary-card"><div class="summary-label">Contract Salary (Base)</div><div class="summary-value blue"><fmt:formatNumber value="${p.baseSalary}" type="number" groupingUsed="true" /> VND</div></div>
+                        <div class="summary-card"><div class="summary-label">Gross Salary</div><div class="summary-value green"><fmt:formatNumber value="${p.grossSalary}" type="number" groupingUsed="true" /> VND</div></div>
+                        <div class="summary-card"><div class="summary-label">Total Deductions</div><div class="summary-value red"><fmt:formatNumber value="${totalDeduction}" type="number" groupingUsed="true" /> VND</div></div>
+                        <div class="summary-card"><div class="summary-label">Net Salary</div><div class="summary-value orange"><fmt:formatNumber value="${p.netSalary}" type="number" groupingUsed="true" /> VND</div></div>
                     </div>
 
                     <div class="summary-grid">
-                        <div class="summary-card"><div class="summary-label">Lương hợp đồng</div><div class="summary-value blue"><fmt:formatNumber value="${payrollPreview.contractSalary}" type="number" groupingUsed="true" />đ</div></div>
-                        <div class="summary-card"><div class="summary-label">Ngày công</div><div class="summary-value green">${p.workingDays}/${payrollPreview.standardWorkingDays}</div></div>
-                        <div class="summary-card"><div class="summary-label">OT được tính</div><div class="summary-value orange"><fmt:formatNumber value="${payrollPreview.overtimeHours}" type="number" maxFractionDigits="2" />h</div></div>
-                        <div class="summary-card"><div class="summary-label">Block phạt muộn</div><div class="summary-value red">${payrollPreview.latePenaltyBlocks} block</div></div>
+                        <div class="summary-card"><div class="summary-label">Allowances</div><div class="summary-value green"><fmt:formatNumber value="${p.allowance}" type="number" groupingUsed="true" /> VND</div></div>
+                        <div class="summary-card"><div class="summary-label">Overtime Pay</div><div class="summary-value orange"><fmt:formatNumber value="${p.overtimePay}" type="number" groupingUsed="true" /> VND</div></div>
+                        <div class="summary-card"><div class="summary-label">Bonuses</div><div class="summary-value green"><fmt:formatNumber value="${p.bonus}" type="number" groupingUsed="true" /> VND</div></div>
+                        <div class="summary-card"><div class="summary-label">Unpaid Deduction</div><div class="summary-value red"><fmt:formatNumber value="${p.unpaidDeduction}" type="number" groupingUsed="true" /> VND</div></div>
                     </div>
 
                     <div class="panel">
@@ -196,45 +195,75 @@
                             <div class="d-flex align-items-center gap-2 flex-wrap">
                                 <c:choose>
                                     <c:when test="${p.status == 1}">
-                                        <span class="status-badge status-paid">HR đã duyệt</span>
+                                        <span class="status-badge status-paid">HR approved</span>
                                     </c:when>
                                     <c:otherwise>
-                                        <span class="status-badge status-pending">Chờ duyệt</span>
+                                        <span class="status-badge status-pending">Pending approval</span>
                                     </c:otherwise>
                                 </c:choose>
                             </div>
                         </div>
+                        <h5 class="fw-bold mb-3">Payroll Calculation</h5>
                         <div class="table-responsive">
                             <table class="table align-middle">
-                                <thead><tr><th>Khoản mục</th><th>Ghi chú</th><th class="text-end">Số tiền</th></tr></thead>
+                                <thead><tr><th>Step</th><th>Meaning</th><th class="text-end">Amount</th></tr></thead>
                                 <tbody>
+                                    <tr class="table-light"><td colspan="3" class="fw-bold">Income</td></tr>
                                     <tr>
-                                        <td>Giảm trừ cá nhân</td>
-                                        <td class="text-muted">Khoản này chỉ dùng để tính thuế TNCN.</td>
-                                        <td class="text-end fw-bold text-primary">
-                                            <fmt:formatNumber value="${personalAllowance}" type="number" groupingUsed="true" />đ
-                                        </td>
+                                        <td>Contract Salary (Base)</td>
+                                        <td class="text-muted">Fixed salary from active contract.</td>
+                                        <td class="text-end fw-bold text-success"><fmt:formatNumber value="${p.baseSalary}" type="number" groupingUsed="true" /> VND</td>
                                     </tr>
                                     <tr>
-                                        <td>Thu nhập tính thuế</td>
-                                        <td class="text-muted">Nếu sau giảm trừ nhỏ hơn 0 thì tính là 0.</td>
-                                        <td class="text-end fw-bold">
-                                            <fmt:formatNumber value="${taxableIncome}" type="number" groupingUsed="true" />đ
-                                        </td>
+                                        <td>Allowances</td>
+                                        <td class="text-muted">Additional allowances.</td>
+                                        <td class="text-end fw-bold text-success">+<fmt:formatNumber value="${p.allowance}" type="number" groupingUsed="true" /> VND</td>
                                     </tr>
+                                    <tr>
+                                        <td>Overtime Pay</td>
+                                        <td class="text-muted">OT: ${payrollPreview.overtimeBlocks} blocks. Each block is ${payrollPreview.overtimeBlockMinutes} minutes, paid at <fmt:formatNumber value="${payrollPreview.overtimeWorkdayMultiplier}" type="number" maxFractionDigits="4" groupingUsed="false" />x hourly salary = <fmt:formatNumber value="${payrollPreview.overtimeBlockAmount}" type="number" groupingUsed="true" /> VND/block.</td>
+                                        <td class="text-end fw-bold text-success">+<fmt:formatNumber value="${p.overtimePay}" type="number" groupingUsed="true" /> VND</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Bonuses</td>
+                                        <td class="text-muted">Attendance bonus.</td>
+                                        <td class="text-end fw-bold text-success">+<fmt:formatNumber value="${p.bonus}" type="number" groupingUsed="true" /> VND</td>
+                                    </tr>
+                                    <tr class="table-success">
+                                        <td class="fw-bold">Gross Salary</td>
+                                        <td class="text-muted">Contract Salary + Allowances + Overtime Pay + Bonuses.</td>
+                                        <td class="text-end fw-bold"><fmt:formatNumber value="${p.grossSalary}" type="number" groupingUsed="true" /> VND</td>
+                                    </tr>
+                                    <tr class="table-light"><td colspan="3" class="fw-bold">Deductions</td></tr>
                                     <c:forEach var="d" items="${payrollPreview.details}">
-                                        <tr>
-                                            <td><c:out value="${d.name}" /></td>
-                                            <td class="text-muted"><c:out value="${d.note}" /></td>
-                                            <td class="text-end fw-bold ${d.info ? 'text-muted' : (d.companyCost ? 'text-primary' : (d.deduction ? 'text-danger' : 'text-success'))}">
-                                                <c:choose>
-                                                    <c:when test="${d.info}">Thông tin</c:when>
-                                                    <c:when test="${d.companyCost}"><fmt:formatNumber value="${d.amount}" type="number" groupingUsed="true" />đ</c:when>
-                                                    <c:otherwise>${d.deduction ? '-' : '+'}<fmt:formatNumber value="${d.amount}" type="number" groupingUsed="true" />đ</c:otherwise>
-                                                </c:choose>
-                                            </td>
-                                        </tr>
+                                        <c:if test="${d.deduction and d.code ne 'PERSONAL_INCOME_TAX' and d.code ne 'UNPAID_DEDUCTION'}">
+                                            <tr>
+                                                <td><c:out value="${d.name}" /></td>
+                                                <td class="text-muted"><c:out value="${d.note}" /></td>
+                                                <td class="text-end fw-bold text-danger">-<fmt:formatNumber value="${d.amount}" type="number" groupingUsed="true" /> VND</td>
+                                            </tr>
+                                        </c:if>
                                     </c:forEach>
+                                    <tr>
+                                        <td>Unpaid Deduction</td>
+                                        <td class="text-muted">Unpaid absence: ${payrollPreview.unauthorizedAbsentDays} days x <fmt:formatNumber value="${payrollPreview.dailyRate}" type="number" groupingUsed="true" /> VND; late arrival deduction: ${payrollPreview.lateDeductionBlocks} blocks (${payrollPreview.lateDeductionBlockMinutes} minutes/block) x <fmt:formatNumber value="${payrollPreview.lateDeductionBlockAmount}" type="number" groupingUsed="true" /> VND.</td>
+                                        <td class="text-end fw-bold text-danger">-<fmt:formatNumber value="${p.unpaidDeduction}" type="number" groupingUsed="true" /> VND</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Personal Income Tax</td>
+                                        <td class="text-muted">Taxable income after insurance, unpaid deduction, and family allowance. Family allowance: <fmt:formatNumber value="${familyAllowance}" type="number" groupingUsed="true" /> VND; taxable income: <fmt:formatNumber value="${taxableIncome}" type="number" groupingUsed="true" /> VND.</td>
+                                        <td class="text-end fw-bold text-danger">-<fmt:formatNumber value="${p.personalIncomeTax}" type="number" groupingUsed="true" /> VND</td>
+                                    </tr>
+                                    <tr class="table-danger">
+                                        <td class="fw-bold">Total Deductions</td>
+                                        <td class="text-muted">Insurance + unpaid deduction + personal income tax.</td>
+                                        <td class="text-end fw-bold">-<fmt:formatNumber value="${totalDeduction}" type="number" groupingUsed="true" /> VND</td>
+                                    </tr>
+                                    <tr class="table-warning">
+                                        <td class="fw-bold">Net Salary</td>
+                                        <td class="text-muted">Gross Salary - Total Deductions.</td>
+                                        <td class="text-end fw-bold"><fmt:formatNumber value="${p.netSalary}" type="number" groupingUsed="true" /> VND</td>
+                                    </tr>
                                 </tbody>
                             </table>
                         </div>
@@ -246,3 +275,10 @@
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     </body>
 </html>
+
+
+
+
+
+
+

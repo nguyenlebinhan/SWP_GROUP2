@@ -56,6 +56,27 @@ public class PayrollConfigDAO {
         return list;
     }
 
+    public List<PayrollSetting> getConfigurablePayrollSettings() {
+        List<PayrollSetting> list = new ArrayList<>();
+        String sql = "SELECT settingKey, settingValue, description FROM Payroll_Settings "
+                + "WHERE settingKey NOT IN ('WORK_START', 'WORK_END', 'WORK_START_MINUTES', 'WORK_END_MINUTES', 'WORK_BREAK_MINUTES') "
+                + "ORDER BY settingKey";
+        try (Connection conn = dbContext.getConnection();
+                PreparedStatement ps = conn.prepareStatement(sql);
+                ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) {
+                PayrollSetting s = new PayrollSetting();
+                s.setSettingKey(rs.getString("settingKey"));
+                s.setSettingValue(rs.getBigDecimal("settingValue"));
+                s.setDescription(rs.getNString("description"));
+                list.add(s);
+            }
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Cannot get configurable payroll settings", e);
+        }
+        return list;
+    }
+
     public boolean saveSetting(PayrollSetting setting) {
         String sql = "INSERT INTO Payroll_Settings (settingKey, settingValue, description) VALUES (?, ?, ?) "
                 + "ON DUPLICATE KEY UPDATE settingValue = VALUES(settingValue), description = VALUES(description), updatedAt = CURRENT_TIMESTAMP";
@@ -85,7 +106,7 @@ public class PayrollConfigDAO {
 
     public List<PayrollDeductionRule> getDeductionRules(boolean activeOnly) {
         List<PayrollDeductionRule> list = new ArrayList<>();
-        String sql = "SELECT ruleId, ruleCode, ruleName, ruleType, calculationType, baseType, rate, employerRate, fixedAmount, "
+        String sql = "SELECT ruleId, ruleCode, ruleName, ruleType, calculationType, rate, employerRate, fixedAmount, "
                 + "taxableDeduction, isActive FROM Payroll_Deduction_Rules "
                 + (activeOnly ? "WHERE isActive = 1 " : "")
                 + "ORDER BY ruleId";
@@ -102,7 +123,7 @@ public class PayrollConfigDAO {
     }
 
     public PayrollDeductionRule getDeductionRuleById(int ruleId) {
-        String sql = "SELECT ruleId, ruleCode, ruleName, ruleType, calculationType, baseType, rate, employerRate, fixedAmount, "
+        String sql = "SELECT ruleId, ruleCode, ruleName, ruleType, calculationType, rate, employerRate, fixedAmount, "
                 + "taxableDeduction, isActive FROM Payroll_Deduction_Rules WHERE ruleId = ?";
         try (Connection conn = dbContext.getConnection();
                 PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -118,8 +139,8 @@ public class PayrollConfigDAO {
 
     public int addDeductionRule(PayrollDeductionRule rule) {
         String sql = "INSERT INTO Payroll_Deduction_Rules "
-                + "(ruleCode, ruleName, ruleType, calculationType, baseType, rate, employerRate, fixedAmount, taxableDeduction, isActive) "
-                + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                + "(ruleCode, ruleName, ruleType, calculationType, rate, employerRate, fixedAmount, taxableDeduction, isActive) "
+                + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
         try (Connection conn = dbContext.getConnection();
                 PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             bindDeductionRule(ps, rule);
@@ -135,12 +156,12 @@ public class PayrollConfigDAO {
 
     public boolean updateDeductionRule(PayrollDeductionRule rule) {
         String sql = "UPDATE Payroll_Deduction_Rules SET ruleCode = ?, ruleName = ?, ruleType = ?, "
-                + "calculationType = ?, baseType = ?, rate = ?, employerRate = ?, fixedAmount = ?, taxableDeduction = ?, "
+                + "calculationType = ?, rate = ?, employerRate = ?, fixedAmount = ?, taxableDeduction = ?, "
                 + "isActive = ? WHERE ruleId = ?";
         try (Connection conn = dbContext.getConnection();
                 PreparedStatement ps = conn.prepareStatement(sql)) {
             bindDeductionRule(ps, rule);
-            ps.setInt(11, rule.getRuleId());
+            ps.setInt(10, rule.getRuleId());
             return ps.executeUpdate() > 0;
         } catch (SQLException e) {
             LOGGER.log(Level.SEVERE, "Cannot update payroll deduction rule", e);
@@ -230,12 +251,11 @@ public class PayrollConfigDAO {
         ps.setNString(2, r.getRuleName());
         ps.setString(3, r.getRuleType());
         ps.setString(4, r.getCalculationType());
-        ps.setString(5, r.getBaseType());
-        ps.setBigDecimal(6, r.getRate());
-        ps.setBigDecimal(7, r.getEmployerRate());
-        ps.setBigDecimal(8, r.getFixedAmount());
-        ps.setInt(9, r.isTaxableDeduction() ? 1 : 0);
-        ps.setInt(10, r.isActive() ? 1 : 0);
+        ps.setBigDecimal(5, r.getRate());
+        ps.setBigDecimal(6, r.getEmployerRate());
+        ps.setBigDecimal(7, r.getFixedAmount());
+        ps.setInt(8, r.isTaxableDeduction() ? 1 : 0);
+        ps.setInt(9, r.isActive() ? 1 : 0);
     }
 
     private PayrollDeductionRule mapDeductionRule(ResultSet rs) throws SQLException {
@@ -245,7 +265,6 @@ public class PayrollConfigDAO {
         r.setRuleName(rs.getNString("ruleName"));
         r.setRuleType(rs.getString("ruleType"));
         r.setCalculationType(rs.getString("calculationType"));
-        r.setBaseType(rs.getString("baseType"));
         r.setRate(rs.getBigDecimal("rate"));
         r.setEmployerRate(rs.getBigDecimal("employerRate"));
         r.setFixedAmount(rs.getBigDecimal("fixedAmount"));
