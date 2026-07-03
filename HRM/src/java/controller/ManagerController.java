@@ -47,6 +47,9 @@ import model.Employee;
 import model.EmploymentContract;
 import model.LeaveBalance;
 import model.Position;
+import model.PayrollDeductionRule;
+import model.PayrollSetting;
+import model.PayrollTaxBracket;
 import model.Role;
 import model.UploadedFile;
 import model.User;
@@ -55,6 +58,7 @@ import service.EmailService;
 import service.AttendanceImportService;
 import service.AttendanceClosingService;
 import service.PayrollService;
+import service.PayrollConfigWorkflowService;
 import service.EmploymentContractService;
 import dal.DBContext;
 import java.time.LocalTime;
@@ -90,6 +94,8 @@ public class ManagerController extends HttpServlet {
     private static final AttendanceImportService importService = new AttendanceImportService();
     private static final PayrollService payrollService = new PayrollService();
     private static final AttendanceClosingService attendanceClosingService = new AttendanceClosingService();
+    private static final PayrollConfigDAO payrollConfigDAO = new PayrollConfigDAO();
+    private static final PayrollConfigWorkflowService payrollConfigWorkflowService = new PayrollConfigWorkflowService();
     private static final String UPLOAD_DIR = "uploads";
     private static final String ATTENDANCE_FILE_PART = "attendanceFile";
 
@@ -195,6 +201,9 @@ public class ManagerController extends HttpServlet {
                 break;
             case "/salary/export":
                 exportSalary(request, response, user);
+                break;
+            case "/payroll-config":
+                displayPayrollConfig(request, response, user);
                 break;
             case "/forms/ot-requests":
                 displayOTRequests(request, response, user);
@@ -308,6 +317,18 @@ public class ManagerController extends HttpServlet {
                 break;
             case "/salary/approve-all":
                 handleApproveAllPayroll(request, response, user);
+                break;
+            case "/payroll-config/setting/save":
+                handleRequestPayrollSetting(request, response, user);
+                break;
+            case "/payroll-config/deduction/save":
+                handleRequestPayrollDeduction(request, response, user);
+                break;
+            case "/payroll-config/deduction/delete":
+                handleRequestPayrollDeductionDelete(request, response, user);
+                break;
+            case "/payroll-config/tax/save":
+                handleRequestPayrollTaxBracket(request, response, user);
                 break;
             case "/recruitment/review":
                 handleRecruitmentReview(request, response, user);
@@ -521,6 +542,47 @@ public class ManagerController extends HttpServlet {
         request.getRequestDispatcher("/public/manager/salary/own_salary.jsp").forward(request, response);
     }
 
+    private void displayPayrollConfig(HttpServletRequest request, HttpServletResponse response,
+            User user) throws ServletException, IOException {
+        if (!isHrStaff(user) || !hasPermission(user, "CONFIG_PAYROLL")) {
+            request.getSession().setAttribute("error", "Bạn không có quyền cấu hình payroll.");
+            response.sendRedirect(request.getContextPath() + "/v1/manager/dashboard");
+            return;
+        }
+        Set<String> perms = getPermissions(user);
+        request.getSession().setAttribute("userPermissions", perms);
+        setPermissionFlags(request, perms);
+
+        List<PayrollSetting> settings = payrollConfigDAO.getConfigurablePayrollSettings();
+        for (PayrollSetting setting : settings) {
+            setting.setDisplayValue(payrollConfigWorkflowService.displayPayrollSettingValue(setting));
+        }
+        request.setAttribute("settings", settings);
+        request.setAttribute("deductionRules", payrollConfigDAO.getDeductionRules(false));
+        request.setAttribute("taxBrackets", payrollConfigDAO.getTaxBrackets(false));
+        request.setAttribute("payrollConfigBaseUrl", request.getContextPath() + "/v1/manager/payroll-config");
+        request.setAttribute("canEditPayrollConfig", true);
+        request.setAttribute("canApprovePayrollConfig", false);
+        request.setAttribute("sidebarPath", "/public/components/managerSideBar.jsp");
+        request.setAttribute("topbarPath", "/public/components/managerTopBar.jsp");
+        request.setAttribute("pendingRequests", payrollConfigWorkflowService.getPendingRequests());
+        request.setAttribute("changeHistory", payrollConfigWorkflowService.getRecentHistory());
+        HttpSession session = request.getSession(false);
+        if (session != null) {
+            String success = (String) session.getAttribute("payrollConfigSuccess");
+            String error = (String) session.getAttribute("payrollConfigError");
+            if (success != null) {
+                request.setAttribute("success", success);
+                session.removeAttribute("payrollConfigSuccess");
+            }
+            if (error != null) {
+                request.setAttribute("error", error);
+                session.removeAttribute("payrollConfigError");
+            }
+        }
+        request.getRequestDispatcher("/public/manager/salary/payroll_config.jsp").forward(request, response);
+    }
+
     private void displayAllSalary(HttpServletRequest request, HttpServletResponse response,
             User user) throws ServletException, IOException {
         Set<String> perms = getPermissions(user);
@@ -535,6 +597,9 @@ public class ManagerController extends HttpServlet {
 
         int[] period = parseSalaryPeriod(request);
         Integer departmentId = parseIntOrNull(request.getParameter("departmentId"));
+        boolean attendanceLocked = departmentId == null
+                ? attendanceClosingService.isPeriodLocked(period[0], period[1])
+                : attendanceClosingService.isDepartmentLocked(period[0], period[1], departmentId);
         List<PayrollPreviewDTO> payrollPreviews = payrollService.getAllPayrollForHr(user, period[0], period[1], departmentId);
         if (payrollPreviews.isEmpty()) {
             request.setAttribute("salaryError", buildSalaryPeriodMessage(period[0], period[1]));
@@ -544,6 +609,7 @@ public class ManagerController extends HttpServlet {
         request.setAttribute("selectedMonth", period[1]);
         request.setAttribute("selectedDepartmentId", departmentId);
         request.setAttribute("departments", departmentDAO.getAllActiveDepartments());
+        request.setAttribute("attendanceLocked", attendanceLocked);
         request.setAttribute("canExportPayroll", payrollService.canExportPayroll(user));
         boolean canApproveAll = payrollService.canApprovePayroll(user);
         request.setAttribute("canApprovePayroll", canApproveAll);
@@ -584,6 +650,17 @@ public class ManagerController extends HttpServlet {
         }
         int[] period = parseSalaryPeriod(request);
         Integer departmentId = parseIntOrNull(request.getParameter("departmentId"));
+        boolean attendanceLocked = departmentId == null
+                ? attendanceClosingService.isPeriodLocked(period[0], period[1])
+                : attendanceClosingService.isDepartmentLocked(period[0], period[1], departmentId);
+        if (!attendanceLocked) {
+            request.getSession().setAttribute("error",
+                    "Bảng chấm công kỳ này chưa được BA chốt. Chưa thể xuất bảng lương.");
+            response.sendRedirect(request.getContextPath() + "/v1/manager/salary/all?month=" + period[1]
+                    + "&year=" + period[0]
+                    + (departmentId == null ? "" : "&departmentId=" + departmentId));
+            return;
+        }
         response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
         response.setHeader("Content-Disposition", "attachment; filename=payroll_"
                 + String.format("%04d_%02d", period[0], period[1]) + ".xlsx");
@@ -647,6 +724,106 @@ public class ManagerController extends HttpServlet {
         response.sendRedirect(request.getContextPath() + "/v1/manager/salary/all?month=" + period[1]
                 + "&year=" + period[0]
                 + (departmentId == null ? "" : "&departmentId=" + departmentId));
+    }
+
+    private void handleRequestPayrollSetting(HttpServletRequest request, HttpServletResponse response,
+            User user) throws IOException {
+        String redirect = request.getContextPath() + "/v1/manager/payroll-config";
+        if (!isHrStaff(user) || !hasPermission(user, "CONFIG_PAYROLL")) {
+            request.getSession().setAttribute("payrollConfigError", "Bạn không có quyền cấu hình payroll.");
+            response.sendRedirect(redirect);
+            return;
+        }
+        PayrollSetting setting = payrollConfigWorkflowService.buildSetting(
+                request.getParameter("settingKey"),
+                request.getParameter("settingValue"),
+                request.getParameter("description"));
+        String error = payrollConfigWorkflowService.validatePayrollSetting(setting);
+        if (error != null) {
+            request.getSession().setAttribute("payrollConfigError", error);
+            response.sendRedirect(redirect);
+            return;
+        }
+        int requestId = payrollConfigWorkflowService.requestSettingChange(setting, user);
+        request.getSession().setAttribute(requestId > 0 ? "payrollConfigSuccess" : "payrollConfigError",
+                requestId > 0 ? "Đã gửi yêu cầu thay đổi tham số payroll chờ Business Admin duyệt."
+                        : "Không thể gửi yêu cầu thay đổi tham số payroll.");
+        response.sendRedirect(redirect);
+    }
+
+    private void handleRequestPayrollDeduction(HttpServletRequest request, HttpServletResponse response,
+            User user) throws IOException {
+        String redirect = request.getContextPath() + "/v1/manager/payroll-config";
+        if (!isHrStaff(user) || !hasPermission(user, "CONFIG_PAYROLL")) {
+            request.getSession().setAttribute("payrollConfigError", "Bạn không có quyền cấu hình payroll.");
+            response.sendRedirect(redirect);
+            return;
+        }
+        PayrollDeductionRule rule = payrollConfigWorkflowService.buildDeductionRule(
+                request.getParameter("ruleId"),
+                request.getParameter("ruleCode"),
+                request.getParameter("ruleName"),
+                request.getParameter("ruleType"),
+                request.getParameter("employerRate"),
+                request.getParameter("employeeRate"));
+        String error = payrollConfigWorkflowService.validateDeductionRule(rule);
+        if (error != null) {
+            request.getSession().setAttribute("payrollConfigError", error);
+            response.sendRedirect(redirect);
+            return;
+        }
+        int requestId = payrollConfigWorkflowService.requestDeductionSave(rule, user);
+        request.getSession().setAttribute(requestId > 0 ? "payrollConfigSuccess" : "payrollConfigError",
+                requestId > 0 ? "Đã gửi yêu cầu thay đổi khoản khấu trừ chờ Business Admin duyệt."
+                        : "Không thể gửi yêu cầu thay đổi khoản khấu trừ.");
+        response.sendRedirect(redirect);
+    }
+
+    private void handleRequestPayrollDeductionDelete(HttpServletRequest request, HttpServletResponse response,
+            User user) throws IOException {
+        String redirect = request.getContextPath() + "/v1/manager/payroll-config";
+        if (!isHrStaff(user) || !hasPermission(user, "CONFIG_PAYROLL")) {
+            request.getSession().setAttribute("payrollConfigError", "Bạn không có quyền cấu hình payroll.");
+            response.sendRedirect(redirect);
+            return;
+        }
+        Integer ruleId = parseIntOrNull(request.getParameter("ruleId"));
+        if (ruleId == null) {
+            request.getSession().setAttribute("payrollConfigError", "Thiếu khoản khấu trừ cần xóa.");
+            response.sendRedirect(redirect);
+            return;
+        }
+        int requestId = payrollConfigWorkflowService.requestDeductionDelete(ruleId, user);
+        request.getSession().setAttribute(requestId > 0 ? "payrollConfigSuccess" : "payrollConfigError",
+                requestId > 0 ? "Đã gửi yêu cầu xóa khoản khấu trừ chờ Business Admin duyệt."
+                        : "Không thể gửi yêu cầu xóa khoản khấu trừ.");
+        response.sendRedirect(redirect);
+    }
+
+    private void handleRequestPayrollTaxBracket(HttpServletRequest request, HttpServletResponse response,
+            User user) throws IOException {
+        String redirect = request.getContextPath() + "/v1/manager/payroll-config";
+        if (!isHrStaff(user) || !hasPermission(user, "CONFIG_PAYROLL")) {
+            request.getSession().setAttribute("payrollConfigError", "Bạn không có quyền cấu hình payroll.");
+            response.sendRedirect(redirect);
+            return;
+        }
+        List<PayrollTaxBracket> brackets = payrollConfigWorkflowService.buildTaxBrackets(
+                request.getParameterValues("bracketId"),
+                request.getParameterValues("minIncome"),
+                request.getParameterValues("maxIncome"),
+                request.getParameterValues("taxRate"));
+        String error = payrollConfigWorkflowService.validateTaxBrackets(brackets);
+        if (error != null) {
+            request.getSession().setAttribute("payrollConfigError", error);
+            response.sendRedirect(redirect);
+            return;
+        }
+        int requestId = payrollConfigWorkflowService.requestTaxBracketSave(brackets, user);
+        request.getSession().setAttribute(requestId > 0 ? "payrollConfigSuccess" : "payrollConfigError",
+                requestId > 0 ? "Đã gửi yêu cầu thay đổi bậc thuế chờ Business Admin duyệt."
+                        : "Không thể gửi yêu cầu thay đổi bậc thuế.");
+        response.sendRedirect(redirect);
     }
 
     private void handleConfirmDeptAttendance(HttpServletRequest request, HttpServletResponse response,
@@ -1554,6 +1731,23 @@ public class ManagerController extends HttpServlet {
             return;
         }
 
+        int dependentCount = current.getDependentCount();
+        String dependentCountParam = request.getParameter("dependentCount");
+        if (dependentCountParam != null && !dependentCountParam.trim().isEmpty()) {
+            try {
+                dependentCount = Integer.parseInt(dependentCountParam.trim());
+            } catch (NumberFormatException e) {
+                request.getSession().setAttribute("error", "So nguoi phu thuoc khong hop le.");
+                response.sendRedirect(request.getContextPath() + "/v1/manager/employee/update?id=" + employeeId);
+                return;
+            }
+        }
+        if (dependentCount < 0) {
+            request.getSession().setAttribute("error", "So nguoi phu thuoc khong duoc am.");
+            response.sendRedirect(request.getContextPath() + "/v1/manager/employee/update?id=" + employeeId);
+            return;
+        }
+
         int departmentId = current.getDepartmentId();
         int positionId = current.getPositionId();
         int userRoleId = userDAO.getRoleIdByUserId(current.getUserId());
@@ -1569,6 +1763,8 @@ public class ManagerController extends HttpServlet {
         emp.setPositionId(positionId);
         emp.setStatus(status);
         emp.setManagerId(current.getManagerId());
+        emp.setDependentCount(dependentCount);
+        emp.setUnionMember(request.getParameter("unionMember") != null);
         emp.setPhoneNumber(trimToNull(request.getParameter("phoneNumber")));
         emp.setSkills(trimToNull(request.getParameter("skills")));
         emp.setExperience(trimToNull(request.getParameter("experience")));
@@ -3091,16 +3287,17 @@ public class ManagerController extends HttpServlet {
     }
 
     private int[] parseSalaryPeriod(HttpServletRequest request) {
-        java.time.LocalDate now = java.time.LocalDate.now();
+        java.time.YearMonth latestClosedPeriod = java.time.YearMonth.now().minusMonths(1);
         Integer year = parseIntOrNull(request.getParameter("year"));
         Integer month = parseIntOrNull(request.getParameter("month"));
-        if (year == null || year < 2000) {
-            year = now.getYear();
+        if (year == null || year < 2000 || month == null || month < 1 || month > 12) {
+            return new int[]{latestClosedPeriod.getYear(), latestClosedPeriod.getMonthValue()};
         }
-        if (month == null || month < 1 || month > 12) {
-            month = now.getMonthValue();
+        java.time.YearMonth selected = java.time.YearMonth.of(year, month);
+        if (selected.isAfter(latestClosedPeriod)) {
+            selected = latestClosedPeriod;
         }
-        return new int[]{year, month};
+        return new int[]{selected.getYear(), selected.getMonthValue()};
     }
 
     private String buildSalaryPeriodMessage(int year, int month) {

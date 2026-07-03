@@ -186,6 +186,14 @@
                                     <span class="info-label">Số điện thoại</span>
                                     <span class="info-value"><c:out value="${empty employee.phoneNumber ? '-' : employee.phoneNumber}"/></span>
                                 </div>
+                                <div class="info-item">
+                                    <span class="info-label">So nguoi phu thuoc</span>
+                                    <span class="info-value"><c:out value="${employee.dependentCount}"/></span>
+                                </div>
+                                <div class="info-item">
+                                    <span class="info-label">Thành viên công đoàn</span>
+                                    <span class="info-value">${employee.unionMember ? 'Có' : 'Không'}</span>
+                                </div>
                             </div>
                         </div>
 

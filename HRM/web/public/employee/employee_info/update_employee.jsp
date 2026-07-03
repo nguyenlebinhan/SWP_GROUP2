@@ -55,6 +55,17 @@
                     <input type="text" name="phoneNumber" class="form-control" value="<c:out value='${employee.phoneNumber}'/>">
                 </div>
                 <div class="col-md-6">
+                    <label class="form-label">So nguoi phu thuoc</label>
+                    <input type="number" name="dependentCount" class="form-control" min="0" step="1" value="${employee.dependentCount}">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Thành viên công đoàn</label>
+                    <div class="form-check mt-2">
+                        <input class="form-check-input" type="checkbox" name="unionMember" id="unionMember" ${employee.unionMember ? 'checked' : ''}>
+                        <label class="form-check-label" for="unionMember">Có tham gia công đoàn</label>
+                    </div>
+                </div>
+                <div class="col-md-6">
                     <label class="form-label">Kỹ năng</label>
                     <textarea name="skills" class="form-control" rows="3"><c:out value="${employee.skills}"/></textarea>
                 </div>
