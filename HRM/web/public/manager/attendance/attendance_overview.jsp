@@ -36,6 +36,21 @@
         <jsp:param name="title" value="Tổng quan chấm công" />
     </jsp:include>
 
+    <c:if test="${not empty sessionScope.success}">
+        <div class="alert alert-success alert-dismissible fade show">
+            <i class="fa-solid fa-circle-check me-2"></i>${sessionScope.success}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        <c:remove var="success" scope="session" />
+    </c:if>
+    <c:if test="${not empty sessionScope.error}">
+        <div class="alert alert-danger alert-dismissible fade show">
+            <i class="fa-solid fa-circle-xmark me-2"></i>${sessionScope.error}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        <c:remove var="error" scope="session" />
+    </c:if>
+
     <c:if test="${not empty error}">
         <div class="alert alert-danger alert-dismissible fade show">
             <i class="fa-solid fa-circle-xmark me-2"></i>${error}
@@ -105,6 +120,54 @@
             </div>
         </form>
     </div>
+
+    <%-- Quy trình chốt bảng chấm công --%>
+    <c:if test="${closingHasData}">
+    <div class="section-card">
+        <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+            <h5 class="mb-0">
+                <i class="fa-solid fa-lock me-2"></i>Quy trình chốt bảng chấm công — Tháng ${selectedMonth}/${selectedYear}
+            </h5>
+            <div class="d-flex gap-2 flex-wrap">
+                <c:if test="${canManagerConfirm}">
+                    <form method="post" action="${pageContext.request.contextPath}/v1/manager/attendance/confirm"
+                          onsubmit="return confirm('Xác nhận chốt bảng chấm công của phòng? Sau khi chốt sẽ không sửa được nữa.');">
+                        <input type="hidden" name="month" value="${selectedMonth}">
+                        <input type="hidden" name="year" value="${selectedYear}">
+                        <input type="hidden" name="departmentId" value="${closingDepartmentId}">
+                        <button class="btn btn-warning"><i class="fa-solid fa-check me-1"></i>Chốt bảng chấm công phòng</button>
+                    </form>
+                </c:if>
+                <c:if test="${closingConfirmed}">
+                    <span class="badge bg-success align-self-center p-2">
+                        <i class="fa-solid fa-circle-check me-1"></i>Phòng đã chốt
+                    </span>
+                </c:if>
+            </div>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-sm align-middle mb-0">
+                <thead><tr><th>Phòng ban</th><th>Trạng thái chốt</th></tr></thead>
+                <tbody>
+                    <c:forEach var="p" items="${closingPeriods}">
+                        <tr>
+                            <td>${p.departmentName}</td>
+                            <td>
+                                <c:choose>
+                                    <c:when test="${p.status == 0}"><span class="badge bg-secondary">${p.statusLabel}</span></c:when>
+                                    <c:when test="${p.status == 1}"><span class="badge bg-warning text-dark">${p.statusLabel}</span></c:when>
+                                    <c:when test="${p.status == 2}"><span class="badge bg-info text-dark">${p.statusLabel}</span></c:when>
+                                    <c:when test="${p.status == 3}"><span class="badge bg-primary">${p.statusLabel}</span></c:when>
+                                    <c:otherwise><span class="badge bg-success">${p.statusLabel}</span></c:otherwise>
+                                </c:choose>
+                            </td>
+                        </tr>
+                    </c:forEach>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    </c:if>
 
     <%-- KPI tổng hợp --%>
     <c:set var="totWorked" value="0" />

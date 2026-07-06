@@ -38,6 +38,21 @@
         <jsp:param name="title" value="Tổng quan chấm công" />
     </jsp:include>
 
+    <c:if test="${not empty sessionScope.success}">
+        <div class="alert alert-success alert-dismissible fade show">
+            <i class="fa-solid fa-circle-check me-2"></i>${sessionScope.success}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        <c:remove var="success" scope="session" />
+    </c:if>
+    <c:if test="${not empty sessionScope.error}">
+        <div class="alert alert-danger alert-dismissible fade show">
+            <i class="fa-solid fa-circle-xmark me-2"></i>${sessionScope.error}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        <c:remove var="error" scope="session" />
+    </c:if>
+
     <c:if test="${not empty error}">
         <div class="alert alert-danger alert-dismissible fade show">
             <i class="fa-solid fa-circle-xmark me-2"></i>${error}
@@ -107,6 +122,67 @@
             </div>
         </form>
     </div>
+
+    <%-- Panel quy trình chốt bảng chấm công --%>
+    <c:if test="${closingHasData}">
+    <div class="section-card">
+        <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+            <h5 class="mb-0">
+                <i class="fa-solid fa-lock me-2"></i>Quy trình chốt bảng chấm công — Tháng ${selectedMonth}/${selectedYear}
+            </h5>
+            <div class="d-flex gap-2 flex-wrap">
+                <c:if test="${closingCanOpen}">
+                    <form method="post" action="${pageContext.request.contextPath}/v1/employee/attendance/close-period"
+                          onsubmit="return confirm('Đóng kỳ và gửi bảng chấm công cho trưởng các phòng ban để chốt?');">
+                        <input type="hidden" name="month" value="${selectedMonth}">
+                        <input type="hidden" name="year" value="${selectedYear}">
+                        <button class="btn btn-warning"><i class="fa-solid fa-paper-plane me-1"></i>Đóng kỳ &amp; gửi trưởng phòng</button>
+                    </form>
+                </c:if>
+                <c:if test="${closingCanSubmitBa}">
+                    <form method="post" action="${pageContext.request.contextPath}/v1/employee/attendance/submit-ba"
+                          onsubmit="return confirm('Toàn bộ phòng ban đã chốt. Gửi bảng chấm công lên BA duyệt cuối?');">
+                        <input type="hidden" name="month" value="${selectedMonth}">
+                        <input type="hidden" name="year" value="${selectedYear}">
+                        <button class="btn btn-primary"><i class="fa-solid fa-share me-1"></i>Gửi lên BA chốt</button>
+                    </form>
+                </c:if>
+                <c:if test="${closingSubmittedToBa}">
+                    <span class="badge bg-info text-dark align-self-center p-2">
+                        <i class="fa-solid fa-hourglass-half me-1"></i>Đang chờ BA chốt
+                    </span>
+                </c:if>
+                <c:if test="${closingLocked}">
+                    <span class="badge bg-success align-self-center p-2">
+                        <i class="fa-solid fa-circle-check me-1"></i>Đã chốt — được tính lương
+                    </span>
+                </c:if>
+            </div>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-sm align-middle mb-0">
+                <thead><tr><th>Phòng ban</th><th>Trạng thái chốt</th></tr></thead>
+                <tbody>
+                    <c:forEach var="p" items="${closingPeriods}">
+                        <tr>
+                            <td>${p.departmentName}</td>
+                            <td>
+                                <c:choose>
+                                    <c:when test="${p.status == 0}"><span class="badge bg-secondary">${p.statusLabel}</span></c:when>
+                                    <c:when test="${p.status == 1}"><span class="badge bg-warning text-dark">${p.statusLabel}</span></c:when>
+                                    <c:when test="${p.status == 2}"><span class="badge bg-info text-dark">${p.statusLabel}</span></c:when>
+                                    <c:when test="${p.status == 3}"><span class="badge bg-primary">${p.statusLabel}</span></c:when>
+                                    <c:otherwise><span class="badge bg-success">${p.statusLabel}</span></c:otherwise>
+                                </c:choose>
+                            </td>
+                        </tr>
+                    </c:forEach>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    </c:if>
+
     <c:set var="totWorked" value="0" />
     <c:set var="totRate" value="0" />
     <c:set var="empCount" value="${fn:length(summaries)}" />

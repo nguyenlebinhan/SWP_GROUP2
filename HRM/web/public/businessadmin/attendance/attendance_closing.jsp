@@ -5,7 +5,7 @@
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <title>Tổng quan chấm công - HRM</title>
+    <title>Chốt bảng chấm công - HRM</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
     <style>
@@ -33,8 +33,23 @@
 
 <div class="main">
     <jsp:include page="${topbarPath}">
-        <jsp:param name="title" value="Tổng quan chấm công" />
+        <jsp:param name="title" value="Chốt bảng chấm công" />
     </jsp:include>
+
+    <c:if test="${not empty sessionScope.success}">
+        <div class="alert alert-success alert-dismissible fade show">
+            <i class="fa-solid fa-circle-check me-2"></i>${sessionScope.success}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        <c:remove var="success" scope="session" />
+    </c:if>
+    <c:if test="${not empty sessionScope.error}">
+        <div class="alert alert-danger alert-dismissible fade show">
+            <i class="fa-solid fa-circle-xmark me-2"></i>${sessionScope.error}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        <c:remove var="error" scope="session" />
+    </c:if>
 
     <c:if test="${not empty error}">
         <div class="alert alert-danger alert-dismissible fade show">
@@ -46,33 +61,14 @@
     <c:if test="${empty error}">
     <c:set var="deptParam" value="${empty selectedDepartmentId ? 0 : selectedDepartmentId}" />
 
-    <%-- Bộ lọc + Export --%>
+    <%-- Bộ lọc --%>
     <div class="section-card">
         <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
             <h5 class="mb-0">
-                <c:choose>
-                    <c:when test="${canViewAll}">
-                        Phạm vi: <strong class="text-primary">${empty selectedDepartmentId ? 'Toàn công ty' : departmentName}</strong>
-                    </c:when>
-                    <c:otherwise>
-                        Phòng ban: <strong class="text-primary">${departmentName}</strong>
-                    </c:otherwise>
-                </c:choose>
+                Phạm vi: <strong class="text-primary">${empty selectedDepartmentId ? 'Toàn công ty' : departmentName}</strong>
             </h5>
-            <div class="d-flex gap-2 flex-wrap">
-                <c:if test="${sessionScope.userPermissions.contains('IMPORT_ATTENDANCE')}">
-                    <a class="btn btn-primary"
-                       href="${pageContext.request.contextPath}/v1/employee/attendance/import">
-                        <i class="fa-solid fa-file-import me-1"></i> Import chấm công
-                    </a>
-                </c:if>
-                <a class="btn btn-success"
-                   href="${baseUrl}/export?month=${selectedMonth}&year=${selectedYear}<c:if test="${canViewAll}">&departmentId=${deptParam}</c:if>">
-                    <i class="fa-solid fa-file-excel me-1"></i> Export Attendance Report
-                </a>
-            </div>
         </div>
-        <form method="get" action="${baseUrl}/overview" class="row g-3 align-items-end">
+        <form method="get" action="${pageContext.request.contextPath}/v1/businessadmin/attendance/closing" class="row g-3 align-items-end">
             <div class="col-md-3">
                 <label class="form-label">Tháng</label>
                 <select name="month" class="form-select">
@@ -89,22 +85,69 @@
                     </c:forEach>
                 </select>
             </div>
-            <c:if test="${canViewAll}">
-                <div class="col-md-4">
-                    <label class="form-label">Phòng ban</label>
-                    <select name="departmentId" class="form-select">
-                        <option value="0" ${empty selectedDepartmentId ? 'selected' : ''}>Toàn công ty</option>
-                        <c:forEach var="d" items="${departments}">
-                            <option value="${d.departmentId}" ${selectedDepartmentId == d.departmentId ? 'selected' : ''}>${d.departmentName}</option>
-                        </c:forEach>
-                    </select>
-                </div>
-            </c:if>
+            <div class="col-md-4">
+                <label class="form-label">Phòng ban</label>
+                <select name="departmentId" class="form-select">
+                    <option value="0" ${empty selectedDepartmentId ? 'selected' : ''}>Toàn công ty</option>
+                    <c:forEach var="d" items="${departments}">
+                        <option value="${d.departmentId}" ${selectedDepartmentId == d.departmentId ? 'selected' : ''}>${d.departmentName}</option>
+                    </c:forEach>
+                </select>
+            </div>
             <div class="col-md-2">
                 <button type="submit" class="btn btn-primary w-100"><i class="fa-solid fa-filter me-1"></i> Lọc</button>
             </div>
         </form>
     </div>
+
+    <%-- Quy trình chốt bảng chấm công --%>
+    <c:if test="${closingHasData}">
+    <div class="section-card">
+        <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+            <h5 class="mb-0">
+                <i class="fa-solid fa-lock me-2"></i>Quy trình chốt bảng chấm công — Tháng ${selectedMonth}/${selectedYear}
+            </h5>
+            <div class="d-flex gap-2 flex-wrap">
+                <c:if test="${closingCanApprove}">
+                    <form method="post" action="${pageContext.request.contextPath}/v1/businessadmin/attendance/approve"
+                          onsubmit="return confirm('Chốt cuối cùng toàn bộ bảng chấm công kỳ này? Sau khi chốt HR sẽ được tính lương và không thể sửa chấm công.');">
+                        <input type="hidden" name="month" value="${selectedMonth}">
+                        <input type="hidden" name="year" value="${selectedYear}">
+                        <button class="btn btn-success"><i class="fa-solid fa-circle-check me-1"></i>Chốt cuối cùng</button>
+                    </form>
+                </c:if>
+                <c:if test="${closingLocked}">
+                    <span class="badge bg-success align-self-center p-2"><i class="fa-solid fa-check me-1"></i>Đã chốt</span>
+                </c:if>
+            </div>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-sm align-middle mb-0">
+                <thead><tr><th>Phòng ban</th><th>Trạng thái chốt</th></tr></thead>
+                <tbody>
+                    <c:forEach var="p" items="${closingPeriods}">
+                        <tr>
+                            <td>${p.departmentName}</td>
+                            <td>
+                                <c:choose>
+                                    <c:when test="${p.status == 0}"><span class="badge bg-secondary">${p.statusLabel}</span></c:when>
+                                    <c:when test="${p.status == 1}"><span class="badge bg-warning text-dark">${p.statusLabel}</span></c:when>
+                                    <c:when test="${p.status == 2}"><span class="badge bg-info text-dark">${p.statusLabel}</span></c:when>
+                                    <c:when test="${p.status == 3}"><span class="badge bg-primary">${p.statusLabel}</span></c:when>
+                                    <c:otherwise><span class="badge bg-success">${p.statusLabel}</span></c:otherwise>
+                                </c:choose>
+                            </td>
+                        </tr>
+                    </c:forEach>
+                </tbody>
+            </table>
+        </div>
+        <c:if test="${not closingCanApprove and not closingLocked}">
+            <p class="text-muted mt-3 mb-0"><i class="fa-solid fa-circle-info me-1"></i>
+                Chỉ có thể chốt cuối khi HR đã gửi lên và tất cả phòng ban ở trạng thái "Đã gửi BA duyệt".</p>
+        </c:if>
+    </div>
+    </c:if>
 
     <%-- KPI tổng hợp --%>
     <c:set var="totWorked" value="0" />
@@ -131,7 +174,7 @@
                     <tr>
                         <th>Mã NV</th>
                         <th>Họ tên</th>
-                        <c:if test="${canViewAll}"><th>Phòng ban</th></c:if>
+                        <th>Phòng ban</th>
                         <th>Vị trí</th>
                         <th class="text-center">Giờ làm / chuẩn</th>
                         <th class="text-center" title="Đúng giờ">P</th>
@@ -149,7 +192,7 @@
                         <tr>
                             <td><strong>${s.employeeCode}</strong></td>
                             <td>${s.fullName}</td>
-                            <c:if test="${canViewAll}"><td>${s.departmentName}</td></c:if>
+                            <td>${s.departmentName}</td>
                             <td>${s.positionName}</td>
                             <td class="text-center">${s.workedHoursRounded}h / ${s.standardHours}h</td>
                             <td class="text-center"><span class="cnt badge-s0">${s.presentDays}</span></td>
@@ -169,21 +212,21 @@
                             </td>
                             <td class="text-center">
                                 <a class="btn btn-sm btn-outline-primary"
-                                   href="${baseUrl}/detail?employeeId=${s.employeeId}&month=${selectedMonth}&year=${selectedYear}<c:if test="${canViewAll}">&departmentId=${deptParam}</c:if>">
+                                   href="${baseUrl}/detail?employeeId=${s.employeeId}&month=${selectedMonth}&year=${selectedYear}&departmentId=${deptParam}">
                                     <i class="fa-solid fa-eye me-1"></i>Chi tiết
                                 </a>
                             </td>
                         </tr>
                     </c:forEach>
                     <c:if test="${empty pagedSummaries}">
-                        <tr><td colspan="${canViewAll ? 13 : 12}" class="text-center text-muted py-4">Không có dữ liệu nhân viên.</td></tr>
+                        <tr><td colspan="13" class="text-center text-muted py-4">Không có dữ liệu nhân viên.</td></tr>
                     </c:if>
                 </tbody>
             </table>
         </div>
 
         <c:if test="${totalPages > 1}">
-            <c:set var="pageBase" value="${baseUrl}/overview?month=${selectedMonth}&year=${selectedYear}&departmentId=${deptParam}" />
+            <c:set var="pageBase" value="${baseUrl}/closing?month=${selectedMonth}&year=${selectedYear}&departmentId=${deptParam}" />
             <nav class="mt-3">
                 <ul class="pagination justify-content-center mb-0">
                     <li class="page-item ${currentPage == 1 ? 'disabled' : ''}">

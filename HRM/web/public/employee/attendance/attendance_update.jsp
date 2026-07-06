@@ -81,7 +81,7 @@
                 </div>
                 <div class="col-md-6">
                     <label class="form-label">Giờ ra</label>
-                    <input type="time" name="timeOut" class="form-control" value="${attendance.timeOut}" ${editLocked ? 'disabled' : ''}>
+                    <input type="time" name="timeOut" class="form-control" value="${attendance.timeOut}" ${editLocked ? 'disabled' : ''} >
                 </div>
                 <div class="col-md-6">
                     <label class="form-label">Số giờ làm</label>

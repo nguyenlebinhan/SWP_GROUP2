@@ -10,6 +10,7 @@
             <file>file:/C:/Users/ADMIN/Desktop/SWP_GROUP2/HRM/src/java/dao/UploadedFileDAO.java</file>
             <file>file:/C:/Users/ADMIN/Desktop/SWP_GROUP2/HRM/src/java/utils/AttendanceExcelExporter.java</file>
             <file>file:/C:/Users/ADMIN/Desktop/SWP_GROUP2/HRM/web/public/systemadmin/dashboard.jsp</file>
+            <file>file:/C:/Users/ADMIN/Desktop/SWP_GROUP2/HRM/web/public/components/businessAdminSideBar.jsp</file>
             <file>file:/C:/Users/ADMIN/Desktop/SWP_GROUP2/HRM/web/public/manager/forms/dept_form_list.jsp</file>
             <file>file:/C:/Users/ADMIN/Desktop/SWP_GROUP2/HRM/src/java/dao/OvertimeDAO.java</file>
             <file>file:/C:/Users/ADMIN/Desktop/SWP_GROUP2/HRM/src/java/dao/UserDAO.java</file>
@@ -31,6 +32,7 @@
             <file>file:/C:/Users/ADMIN/Desktop/SWP_GROUP2/HRM/src/java/dao/HolidayDAO.java</file>
             <file>file:/C:/Users/ADMIN/Desktop/SWP_GROUP2/HRM/web/public/employee/forms/all_form_list.jsp</file>
             <file>file:/C:/Users/ADMIN/Desktop/SWP_GROUP2/HRM/web/public/businessadmin/holiday/holiday_form.jsp</file>
+            <file>file:/C:/Users/ADMIN/Desktop/SWP_GROUP2/HRM/web/public/businessadmin/attendance/attendance_closing.jsp</file>
             <file>file:/C:/Users/ADMIN/Desktop/SWP_GROUP2/HRM/src/java/service/AttendanceService.java</file>
             <file>file:/C:/Users/ADMIN/Desktop/SWP_GROUP2/HRM/src/java/model/FormRequest.java</file>
             <file>file:/C:/Users/ADMIN/Desktop/SWP_GROUP2/HRM/web/public/employee/attendance/attendance_import.jsp</file>
@@ -54,6 +56,7 @@
             <file>file:/C:/Users/ADMIN/Desktop/SWP_GROUP2/HRM/src/java/dao/FormRequestDAO.java</file>
             <file>file:/C:/Users/ADMIN/Desktop/SWP_GROUP2/HRM/web/public/manager/forms/ot_create.jsp</file>
             <file>file:/C:/Users/ADMIN/Desktop/SWP_GROUP2/HRM/web/public/businessadmin/overtime/form_requests.jsp</file>
+            <file>file:/C:/Users/ADMIN/Desktop/SWP_GROUP2/HRM/web/public/businessadmin/attendance/attendance_detail.jsp</file>
             <file>file:/C:/Users/ADMIN/Desktop/SWP_GROUP2/HRM/src/java/dao/AttendanceDAO.java</file>
             <file>file:/C:/Users/ADMIN/Desktop/SWP_GROUP2/HRM/src/java/service/EmailService.java</file>
             <file>file:/C:/Users/ADMIN/Desktop/SWP_GROUP2/HRM/src/java/dao/DepartmentDAO.java</file>
