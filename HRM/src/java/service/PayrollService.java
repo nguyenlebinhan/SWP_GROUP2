@@ -340,8 +340,14 @@ public class PayrollService {
         BigDecimal dailyRate = divideMoney(employee.contractSalary, new BigDecimal(standardWorkingDays));
         BigDecimal minuteRate = divideMoney(dailyRate, config.workingHoursPerDay.multiply(MINUTES_PER_HOUR));
 
+        Date eligibleStart = employee.contractStartDate != null && employee.contractStartDate.after(periodStart)
+                ? employee.contractStartDate : periodStart;
+        Date eligibleEnd = employee.contractEndDate != null && employee.contractEndDate.before(periodEnd)
+                ? employee.contractEndDate : periodEnd;
+
         PayrollAttendanceSummaryDTO attendance = attendanceService.getPayrollSummary(conn, employee.employeeId,
-                year, month, dailyRate, minuteRate, config.standardStartTime, config.lateDeductionBlockMinutes);
+                year, month, eligibleStart, eligibleEnd, dailyRate, minuteRate, config.standardStartTime,
+                config.lateDeductionBlockMinutes);
 
         if (attendance.getRecordCount() == 0) {
             return buildGenerationErrorPreview(employee, "Chưa có dữ liệu chấm công trong tháng lương này.");
@@ -351,27 +357,30 @@ public class PayrollService {
                 year, month, dailyRate, config.workingHoursPerDay, config.overtimeBlockMinutes,
                 config.overtimeWorkdayMultiplier, config.overtimeWeekendMultiplier, config.overtimeHolidayMultiplier);
 
+        int unpaidWorkingDays = Math.max(0, standardWorkingDays - attendance.getPaidWorkingDays());
+        attendance.setUnauthorizedAbsentDays(unpaidWorkingDays);
+        boolean insuranceCalculated = unpaidWorkingDays < config.insuranceNotWorkedDaysThreshold;
+        BigDecimal baseSalary = employee.contractSalary;
         BigDecimal attendanceBonus = attendance.getLateMinutes() == 0
-                && attendance.getUnauthorizedAbsentDays() == 0
+                && unpaidWorkingDays == 0
                         ? employee.contractSalary.multiply(config.attendanceBonusRate)
                         : ZERO;
 
-        BigDecimal baseSalary = employee.contractSalary;
         BigDecimal allowance = config.allowance;
         BigDecimal bonus = attendanceBonus;
 
-        BigDecimal unpaidDeduction = attendance.getLateDeduction()
-                .add(attendance.getUnauthorizedAbsentDeduction());
+        BigDecimal unpaidDeduction = dailyRate.multiply(new BigDecimal(unpaidWorkingDays))
+                .add(attendance.getLateDeduction());
 
-        // Gross Salary = Contract Salary + Allowances + Overtime Pay + Bonuses.
-        // Net Salary = Gross Salary - configured deductions - unpaid deduction - PIT.
+        // Gross Salary = contract salary + allowances + overtime pay + bonuses.
+        // Net Salary = Gross Salary - configured deductions - unpaid days - late deduction - PIT.
         BigDecimal grossSalary = baseSalary
                 .add(allowance)
                 .add(bonus)
                 .add(overtime.getOvertimePay());
 
         BigDecimal preTaxDeductions = calculateConfiguredDeductions(
-                employee.contractSalary, grossSalary, ZERO, config, true, employee.unionMember);
+                employee.contractSalary, grossSalary, ZERO, config, true, employee.unionMember, insuranceCalculated);
 
         BigDecimal familyAllowance = calculateFamilyAllowance(
                 config.personalAllowance, employee.dependentCount, config.dependentAllowance);
@@ -386,7 +395,7 @@ public class PayrollService {
 
         BigDecimal personalIncomeTax = calculatePersonalIncomeTax(taxableIncome, config.taxBrackets);
         BigDecimal postTaxDeductions = calculateConfiguredDeductions(
-                employee.contractSalary, grossSalary, taxableIncome, config, false, employee.unionMember);
+                employee.contractSalary, grossSalary, taxableIncome, config, false, employee.unionMember, insuranceCalculated);
         BigDecimal configuredDeductions = preTaxDeductions.add(postTaxDeductions);
 
         BigDecimal netSalary = grossSalary
@@ -417,7 +426,7 @@ public class PayrollService {
         payroll.setNetSalary(scale(netSalary));
         payroll.setStatus(STATUS_PENDING_APPROVAL);
         payroll.setNote(buildPayrollNote(attendance, overtime, employee.dependentCount, familyAllowance,
-                employee.unionMember));
+                employee.unionMember, insuranceCalculated));
 
         PayrollPreviewDTO preview = new PayrollPreviewDTO();
         preview.setPayroll(payroll);
@@ -431,8 +440,8 @@ public class PayrollService {
         preview.setMinuteRate(scale(minuteRate));
         preview.setStandardWorkingDays(standardWorkingDays);
         preview.setPaidLeaveDays(attendance.getPaidLeaveDays());
-        preview.setUnpaidLeaveDays(attendance.getUnpaidLeaveDays());
-        preview.setUnauthorizedAbsentDays(attendance.getUnauthorizedAbsentDays());
+        preview.setUnpaidLeaveDays(unpaidWorkingDays);
+        preview.setUnauthorizedAbsentDays(unpaidWorkingDays);
         preview.setLateMinutes(attendance.getLateMinutes());
         preview.setLateDeductionBlocks(attendance.getLateDeductionBlocks());
         preview.setLateDeductionMinutes(attendance.getLateDeductionMinutes());
@@ -446,10 +455,12 @@ public class PayrollService {
         preview.setAttendanceBonus(scale(attendanceBonus));
         preview.setLateDeduction(scale(attendance.getLateDeduction()));
         preview.setLateDeductionBlockAmount(scale(blockAmount(attendance.getLateDeduction(), attendance.getLateDeductionBlocks())));
-        preview.setUnauthorizedAbsentDeduction(scale(attendance.getUnauthorizedAbsentDeduction()));
+        preview.setUnauthorizedAbsentDeduction(scale(dailyRate.multiply(new BigDecimal(unpaidWorkingDays))));
         preview.setPersonalAllowance(scale(config.personalAllowance));
         preview.setDependentCount(employee.dependentCount);
         preview.setUnionMember(employee.unionMember);
+        preview.setInsuranceCalculated(insuranceCalculated);
+        preview.setInsuranceNotWorkedDaysThreshold(config.insuranceNotWorkedDaysThreshold);
         preview.setFamilyAllowance(scale(familyAllowance));
         preview.setDependentAllowance(scale(config.dependentAllowance));
         preview.setTaxableIncome(scale(taxableIncome));
@@ -491,15 +502,15 @@ public class PayrollService {
 
         StringBuilder sql = new StringBuilder(
                 "SELECT e.employeeId, e.employeeCode, e.positionId, e.departmentId, e.dependentCount, e.unionMember, "
-                + "u.fullName, d.departmentName, p.positionName, ec.salary "
+                + "u.fullName, d.departmentName, p.positionName, ec.salary, ec.effectiveDate, ec.endDate "
                 + "FROM Employees e "
                 + "JOIN Users u ON u.userId = e.userId "
                 + "LEFT JOIN Departments d ON d.departmentId = e.departmentId "
                 + "LEFT JOIN Positions p ON p.positionId = e.positionId "
                 + "LEFT JOIN Employment_Contracts ec ON ec.contractId = ( "
                 + "    SELECT ec2.contractId FROM Employment_Contracts ec2 "
-                + "    WHERE ec2.employeeId = e.employeeId AND ec2.status = 1 "
-                + "      AND ec2.startDate <= ? "
+                + "    WHERE ec2.employeeId = e.employeeId AND ec2.status = 'ACTIVE' "
+                + "      AND ec2.effectiveDate <= ? "
                 + "      AND (ec2.endDate IS NULL OR ec2.endDate >= ?) "
                 + "    ORDER BY ec2.contractId DESC LIMIT 1 "
                 + ") "
@@ -534,6 +545,8 @@ public class PayrollService {
                     employee.departmentName = rs.getNString("departmentName");
                     employee.positionName = rs.getString("positionName");
                     employee.contractSalary = salary;
+                    employee.contractStartDate = rs.getDate("effectiveDate");
+                    employee.contractEndDate = rs.getDate("endDate");
                     String error = null;
                     if (salary == null || salary.signum() <= 0) {
                         error = "Chưa có hợp đồng active hoặc lương hợp đồng hợp lệ.";
@@ -574,8 +587,8 @@ public class PayrollService {
     private List<PayrollDetailDTO> buildDetails(Payroll payroll, PayrollPreviewDTO preview, PayrollRuntimeConfig config) {
         List<PayrollDetailDTO> details = new ArrayList<>();
 
-        details.add(new PayrollDetailDTO("BASE_SALARY", "Contract Salary (Base)", PayrollDetailDTO.TYPE_EARNING,
-                moneyOrZero(payroll.getBaseSalary()), "Fixed salary from active contract."));
+        details.add(new PayrollDetailDTO("BASE_SALARY", "Base Salary", PayrollDetailDTO.TYPE_EARNING,
+                moneyOrZero(payroll.getBaseSalary()), "Monthly salary from active contract."));
         details.add(new PayrollDetailDTO("ALLOWANCE", "Allowances", PayrollDetailDTO.TYPE_EARNING,
                 moneyOrZero(payroll.getAllowance()), "Additional allowances."));
         details.add(new PayrollDetailDTO("OVERTIME_PAY", "Overtime Pay", PayrollDetailDTO.TYPE_EARNING,
@@ -587,7 +600,7 @@ public class PayrollService {
                 moneyOrZero(payroll.getBonus()), "Attendance bonus."));
 
         for (PayrollDeductionRule rule : payrollConfigDAO.getDeductionRules(true)) {
-            if (!appliesToEmployee(rule, preview.isUnionMember())) {
+            if (!appliesToEmployee(rule, preview.isUnionMember(), preview.isInsuranceCalculated())) {
                 continue;
             }
             BigDecimal amount = calculateDeductionRuleAmount(rule,
@@ -604,9 +617,9 @@ public class PayrollService {
                         scale(employerAmount), buildEmployerBaseNote(rule, config)));
             }
         }
-        details.add(new PayrollDetailDTO("UNPAID_DEDUCTION", "Unpaid Deduction", PayrollDetailDTO.TYPE_DEDUCTION,
-                moneyOrZero(payroll.getUnpaidDeduction()), "Unpaid absence: " + preview.getUnauthorizedAbsentDays()
-                + " days x " + scale(preview.getDailyRate()) + "d; late arrival deduction: "
+        details.add(new PayrollDetailDTO("UNPAID_DEDUCTION", "Unpaid / Not-worked Deduction", PayrollDetailDTO.TYPE_DEDUCTION,
+                moneyOrZero(payroll.getUnpaidDeduction()), "Unpaid/not-worked days: "
+                + preview.getNotWorkedDays() + " days x " + scale(preview.getDailyRate()) + "d; late arrival deduction: "
                 + preview.getLateDeductionBlocks() + " blocks (" + preview.getLateDeductionBlockMinutes() + " minutes/block) x "
                 + scale(preview.getLateDeductionBlockAmount()) + "d."));
         details.add(new PayrollDetailDTO("PERSONAL_INCOME_TAX", "Personal Income Tax",
@@ -626,8 +639,8 @@ public class PayrollService {
         if (payroll == null) {
             return details;
         }
-        details.add(new PayrollDetailDTO("BASE_SALARY", "Contract Salary (Base)", PayrollDetailDTO.TYPE_EARNING,
-                moneyOrZero(payroll.getBaseSalary()), "Fixed salary from active contract."));
+        details.add(new PayrollDetailDTO("BASE_SALARY", "Base Salary", PayrollDetailDTO.TYPE_EARNING,
+                moneyOrZero(payroll.getBaseSalary()), "Monthly salary from active contract."));
         details.add(new PayrollDetailDTO("ALLOWANCE", "Allowances", PayrollDetailDTO.TYPE_EARNING,
                 moneyOrZero(payroll.getAllowance()), null));
         details.add(new PayrollDetailDTO("OVERTIME_PAY", "Overtime Pay", PayrollDetailDTO.TYPE_EARNING,
@@ -636,7 +649,7 @@ public class PayrollService {
                 moneyOrZero(payroll.getBonus()), null));
         details.add(new PayrollDetailDTO("CONFIGURED_DEDUCTIONS", "Social / Health / Unemployment Insurance", PayrollDetailDTO.TYPE_DEDUCTION,
                 moneyOrZero(payroll.getInsuranceDeduction()), null));
-        details.add(new PayrollDetailDTO("UNPAID_DEDUCTION", "Unpaid Deduction", PayrollDetailDTO.TYPE_DEDUCTION,
+        details.add(new PayrollDetailDTO("UNPAID_DEDUCTION", "Unpaid / Not-worked Deduction", PayrollDetailDTO.TYPE_DEDUCTION,
                 moneyOrZero(payroll.getUnpaidDeduction()), null));
         details.add(new PayrollDetailDTO("PERSONAL_INCOME_TAX", "Personal Income Tax",
                 PayrollDetailDTO.TYPE_DEDUCTION, moneyOrZero(payroll.getPersonalIncomeTax()), null));
@@ -667,7 +680,9 @@ public class PayrollService {
         BigDecimal minuteRate = divideMoney(hourlyRate, MINUTES_PER_HOUR);
 
         int lateMinutes = extractIntNoteValue(payroll.getNote(), "lateMinutes");
-        int unauthorizedAbsentDays = extractIntNoteValue(payroll.getNote(), "unauthorizedAbsentDays");
+        int notWorkedDays = hasNoteKey(payroll.getNote(), "notWorkedDays")
+                ? extractIntNoteValue(payroll.getNote(), "notWorkedDays")
+                : extractIntNoteValue(payroll.getNote(), "unauthorizedAbsentDays");
         BigDecimal overtimeHours = extractDecimalNoteValue(payroll.getNote(), "overtimeHours");
         int overtimeBlocks = extractIntNoteValue(payroll.getNote(), "overtimeBlocks");
         if (overtimeBlocks <= 0 && overtimeHours.signum() > 0 && config.overtimeBlockMinutes > 0) {
@@ -696,7 +711,7 @@ public class PayrollService {
             lateDeductionBlocks = lateDeductionMinutes / config.lateDeductionBlockMinutes;
         }
         BigDecimal lateDeduction = minuteRate.multiply(new BigDecimal(lateDeductionMinutes));
-        BigDecimal absentUnpaidDeduction = dailyRate.multiply(new BigDecimal(unauthorizedAbsentDays));
+        BigDecimal absentUnpaidDeduction = dailyRate.multiply(new BigDecimal(notWorkedDays));
 
         int dependentCount = extractDependentCount(payroll);
         preview.setUnionMember(extractUnionMember(payroll));
@@ -716,7 +731,7 @@ public class PayrollService {
         preview.setStandardWorkingDays(standardWorkingDays);
         preview.setPaidLeaveDays(extractIntNoteValue(payroll.getNote(), "paidLeaveDays"));
         preview.setUnpaidLeaveDays(extractIntNoteValue(payroll.getNote(), "unpaidLeaveDays"));
-        preview.setUnauthorizedAbsentDays(unauthorizedAbsentDays);
+        preview.setUnauthorizedAbsentDays(notWorkedDays);
         preview.setLateMinutes(lateMinutes);
         preview.setLateDeductionBlocks(lateDeductionBlocks);
         preview.setLateDeductionMinutes(lateDeductionMinutes);
@@ -732,6 +747,10 @@ public class PayrollService {
         preview.setUnauthorizedAbsentDeduction(scale(absentUnpaidDeduction));
         preview.setPersonalAllowance(scale(config.personalAllowance));
         preview.setDependentCount(dependentCount);
+        preview.setInsuranceCalculated(hasNoteKey(payroll.getNote(), "insuranceCalculated")
+                ? extractIntNoteValue(payroll.getNote(), "insuranceCalculated") == 1
+                : notWorkedDays < config.insuranceNotWorkedDaysThreshold);
+        preview.setInsuranceNotWorkedDaysThreshold(config.insuranceNotWorkedDaysThreshold);
         preview.setFamilyAllowance(scale(familyAllowance));
         preview.setDependentAllowance(scale(config.dependentAllowance));
         preview.setTaxableIncome(scale(taxableIncome));
@@ -794,8 +813,8 @@ public class PayrollService {
                 + "WHERE e.status = 1 "
                 + "  AND ec.contractId = ( "
                 + "      SELECT ec2.contractId FROM Employment_Contracts ec2 "
-                + "      WHERE ec2.employeeId = e.employeeId AND ec2.status = 1 "
-                + "        AND ec2.startDate <= ? "
+                + "      WHERE ec2.employeeId = e.employeeId AND ec2.status = 'ACTIVE' "
+                + "        AND ec2.effectiveDate <= ? "
                 + "        AND (ec2.endDate IS NULL OR ec2.endDate >= ?) "
                 + "      ORDER BY ec2.contractId DESC LIMIT 1 "
                 + "  ) ");
@@ -822,8 +841,8 @@ public class PayrollService {
             throws SQLException {
         String SQL = baseEmployeeContractQuery()
                 + "WHERE e.employeeId = ? AND e.status = 1 "
-                + "  AND ec.status = 1 "
-                + "  AND ec.startDate <= ? "
+                + "  AND ec.status = 'ACTIVE' "
+                + "  AND ec.effectiveDate <= ? "
                 + "  AND (ec.endDate IS NULL OR ec.endDate >= ?) "
                 + "ORDER BY ec.contractId DESC LIMIT 1";
         try (PreparedStatement ps = conn.prepareStatement(SQL)) {
@@ -841,7 +860,7 @@ public class PayrollService {
 
     private String baseEmployeeContractQuery() {
         return "SELECT e.employeeId, e.employeeCode, e.positionId, e.departmentId, e.dependentCount, e.unionMember, "
-                + "u.fullName, d.departmentName, p.positionName, ec.salary "
+                + "u.fullName, d.departmentName, p.positionName, ec.salary, ec.effectiveDate, ec.endDate "
                 + "FROM Employees e "
                 + "JOIN Users u ON u.userId = e.userId "
                 + "LEFT JOIN Departments d ON d.departmentId = e.departmentId "
@@ -862,6 +881,8 @@ public class PayrollService {
         base.departmentName = rs.getNString("departmentName");
         base.positionName = rs.getString("positionName");
         base.contractSalary = rs.getBigDecimal("salary");
+        base.contractStartDate = rs.getDate("effectiveDate");
+        base.contractEndDate = rs.getDate("endDate");
         return base;
     }
 
@@ -898,10 +919,11 @@ public class PayrollService {
     private PayrollRuntimeConfig loadPayrollRuntimeConfig() {
         Map<String, BigDecimal> settings = payrollConfigDAO.getSettingsMap();
         PayrollRuntimeConfig config = new PayrollRuntimeConfig();
-        config.personalAllowance = requiredNonNegativeSetting(settings, "PERSONAL_ALLOWANCE");
+        config.personalAllowance = requiredNonNegativeSetting(settings, "PERSONAL_DEDUCTION");
         config.dependentAllowance = requiredNonNegativeSetting(settings, "DEPENDENT_ALLOWANCE");
         config.allowance = requiredNonNegativeSetting(settings, "ALLOWANCE");
         config.insuranceSalaryCap = requiredPositiveSetting(settings, "INSURANCE_SALARY_FLOOR");
+        config.insuranceNotWorkedDaysThreshold = requiredPositiveSetting(settings, "INSURANCE_NOT_WORKED_DAYS_THRESHOLD").intValue();
         config.lateDeductionBlockMinutes = requiredPositiveSetting(settings, "LATE_DEDUCTION_BLOCK_MINUTES").intValue();
         config.attendanceBonusRate = requiredNonNegativeSetting(settings, "ATTENDANCE_BONUS_RATE");
         BigDecimal workStartMinutes = requiredNonNegativeSetting(settings, "WORK_START", "WORK_START_MINUTES");
@@ -981,7 +1003,8 @@ public class PayrollService {
     }
 
     private BigDecimal calculateConfiguredDeductions(BigDecimal contractSalary, BigDecimal grossSalary,
-            BigDecimal taxableIncome, PayrollRuntimeConfig config, boolean taxableOnly, boolean unionMember) {
+            BigDecimal taxableIncome, PayrollRuntimeConfig config, boolean taxableOnly, boolean unionMember,
+            boolean insuranceCalculated) {
         BigDecimal total = ZERO;
         if (config == null || config.deductionRules == null) {
             return total;
@@ -990,7 +1013,7 @@ public class PayrollService {
             if (taxableOnly != rule.isTaxableDeduction()) {
                 continue;
             }
-            if (!appliesToEmployee(rule, unionMember)) {
+            if (!appliesToEmployee(rule, unionMember, insuranceCalculated)) {
                 continue;
             }
             total = total.add(calculateDeductionRuleAmount(rule,
@@ -999,8 +1022,18 @@ public class PayrollService {
         return total;
     }
 
-    private boolean appliesToEmployee(PayrollDeductionRule rule, boolean unionMember) {
-        return rule == null || !"UNION_FEE".equals(rule.getRuleCode()) || unionMember;
+    private boolean appliesToEmployee(PayrollDeductionRule rule, boolean unionMember, boolean insuranceCalculated) {
+        if (rule == null) {
+            return true;
+        }
+        if (isInsuranceRule(rule) && !insuranceCalculated) {
+            return false;
+        }
+        return !"UNION_FEE".equals(rule.getRuleCode()) || unionMember;
+    }
+
+    private boolean isInsuranceRule(PayrollDeductionRule rule) {
+        return rule != null && "INSURANCE".equals(rule.getRuleType());
     }
 
     private BigDecimal calculateDeductionRuleAmount(PayrollDeductionRule rule, BigDecimal contractSalary,
@@ -1147,10 +1180,11 @@ public class PayrollService {
     }
 
     private String buildPayrollNote(PayrollAttendanceSummaryDTO attendance, PayrollOvertimeSummaryDTO overtime,
-            int dependentCount, BigDecimal familyAllowance, boolean unionMember) {
+            int dependentCount, BigDecimal familyAllowance, boolean unionMember, boolean insuranceCalculated) {
         return "paidLeaveDays=" + attendance.getPaidLeaveDays()
                 + "; unpaidLeaveDays=" + attendance.getUnpaidLeaveDays()
-                + "; unauthorizedAbsentDays=" + attendance.getUnauthorizedAbsentDays()
+                + "; notWorkedDays=" + attendance.getUnauthorizedAbsentDays()
+                + "; insuranceCalculated=" + (insuranceCalculated ? 1 : 0)
                 + "; lateMinutes=" + attendance.getLateMinutes()
                 + "; lateDeductionBlocks=" + attendance.getLateDeductionBlocks()
                 + "; lateDeductionMinutes=" + attendance.getLateDeductionMinutes()
@@ -1183,6 +1217,8 @@ public class PayrollService {
         String departmentName;
         String positionName;
         BigDecimal contractSalary;
+        Date contractStartDate;
+        Date contractEndDate;
     }
 
     private static class PayrollRuntimeConfig {
@@ -1192,6 +1228,7 @@ public class PayrollService {
         BigDecimal dependentAllowance;
         BigDecimal allowance;
         BigDecimal insuranceSalaryCap;
+        int insuranceNotWorkedDaysThreshold;
         LocalTime standardStartTime;
         int lateDeductionBlockMinutes;
         BigDecimal attendanceBonusRate;

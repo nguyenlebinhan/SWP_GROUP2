@@ -281,6 +281,22 @@
                             </c:forEach>
                         </div>
                         
+                        <div class="group-title">Hợp đồng</div>
+                        <div class="row g-3 mb-2">
+                            <c:forEach var="p" items="${allPermissions}">
+                                <c:if test="${p.permissionCode == 'ADD_EMPLOYMENT_CONTRACT' || p.permissionCode == 'VIEW_ALL_CONTRACTS' || p.permissionCode == 'VIEW_PENDING_CONTRACTS' || p.permissionCode == 'APPROVE_CONTRACT' || p.permissionCode == 'REJECT_CONTRACT' || p.permissionCode == 'TERMINATE_CONTRACT' || p.permissionCode == 'VIEW_OWN_CONTRACT'}">
+                                    <div class="col-md-3">
+                                        <label class="perm-card ${assignedPermissionIds.contains(p.permissionId) ? 'selected' : ''}">
+                                            <input type="checkbox" name="permissionIds" value="${p.permissionId}" ${assignedPermissionIds.contains(p.permissionId) ? 'checked' : ''}/>
+                                            <div class="perm-name"><c:out value="${p.permissionName}"/></div>
+                                            <div><span class="perm-code"><c:out value="${p.permissionCode}"/></span></div>
+                                            <div class="perm-desc"><c:out value="${empty p.description ? '—' : p.description}"/></div>
+                                        </label>
+                                    </div>
+                                </c:if>
+                            </c:forEach>
+                        </div>
+                        
                         <%-- Nhóm: Đơn yêu cầu --%>
                         <div class="group-title">Đơn yêu cầu</div>
                         <div class="row g-3 mb-2">

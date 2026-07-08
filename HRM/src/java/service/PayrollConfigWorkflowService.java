@@ -1,14 +1,15 @@
 package service;
 
 import dao.PayrollConfigChangeRequestDAO;
-import dao.PayrollConfigChangeHistoryDAO;
 import dao.PayrollConfigDAO;
 import java.math.BigDecimal;
+import java.text.DecimalFormat;
+import java.text.DecimalFormatSymbols;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import model.PayrollConfigChangeRequest;
-import model.PayrollConfigChangeHistory;
 import model.PayrollDeductionRule;
 import model.PayrollSetting;
 import model.PayrollTaxBracket;
@@ -18,14 +19,17 @@ public class PayrollConfigWorkflowService {
 
     private final PayrollConfigDAO payrollConfigDAO = new PayrollConfigDAO();
     private final PayrollConfigChangeRequestDAO requestDAO = new PayrollConfigChangeRequestDAO();
-    private final PayrollConfigChangeHistoryDAO historyDAO = new PayrollConfigChangeHistoryDAO();
 
     public List<PayrollConfigChangeRequest> getPendingRequests() {
         return requestDAO.getRequests(PayrollConfigChangeRequest.STATUS_PENDING);
     }
 
-    public List<PayrollConfigChangeHistory> getRecentHistory() {
-        return historyDAO.getRecentHistory(50);
+    public List<PayrollConfigChangeRequest> getHistory(Integer status, String keyword, int page, int pageSize) {
+        return requestDAO.getReviewedRequests(status, keyword, page, pageSize);
+    }
+
+    public int countHistory(Integer status, String keyword) {
+        return requestDAO.countReviewedRequests(status, keyword);
     }
 
     public boolean approveRequest(int requestId, User user, String note) {
@@ -105,6 +109,10 @@ public class PayrollConfigWorkflowService {
         }
         if ("INSURANCE_SALARY_FLOOR".equals(key) && value.signum() <= 0) {
             return "Muc tran bao hiem phai lon hon 0.";
+        }
+        if ("INSURANCE_NOT_WORKED_DAYS_THRESHOLD".equals(key)
+                && (value.signum() <= 0 || value.stripTrailingZeros().scale() > 0)) {
+            return "Nguong ngay khong lam de tinh bao hiem phai la so nguyen lon hon 0.";
         }
         if (isWorkScheduleSetting(key)) {
             return "Cấu hình giờ làm việc thuộc module chấm công, không chỉnh trong payroll.";
@@ -224,7 +232,8 @@ public class PayrollConfigWorkflowService {
         if (isWorkTimeSetting(setting.getSettingKey())) {
             return minutesToClock(setting.getSettingValue());
         }
-        return setting.getSettingValue().stripTrailingZeros().toPlainString();
+        return new DecimalFormat("#,##0.######", DecimalFormatSymbols.getInstance(Locale.US))
+                .format(setting.getSettingValue());
     }
 
     public String buildStandardWorkSchedule(Map<String, BigDecimal> settings) {

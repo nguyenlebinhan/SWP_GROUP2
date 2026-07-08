@@ -275,4 +275,17 @@ public class PayrollConfigChangeRequest {
     public void setReviewNote(String reviewNote) {
         this.reviewNote = reviewNote;
     }
+
+    public String getStatusLabel() {
+        if (status == STATUS_PENDING) {
+            return "Pending";
+        }
+        if (status == STATUS_APPROVED) {
+            return "Approved";
+        }
+        if (status == STATUS_REJECTED) {
+            return "Rejected";
+        }
+        return "Unknown";
+    }
 }

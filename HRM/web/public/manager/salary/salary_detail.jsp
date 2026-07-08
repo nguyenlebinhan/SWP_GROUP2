@@ -1,6 +1,7 @@
 <%@ page contentType="text/html;charset=UTF-8" %>
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
 <%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
+<fmt:setLocale value="en_US" />
 <!DOCTYPE html>
 <html>
     <head>
@@ -164,7 +165,7 @@
                     </div>
 
                     <div class="summary-grid">
-                        <div class="summary-card"><div class="summary-label">Contract Salary (Base)</div><div class="summary-value blue"><fmt:formatNumber value="${p.baseSalary}" type="number" groupingUsed="true" /> VND</div></div>
+                        <div class="summary-card"><div class="summary-label">Base Salary</div><div class="summary-value blue"><fmt:formatNumber value="${p.baseSalary}" type="number" groupingUsed="true" /> VND</div></div>
                         <div class="summary-card"><div class="summary-label">Gross Salary</div><div class="summary-value green"><fmt:formatNumber value="${p.grossSalary}" type="number" groupingUsed="true" /> VND</div></div>
                         <div class="summary-card"><div class="summary-label">Total Deductions</div><div class="summary-value red"><fmt:formatNumber value="${totalDeduction}" type="number" groupingUsed="true" /> VND</div></div>
                         <div class="summary-card"><div class="summary-label">Net Salary</div><div class="summary-value orange"><fmt:formatNumber value="${p.netSalary}" type="number" groupingUsed="true" /> VND</div></div>
@@ -174,7 +175,7 @@
                         <div class="summary-card"><div class="summary-label">Allowances</div><div class="summary-value green"><fmt:formatNumber value="${p.allowance}" type="number" groupingUsed="true" /> VND</div></div>
                         <div class="summary-card"><div class="summary-label">Overtime Pay</div><div class="summary-value orange"><fmt:formatNumber value="${p.overtimePay}" type="number" groupingUsed="true" /> VND</div></div>
                         <div class="summary-card"><div class="summary-label">Bonuses</div><div class="summary-value green"><fmt:formatNumber value="${p.bonus}" type="number" groupingUsed="true" /> VND</div></div>
-                        <div class="summary-card"><div class="summary-label">Unpaid Deduction</div><div class="summary-value red"><fmt:formatNumber value="${p.unpaidDeduction}" type="number" groupingUsed="true" /> VND</div></div>
+                        <div class="summary-card"><div class="summary-label">Unpaid / Not-worked Deduction</div><div class="summary-value red"><fmt:formatNumber value="${p.unpaidDeduction}" type="number" groupingUsed="true" /> VND</div></div>
                     </div>
 
                     <div class="panel">
@@ -185,8 +186,8 @@
                                 <tbody>
                                     <tr class="table-light"><td colspan="3" class="fw-bold">Income</td></tr>
                                     <tr>
-                                        <td>Contract Salary (Base)</td>
-                                        <td class="text-muted">Fixed salary from active contract.</td>
+                                        <td>Base Salary</td>
+                                        <td class="text-muted">Monthly salary from active contract.</td>
                                         <td class="text-end fw-bold text-success"><fmt:formatNumber value="${p.baseSalary}" type="number" groupingUsed="true" /> VND</td>
                                     </tr>
                                     <tr>
@@ -210,6 +211,11 @@
                                         <td class="text-end fw-bold"><fmt:formatNumber value="${p.grossSalary}" type="number" groupingUsed="true" /> VND</td>
                                     </tr>
                                     <tr class="table-light"><td colspan="3" class="fw-bold">Deductions</td></tr>
+                                    <tr>
+                                        <td>Insurance status</td>
+                                        <td class="text-muted">Insurance is calculated only when unpaid/not-worked days are under ${payrollPreview.insuranceNotWorkedDaysThreshold} days.</td>
+                                        <td class="text-end fw-bold ${payrollPreview.insuranceCalculated ? 'text-success' : 'text-muted'}">${payrollPreview.insuranceCalculated ? 'Calculated' : 'Not calculated'}</td>
+                                    </tr>
                                     <c:forEach var="d" items="${payrollPreview.details}">
                                         <c:if test="${d.deduction and d.code ne 'PERSONAL_INCOME_TAX' and d.code ne 'UNPAID_DEDUCTION'}">
                                             <tr>
@@ -220,8 +226,8 @@
                                         </c:if>
                                     </c:forEach>
                                     <tr>
-                                        <td>Unpaid Deduction</td>
-                                        <td class="text-muted">Unpaid absence: ${payrollPreview.unauthorizedAbsentDays} days x <fmt:formatNumber value="${payrollPreview.dailyRate}" type="number" groupingUsed="true" /> VND; late arrival deduction: ${payrollPreview.lateDeductionBlocks} blocks (${payrollPreview.lateDeductionBlockMinutes} minutes/block) x <fmt:formatNumber value="${payrollPreview.lateDeductionBlockAmount}" type="number" groupingUsed="true" /> VND.</td>
+                                        <td>Unpaid / Not-worked Deduction</td>
+                                        <td class="text-muted">Unpaid/not-worked days: ${payrollPreview.notWorkedDays} days x <fmt:formatNumber value="${payrollPreview.dailyRate}" type="number" groupingUsed="true" /> VND; late arrival deduction: ${payrollPreview.lateDeductionBlocks} blocks (${payrollPreview.lateDeductionBlockMinutes} minutes/block) x <fmt:formatNumber value="${payrollPreview.lateDeductionBlockAmount}" type="number" groupingUsed="true" /> VND.</td>
                                         <td class="text-end fw-bold text-danger">-<fmt:formatNumber value="${p.unpaidDeduction}" type="number" groupingUsed="true" /> VND</td>
                                     </tr>
                                     <tr>

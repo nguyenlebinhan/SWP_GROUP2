@@ -112,6 +112,9 @@ public class BusinessAdminController extends HttpServlet {
             case "/payrol-config":
                 displayPayrollConfig(request, response);
                 break;
+            case "/payroll-config/history":
+                displayPayrollConfigHistory(request, response);
+                break;
             case "/attendance/overview":
                 response.sendRedirect(request.getContextPath() + "/v1/businessadmin/attendance/closing");
                 break;
@@ -1027,13 +1030,12 @@ public class BusinessAdminController extends HttpServlet {
             throws ServletException, IOException {
         List<PayrollSetting> settings = payrollConfigDAO.getConfigurablePayrollSettings();
         for (PayrollSetting setting : settings) {
-            setting.setDisplayValue(displayPayrollSettingValue(setting));
+            setting.setDisplayValue(payrollConfigWorkflowService.displayPayrollSettingValue(setting));
         }
         request.setAttribute("settings", settings);
         request.setAttribute("deductionRules", payrollConfigDAO.getDeductionRules(false));
         request.setAttribute("taxBrackets", payrollConfigDAO.getTaxBrackets(false));
         request.setAttribute("pendingRequests", payrollConfigWorkflowService.getPendingRequests());
-        request.setAttribute("changeHistory", payrollConfigWorkflowService.getRecentHistory());
         request.setAttribute("payrollConfigBaseUrl", request.getContextPath() + "/v1/businessadmin/payroll-config");
         request.setAttribute("canEditPayrollConfig", false);
         request.setAttribute("canApprovePayrollConfig", true);
@@ -1055,30 +1057,33 @@ public class BusinessAdminController extends HttpServlet {
         request.getRequestDispatcher("/public/businessadmin/salary/payroll_config.jsp").forward(request, response);
     }
 
-    private String displayPayrollSettingValue(PayrollSetting setting) {
-        if (setting == null || setting.getSettingValue() == null) {
-            return "";
-        }
-        if (isWorkTimeSetting(setting.getSettingKey())) {
-            return minutesToClock(setting.getSettingValue());
-        }
-        return setting.getSettingValue().stripTrailingZeros().toPlainString();
-    }
-    private String minutesToClock(BigDecimal minutesValue) {
-        int minutes = minutesValue.intValue();
-        int hour = minutes / 60;
-        int minute = minutes % 60;
-        return String.format("%02d:%02d", hour, minute);
+    private void displayPayrollConfigHistory(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+        Integer status = parseIntParam(request.getParameter("status"));
+        status = status != null && (status == PayrollConfigChangeRequest.STATUS_APPROVED
+                || status == PayrollConfigChangeRequest.STATUS_REJECTED) ? status : null;
+        String q = trim(request.getParameter("q"));
+        Integer requestedPage = parseIntParam(request.getParameter("page"));
+        int pageSize = 10;
+        int totalItems = payrollConfigWorkflowService.countHistory(status, q);
+        int totalPages = Math.max(1, (totalItems + pageSize - 1) / pageSize);
+        int currentPage = Math.min(Math.max(1, requestedPage == null ? 1 : requestedPage), totalPages);
+        request.setAttribute("changeHistory", payrollConfigWorkflowService.getHistory(status, q, currentPage, pageSize));
+        request.setAttribute("statusFilter", status);
+        request.setAttribute("q", q);
+        request.setAttribute("currentPage", currentPage);
+        request.setAttribute("totalPages", totalPages);
+        request.setAttribute("totalItems", totalItems);
+        request.setAttribute("pageBase", request.getContextPath() + "/v1/businessadmin/payroll-config/history?status="
+                + (status == null ? "" : status) + "&q=" + q.replace(" ", "+"));
+        request.setAttribute("payrollConfigBaseUrl", request.getContextPath() + "/v1/businessadmin/payroll-config");
+        request.getRequestDispatcher("/public/businessadmin/salary/payroll_config_history.jsp").forward(request, response);
     }
 
     private void handleSavePayrollSetting(HttpServletRequest request, HttpServletResponse response)
             throws IOException {
         setPayrollConfigError(request, "Business Admin chỉ duyệt yêu cầu thay đổi payroll config, không chỉnh trực tiếp.");
         response.sendRedirect(request.getContextPath() + "/v1/businessadmin/payroll-config");
-    }
-    private boolean isWorkTimeSetting(String key) {
-        return "WORK_START".equals(key) || "WORK_END".equals(key)
-                || "WORK_START_MINUTES".equals(key) || "WORK_END_MINUTES".equals(key);
     }
     private void handleSavePayrollDeduction(HttpServletRequest request, HttpServletResponse response)
             throws IOException {

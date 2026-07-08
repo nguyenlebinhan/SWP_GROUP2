@@ -2,6 +2,7 @@
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
 <%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
 <%@ taglib prefix="fn" uri="http://java.sun.com/jsp/jstl/functions" %>
+<fmt:setLocale value="en_US" />
 <!DOCTYPE html>
 <html lang="vi">
 <head>
@@ -35,52 +36,9 @@
     <c:if test="${not empty error}"><div class="alert alert-danger">${error}</div></c:if>
 
     <div class="d-flex justify-content-end mb-3">
-        <button type="button" id="toggleHistoryBtn" class="btn btn-outline-secondary btn-sm">
+        <a href="${payrollConfigBaseUrl}/history" class="btn btn-outline-secondary btn-sm">
             <i class="fa-solid fa-clock-rotate-left me-1"></i> Change history
-        </button>
-    </div>
-
-    <div id="payrollConfigHistory" class="panel" hidden>
-        <h5 class="fw-bold mb-2">Payroll config change history</h5>
-        <c:choose>
-            <c:when test="${empty changeHistory}">
-                <div class="hint">No payroll config change history yet.</div>
-            </c:when>
-            <c:otherwise>
-                <div class="table-responsive">
-                    <table class="table align-middle">
-                        <thead>
-                            <tr>
-                                <th>#</th><th>Request</th><th>Action</th><th>Target</th><th>Status</th>
-                                <th>Requested by</th><th>Reviewed by</th><th>Reviewed at</th>
-                                <th>Before</th><th>After</th><th>Review note</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                        <c:forEach var="h" items="${changeHistory}">
-                            <tr>
-                                <td>${h.historyId}</td>
-                                <td>${h.requestId}</td>
-                                <td><c:out value="${h.actionLabel}" /></td>
-                                <td><c:out value="${empty h.targetKey ? h.targetId : h.targetKey}" /></td>
-                                <td>
-                                    <span class="badge ${h.status == 1 ? 'text-bg-success' : 'text-bg-danger'}">
-                                        <c:out value="${h.statusLabel}" />
-                                    </span>
-                                </td>
-                                <td><c:out value="${h.requestedByName}" /><br><small class="text-muted"><fmt:formatDate value="${h.requestedAt}" pattern="dd/MM/yyyy HH:mm" /></small></td>
-                                <td><c:out value="${h.reviewedByName}" /></td>
-                                <td><fmt:formatDate value="${h.reviewedAt}" pattern="dd/MM/yyyy HH:mm" /></td>
-                                <td class="change-text"><c:out value="${h.oldValue}" /></td>
-                                <td class="change-text"><c:out value="${h.newValue}" /></td>
-                                <td class="change-text"><c:out value="${h.reviewNote}" /></td>
-                            </tr>
-                        </c:forEach>
-                        </tbody>
-                    </table>
-                </div>
-            </c:otherwise>
-        </c:choose>
+        </a>
     </div>
 
     <c:if test="${canApprovePayrollConfig}">
@@ -265,15 +223,18 @@
                     <thead><tr><th>Từ</th><th>Đến</th><th>Thuế suất</th><th class="text-end">Ghi chú</th></tr></thead>
                     <tbody>
                     <c:forEach var="b" items="${taxBrackets}" varStatus="st">
+                        <fmt:formatNumber var="minIncomeValue" value="${b.minIncome}" type="number" maxFractionDigits="6" groupingUsed="true" />
+                        <fmt:formatNumber var="maxIncomeValue" value="${b.maxIncome}" type="number" maxFractionDigits="6" groupingUsed="true" />
+                        <fmt:formatNumber var="taxRateValue" value="${b.taxRate}" type="number" maxFractionDigits="6" groupingUsed="false" />
                         <tr>
                             <td>
                                 <c:choose>
                                     <c:when test="${canEditPayrollConfig}">
                                         <input type="hidden" name="bracketId" value="${b.bracketId}">
-                                        <input name="minIncome" class="form-control" value="${b.minIncome}" ${st.first ? 'readonly' : ''}>
+                                        <input name="minIncome" class="form-control" value="${minIncomeValue}" ${st.first ? 'readonly' : ''}>
                                     </c:when>
                                     <c:otherwise>
-                                        <span class="readonly-value"><fmt:formatNumber value="${b.minIncome}" type="number" groupingUsed="true" /></span>
+                                        <span class="readonly-value">${minIncomeValue}</span>
                                     </c:otherwise>
                                 </c:choose>
                             </td>
@@ -283,15 +244,15 @@
                                         <c:if test="${canEditPayrollConfig}">
                                             <input type="hidden" name="maxIncome" value="">
                                         </c:if>
-                                        <div class="${canEditPayrollConfig ? 'form-control bg-light' : 'readonly-value'}">&gt; <fmt:formatNumber value="${b.minIncome}" type="number" groupingUsed="true" /></div>
+                                        <div class="${canEditPayrollConfig ? 'form-control bg-light' : 'readonly-value'}">&gt; ${minIncomeValue}</div>
                                     </c:when>
                                     <c:otherwise>
                                         <c:choose>
                                             <c:when test="${canEditPayrollConfig}">
-                                                <input name="maxIncome" class="form-control" value="${b.maxIncome}">
+                                                <input name="maxIncome" class="form-control" value="${maxIncomeValue}">
                                             </c:when>
                                             <c:otherwise>
-                                                <span class="readonly-value"><fmt:formatNumber value="${b.maxIncome}" type="number" groupingUsed="true" /></span>
+                                                <span class="readonly-value">${maxIncomeValue}</span>
                                             </c:otherwise>
                                         </c:choose>
                                     </c:otherwise>
@@ -300,10 +261,10 @@
                             <td>
                                 <c:choose>
                                     <c:when test="${canEditPayrollConfig}">
-                                        <input name="taxRate" class="form-control" value="${b.taxRate}">
+                                        <input name="taxRate" class="form-control" value="${taxRateValue}">
                                     </c:when>
                                     <c:otherwise>
-                                        <span class="readonly-value"><c:out value="${b.taxRate}" /></span>
+                                        <span class="readonly-value"><c:out value="${taxRateValue}" /></span>
                                     </c:otherwise>
                                 </c:choose>
                             </td>
@@ -326,13 +287,6 @@
     </div>
 </div>
 <script>
-    var historyBtn = document.getElementById('toggleHistoryBtn');
-    var historyPanel = document.getElementById('payrollConfigHistory');
-    if (historyBtn && historyPanel) {
-        historyBtn.addEventListener('click', function () {
-            historyPanel.hidden = !historyPanel.hidden;
-        });
-    }
     function toNumber(value) {
         var parsed = parseFloat(String(value || '').replace(',', '.'));
         return isNaN(parsed) ? 0 : parsed;
