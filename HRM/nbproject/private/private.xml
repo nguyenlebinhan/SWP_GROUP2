@@ -2,6 +2,7 @@
 <project-private xmlns="http://www.netbeans.org/ns/project-private/1">
     <open-files xmlns="http://www.netbeans.org/ns/projectui-open-files/2">
         <group>
+<<<<<<< HEAD
             <file>file:/C:/Users/ADMIN/Desktop/SWP_GROUP2/HRM/web/public/components/employeeTopBar.jsp</file>
             <file>file:/C:/Users/ADMIN/Desktop/SWP_GROUP2/HRM/src/java/service/PayrollService.java</file>
             <file>file:/C:/Users/ADMIN/Desktop/SWP_GROUP2/HRM/src/java/dal/DBInitializer.java</file>
@@ -78,6 +79,23 @@
             <file>file:/C:/Users/ADMIN/Desktop/SWP_GROUP2/HRM/src/java/dto/AttendanceImportResultDTO.java</file>
             <file>file:/C:/Users/ADMIN/Desktop/SWP_GROUP2/HRM/src/java/utils/ConfigManager.java</file>
             <file>file:/C:/Users/ADMIN/Desktop/SWP_GROUP2/HRM/src/java/dao/CandidateDAO.java</file>
+=======
+            <file>file:/C:/Users/PC/Documents/Project/SWP_GROUP2/HRM/web/public/employee/salary/own_salary.jsp</file>
+            <file>file:/C:/Users/PC/Documents/Project/SWP_GROUP2/HRM/web/public/manager/salary/own_salary.jsp</file>
+            <file>file:/C:/Users/PC/Documents/Project/SWP_GROUP2/HRM/src/java/service/PayrollService.java</file>
+            <file>file:/C:/Users/PC/Documents/Project/SWP_GROUP2/HRM/web/public/systemadmin/permissions/edit_role_permissions.jsp</file>
+            <file>file:/C:/Users/PC/Documents/Project/SWP_GROUP2/HRM/web/public/employee/salary/salary_list.jsp</file>
+            <file>file:/C:/Users/PC/Documents/Project/SWP_GROUP2/HRM/web/public/manager/salary/salary_detail.jsp</file>
+            <file>file:/C:/Users/PC/Documents/Project/SWP_GROUP2/HRM/web/public/employee/salary/salary_detail.jsp</file>
+            <file>file:/C:/Users/PC/Documents/Project/SWP_GROUP2/HRM/src/java/service/ContractAmendmentService.java</file>
+            <file>file:/C:/Users/PC/Documents/Project/SWP_GROUP2/HRM/web/public/components/employeeSideBar.jsp</file>
+            <file>file:/C:/Users/PC/Documents/Project/SWP_GROUP2/HRM/web/public/components/employeeTopBar.jsp</file>
+            <file>file:/C:/Users/PC/Documents/Project/SWP_GROUP2/HRM/web/public/components/managerTopBar.jsp</file>
+            <file>file:/C:/Users/PC/Documents/Project/SWP_GROUP2/HRM/src/java/dal/DBInitializer.java</file>
+            <file>file:/C:/Users/PC/Documents/Project/SWP_GROUP2/HRM/src/java/controller/ManagerController.java</file>
+            <file>file:/C:/Users/PC/Documents/Project/SWP_GROUP2/HRM/web/public/components/managerSideBar.jsp</file>
+            <file>file:/C:/Users/PC/Documents/Project/SWP_GROUP2/HRM/src/java/dal/DBContext.java</file>
+>>>>>>> de1b0fcf29b7ed1098dc3dbe39fe45363ad8bc96
         </group>
     </open-files>
 </project-private>

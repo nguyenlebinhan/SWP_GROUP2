@@ -67,6 +67,76 @@ public class PayrollConfigChangeRequestDAO {
         return list;
     }
 
+    public List<PayrollConfigChangeRequest> getReviewedRequests(Integer status, String keyword, int page, int pageSize) {
+        List<PayrollConfigChangeRequest> list = new ArrayList<>();
+        StringBuilder sql = new StringBuilder(baseSelect());
+        List<Object> params = new ArrayList<>();
+        appendReviewedWhere(sql, params, status, keyword);
+        sql.append("ORDER BY r.reviewedAt DESC, r.requestId DESC LIMIT ? OFFSET ?");
+        params.add(pageSize);
+        params.add((Math.max(1, page) - 1) * pageSize);
+        try (Connection conn = dbContext.getConnection();
+                PreparedStatement ps = conn.prepareStatement(sql.toString())) {
+            bindParams(ps, params);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    list.add(map(rs));
+                }
+            }
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Cannot list reviewed payroll config change requests", e);
+        }
+        return list;
+    }
+
+    public int countReviewedRequests(Integer status, String keyword) {
+        StringBuilder sql = new StringBuilder("SELECT COUNT(*) FROM Payroll_Config_Change_Requests r "
+                + "LEFT JOIN Users requester ON requester.userId = r.requestedBy "
+                + "LEFT JOIN Users reviewer ON reviewer.userId = r.reviewedBy ");
+        List<Object> params = new ArrayList<>();
+        appendReviewedWhere(sql, params, status, keyword);
+        try (Connection conn = dbContext.getConnection();
+                PreparedStatement ps = conn.prepareStatement(sql.toString())) {
+            bindParams(ps, params);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next() ? rs.getInt(1) : 0;
+            }
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Cannot count reviewed payroll config change requests", e);
+        }
+        return 0;
+    }
+
+    private void appendReviewedWhere(StringBuilder sql, List<Object> params, Integer status, String keyword) {
+        sql.append("WHERE r.status <> ? ");
+        params.add(PayrollConfigChangeRequest.STATUS_PENDING);
+        if (status != null) {
+            sql.append("AND r.status = ? ");
+            params.add(status);
+        }
+        String q = keyword == null ? "" : keyword.trim();
+        if (!q.isEmpty()) {
+            sql.append("AND (r.actionLabel LIKE ? OR r.targetKey LIKE ? OR CAST(r.targetId AS CHAR) LIKE ? "
+                    + "OR r.oldValue LIKE ? OR r.newValue LIKE ? OR r.reviewNote LIKE ? "
+                    + "OR requester.fullName LIKE ? OR reviewer.fullName LIKE ?) ");
+            String like = "%" + q + "%";
+            for (int i = 0; i < 8; i++) {
+                params.add(like);
+            }
+        }
+    }
+
+    private void bindParams(PreparedStatement ps, List<Object> params) throws SQLException {
+        for (int i = 0; i < params.size(); i++) {
+            Object value = params.get(i);
+            if (value instanceof Integer) {
+                ps.setInt(i + 1, (Integer) value);
+            } else {
+                ps.setString(i + 1, (String) value);
+            }
+        }
+    }
+
     public PayrollConfigChangeRequest getById(int requestId) {
         String sql = baseSelect() + "WHERE r.requestId = ?";
         try (Connection conn = dbContext.getConnection();
@@ -137,7 +207,6 @@ public class PayrollConfigChangeRequestDAO {
             ps.setInt(5, PayrollConfigChangeRequest.STATUS_PENDING);
             boolean updated = ps.executeUpdate() > 0;
             if (updated) {
-                insertHistory(conn, request, status, reviewedBy, note);
                 conn.commit();
                 return true;
             }
@@ -146,29 +215,6 @@ public class PayrollConfigChangeRequestDAO {
             LOGGER.log(Level.SEVERE, "Cannot update payroll config request review status", e);
         }
         return false;
-    }
-
-    private void insertHistory(Connection conn, PayrollConfigChangeRequest request, int status,
-            int reviewedBy, String note) throws SQLException {
-        String sql = "INSERT INTO Payroll_Config_Change_History "
-                + "(requestId, requestType, actionLabel, targetKey, targetId, oldValue, newValue, "
-                + "status, requestedBy, requestedAt, reviewedBy, reviewedAt, reviewNote) "
-                + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, ?)";
-        try (PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setInt(1, request.getRequestId());
-            ps.setString(2, request.getRequestType());
-            ps.setNString(3, request.getActionLabel());
-            ps.setString(4, request.getTargetKey());
-            setInteger(ps, 5, request.getTargetId());
-            ps.setNString(6, request.getOldValue());
-            ps.setNString(7, request.getNewValue());
-            ps.setInt(8, status);
-            ps.setInt(9, request.getRequestedBy());
-            ps.setTimestamp(10, request.getRequestedAt());
-            ps.setInt(11, reviewedBy);
-            ps.setNString(12, note);
-            ps.executeUpdate();
-        }
     }
 
     public String serializeTaxBrackets(List<PayrollTaxBracket> brackets) {

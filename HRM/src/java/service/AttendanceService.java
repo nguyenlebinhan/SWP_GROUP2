@@ -69,9 +69,20 @@ public class AttendanceService {
 
 
     public int standardWorkingDays(int month, int year) {
+        return workingDaysBetween(LocalDate.of(year, month, 1),
+                LocalDate.of(year, month, 1).withDayOfMonth(LocalDate.of(year, month, 1).lengthOfMonth()));
+    }
+
+    public int workingDaysBetween(Date startDate, Date endDate) {
+        if (startDate == null || endDate == null) {
+            return 0;
+        }
+        return workingDaysBetween(startDate.toLocalDate(), endDate.toLocalDate());
+    }
+
+    private int workingDaysBetween(LocalDate start, LocalDate end) {
         List<Holiday> holidays = holidayDAO.getAllHolidays();
-        LocalDate cursor = LocalDate.of(year, month, 1);
-        LocalDate end = cursor.withDayOfMonth(cursor.lengthOfMonth());
+        LocalDate cursor = start;
         int count = 0;
         while (!cursor.isAfter(end)) {
             DayOfWeek dow = cursor.getDayOfWeek();
@@ -85,16 +96,20 @@ public class AttendanceService {
     }
 
     public PayrollAttendanceSummaryDTO getPayrollSummary(Connection conn, int employeeId, int year, int month,
+            Date fromDate, Date toDate,
             BigDecimal dailyRate, BigDecimal minuteRate, LocalTime standardStartTime, int lateDeductionBlockMinutes)
             throws SQLException {
         PayrollAttendanceSummaryDTO summary = new PayrollAttendanceSummaryDTO();
         String sql = "SELECT attendanceStatus, COALESCE(hoursWorked, 0) AS hoursWorked, timeIn, workDate "
                 + "FROM Attendance "
-                + "WHERE employeeId = ? AND YEAR(workDate) = ? AND MONTH(workDate) = ?";
+                + "WHERE employeeId = ? AND YEAR(workDate) = ? AND MONTH(workDate) = ? "
+                + "AND workDate BETWEEN ? AND ?";
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, employeeId);
             ps.setInt(2, year);
             ps.setInt(3, month);
+            ps.setDate(4, fromDate);
+            ps.setDate(5, toDate);
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
                     summary.incrementRecordCount();
@@ -129,7 +144,6 @@ public class AttendanceService {
                         summary.incrementPaidWorkingDays();
                     } else if (status == 2 || status == 3) {
                         summary.incrementUnauthorizedAbsentDays();
-                        summary.addUnauthorizedAbsentDeduction(dailyRate);
                     }
                 }
             }

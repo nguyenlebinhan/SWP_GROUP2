@@ -57,6 +57,10 @@ public class PayrollAttendanceSummaryDTO {
         this.unauthorizedAbsentDays++;
     }
 
+    public void setUnauthorizedAbsentDays(int unauthorizedAbsentDays) {
+        this.unauthorizedAbsentDays = Math.max(0, unauthorizedAbsentDays);
+    }
+
     public int getLateCount() {
         return lateCount;
     }

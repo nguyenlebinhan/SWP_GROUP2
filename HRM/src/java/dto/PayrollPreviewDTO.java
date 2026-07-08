@@ -36,6 +36,8 @@ public class PayrollPreviewDTO {
     private BigDecimal personalAllowance;
     private int dependentCount;
     private boolean unionMember;
+    private boolean insuranceCalculated = true;
+    private int insuranceNotWorkedDaysThreshold = 14;
     private BigDecimal dependentAllowance;
     private BigDecimal familyAllowance;
     private BigDecimal taxableIncome;
@@ -159,6 +161,10 @@ public class PayrollPreviewDTO {
     }
 
     public int getUnauthorizedAbsentDays() {
+        return unauthorizedAbsentDays;
+    }
+
+    public int getNotWorkedDays() {
         return unauthorizedAbsentDays;
     }
 
@@ -292,6 +298,22 @@ public class PayrollPreviewDTO {
 
     public void setUnionMember(boolean unionMember) {
         this.unionMember = unionMember;
+    }
+
+    public boolean isInsuranceCalculated() {
+        return insuranceCalculated;
+    }
+
+    public void setInsuranceCalculated(boolean insuranceCalculated) {
+        this.insuranceCalculated = insuranceCalculated;
+    }
+
+    public int getInsuranceNotWorkedDaysThreshold() {
+        return insuranceNotWorkedDaysThreshold;
+    }
+
+    public void setInsuranceNotWorkedDaysThreshold(int insuranceNotWorkedDaysThreshold) {
+        this.insuranceNotWorkedDaysThreshold = insuranceNotWorkedDaysThreshold;
     }
 
     public BigDecimal getDependentAllowance() {
