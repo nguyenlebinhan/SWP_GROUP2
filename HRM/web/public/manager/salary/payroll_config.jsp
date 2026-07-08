@@ -7,7 +7,7 @@
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <title>Cấu hình payroll</title>
+    <title>Cấu hình lương</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
     <style>
@@ -28,7 +28,7 @@
 
 <div class="main">
     <jsp:include page="/public/components/managerTopBar.jsp">
-        <jsp:param name="title" value="Cấu hình payroll" />
+        <jsp:param name="title" value="Cấu hình lương" />
         <jsp:param name="backUrl" value="/v1/manager/dashboard" />
     </jsp:include>
 
@@ -37,7 +37,7 @@
 
     <div class="d-flex justify-content-end mb-3">
         <a href="${payrollConfigBaseUrl}/history" class="btn btn-outline-secondary btn-sm">
-            <i class="fa-solid fa-clock-rotate-left me-1"></i> Change history
+            <i class="fa-solid fa-clock-rotate-left me-1"></i> Lịch sử thay đổi
         </a>
     </div>
 
@@ -46,7 +46,7 @@
             <h5 class="fw-bold mb-2">Yêu cầu thay đổi chờ duyệt</h5>
             <c:choose>
                 <c:when test="${empty pendingRequests}">
-                    <div class="hint">Không có yêu cầu cấu hình payroll đang chờ duyệt.</div>
+                    <div class="hint">Không có yêu cầu cấu hình lương đang chờ duyệt.</div>
                 </c:when>
                 <c:otherwise>
                     <div class="table-responsive">
@@ -54,7 +54,7 @@
                             <thead>
                                 <tr>
                                     <th>#</th><th>Thao tác</th><th>Người gửi</th><th>Thời điểm</th>
-                                    <th>Trước</th><th>After</th><th class="text-end">Duyệt</th>
+                                    <th>Trước</th><th>Sau</th><th class="text-end">Duyệt</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -89,7 +89,7 @@
 
     <c:if test="${canEditPayrollConfig && not empty pendingRequests}">
         <div class="panel">
-            <h5 class="fw-bold mb-2">Yêu cầu đang chờ Business Admin duyệt</h5>
+            <h5 class="fw-bold mb-2">Yêu cầu đang chờ Quản trị doanh nghiệp duyệt</h5>
             <div class="table-responsive">
                 <table class="table align-middle">
                     <thead><tr><th>#</th><th>Thao tác</th><th>Người gửi</th><th>Thời điểm</th><th>Nội dung</th></tr></thead>
@@ -113,8 +113,8 @@
         <h5 class="fw-bold mb-2">Tham số chung</h5>
         <p class="hint mb-3">
             <c:choose>
-                <c:when test="${canEditPayrollConfig}">Sau khi lưu, hệ thống sẽ gửi yêu cầu cho Business Admin duyệt.</c:when>
-                <c:otherwise>Business Admin chỉ xem và duyệt yêu cầu thay đổi từ HR.</c:otherwise>
+                <c:when test="${canEditPayrollConfig}">Sau khi lưu, hệ thống sẽ gửi yêu cầu cho Quản trị doanh nghiệp duyệt.</c:when>
+                <c:otherwise>Quản trị doanh nghiệp chỉ xem và duyệt yêu cầu thay đổi từ nhân sự.</c:otherwise>
             </c:choose>
         </p>
         <div class="table-responsive">
@@ -183,7 +183,7 @@
                                 </td>
                                 <td><input form="deductionForm${st.index}" type="hidden" name="ruleName" value="${fn:escapeXml(r.ruleName)}"><span class="readonly-value"><c:out value="${r.ruleName}" /></span></td>
                                 <td><input form="deductionForm${st.index}" type="hidden" name="ruleType" value="${r.ruleType}"><span class="readonly-value"><c:out value="${r.ruleType}" /></span></td>
-                                <td><span class="readonly-value">${r.ruleCode == 'UNION_FEE' ? 'Gross payroll' : 'Lương tính bảo hiểm'}</span></td>
+                                <td><span class="readonly-value">${r.ruleCode == 'UNION_FEE' ? 'Tổng lương' : 'Lương tính bảo hiểm'}</span></td>
                                 <td><input form="deductionForm${st.index}" name="employerRate" class="form-control mini-input employer-rate" value="${employerRatePercent}"></td>
                                 <td><input form="deductionForm${st.index}" name="employeeRate" class="form-control mini-input employee-rate" value="${employeeRatePercent}"></td>
                                 <td><input class="form-control mini-input total-rate fw-semibold" value="${totalRatePercent}" readonly></td>
@@ -192,7 +192,7 @@
                                 <td><span class="readonly-value fw-semibold"><c:out value="${r.ruleCode}" /></span></td>
                                 <td><span class="readonly-value"><c:out value="${r.ruleName}" /></span></td>
                                 <td><span class="readonly-value"><c:out value="${r.ruleType}" /></span></td>
-                                <td><span class="readonly-value">${r.ruleCode == 'UNION_FEE' ? 'Gross payroll' : 'Lương tính bảo hiểm'}</span></td>
+                                <td><span class="readonly-value">${r.ruleCode == 'UNION_FEE' ? 'Tổng lương' : 'Lương tính bảo hiểm'}</span></td>
                                 <td><span class="readonly-value"><c:out value="${employerRatePercent}" /></span></td>
                                 <td><span class="readonly-value"><c:out value="${employeeRatePercent}" /></span></td>
                                 <td><span class="readonly-value fw-semibold"><c:out value="${totalRatePercent}" /></span></td>

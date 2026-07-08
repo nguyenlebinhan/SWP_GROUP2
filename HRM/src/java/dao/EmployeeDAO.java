@@ -99,7 +99,7 @@ public class EmployeeDAO {
     public List<EmployeeDetailDTO> getAllEmployees(int userId) {
         List<EmployeeDetailDTO> list = new ArrayList<>();
         String SQL = "SELECT e.employeeId, e.employeeCode, e.userId, e.departmentId, e.positionId, "
-                + "e.phoneNumber, e.skills, e.experience, e.degree, e.status, e.managerId, "
+                + "e.phoneNumber, e.skills, e.experience, e.degree, e.dependentCount, e.unionMember, e.status, e.managerId, "
                 + "u.fullName, u.email, u.username, "
                 + "d.departmentName, p.positionName, r.roleName "
                 + "FROM Employees e "

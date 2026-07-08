@@ -6,7 +6,7 @@
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <title>Payroll config change history</title>
+    <title>Lịch sử thay đổi cấu hình lương</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
     <style>
@@ -24,49 +24,49 @@
 
 <div class="main">
     <jsp:include page="/public/components/managerTopBar.jsp">
-        <jsp:param name="title" value="Payroll config change history" />
+        <jsp:param name="title" value="Lịch sử thay đổi cấu hình lương" />
         <jsp:param name="backUrl" value="/v1/manager/dashboard" />
     </jsp:include>
 
     <div class="d-flex justify-content-between align-items-center mb-3">
         <a href="${payrollConfigBaseUrl}" class="btn btn-outline-secondary btn-sm">
-            <i class="fa-solid fa-arrow-left me-1"></i> Payroll config
+            <i class="fa-solid fa-arrow-left me-1"></i> Cấu hình lương
         </a>
     </div>
 
     <div class="panel">
-        <h5 class="fw-bold mb-2">Payroll config change history</h5>
+        <h5 class="fw-bold mb-2">Lịch sử thay đổi cấu hình lương</h5>
         <form method="get" action="${payrollConfigBaseUrl}/history" class="row g-2 align-items-end mb-3">
             <div class="col-md-3">
-                <label class="form-label small text-muted">Status</label>
+                <label class="form-label small text-muted">Trạng thái</label>
                 <select name="status" class="form-select form-select-sm">
-                    <option value="">All</option>
-                    <option value="1" ${statusFilter == 1 ? 'selected' : ''}>Approved</option>
-                    <option value="2" ${statusFilter == 2 ? 'selected' : ''}>Rejected</option>
+                    <option value="">Tất cả</option>
+                    <option value="1" ${statusFilter == 1 ? 'selected' : ''}>Đã duyệt</option>
+                    <option value="2" ${statusFilter == 2 ? 'selected' : ''}>Từ chối</option>
                 </select>
             </div>
             <div class="col-md-5">
-                <label class="form-label small text-muted">Keyword</label>
-                <input name="q" value="${q}" class="form-control form-control-sm" placeholder="Action, target, user, note">
+                <label class="form-label small text-muted">Từ khóa</label>
+                <input name="q" value="${q}" class="form-control form-control-sm" placeholder="Thao tác, đối tượng, người dùng, ghi chú">
             </div>
             <div class="col-md-4 d-flex gap-2">
-                <button class="btn btn-sm btn-primary">Filter</button>
-                <a href="${payrollConfigBaseUrl}/history" class="btn btn-sm btn-outline-secondary">Clear</a>
+                <button class="btn btn-sm btn-primary">Lọc</button>
+                <a href="${payrollConfigBaseUrl}/history" class="btn btn-sm btn-outline-secondary">Xóa lọc</a>
             </div>
         </form>
-        <div class="hint mb-2">Total ${totalItems} records</div>
+        <div class="hint mb-2">Tổng ${totalItems} bản ghi</div>
         <c:choose>
             <c:when test="${empty changeHistory}">
-                <div class="hint">No payroll config change history yet.</div>
+                <div class="hint">Chưa có lịch sử thay đổi cấu hình lương.</div>
             </c:when>
             <c:otherwise>
                 <div class="table-responsive">
                     <table class="table align-middle">
                         <thead>
                             <tr>
-                                <th>Request ID</th><th>Action</th><th>Target</th><th>Status</th>
-                                <th>Requested</th><th>Reviewed</th>
-                                <th>Before</th><th>After</th><th>Review note</th>
+                                <th>Mã yêu cầu</th><th>Thao tác</th><th>Đối tượng</th><th>Trạng thái</th>
+                                <th>Người gửi</th><th>Người duyệt</th>
+                                <th>Trước</th><th>Sau</th><th>Ghi chú duyệt</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -92,7 +92,7 @@
                             <li class="page-item ${currentPage == 1 ? 'disabled' : ''}">
                                 <a class="page-link" href="${pageBase}&page=${currentPage - 1}">&laquo;</a>
                             </li>
-                            <li class="page-item disabled"><span class="page-link">Page ${currentPage} of ${totalPages}</span></li>
+                            <li class="page-item disabled"><span class="page-link">Trang ${currentPage} / ${totalPages}</span></li>
                             <li class="page-item ${currentPage == totalPages ? 'disabled' : ''}">
                                 <a class="page-link" href="${pageBase}&page=${currentPage + 1}">&raquo;</a>
                             </li>

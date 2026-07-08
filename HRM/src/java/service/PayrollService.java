@@ -587,17 +587,17 @@ public class PayrollService {
     private List<PayrollDetailDTO> buildDetails(Payroll payroll, PayrollPreviewDTO preview, PayrollRuntimeConfig config) {
         List<PayrollDetailDTO> details = new ArrayList<>();
 
-        details.add(new PayrollDetailDTO("BASE_SALARY", "Base Salary", PayrollDetailDTO.TYPE_EARNING,
-                moneyOrZero(payroll.getBaseSalary()), "Monthly salary from active contract."));
-        details.add(new PayrollDetailDTO("ALLOWANCE", "Allowances", PayrollDetailDTO.TYPE_EARNING,
-                moneyOrZero(payroll.getAllowance()), "Additional allowances."));
-        details.add(new PayrollDetailDTO("OVERTIME_PAY", "Overtime Pay", PayrollDetailDTO.TYPE_EARNING,
-                moneyOrZero(payroll.getOvertimePay()), "OT: " + preview.getOvertimeBlocks()
-                + " blocks. Each block is " + preview.getOvertimeBlockMinutes() + " minutes, paid at "
-                + overtimeMultiplierText(preview) + "x hourly salary = "
-                + scale(preview.getOvertimeBlockAmount()) + "d/block."));
-        details.add(new PayrollDetailDTO("BONUS", "Bonuses", PayrollDetailDTO.TYPE_EARNING,
-                moneyOrZero(payroll.getBonus()), "Attendance bonus."));
+        details.add(new PayrollDetailDTO("BASE_SALARY", "Lương cơ bản", PayrollDetailDTO.TYPE_EARNING,
+                moneyOrZero(payroll.getBaseSalary()), "Lương tháng theo hợp đồng đang hiệu lực."));
+        details.add(new PayrollDetailDTO("ALLOWANCE", "Phụ cấp", PayrollDetailDTO.TYPE_EARNING,
+                moneyOrZero(payroll.getAllowance()), "Các khoản phụ cấp bổ sung."));
+        details.add(new PayrollDetailDTO("OVERTIME_PAY", "Tiền tăng ca", PayrollDetailDTO.TYPE_EARNING,
+                moneyOrZero(payroll.getOvertimePay()), "Tăng ca: " + preview.getOvertimeBlocks()
+                + " lượt. Mỗi lượt " + preview.getOvertimeBlockMinutes() + " phút, tính theo hệ số "
+                + overtimeMultiplierText(preview) + " lần lương giờ = "
+                + scale(preview.getOvertimeBlockAmount()) + "đ/lượt."));
+        details.add(new PayrollDetailDTO("BONUS", "Thưởng", PayrollDetailDTO.TYPE_EARNING,
+                moneyOrZero(payroll.getBonus()), "Thưởng chuyên cần."));
 
         for (PayrollDeductionRule rule : payrollConfigDAO.getDeductionRules(true)) {
             if (!appliesToEmployee(rule, preview.isUnionMember(), preview.isInsuranceCalculated())) {
@@ -606,31 +606,32 @@ public class PayrollService {
             BigDecimal amount = calculateDeductionRuleAmount(rule,
                     deductionBase(rule, preview.getContractSalary(), payroll.getGrossSalary(), config),
                     payroll.getGrossSalary(), preview.getTaxableIncome());
-            details.add(new PayrollDetailDTO(rule.getRuleCode(), rule.getRuleName(),
+            String ruleDisplayName = deductionRuleDisplayName(rule);
+            details.add(new PayrollDetailDTO(rule.getRuleCode(), ruleDisplayName,
                     PayrollDetailDTO.TYPE_DEDUCTION, scale(amount), buildDeductionBaseNote(rule, config)));
             BigDecimal employerAmount = calculateEmployerContributionAmount(rule,
                     deductionBase(rule, preview.getContractSalary(), payroll.getGrossSalary(), config),
                     payroll.getGrossSalary(), preview.getTaxableIncome());
             if (employerAmount.signum() > 0) {
                 details.add(new PayrollDetailDTO(rule.getRuleCode() + "_EMPLOYER",
-                        "Doanh nghiep dong - " + rule.getRuleName(), PayrollDetailDTO.TYPE_COMPANY_COST,
+                        "Doanh nghiệp đóng - " + ruleDisplayName, PayrollDetailDTO.TYPE_COMPANY_COST,
                         scale(employerAmount), buildEmployerBaseNote(rule, config)));
             }
         }
-        details.add(new PayrollDetailDTO("UNPAID_DEDUCTION", "Unpaid / Not-worked Deduction", PayrollDetailDTO.TYPE_DEDUCTION,
-                moneyOrZero(payroll.getUnpaidDeduction()), "Unpaid/not-worked days: "
-                + preview.getNotWorkedDays() + " days x " + scale(preview.getDailyRate()) + "d; late arrival deduction: "
-                + preview.getLateDeductionBlocks() + " blocks (" + preview.getLateDeductionBlockMinutes() + " minutes/block) x "
-                + scale(preview.getLateDeductionBlockAmount()) + "d."));
-        details.add(new PayrollDetailDTO("PERSONAL_INCOME_TAX", "Personal Income Tax",
+        details.add(new PayrollDetailDTO("UNPAID_DEDUCTION", "Khấu trừ ngày không làm", PayrollDetailDTO.TYPE_DEDUCTION,
+                moneyOrZero(payroll.getUnpaidDeduction()), "Ngày không làm: "
+                + preview.getNotWorkedDays() + " ngày x " + scale(preview.getDailyRate()) + "đ; khấu trừ đi muộn: "
+                + preview.getLateDeductionBlocks() + " lượt (" + preview.getLateDeductionBlockMinutes() + " phút/lượt) x "
+                + scale(preview.getLateDeductionBlockAmount()) + "đ."));
+        details.add(new PayrollDetailDTO("PERSONAL_INCOME_TAX", "Thuế thu nhập cá nhân",
                 PayrollDetailDTO.TYPE_DEDUCTION, moneyOrZero(payroll.getPersonalIncomeTax()), null));
-        details.add(new PayrollDetailDTO("TAXABLE_INCOME", "Thu nhap tinh thue", PayrollDetailDTO.TYPE_INFO,
-                ZERO, "Gross Salary - insurance - unpaid deduction - family allowance "
-                + scale(moneyOrZero(preview.getFamilyAllowance())) + "d (personal allowance "
-                + scale(moneyOrZero(preview.getPersonalAllowance())) + "d + "
-                + preview.getDependentCount() + " dependents x "
-                + scale(moneyOrZero(preview.getDependentAllowance())) + "d): "
-                + scale(preview.getTaxableIncome()) + "d."));
+        details.add(new PayrollDetailDTO("TAXABLE_INCOME", "Thu nhập tính thuế", PayrollDetailDTO.TYPE_INFO,
+                ZERO, "Tổng thu nhập - bảo hiểm - khấu trừ ngày không làm - giảm trừ gia cảnh "
+                + scale(moneyOrZero(preview.getFamilyAllowance())) + "đ (giảm trừ cá nhân "
+                + scale(moneyOrZero(preview.getPersonalAllowance())) + "đ + "
+                + preview.getDependentCount() + " người phụ thuộc x "
+                + scale(moneyOrZero(preview.getDependentAllowance())) + "đ): "
+                + scale(preview.getTaxableIncome()) + "đ."));
         return details;
     }
 
@@ -639,19 +640,19 @@ public class PayrollService {
         if (payroll == null) {
             return details;
         }
-        details.add(new PayrollDetailDTO("BASE_SALARY", "Base Salary", PayrollDetailDTO.TYPE_EARNING,
-                moneyOrZero(payroll.getBaseSalary()), "Monthly salary from active contract."));
-        details.add(new PayrollDetailDTO("ALLOWANCE", "Allowances", PayrollDetailDTO.TYPE_EARNING,
+        details.add(new PayrollDetailDTO("BASE_SALARY", "Lương cơ bản", PayrollDetailDTO.TYPE_EARNING,
+                moneyOrZero(payroll.getBaseSalary()), "Lương tháng theo hợp đồng đang hiệu lực."));
+        details.add(new PayrollDetailDTO("ALLOWANCE", "Phụ cấp", PayrollDetailDTO.TYPE_EARNING,
                 moneyOrZero(payroll.getAllowance()), null));
-        details.add(new PayrollDetailDTO("OVERTIME_PAY", "Overtime Pay", PayrollDetailDTO.TYPE_EARNING,
+        details.add(new PayrollDetailDTO("OVERTIME_PAY", "Tiền tăng ca", PayrollDetailDTO.TYPE_EARNING,
                 moneyOrZero(payroll.getOvertimePay()), null));
-        details.add(new PayrollDetailDTO("BONUS", "Bonuses", PayrollDetailDTO.TYPE_EARNING,
+        details.add(new PayrollDetailDTO("BONUS", "Thưởng", PayrollDetailDTO.TYPE_EARNING,
                 moneyOrZero(payroll.getBonus()), null));
-        details.add(new PayrollDetailDTO("CONFIGURED_DEDUCTIONS", "Social / Health / Unemployment Insurance", PayrollDetailDTO.TYPE_DEDUCTION,
+        details.add(new PayrollDetailDTO("CONFIGURED_DEDUCTIONS", "Bảo hiểm xã hội / y tế / thất nghiệp", PayrollDetailDTO.TYPE_DEDUCTION,
                 moneyOrZero(payroll.getInsuranceDeduction()), null));
-        details.add(new PayrollDetailDTO("UNPAID_DEDUCTION", "Unpaid / Not-worked Deduction", PayrollDetailDTO.TYPE_DEDUCTION,
+        details.add(new PayrollDetailDTO("UNPAID_DEDUCTION", "Khấu trừ ngày không làm", PayrollDetailDTO.TYPE_DEDUCTION,
                 moneyOrZero(payroll.getUnpaidDeduction()), null));
-        details.add(new PayrollDetailDTO("PERSONAL_INCOME_TAX", "Personal Income Tax",
+        details.add(new PayrollDetailDTO("PERSONAL_INCOME_TAX", "Thuế thu nhập cá nhân",
                 PayrollDetailDTO.TYPE_DEDUCTION, moneyOrZero(payroll.getPersonalIncomeTax()), null));
         return details;
     }
@@ -1068,22 +1069,40 @@ public class PayrollService {
 
     private String baseNote(PayrollDeductionRule rule, PayrollRuntimeConfig config) {
         if (rule != null && "UNION_FEE".equals(rule.getRuleCode())) {
-            return "nen tinh: Gross payroll.";
+            return "nền tính: tổng lương.";
         }
-        return "nen tinh: min(Luong tinh bao hiem, muc tran " + scale(config.insuranceSalaryCap) + ").";
+        return "nền tính: min(lương tính bảo hiểm, mức trần " + scale(config.insuranceSalaryCap) + ").";
     }
 
     private String buildDeductionBaseNote(PayrollDeductionRule rule, PayrollRuntimeConfig config) {
-        return "Tong: " + percent(rule.getRate())
-                + "; cong ty tra: " + percent(rule.getEmployerRate())
-                + "; nhan vien tra: " + percent(rule.getEmployeeRate())
+        return "Tổng: " + percent(rule.getRate())
+                + "; công ty trả: " + percent(rule.getEmployerRate())
+                + "; nhân viên trả: " + percent(rule.getEmployeeRate())
                 + "; " + baseNote(rule, config);
     }
 
     private String buildEmployerBaseNote(PayrollDeductionRule rule, PayrollRuntimeConfig config) {
-        return "Chi phi doanh nghiep, khong tru vao luong nhan vien. Ty le cong ty tra: "
+        return "Chi phí doanh nghiệp, không trừ vào lương nhân viên. Tỷ lệ công ty trả: "
                 + percent(rule.getEmployerRate())
                 + "; " + baseNote(rule, config);
+    }
+
+    private String deductionRuleDisplayName(PayrollDeductionRule rule) {
+        if (rule == null || rule.getRuleCode() == null) {
+            return "";
+        }
+        switch (rule.getRuleCode()) {
+            case "SOCIAL_INSURANCE":
+                return "Bảo hiểm xã hội";
+            case "HEALTH_INSURANCE":
+                return "Bảo hiểm y tế";
+            case "UNEMPLOYMENT_INSURANCE":
+                return "Bảo hiểm thất nghiệp";
+            case "UNION_FEE":
+                return "Kinh phí công đoàn";
+            default:
+                return rule.getRuleName();
+        }
     }
 
     private String percent(BigDecimal rate) {

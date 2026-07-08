@@ -350,7 +350,7 @@
                 </div>
             </c:if>
 
-            <%-- Filter form --%>
+            <%-- Lọc form --%>
             <div class="filter-card">
                 <form method="get" action="${pageContext.request.contextPath}/v1/employee/salary/all"
                       class="row g-3 align-items-end">
@@ -436,14 +436,14 @@
                         <thead>
                             <tr>
                                 <th>STT</th>
-                                <th>Employee</th>
-                                <th>Department</th>
-                                <th>Base Salary</th>
-                                <th>Gross Salary</th>
-                                <th>Total Deductions</th>
-                                <th>Net Salary</th>
-                                <th>Status</th>
-                                <th>Detail</th>
+                                <th>Nhân viên</th>
+                                <th>Phòng ban</th>
+                                <th>Lương cơ bản</th>
+                                <th>Tổng thu nhập</th>
+                                <th>Tổng khấu trừ</th>
+                                <th>Lương thực nhận</th>
+                                <th>Trạng thái</th>
+                                <th>Chi tiết</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -517,7 +517,7 @@
                                                     <td>
                                                         <c:choose>
                                                             <c:when test="${row.payroll.status == 1}">
-                                                                <span class="status-badge status-paid">HR đã duyệt</span>
+                                                                <span class="status-badge status-paid">Nhân sự đã duyệt</span>
                                                             </c:when>
                                                             <c:otherwise>
                                                                 <span class="status-badge status-pending">Chờ duyệt</span>
