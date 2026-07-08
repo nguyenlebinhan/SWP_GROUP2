@@ -1,9 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project-private xmlns="http://www.netbeans.org/ns/project-private/1">
-    <editor-bookmarks xmlns="http://www.netbeans.org/ns/editor-bookmarks/2" lastBookmarkId="0"/>
     <open-files xmlns="http://www.netbeans.org/ns/projectui-open-files/2">
         <group>
-<<<<<<< HEAD
             <file>file:/C:/Users/ADMIN/Desktop/SWP_GROUP2/HRM/web/public/components/employeeTopBar.jsp</file>
             <file>file:/C:/Users/ADMIN/Desktop/SWP_GROUP2/HRM/src/java/service/PayrollService.java</file>
             <file>file:/C:/Users/ADMIN/Desktop/SWP_GROUP2/HRM/src/java/dal/DBInitializer.java</file>
@@ -80,19 +78,6 @@
             <file>file:/C:/Users/ADMIN/Desktop/SWP_GROUP2/HRM/src/java/dto/AttendanceImportResultDTO.java</file>
             <file>file:/C:/Users/ADMIN/Desktop/SWP_GROUP2/HRM/src/java/utils/ConfigManager.java</file>
             <file>file:/C:/Users/ADMIN/Desktop/SWP_GROUP2/HRM/src/java/dao/CandidateDAO.java</file>
-=======
-            <file>file:/C:/Users/PC/Documents/Project/SWP_GROUP2/HRM/web/public/employee/salary/own_salary.jsp</file>
-            <file>file:/C:/Users/PC/Documents/Project/SWP_GROUP2/HRM/web/public/manager/salary/own_salary.jsp</file>
-            <file>file:/C:/Users/PC/Documents/Project/SWP_GROUP2/HRM/web/public/components/employeeSideBar.jsp</file>
-            <file>file:/C:/Users/PC/Documents/Project/SWP_GROUP2/HRM/web/public/components/employeeTopBar.jsp</file>
-            <file>file:/C:/Users/PC/Documents/Project/SWP_GROUP2/HRM/web/public/employee/salary/salary_list.jsp</file>
-            <file>file:/C:/Users/PC/Documents/Project/SWP_GROUP2/HRM/web/public/manager/salary/salary_detail.jsp</file>
-            <file>file:/C:/Users/PC/Documents/Project/SWP_GROUP2/HRM/web/public/components/managerTopBar.jsp</file>
-            <file>file:/C:/Users/PC/Documents/Project/SWP_GROUP2/HRM/web/public/employee/salary/salary_detail.jsp</file>
-            <file>file:/C:/Users/PC/Documents/Project/SWP_GROUP2/HRM/web/public/manager/salary/payroll_config.jsp</file>
-            <file>file:/C:/Users/PC/Documents/Project/SWP_GROUP2/HRM/src/java/dal/DBInitializer.java</file>
-            <file>file:/C:/Users/PC/Documents/Project/SWP_GROUP2/HRM/web/public/employee/salary/payroll_config.jsp</file>
->>>>>>> f4c8d56ecead74532a8e3c20e204314be97ca459
         </group>
     </open-files>
 </project-private>
