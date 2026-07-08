@@ -1081,24 +1081,24 @@ public class BusinessAdminController extends HttpServlet {
 
     private void handleSavePayrollSetting(HttpServletRequest request, HttpServletResponse response)
             throws IOException {
-        setPayrollConfigError(request, "Business Admin chỉ duyệt yêu cầu thay đổi payroll config, không chỉnh trực tiếp.");
+        setPayrollConfigError(request, "Quản trị doanh nghiệp chỉ duyệt yêu cầu thay đổi cấu hình lương, không chỉnh trực tiếp.");
         response.sendRedirect(request.getContextPath() + "/v1/businessadmin/payroll-config");
     }
     private void handleSavePayrollDeduction(HttpServletRequest request, HttpServletResponse response)
             throws IOException {
-        setPayrollConfigError(request, "Business Admin chỉ duyệt yêu cầu thay đổi payroll config, không chỉnh trực tiếp.");
+        setPayrollConfigError(request, "Quản trị doanh nghiệp chỉ duyệt yêu cầu thay đổi cấu hình lương, không chỉnh trực tiếp.");
         response.sendRedirect(request.getContextPath() + "/v1/businessadmin/payroll-config");
     }
 
     private void handleDeletePayrollDeduction(HttpServletRequest request, HttpServletResponse response)
             throws IOException {
-        setPayrollConfigError(request, "Business Admin chỉ duyệt yêu cầu thay đổi payroll config, không chỉnh trực tiếp.");
+        setPayrollConfigError(request, "Quản trị doanh nghiệp chỉ duyệt yêu cầu thay đổi cấu hình lương, không chỉnh trực tiếp.");
         response.sendRedirect(request.getContextPath() + "/v1/businessadmin/payroll-config");
     }
 
     private void handleSavePayrollTaxBracket(HttpServletRequest request, HttpServletResponse response)
             throws IOException {
-        setPayrollConfigError(request, "Business Admin chỉ duyệt yêu cầu thay đổi payroll config, không chỉnh trực tiếp.");
+        setPayrollConfigError(request, "Quản trị doanh nghiệp chỉ duyệt yêu cầu thay đổi cấu hình lương, không chỉnh trực tiếp.");
         response.sendRedirect(request.getContextPath() + "/v1/businessadmin/payroll-config");
     }
 
@@ -1108,9 +1108,9 @@ public class BusinessAdminController extends HttpServlet {
         String note = trim(request.getParameter("note"));
         boolean ok = requestId != null && payrollConfigWorkflowService.approveRequest(requestId, user, note);
         if (ok) {
-            setPayrollConfigSuccess(request, "Đã duyệt và áp dụng thay đổi payroll config.");
+            setPayrollConfigSuccess(request, "Đã duyệt và áp dụng thay đổi cấu hình lương.");
         } else {
-            setPayrollConfigError(request, "Duyệt yêu cầu thay đổi payroll config thất bại.");
+            setPayrollConfigError(request, "Duyệt yêu cầu thay đổi cấu hình lương thất bại.");
         }
         response.sendRedirect(request.getContextPath() + "/v1/businessadmin/payroll-config");
     }
@@ -1121,9 +1121,9 @@ public class BusinessAdminController extends HttpServlet {
         String note = trim(request.getParameter("note"));
         boolean ok = requestId != null && payrollConfigWorkflowService.rejectRequest(requestId, user, note);
         if (ok) {
-            setPayrollConfigSuccess(request, "Đã từ chối yêu cầu thay đổi payroll config.");
+            setPayrollConfigSuccess(request, "Đã từ chối yêu cầu thay đổi cấu hình lương.");
         } else {
-            setPayrollConfigError(request, "Từ chối yêu cầu thay đổi payroll config thất bại.");
+            setPayrollConfigError(request, "Từ chối yêu cầu thay đổi cấu hình lương thất bại.");
         }
         response.sendRedirect(request.getContextPath() + "/v1/businessadmin/payroll-config");
     }

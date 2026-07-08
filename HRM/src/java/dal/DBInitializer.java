@@ -825,10 +825,10 @@ public class DBInitializer {
                 insertPermission(conn, "VIEW_OWN_SALARY", "Xem lương cá nhân", "Quyền xem, gửi đơn khiếu nại về lương của cá nhân");
                 insertPermission(conn, "APPROVE_PAYROLL", "Duyệt bảng lương", "Quyền duyệt bảng lương trước khi thanh toán");
                 insertPermission(conn, "EXPORT_PAYROLL", "Xuất bảng lương", "Quyền xuất bảng lương ra Excel");
-                insertPermission(conn,"CONFIG_PAYROLL","Cấu hình payroll","Quyền cấu hình payroll và gửi yêu cầu duyệt");
+                insertPermission(conn,"CONFIG_PAYROLL","Cấu hình lương","Quyền cấu hình lương và gửi yêu cầu duyệt");
 
             }
-            insertPermission(conn,"CONFIG_PAYROLL","Cấu hình payroll","Quyền cấu hình payroll và gửi yêu cầu duyệt");
+            insertPermission(conn,"CONFIG_PAYROLL","Cấu hình lương","Quyền cấu hình lương và gửi yêu cầu duyệt");
 
             if (countRows(conn, "Positions") == 0) {
                 insertPosition(conn, "Thực tập sinh", 1, "Sinh viên thực tập tại công ty");

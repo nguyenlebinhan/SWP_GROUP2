@@ -1,4 +1,4 @@
-<%@ page contentType="text/html;charset=UTF-8" %>
+<%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" %>
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
 <%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
 <%@ taglib prefix="fn" uri="http://java.sun.com/jsp/jstl/functions" %>
@@ -347,7 +347,7 @@
             <c:if test="${canViewAllSalary && !attendanceLocked}">
                 <div class="alert alert-warning">
                     <i class="fa-solid fa-circle-info me-2"></i>
-                    Bảng chấm công kỳ này chưa được BA chốt nên chưa thể tạo hoặc xuất bảng lương.
+                    Bảng chấm công kỳ này chưa được Quản trị doanh nghiệp chốt nên chưa thể tạo hoặc xuất bảng lương.
                 </div>
             </c:if>
 
@@ -393,7 +393,7 @@
                 </form>
             </div>
 
-            <%-- Stat cards --%>
+            <%-- Thẻ thống kê --%>
             <div class="stat-grid">
                 <div class="stat-card">
                     <div class="stat-label">Nhân viên tính lương</div>
@@ -562,7 +562,7 @@
                                 var year = document.getElementById('filterYear').value;
                                 var dept = document.getElementById('filterDept').value;
 
-                                // Sync vào form Generate
+                                // Đồng bộ vào form tạo bảng lương
                                 var gm = document.getElementById('genMonth');
                                 var gy = document.getElementById('genYear');
                                 var gd = document.getElementById('genDept');
@@ -573,7 +573,7 @@
                                 if (gd)
                                     gd.value = dept;
 
-                                // Sync vào form Approve-all
+                                // Đồng bộ vào form duyệt tất cả
                                 var am = document.getElementById('appMonth');
                                 var ay = document.getElementById('appYear');
                                 var ad = document.getElementById('appDept');
@@ -584,7 +584,7 @@
                                 if (ad)
                                     ad.value = dept;
 
-                                // Cập nhật link Export
+                                // Cập nhật link xuất file
                                 var exportLink = document.getElementById('exportLink');
                                 if (exportLink) {
                                     var base = exportLink.href.split('?')[0];
@@ -603,7 +603,7 @@
                             function confirmGenerate() {
                                 var month = document.getElementById('filterMonth').value;
                                 var year = document.getElementById('filterYear').value;
-                                return confirm('Generate lại bảng lương tháng ' + month + '/' + year + ' từ dữ liệu hệ thống?');
+                                return confirm('Tạo lại bảng lương tháng ' + month + '/' + year + ' từ dữ liệu hệ thống?');
                             }
 
                             function confirmApprove() {

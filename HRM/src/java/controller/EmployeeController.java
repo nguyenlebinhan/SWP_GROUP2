@@ -605,7 +605,7 @@ public class EmployeeController extends HttpServlet {
     private void displayPayrollConfig(HttpServletRequest request, HttpServletResponse response,
             User user) throws ServletException, IOException {
         if (!isHrStaff(user) || !hasPermission(user, "CONFIG_PAYROLL")) {
-            request.getSession().setAttribute("error", "Bạn không có quyền cấu hình payroll.");
+            request.getSession().setAttribute("error", "Bạn không có quyền cấu hình lương.");
             response.sendRedirect(request.getContextPath() + "/v1/employee/dashboard");
             return;
         }
@@ -645,8 +645,7 @@ public class EmployeeController extends HttpServlet {
     private void displayPayrollConfigHistory(HttpServletRequest request, HttpServletResponse response,
             User user) throws ServletException, IOException {
         if (!isHrStaff(user) || !hasPermission(user, "CONFIG_PAYROLL")) {
-            request.getSession().setAttribute("error", "Báº¡n khĂ´ng cĂ³ quyá»n cáº¥u hĂ¬nh payroll.");
-            request.getSession().setAttribute("error", "Ban khong co quyen cau hinh payroll.");
+            request.getSession().setAttribute("error", "Bạn không có quyền cấu hình lương.");
             response.sendRedirect(request.getContextPath() + "/v1/employee/dashboard");
             return;
         }
@@ -819,7 +818,7 @@ public class EmployeeController extends HttpServlet {
             User user) throws IOException {
         String redirect = request.getContextPath() + "/v1/employee/payroll-config";
         if (!isHrStaff(user) || !hasPermission(user, "CONFIG_PAYROLL")) {
-            request.getSession().setAttribute("payrollConfigError", "Bạn không có quyền cấu hình payroll.");
+            request.getSession().setAttribute("payrollConfigError", "Bạn không có quyền cấu hình lương.");
             response.sendRedirect(redirect);
             return;
         }
@@ -835,8 +834,8 @@ public class EmployeeController extends HttpServlet {
         }
         int requestId = payrollConfigWorkflowService.requestSettingChange(setting, user);
         request.getSession().setAttribute(requestId > 0 ? "payrollConfigSuccess" : "payrollConfigError",
-                requestId > 0 ? "Đã gửi yêu cầu thay đổi tham số payroll chờ Business Admin duyệt."
-                        : "Không thể gửi yêu cầu thay đổi tham số payroll.");
+                requestId > 0 ? "Đã gửi yêu cầu thay đổi tham số lương chờ Quản trị doanh nghiệp duyệt."
+                        : "Không thể gửi yêu cầu thay đổi tham số lương.");
         response.sendRedirect(redirect);
     }
 
@@ -844,7 +843,7 @@ public class EmployeeController extends HttpServlet {
             User user) throws IOException {
         String redirect = request.getContextPath() + "/v1/employee/payroll-config";
         if (!isHrStaff(user) || !hasPermission(user, "CONFIG_PAYROLL")) {
-            request.getSession().setAttribute("payrollConfigError", "Bạn không có quyền cấu hình payroll.");
+            request.getSession().setAttribute("payrollConfigError", "Bạn không có quyền cấu hình lương.");
             response.sendRedirect(redirect);
             return;
         }
@@ -863,7 +862,7 @@ public class EmployeeController extends HttpServlet {
         }
         int requestId = payrollConfigWorkflowService.requestDeductionSave(rule, user);
         request.getSession().setAttribute(requestId > 0 ? "payrollConfigSuccess" : "payrollConfigError",
-                requestId > 0 ? "Đã gửi yêu cầu thay đổi khoản khấu trừ chờ Business Admin duyệt."
+                requestId > 0 ? "Đã gửi yêu cầu thay đổi khoản khấu trừ chờ Quản trị doanh nghiệp duyệt."
                         : "Không thể gửi yêu cầu thay đổi khoản khấu trừ.");
         response.sendRedirect(redirect);
     }
@@ -872,7 +871,7 @@ public class EmployeeController extends HttpServlet {
             User user) throws IOException {
         String redirect = request.getContextPath() + "/v1/employee/payroll-config";
         if (!isHrStaff(user) || !hasPermission(user, "CONFIG_PAYROLL")) {
-            request.getSession().setAttribute("payrollConfigError", "Bạn không có quyền cấu hình payroll.");
+            request.getSession().setAttribute("payrollConfigError", "Bạn không có quyền cấu hình lương.");
             response.sendRedirect(redirect);
             return;
         }
@@ -884,7 +883,7 @@ public class EmployeeController extends HttpServlet {
         }
         int requestId = payrollConfigWorkflowService.requestDeductionDelete(ruleId, user);
         request.getSession().setAttribute(requestId > 0 ? "payrollConfigSuccess" : "payrollConfigError",
-                requestId > 0 ? "Đã gửi yêu cầu xóa khoản khấu trừ chờ Business Admin duyệt."
+                requestId > 0 ? "Đã gửi yêu cầu xóa khoản khấu trừ chờ Quản trị doanh nghiệp duyệt."
                         : "Không thể gửi yêu cầu xóa khoản khấu trừ.");
         response.sendRedirect(redirect);
     }
@@ -893,7 +892,7 @@ public class EmployeeController extends HttpServlet {
             User user) throws IOException {
         String redirect = request.getContextPath() + "/v1/employee/payroll-config";
         if (!isHrStaff(user) || !hasPermission(user, "CONFIG_PAYROLL")) {
-            request.getSession().setAttribute("payrollConfigError", "Bạn không có quyền cấu hình payroll.");
+            request.getSession().setAttribute("payrollConfigError", "Bạn không có quyền cấu hình lương.");
             response.sendRedirect(redirect);
             return;
         }
@@ -910,7 +909,7 @@ public class EmployeeController extends HttpServlet {
         }
         int requestId = payrollConfigWorkflowService.requestTaxBracketSave(brackets, user);
         request.getSession().setAttribute(requestId > 0 ? "payrollConfigSuccess" : "payrollConfigError",
-                requestId > 0 ? "Đã gửi yêu cầu thay đổi bậc thuế chờ Business Admin duyệt."
+                requestId > 0 ? "Đã gửi yêu cầu thay đổi bậc thuế chờ Quản trị doanh nghiệp duyệt."
                         : "Không thể gửi yêu cầu thay đổi bậc thuế.");
         response.sendRedirect(redirect);
     }

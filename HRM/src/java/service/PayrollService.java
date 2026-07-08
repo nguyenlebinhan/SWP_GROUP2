@@ -197,7 +197,7 @@ public class PayrollService {
         return payrollDAO.countPendingApproval(start, end, departmentId, null);
     }
 
-    // Export
+    // Xuất bảng lương
     public void exportPayrollWorkbook(User user, int year, int month, Integer departmentId, OutputStream out)
             throws IOException {
         boolean allowed = canExportPayroll(user);
@@ -206,7 +206,7 @@ public class PayrollService {
                 : new ArrayList<>();
         int exportedRows = 0;
         try (Workbook workbook = new XSSFWorkbook()) {
-            Sheet sheet = workbook.createSheet("Payroll " + month + "-" + year);
+            Sheet sheet = workbook.createSheet("Bảng lương " + month + "-" + year);
             String[] headers = payrollHeaders();
             Row header = sheet.createRow(0);
             for (int i = 0; i < headers.length; i++) {
@@ -249,7 +249,7 @@ public class PayrollService {
                 + "; rows=" + exportedRows, allowed ? "SUCCESS" : "DENIED");
     }
 
-    // Generate
+    // Tạo bảng lương
     public List<PayrollPreviewDTO> generatePayrollForAll(int year, int month, Integer departmentId, boolean save) {
         List<PayrollPreviewDTO> result = new ArrayList<>();
         try (Connection conn = dbContext.getConnection()) {
@@ -287,7 +287,7 @@ public class PayrollService {
     }
 
     public int saveGeneratedPayrollForPeriod(int year, int month, Integer departmentId) {
-        // Chặn cứng: chỉ lưu bảng lương khi bảng chấm công đã được BA chốt (LOCKED).
+        // Chặn cứng: chỉ lưu bảng lương khi bảng chấm công đã được Quản trị doanh nghiệp chốt (LOCKED).
         boolean locked = departmentId == null
                 ? attendanceClosingService.isPeriodLocked(year, month)
                 : attendanceClosingService.isDepartmentLocked(year, month, departmentId);
@@ -372,8 +372,8 @@ public class PayrollService {
         BigDecimal unpaidDeduction = dailyRate.multiply(new BigDecimal(unpaidWorkingDays))
                 .add(attendance.getLateDeduction());
 
-        // Gross Salary = contract salary + allowances + overtime pay + bonuses.
-        // Net Salary = Gross Salary - configured deductions - unpaid days - late deduction - PIT.
+        // Tổng thu nhập = lương hợp đồng + phụ cấp + tăng ca + thưởng.
+        // Lương thực nhận = tổng thu nhập - các khoản khấu trừ - thuế TNCN.
         BigDecimal grossSalary = baseSalary
                 .add(allowance)
                 .add(bonus)
@@ -889,10 +889,10 @@ public class PayrollService {
 
     private String[] payrollHeaders() {
         return new String[]{
-            "employeeCode", "fullName", "departmentName", "positionName",
-            "workingDays", "hoursWorked", "baseSalary", "allowance", "bonus",
-            "overtimePay", "unpaidDeduction", "grossSalary", "insuranceDeduction",
-            "personalIncomeTax", "netSalary", "status", "note"
+            "Mã nhân viên", "Họ tên", "Phòng ban", "Chức vụ",
+            "Ngày công", "Giờ làm", "Lương cơ bản", "Phụ cấp", "Thưởng",
+            "Tiền tăng ca", "Khấu trừ ngày không làm", "Tổng thu nhập", "Bảo hiểm",
+            "Thuế thu nhập cá nhân", "Lương thực nhận", "Trạng thái", "Ghi chú"
         };
     }
 
@@ -939,7 +939,7 @@ public class PayrollService {
         config.deductionRules = payrollConfigDAO.getDeductionRules(true);
         config.taxBrackets = payrollConfigDAO.getTaxBrackets(true);
         if (config.taxBrackets == null || config.taxBrackets.isEmpty()) {
-            throw new IllegalStateException("Payroll tax bracket config is missing.");
+            throw new IllegalStateException("Thiếu cấu hình bậc thuế lương.");
         }
         return config;
     }
@@ -955,7 +955,7 @@ public class PayrollService {
     private LocalTime minutesOfDay(BigDecimal value, String settingKey) {
         int minutes = value.intValue();
         if (minutes < 0 || minutes >= MINUTES_PER_HOUR.intValue() * 24) {
-            throw new IllegalStateException("Payroll setting " + settingKey + " is invalid.");
+            throw new IllegalStateException("Cấu hình lương " + settingKey + " không hợp lệ.");
         }
         return LocalTime.of(minutes / MINUTES_PER_HOUR.intValue(), minutes % MINUTES_PER_HOUR.intValue());
     }
@@ -963,7 +963,7 @@ public class PayrollService {
     private BigDecimal requiredPositiveSetting(Map<String, BigDecimal> settings, String key) {
         BigDecimal value = requiredSetting(settings, key);
         if (value.signum() <= 0) {
-            throw new IllegalStateException("Payroll setting " + key + " must be greater than 0.");
+            throw new IllegalStateException("Cấu hình lương " + key + " phải lớn hơn 0.");
         }
         return value;
     }
@@ -971,7 +971,7 @@ public class PayrollService {
     private BigDecimal requiredNonNegativeSetting(Map<String, BigDecimal> settings, String key) {
         BigDecimal value = requiredSetting(settings, key);
         if (value.signum() < 0) {
-            throw new IllegalStateException("Payroll setting " + key + " must not be negative.");
+            throw new IllegalStateException("Cấu hình lương " + key + " không được âm.");
         }
         return value;
     }
@@ -979,10 +979,10 @@ public class PayrollService {
     private BigDecimal requiredNonNegativeSetting(Map<String, BigDecimal> settings, String key, String legacyKey) {
         BigDecimal value = settingValue(settings, key, legacyKey);
         if (value == null) {
-            throw new IllegalStateException("Payroll setting " + key + " is missing.");
+            throw new IllegalStateException("Thiếu cấu hình lương " + key + ".");
         }
         if (value.signum() < 0) {
-            throw new IllegalStateException("Payroll setting " + key + " must not be negative.");
+            throw new IllegalStateException("Cấu hình lương " + key + " không được âm.");
         }
         return value;
     }
@@ -990,7 +990,7 @@ public class PayrollService {
     private BigDecimal requiredSetting(Map<String, BigDecimal> settings, String key) {
         BigDecimal value = settings == null ? null : settings.get(key);
         if (value == null) {
-            throw new IllegalStateException("Payroll setting " + key + " is missing.");
+            throw new IllegalStateException("Thiếu cấu hình lương " + key + ".");
         }
         return value;
     }
