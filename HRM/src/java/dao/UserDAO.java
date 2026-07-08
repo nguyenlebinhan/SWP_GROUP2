@@ -137,7 +137,8 @@ public class UserDAO {
         return false;
     }
 
-    public boolean addUserAndEmpployee(String username, String email, String password, String fullName, String dob, String gender, String address, int roleId) {
+    public boolean addUserAndEmpployee(String username, String email, String password, String fullName, String dob,
+            String gender, String address, int roleId, int dependentCount, boolean unionMember) {
         LOGGER.log(Level.INFO, "Adding new user + employee with email: {0}", email);
 
         if (isEmailExists(email)) {
@@ -148,8 +149,8 @@ public class UserDAO {
         String insertUserSql = "INSERT INTO users (username, email, password, fullName, dob, gender, address, roleId, isTemporaryPassword) "
                 + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1)";
         String nextCodeSql = "SELECT COALESCE(MAX(employeeId), 0) + 1 AS nextId FROM employees";
-        String insertEmpSql = "INSERT INTO employees (employeeCode, userId, departmentId, positionId, phoneNumber, skills, experience, degree, status, managerId) "
-                + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, ?)";
+        String insertEmpSql = "INSERT INTO employees (employeeCode, userId, departmentId, positionId, phoneNumber, skills, experience, degree, dependentCount, unionMember, status, managerId) "
+                + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?)";
 
         Connection conn = null;
         try {
@@ -199,7 +200,9 @@ public class UserDAO {
                 ps.setNull(6, Types.VARCHAR); // skills
                 ps.setNull(7, Types.VARCHAR); // experience
                 ps.setNull(8, Types.VARCHAR); // degree
-                ps.setNull(9, Types.INTEGER); // managerId
+                ps.setInt(9, Math.max(0, dependentCount));
+                ps.setBoolean(10, unionMember);
+                ps.setNull(11, Types.INTEGER); // managerId
 
                 if (ps.executeUpdate() == 0) {
                     LOGGER.log(Level.WARNING, "Add employee failed: no rows affected for userId: {0}", newUserId);

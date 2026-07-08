@@ -5,7 +5,6 @@
 package dal;
 
 import at.favre.lib.crypto.bcrypt.BCrypt;
-import dao.UserDAO;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.PreparedStatement;
@@ -589,35 +588,11 @@ public class DBInitializer {
                 + "reviewedBy INT,"
                 + "reviewedAt DATETIME,"
                 + "reviewNote NVARCHAR(500),"
+                + "INDEX idx_payroll_config_requests_reviewedAt (reviewedAt),"
                 + "FOREIGN KEY (requestedBy) REFERENCES Users(userId),"
                 + "FOREIGN KEY (reviewedBy) REFERENCES Users(userId)"
                 + ")";
         execute(conn, SQL, "CREATE PAYROLL_CONFIG_CHANGE_REQUESTS TABLE SUCCESSFULLY");
-    }
-
-    public void createTablePayrollConfigChangeHistory(Connection conn) {
-        String SQL = "CREATE TABLE Payroll_Config_Change_History("
-                + "historyId INT PRIMARY KEY AUTO_INCREMENT,"
-                + "requestId INT,"
-                + "requestType VARCHAR(30) NOT NULL,"
-                + "actionLabel NVARCHAR(255),"
-                + "targetKey VARCHAR(100),"
-                + "targetId INT,"
-                + "oldValue NVARCHAR(2000),"
-                + "newValue NVARCHAR(4000),"
-                + "status TINYINT NOT NULL,"
-                + "requestedBy INT NOT NULL,"
-                + "requestedAt DATETIME,"
-                + "reviewedBy INT NOT NULL,"
-                + "reviewedAt DATETIME DEFAULT CURRENT_TIMESTAMP,"
-                + "reviewNote NVARCHAR(500),"
-                + "createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,"
-                + "INDEX idx_payroll_config_history_reviewedAt (reviewedAt),"
-                + "FOREIGN KEY (requestId) REFERENCES Payroll_Config_Change_Requests(requestId),"
-                + "FOREIGN KEY (requestedBy) REFERENCES Users(userId),"
-                + "FOREIGN KEY (reviewedBy) REFERENCES Users(userId)"
-                + ")";
-        execute(conn, SQL, "CREATE PAYROLL_CONFIG_CHANGE_HISTORY TABLE SUCCESSFULLY");
     }
 
     public void createTableNotifications(Connection conn) {
@@ -727,7 +702,6 @@ public class DBInitializer {
                 "Payroll_Deduction_Rules",
                 "Payroll_Tax_Brackets",
                 "Payroll_Config_Change_Requests",
-                "Payroll_Config_Change_History",
                 "Notifications",
                 "Audit_Logs"
             };
@@ -758,6 +732,8 @@ public class DBInitializer {
                         case "Users":             createTableUsers(conn);             break;
                         case "Employees":         createTableEmployees(conn);         break;
                         case "Employment_Contracts": createTableEmploymentContracts(conn); break;
+                        case "Contract_Audit_Log": createTableContractAuditLog(conn); break;
+                        case "Contract_Amendments": createTableContractAmendments(conn); break;
                         case "Uploaded_Files":    createTableUploadedFiles(conn);     break;
                         case "Candidates":        createTableCandidates(conn);        break;
                         case "Application_Stage_Logs": createTableApplicationStageLogs(conn); break;
@@ -775,7 +751,6 @@ public class DBInitializer {
                         case "Payroll_Deduction_Rules": createTablePayrollDeductionRules(conn); break;
                         case "Payroll_Tax_Brackets": createTablePayrollTaxBrackets(conn); break;
                         case "Payroll_Config_Change_Requests": createTablePayrollConfigChangeRequests(conn); break;
-                        case "Payroll_Config_Change_History": createTablePayrollConfigChangeHistory(conn); break;
                         case "Notifications":     createTableNotifications(conn);     break;
                         case "Audit_Logs":        createTableAuditLogs(conn);         break;
                         default: LOGGER.log(Level.WARNING,"Unknown table: {0}", table);     break;
@@ -850,10 +825,10 @@ public class DBInitializer {
                 insertPermission(conn, "VIEW_OWN_SALARY", "Xem lương cá nhân", "Quyền xem, gửi đơn khiếu nại về lương của cá nhân");
                 insertPermission(conn, "APPROVE_PAYROLL", "Duyệt bảng lương", "Quyền duyệt bảng lương trước khi thanh toán");
                 insertPermission(conn, "EXPORT_PAYROLL", "Xuất bảng lương", "Quyền xuất bảng lương ra Excel");
-                insertPermission(conn,"CONFIG_PAYROLL","Cấu hình payroll","Quyền cấu hình payroll và gửi yêu cầu duyệt");
+                insertPermission(conn,"CONFIG_PAYROLL","Cấu hình lương","Quyền cấu hình lương và gửi yêu cầu duyệt");
 
             }
-            insertPermission(conn,"CONFIG_PAYROLL","Cấu hình payroll","Quyền cấu hình payroll và gửi yêu cầu duyệt");
+            insertPermission(conn,"CONFIG_PAYROLL","Cấu hình lương","Quyền cấu hình lương và gửi yêu cầu duyệt");
 
             if (countRows(conn, "Positions") == 0) {
                 insertPosition(conn, "Thực tập sinh", 1, "Sinh viên thực tập tại công ty");
@@ -993,11 +968,12 @@ public class DBInitializer {
             deletePayrollSetting(conn, "WORK_END_MINUTES");
             migratePayrollSettingKey(conn, "LATE_" + "PEN" + "ALTY_BLOCK_MINUTES", "LATE_DEDUCTION_BLOCK_MINUTES");
             migratePayrollSettingKey(conn, "INSURANCE_SALARY_CAP", "INSURANCE_SALARY_FLOOR");
-            insertPayrollSetting(conn, "PERSONAL_ALLOWANCE", "11000000", "Giam tru ca nhan khi tinh thue TNCN");
-            updatePayrollSettingValueIfCurrent(conn, "PERSONAL_ALLOWANCE", "15500000", "11000000");
+            insertPayrollSetting(conn, "PERSONAL_DEDUCTION", "11000000", "Giam tru ca nhan khi tinh thue TNCN");
+            updatePayrollSettingValueIfCurrent(conn, "PERSONAL_DEDUCTION", "15500000", "11000000");
             insertPayrollSetting(conn, "DEPENDENT_ALLOWANCE", "4500000", "Giam tru cho moi nguoi phu thuoc khi tinh thue TNCN");
             insertPayrollSetting(conn, "ALLOWANCE", "1500000", "Phu cap mac dinh moi ky luong");
             insertPayrollSetting(conn, "INSURANCE_SALARY_FLOOR", "40000000", "Muc floor/tran ap dung cho luong tinh bao hiem");
+            insertPayrollSetting(conn, "INSURANCE_NOT_WORKED_DAYS_THRESHOLD", "14", "So ngay khong lam trong thang tu nguong nay tro len thi khong tinh bao hiem");
             insertPayrollSetting(conn, "LATE_DEDUCTION_BLOCK_MINUTES", "30", "So phut cua mot block khau tru di muon");
             insertPayrollSetting(conn, "ATTENDANCE_BONUS_RATE", "0.03", "Tỷ lệ thưởng chuyên cần trên lương hợp đồng");
             insertPayrollSetting(conn, "WORK_START", "480", "Giờ vào làm chuẩn, nhập theo HH:mm trên UI");

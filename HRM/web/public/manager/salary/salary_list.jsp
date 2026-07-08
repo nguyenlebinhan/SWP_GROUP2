@@ -1,7 +1,8 @@
-<%@ page contentType="text/html;charset=UTF-8" %>
+<%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" %>
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
 <%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
 <%@ taglib prefix="fn" uri="http://java.sun.com/jsp/jstl/functions" %>
+<fmt:setLocale value="en_US" />
 <!DOCTYPE html>
 <html>
     <head>
@@ -346,11 +347,11 @@
             <c:if test="${canViewAllSalary && !attendanceLocked}">
                 <div class="alert alert-warning">
                     <i class="fa-solid fa-circle-info me-2"></i>
-                    Bảng chấm công kỳ này chưa được BA chốt nên chưa thể tạo hoặc xuất bảng lương.
+                    Bảng chấm công kỳ này chưa được Quản trị doanh nghiệp chốt nên chưa thể tạo hoặc xuất bảng lương.
                 </div>
             </c:if>
 
-            <%-- Filter form --%>
+            <%-- Lọc form --%>
             <div class="filter-card">
                 <form method="get" action="${pageContext.request.contextPath}/v1/manager/salary/all"
                       class="row g-3 align-items-end">
@@ -392,7 +393,7 @@
                 </form>
             </div>
 
-            <%-- Stat cards --%>
+            <%-- Thẻ thống kê --%>
             <div class="stat-grid">
                 <div class="stat-card">
                     <div class="stat-label">Nhân viên tính lương</div>
@@ -436,14 +437,14 @@
                         <thead>
                             <tr>
                                 <th>STT</th>
-                                <th>Employee</th>
-                                <th>Department</th>
-                                <th>Base Salary</th>
-                                <th>Gross Salary</th>
-                                <th>Total Deductions</th>
-                                <th>Net Salary</th>
-                                <th>Status</th>
-                                <th>Detail</th>
+                                <th>Nhân viên</th>
+                                <th>Phòng ban</th>
+                                <th>Lương cơ bản</th>
+                                <th>Tổng thu nhập</th>
+                                <th>Tổng khấu trừ</th>
+                                <th>Lương thực nhận</th>
+                                <th>Trạng thái</th>
+                                <th>Chi tiết</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -517,7 +518,7 @@
                                                     <td>
                                                         <c:choose>
                                                             <c:when test="${row.payroll.status == 1}">
-                                                                <span class="status-badge status-paid">HR đã duyệt</span>
+                                                                <span class="status-badge status-paid">Nhân sự đã duyệt</span>
                                                             </c:when>
                                                             <c:otherwise>
                                                                 <span class="status-badge status-pending">Chờ duyệt</span>
@@ -561,7 +562,7 @@
                                 var year = document.getElementById('filterYear').value;
                                 var dept = document.getElementById('filterDept').value;
 
-                                // Sync vào form Generate
+                                // Đồng bộ vào form tạo bảng lương
                                 var gm = document.getElementById('genMonth');
                                 var gy = document.getElementById('genYear');
                                 var gd = document.getElementById('genDept');
@@ -572,7 +573,7 @@
                                 if (gd)
                                     gd.value = dept;
 
-                                // Sync vào form Approve-all
+                                // Đồng bộ vào form duyệt tất cả
                                 var am = document.getElementById('appMonth');
                                 var ay = document.getElementById('appYear');
                                 var ad = document.getElementById('appDept');
@@ -583,7 +584,7 @@
                                 if (ad)
                                     ad.value = dept;
 
-                                // Cập nhật link Export
+                                // Cập nhật link xuất file
                                 var exportLink = document.getElementById('exportLink');
                                 if (exportLink) {
                                     var base = exportLink.href.split('?')[0];
@@ -602,7 +603,7 @@
                             function confirmGenerate() {
                                 var month = document.getElementById('filterMonth').value;
                                 var year = document.getElementById('filterYear').value;
-                                return confirm('Generate lại bảng lương tháng ' + month + '/' + year + ' từ dữ liệu hệ thống?');
+                                return confirm('Tạo lại bảng lương tháng ' + month + '/' + year + ' từ dữ liệu hệ thống?');
                             }
 
                             function confirmApprove() {
