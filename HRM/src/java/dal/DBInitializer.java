@@ -596,6 +596,31 @@ public class DBInitializer {
         execute(conn, SQL, "CREATE PAYROLL_CONFIG_CHANGE_REQUESTS TABLE SUCCESSFULLY");
     }
 
+    public void createTablePayrollConfigChangeHistory(Connection conn) {
+        String SQL = "CREATE TABLE Payroll_Config_Change_History("
+                + "historyId INT PRIMARY KEY AUTO_INCREMENT,"
+                + "requestId INT,"
+                + "requestType VARCHAR(30) NOT NULL,"
+                + "actionLabel NVARCHAR(255),"
+                + "targetKey VARCHAR(100),"
+                + "targetId INT,"
+                + "oldValue NVARCHAR(2000),"
+                + "newValue NVARCHAR(4000),"
+                + "status TINYINT NOT NULL,"
+                + "requestedBy INT NOT NULL,"
+                + "requestedAt DATETIME,"
+                + "reviewedBy INT NOT NULL,"
+                + "reviewedAt DATETIME DEFAULT CURRENT_TIMESTAMP,"
+                + "reviewNote NVARCHAR(500),"
+                + "createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,"
+                + "INDEX idx_payroll_config_history_reviewedAt (reviewedAt),"
+                + "FOREIGN KEY (requestId) REFERENCES Payroll_Config_Change_Requests(requestId),"
+                + "FOREIGN KEY (requestedBy) REFERENCES Users(userId),"
+                + "FOREIGN KEY (reviewedBy) REFERENCES Users(userId)"
+                + ")";
+        execute(conn, SQL, "CREATE PAYROLL_CONFIG_CHANGE_HISTORY TABLE SUCCESSFULLY");
+    }
+
     public void createTableNotifications(Connection conn) {
         String SQL = "CREATE TABLE Notifications("
                 + "notificationId INT PRIMARY KEY AUTO_INCREMENT,"
