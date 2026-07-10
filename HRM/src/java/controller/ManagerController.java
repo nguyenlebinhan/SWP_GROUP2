@@ -2429,9 +2429,30 @@ public class ManagerController extends HttpServlet {
                 response.sendRedirect(request.getContextPath() + "/v1/manager/forms/dept-forms");
                 return;
             }
+            FormRequestDTO form = formRequestDAO.getFormRequestById(formId);
+            if (form == null) {
+                request.getSession().setAttribute("error", "Không tìm thấy đơn.");
+                response.sendRedirect(request.getContextPath() + "/v1/manager/forms/dept-forms");
+                return;
+            }
+
+            if ("LEAVE".equals(form.getFormTypeCode())) {
+                LeaveFormRequestDTO leaveForm = (LeaveFormRequestDTO) form;
+                int year = (leaveForm.getStartDate() != null)
+                        ? leaveForm.getStartDate().toLocalDate().getYear()
+                        : java.time.LocalDate.now().getYear();
+                LeaveBalance lb = leaveBalanceDAO.getLeaveBalance(form.getEmployeeId(), year);
+                if (lb != null) {
+                    int remaining = lb.getRemainingDays();
+                    if (leaveForm.getTotalDays() != null && leaveForm.getTotalDays() > remaining) {
+                        request.getSession().setAttribute("error", "Duyệt đơn thất bại do vượt quá số phép. Đơn nghỉ (" + leaveForm.getTotalDays() + " ngày), Phép còn lại (" + remaining + " ngày).");
+                        response.sendRedirect(request.getContextPath() + "/v1/manager/forms/dept-forms");
+                        return;
+                    }
+                }
+            }
             boolean ok = formRequestDAO.approveFormRequest(formId, me.getEmployeeId(), note);
             if (ok) {
-                FormRequestDTO form = formRequestDAO.getFormRequestById(formId);
                 if (form != null) {
                     switch (form.getFormTypeCode()) {
                         case "LEAVE":
@@ -2511,7 +2532,7 @@ public class ManagerController extends HttpServlet {
                 request.getSession().setAttribute("error", "Đơn này không ở trạng thái chờ HR duyệt.");
                 response.sendRedirect(request.getContextPath() + "/v1/manager/forms/all");
                 return;
-            }
+            }          
             boolean ok = formRequestDAO.approveFormRequestFromStatus(formId, 1, 3, me.getEmployeeId(), note);
             if (ok) {
                 switch (form.getFormTypeCode()) {
