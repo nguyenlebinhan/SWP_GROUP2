@@ -63,7 +63,7 @@ public class ContractAmendmentService {
                 return new ContractOperationResult(false, "INVALID_APPROVER", "Khong tim thay userId cua nguoi duyet.");
             }
 
-            EmploymentContract contract = contractDAO.getCurrentOrUpcomingContract(conn, currentEmployee.getEmployeeId());
+            EmploymentContract contract = contractDAO.getActiveOrPendingContract(conn, currentEmployee.getEmployeeId());
             if (contract == null) {
                 conn.rollback();
                 return new ContractOperationResult(true, null, "Nhan vien chua co hop dong hien tai hoac sap hieu luc, bo qua tao phu luc.");

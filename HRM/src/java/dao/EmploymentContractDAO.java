@@ -14,8 +14,8 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import model.ContractAuditLog;
 import model.ContractOperationResult;
-import model.ContractStatus;
-import model.ContractType;
+import enums.ContractStatus;
+import enums.ContractType;
 import model.EmploymentContract;
 
 public class EmploymentContractDAO {
@@ -149,16 +149,16 @@ public class EmploymentContractDAO {
         return null;
     }
 
-    public EmploymentContract getCurrentOrUpcomingContract(int employeeId) {
+    public EmploymentContract getActiveOrPendingContract(int employeeId) {
       try (Connection conn = getInternalConnection()) {
-          return getCurrentOrUpcomingContract(conn, employeeId);
+          return getActiveOrPendingContract(conn, employeeId);
       } catch (SQLException e) {
           LOGGER.log(Level.SEVERE, "Cannot retrieve current/upcoming contract for employeeId: " + employeeId, e);
       }
       return null;
   }
 
-    public EmploymentContract getCurrentOrUpcomingContract(Connection conn, int employeeId) throws SQLException {
+    public EmploymentContract getActiveOrPendingContract(Connection conn, int employeeId) throws SQLException {
         String SQL = "SELECT " + BASE_COLUMNS + " FROM Employment_Contracts WHERE employeeId = ? "
                 + "AND status IN ('ACTIVE', 'PENDING_ACTIVATION') "
                 + "ORDER BY CASE WHEN status = 'ACTIVE' THEN 0 ELSE 1 END, "

@@ -1,4 +1,4 @@
-package model;
+package enums;
 
 
 public enum ContractErrorCode {
@@ -12,6 +12,8 @@ public enum ContractErrorCode {
     DATABASE_ERROR,
     INVALID_CONTRACT_TYPE,
     CONTRACT_NOT_EDITABLE,
-    INVALID_TERMINATION_DATE
+    INVALID_TERMINATION_DATE,
+    FORBIDDEN,
+    REJECTION_REASON_REQUIRED
 }
 

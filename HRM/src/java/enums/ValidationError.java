@@ -1,4 +1,4 @@
-package model;
+package enums;
 
 /**
  * Business validation errors for Contract operations.

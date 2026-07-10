@@ -40,8 +40,8 @@ import model.Candidate;
 import dto.OvertimeRequestDTO;
 import java.time.LocalDate;
 import model.ContractOperationResult;
-import model.ContractStatus;
-import model.ContractType;
+import enums.ContractStatus;
+import enums.ContractType;
 import model.Department;
 import model.Employee;
 import model.EmploymentContract;
@@ -1136,6 +1136,7 @@ public class ManagerController extends HttpServlet {
 
         EmploymentContract contract = getContractFromRequest(request);
         if (contract == null) {
+            request.getSession().setAttribute("error", "Không tìm thấy hợp đồng phù hợp.");
             response.sendRedirect(request.getContextPath() + "/v1/manager/employee_info/list");
             return;
         }
@@ -1150,7 +1151,7 @@ public class ManagerController extends HttpServlet {
         response.sendRedirect(request.getContextPath()
                 + "/v1/manager/contract/detail?contractId=" + contract.getContractId());
     }
-    
+
     private void displayPendingContracts(HttpServletRequest request, HttpServletResponse response,
             User user) throws ServletException, IOException {
         if (!isHrManager(user) || !hasPermission(user, "VIEW_PENDING_CONTRACTS")) {
@@ -1202,7 +1203,7 @@ public class ManagerController extends HttpServlet {
         setPermissionFlags(request, perms);
         request.getRequestDispatcher("/public/manager/contract/pending_contract_list.jsp").forward(request, response);
     }
-    
+
     private void displayContractHistory(HttpServletRequest request, HttpServletResponse response,
             User user) throws ServletException, IOException {
         if (!"own".equalsIgnoreCase(request.getParameter("scope"))
@@ -1247,7 +1248,7 @@ public class ManagerController extends HttpServlet {
         setPermissionFlags(request, perms);
         request.getRequestDispatcher("/public/manager/contract/contract_history.jsp").forward(request, response);
     }
-    
+
     private void displayContractDetail(HttpServletRequest request, HttpServletResponse response,
             User user) throws ServletException, IOException {
         if (!isHrManager(user)
@@ -1259,6 +1260,7 @@ public class ManagerController extends HttpServlet {
 
         EmploymentContract contract = getContractFromRequest(request);
         if (contract == null) {
+            request.getSession().setAttribute("error", "Không tìm thấy hợp đồng phù hợp.");
             response.sendRedirect(request.getContextPath() + "/v1/manager/dashboard");
             return;
         }
@@ -1280,7 +1282,7 @@ public class ManagerController extends HttpServlet {
         setPermissionFlags(request, perms);
         request.getRequestDispatcher("/public/manager/contract/contract_preview.jsp").forward(request, response);
     }
-    
+
     private void displayTerminateContractList(HttpServletRequest request, HttpServletResponse response,
             User user) throws ServletException, IOException {
         if (!isHrManager(user) || !hasPermission(user, "TERMINATE_CONTRACT")) {
@@ -1292,7 +1294,6 @@ public class ManagerController extends HttpServlet {
         Set<String> perms = getPermissions(user);
         request.getSession().setAttribute("userPermissions", perms);
 
-
         String contractIdParam = trimToNull(request.getParameter("id"));
         if (contractIdParam != null) {
             try {
@@ -1300,7 +1301,7 @@ public class ManagerController extends HttpServlet {
                 EmploymentContract contract = contractDAO.getContractById(contractId);
                 if (contract == null) {
                     request.getSession().setAttribute("error", "Không tìm thấy hợp đồng.");
-                } else if (contract.getStatus() != ContractStatus.ACTIVE 
+                } else if (contract.getStatus() != ContractStatus.ACTIVE
                         && contract.getStatus() != ContractStatus.PENDING_ACTIVATION) {
                     request.getSession().setAttribute("error", "Chỉ có thể chấm dứt hợp đồng đang hiệu lực hoặc chờ hiệu lực.");
                 } else {
@@ -1314,7 +1315,7 @@ public class ManagerController extends HttpServlet {
                 }
             } catch (NumberFormatException e) {
                 request.getSession().setAttribute("error", "Mã hợp đồng không hợp lệ.");
-        }
+            }
             response.sendRedirect(request.getContextPath() + "/v1/manager/contract/terminate");
             return;
         }
@@ -1810,7 +1811,7 @@ public class ManagerController extends HttpServlet {
             response.sendRedirect(request.getContextPath() + "/v1/manager/employee/update?id=" + employeeId);
         }
     }
-    
+
     private void handleAddContract(HttpServletRequest request, HttpServletResponse response,
             User user) throws ServletException, IOException {
 
@@ -1875,7 +1876,7 @@ public class ManagerController extends HttpServlet {
         contract.setCreatedBy(user.getUserId());
 
         ContractOperationResult result = contractService.createContract(contract);
-        
+
         if (result.isSuccess()) {
             request.getSession().setAttribute("success", "Thêm hợp đồng lao động thành công.");
             EmploymentContract createdContract = contractDAO.getLatestContractByEmployeeId(contract.getEmployeeId());
@@ -1892,7 +1893,7 @@ public class ManagerController extends HttpServlet {
             request.getRequestDispatcher("/public/manager/contract/add_contract.jsp").forward(request, response);
         }
     }
-    
+
     private EmploymentContract getContractFromRequest(HttpServletRequest request) {
         String contractIdParam = request.getParameter("contractId");
         if (isBlank(contractIdParam)) {
@@ -1900,30 +1901,19 @@ public class ManagerController extends HttpServlet {
         }
         if (!isBlank(contractIdParam)) {
             try {
-                EmploymentContract contract = contractDAO.getContractById(Integer.parseInt(contractIdParam));
-                if (contract == null) {
-                    request.getSession().setAttribute("error", "Không tìm thấy hợp đồng.");
-                }
-                return contract;
+                return contractDAO.getContractById(Integer.parseInt(contractIdParam));
             } catch (NumberFormatException e) {
-                request.getSession().setAttribute("error", "Mã hợp đồng không hợp lệ.");
                 return null;
             }
         }
 
         String employeeIdParam = request.getParameter("employeeId");
         if (isBlank(employeeIdParam)) {
-            request.getSession().setAttribute("error", "Thiếu mã hợp đồng hoặc mã nhân viên.");
             return null;
         }
         try {
-            EmploymentContract contract = contractDAO.getLatestContractByEmployeeId(Integer.parseInt(employeeIdParam));
-            if (contract == null) {
-                request.getSession().setAttribute("error", "Nhân viên này chưa có hợp đồng lao động.");
-            }
-            return contract;
+            return contractDAO.getLatestContractByEmployeeId(Integer.parseInt(employeeIdParam));
         } catch (NumberFormatException e) {
-            request.getSession().setAttribute("error", "Mã nhân viên không hợp lệ.");
             return null;
         }
     }
@@ -1967,7 +1957,7 @@ public class ManagerController extends HttpServlet {
         request.getSession().setAttribute(result.isSuccess() ? "success" : "error", result.getMessage());
         response.sendRedirect(request.getContextPath() + "/v1/manager/contract/detail?contractId=" + contractId);
     }
-    
+
     private void handleCancelContract(HttpServletRequest request, HttpServletResponse response,
             User user) throws IOException {
         if (!isHrStaff(user) || !hasPermission(user, "ADD_EMPLOYMENT_CONTRACT")) {
@@ -1986,7 +1976,7 @@ public class ManagerController extends HttpServlet {
                 cancelResult.isSuccess() ? "Đã hủy hợp đồng." : cancelResult.getMessage());
         response.sendRedirect(request.getContextPath() + "/v1/manager/contract/detail?contractId=" + contractId);
     }
-    
+
     private void handleTerminateContract(HttpServletRequest request, HttpServletResponse response,
             User user) throws ServletException, IOException {
         if (!isHrManager(user) || !hasPermission(user, "TERMINATE_CONTRACT")) {
@@ -2009,39 +1999,6 @@ public class ManagerController extends HttpServlet {
             return;
         }
 
-        // Status guard with specific messages
-        if (contract.getStatus() == ContractStatus.TERMINATED) {
-            request.getSession().setAttribute("error", "Hợp đồng này đã được chấm dứt trước đó.");
-            response.sendRedirect(request.getContextPath() + "/v1/manager/contract/detail?contractId=" + contractId);
-            return;
-        }
-        if (contract.getStatus() == ContractStatus.EXPIRED) {
-            request.getSession().setAttribute("error", "Hợp đồng này đã hết hạn.");
-            response.sendRedirect(request.getContextPath() + "/v1/manager/contract/detail?contractId=" + contractId);
-            return;
-        }
-        if (contract.getStatus() == ContractStatus.CANCELLED) {
-            request.getSession().setAttribute("error", "Hợp đồng này đã bị hủy.");
-            response.sendRedirect(request.getContextPath() + "/v1/manager/contract/detail?contractId=" + contractId);
-            return;
-        }
-        if (contract.getStatus() == ContractStatus.REJECTED) {
-            request.getSession().setAttribute("error", "Hợp đồng này đã bị từ chối.");
-            response.sendRedirect(request.getContextPath() + "/v1/manager/contract/detail?contractId=" + contractId);
-            return;
-        }
-        if (contract.getStatus() == ContractStatus.PENDING_APPROVAL) {
-            request.getSession().setAttribute("error", "Chỉ có thể chấm dứt hợp đồng đang hiệu lực hoặc đang chờ hiệu lực.");
-            response.sendRedirect(request.getContextPath() + "/v1/manager/contract/detail?contractId=" + contractId);
-            return;
-        }
-        if (contract.getStatus() != ContractStatus.ACTIVE
-                && contract.getStatus() != ContractStatus.PENDING_ACTIVATION) {
-            request.getSession().setAttribute("error", "Chỉ có thể chấm dứt hợp đồng đang hiệu lực hoặc đang chờ hiệu lực.");
-            response.sendRedirect(request.getContextPath() + "/v1/manager/contract/detail?contractId=" + contractId);
-            return;
-        }
-
         String terminationDateStr = trimToNull(request.getParameter("terminationDate"));
         String terminationReason = trimToNull(request.getParameter("terminationReason"));
         Set<String> perms = getPermissions(user);
@@ -2057,24 +2014,6 @@ public class ManagerController extends HttpServlet {
                 terminationDate = java.sql.Date.valueOf(terminationDateStr);
             } catch (IllegalArgumentException e) {
                 error = "Ngày chấm dứt không hợp lệ.";
-            }
-        }
-
-        if (terminationDate != null && error == null) {
-            if (contract.getStatus() == ContractStatus.ACTIVE) {
-                if (terminationDate.before(contract.getEffectiveDate())) {
-                    error = "Ngày chấm dứt không được trước ngày hiệu lực ("
-                            + new java.text.SimpleDateFormat("dd/MM/yyyy").format(contract.getEffectiveDate()) + ").";
-                } else if (contract.getEndDate() != null && terminationDate.after(contract.getEndDate())) {
-                    error = "Ngày chấm dứt không được sau ngày kết thúc hợp đồng ("
-                            + new java.text.SimpleDateFormat("dd/MM/yyyy").format(contract.getEndDate()) + ").";
-                }
-            } else if (contract.getStatus() == ContractStatus.PENDING_ACTIVATION) {
-                if (terminationDate.after(contract.getEffectiveDate())) {
-                    error = "Ngày chấm dứt không được sau ngày hiệu lực của hợp đồng chờ kích hoạt.";
-                } else if (terminationDate.after(java.sql.Date.valueOf(LocalDate.now()))) {
-                    error = "Ngày chấm dứt không được sau ngày hiện tại.";
-                }
             }
         }
 
@@ -2096,10 +2035,20 @@ public class ManagerController extends HttpServlet {
         ContractOperationResult result = contractService.terminateContract(
                 contractId, terminationDate, terminationReason, user.getUserId());
 
-        request.getSession().setAttribute(result.isSuccess() ? "success" : "error", result.getMessage());
-        response.sendRedirect(request.getContextPath() + "/v1/manager/contract/detail?contractId=" + contractId);
+        if (result.isSuccess()) {
+            request.getSession().setAttribute("success", result.getMessage());
+            response.sendRedirect(request.getContextPath() + "/v1/manager/contract/detail?contractId=" + contractId);
+        } else {
+            request.setAttribute("error", result.getMessage());
+            request.setAttribute("contract", contract);
+            request.setAttribute("employee", employeeDAO.getEmployeeById(contract.getEmployeeId()));
+            request.setAttribute("terminationDate", terminationDateStr);
+            request.setAttribute("terminationReason", terminationReason);
+            setPermissionFlags(request, perms);
+            request.getRequestDispatcher("/public/manager/contract/terminate_contract.jsp").forward(request, response);
+        }
     }
-    
+
     private void forwardContractFormError(HttpServletRequest request, HttpServletResponse response,
             User user, String message) throws ServletException, IOException {
         Set<String> perms = getPermissions(user);
@@ -2532,7 +2481,7 @@ public class ManagerController extends HttpServlet {
                 request.getSession().setAttribute("error", "Đơn này không ở trạng thái chờ HR duyệt.");
                 response.sendRedirect(request.getContextPath() + "/v1/manager/forms/all");
                 return;
-            }          
+            }
             boolean ok = formRequestDAO.approveFormRequestFromStatus(formId, 1, 3, me.getEmployeeId(), note);
             if (ok) {
                 switch (form.getFormTypeCode()) {
@@ -3372,7 +3321,7 @@ public class ManagerController extends HttpServlet {
         String role = roleDAO.getRoleByUserId(user.getUserId());
         return role.contains("HR");
     }
-    
+
     private boolean isHrManager(User user) {
         String role = roleDAO.getRoleByUserId(user.getUserId());
         return "HRManager".equals(role);
