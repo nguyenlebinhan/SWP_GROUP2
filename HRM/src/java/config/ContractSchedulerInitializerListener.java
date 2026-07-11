@@ -20,12 +20,15 @@ import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class ContractSchedulerInitializerListener implements ServletContextListener {
 
     private static final Logger LOGGER = Logger.getLogger(ContractSchedulerInitializerListener.class.getName());
 
     private volatile ScheduledExecutorService scheduler;
+    private final AtomicBoolean running = new AtomicBoolean(false);
 
     @Override
     public void contextInitialized(ServletContextEvent sce) {
@@ -53,6 +56,7 @@ public class ContractSchedulerInitializerListener implements ServletContextListe
         );
 
         context.setAttribute("contractDailyScheduler", scheduler);
+        context.setAttribute("contractSchedulerListener", this);
 
         LOGGER.log(Level.INFO, "=== Contract Scheduler Initialized Successfully ===");
     }
@@ -88,9 +92,14 @@ public class ContractSchedulerInitializerListener implements ServletContextListe
     }
 
     private void runDailyJobs() {
-        LOGGER.log(Level.INFO, "=== Daily Contract Batch Job STARTED ===");
+        if (!running.compareAndSet(false, true)) {
+            LOGGER.log(Level.WARNING, "Scheduler job skipped: another instance is already running.");
+            return;
+        }
 
         try {
+            LOGGER.log(Level.INFO, "=== Daily Contract Batch Job STARTED ===");
+
             EmploymentContractDAO contractDAO = new EmploymentContractDAO();
             EmployeeDAO employeeDAO = new EmployeeDAO();
             DBContext dbContext = new DBContext();
@@ -103,8 +112,9 @@ public class ContractSchedulerInitializerListener implements ServletContextListe
             LOGGER.log(Level.INFO, "=== Daily Contract Batch Job COMPLETED Successfully ===");
 
         } catch (Exception e) {
-
             LOGGER.log(Level.SEVERE, "=== Daily Contract Batch Job FAILED with unexpected error ===", e);
+        } finally {
+            running.set(false);
         }
     }
 
@@ -174,6 +184,27 @@ public class ContractSchedulerInitializerListener implements ServletContextListe
                     }
                 }
             }
+        }
+    }
+
+    public boolean isRunning() {
+        return running.get();
+    }
+
+    public boolean runNow() {
+
+        if (scheduler == null || scheduler.isShutdown() || scheduler.isTerminated()) {
+            LOGGER.log(Level.WARNING, "Manual run rejected: scheduler is not available (shutdown/terminated).");
+            return false;
+        }
+
+        try {
+            scheduler.execute(this::runDailyJobs);
+            LOGGER.log(Level.INFO, "Manual run accepted: scheduler task submitted.");
+            return true;
+        } catch (RejectedExecutionException e) {
+            LOGGER.log(Level.WARNING, "Manual run rejected: scheduler rejected execution.", e);
+            return false;
         }
     }
 }
