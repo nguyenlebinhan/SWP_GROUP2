@@ -4,10 +4,11 @@ import dao.EmploymentContractDAO;
 import dal.DBContext;
 import dao.RoleDAO;
 import dto.EmployeeDetailDTO;
+import enums.ContractErrorCode;
 import model.ContractOperationResult;
-import model.ContractStatus;
+import enums.ContractStatus;
 import model.EmploymentContract;
-import model.ValidationError;
+import enums.ValidationError;
 import model.ValidationResult;
 
 import java.sql.Connection;
@@ -17,8 +18,8 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import model.ContractType;
-
+import enums.ContractType;
+import java.math.BigDecimal;
 
 /**
  * Service Layer for Employee Contract Management.
@@ -43,7 +44,6 @@ public class EmploymentContractService {
         this.employeeDAO = employeeDAO;
         this.dbContext = dbContext;
     }
-
 
     private ValidationResult validateEmployee(int employeeId) {
         if (employeeId <= 0) {
@@ -104,6 +104,34 @@ public class EmploymentContractService {
         return ValidationResult.success();
     }
 
+    private ValidationResult validateRenewal(EmploymentContract oldContract, java.sql.Date newEffectiveDate, java.sql.Date newEndDate) {
+        if (oldContract == null) {
+            return ValidationResult.failure(ValidationError.EMPLOYEE_NOT_FOUND, "Hợp đồng cũ không tồn tại.");
+        }
+
+        if (oldContract.getStatus() != ContractStatus.ACTIVE) {
+            return ValidationResult.failure(ValidationError.CONTRACT_NOT_ACTIVE, "Chỉ hợp đồng đang có hiệu lực (ACTIVE) mới có thể gia hạn.");
+        }
+
+        if (oldContract.getEndDate() == null) {
+            return ValidationResult.failure(ValidationError.CONTRACT_INDEFINITE, "Hợp đồng không thời hạn không cần gia hạn.");
+        }
+
+        java.sql.Date expectedEffectiveDate = java.sql.Date.valueOf(
+                oldContract.getEndDate().toLocalDate().plusDays(1));
+
+        if (newEffectiveDate == null || !newEffectiveDate.equals(expectedEffectiveDate)) {
+            return ValidationResult.failure(ValidationError.INVALID_RENEWAL_DATE,
+                    "Ngày hiệu lực mới phải là ngày tiếp theo của ngày hết hạn cũ (" + expectedEffectiveDate + ").");
+        }
+
+        if (newEndDate == null || newEndDate.before(newEffectiveDate)) {
+            return ValidationResult.failure(ValidationError.END_DATE_BEFORE_START_DATE, "Ngày hết hạn mới phải sau ngày hiệu lực.");
+        }
+
+        return ValidationResult.success();
+    }
+
     public ValidationResult validateForCreate(EmploymentContract contract) {
         ValidationResult empResult = validateEmployee(contract.getEmployeeId());
         if (!empResult.isSuccess()) {
@@ -158,7 +186,7 @@ public class EmploymentContractService {
             if (!overlapResult.isSuccess()) {
                 conn.rollback();
                 return new ContractOperationResult(false,
-                        ContractOperationResult.DATE_OVERLAP,
+                        ContractErrorCode.OVERLAP_DETECTED.name(),
                         overlapResult.getMessage());
             }
 
@@ -168,7 +196,7 @@ public class EmploymentContractService {
 
                 contractDAO.insertAuditLog(conn, contractId,
                         null, ContractStatus.PENDING_APPROVAL.name(),
-                        contract.getCreatedBy(), "Created contract");
+                        contract.getCreatedBy(), "Tạo hợp đồng");
 
                 conn.commit();
                 LOGGER.log(Level.INFO, "Contract created successfully for employee {0}, contractId={1}", new Object[]{contract.getEmployeeId(), contractId});
@@ -176,7 +204,7 @@ public class EmploymentContractService {
             } else {
                 conn.rollback();
                 return new ContractOperationResult(false,
-                        ContractOperationResult.SQL_ERROR, "Khong the them hop dong vao database.");
+                        ContractErrorCode.DATABASE_ERROR.name(), "Khong the them hop dong vao database.");
             }
         } catch (SQLException e) {
             if (conn != null) try {
@@ -185,7 +213,7 @@ public class EmploymentContractService {
             }
             LOGGER.log(Level.SEVERE, "Database error during contract creation", e);
             return new ContractOperationResult(false,
-                    ContractOperationResult.SYSTEM_ERROR, "Loi he thong khi tao hop dong: " + e.getMessage());
+                    ContractErrorCode.DATABASE_ERROR.name(), "Loi he thong khi tao hop dong: " + e.getMessage());
         } finally {
             if (conn != null) try {
                 conn.close();
@@ -205,13 +233,13 @@ public class EmploymentContractService {
             if (contract == null) {
                 conn.rollback();
                 return new ContractOperationResult(false,
-                        ContractOperationResult.SYSTEM_ERROR, "Contract not found.");
+                        ContractErrorCode.DATABASE_ERROR.name(), "Contract not found.");
             }
 
             if (contract.getStatus() != ContractStatus.PENDING_ACTIVATION) {
                 conn.rollback();
                 return new ContractOperationResult(false,
-                        ContractOperationResult.INVALID_STATUS,
+                        ContractErrorCode.INVALID_CONTRACT_STATUS.name(),
                         "Only pending activation contracts can be activated.");
             }
 
@@ -219,7 +247,7 @@ public class EmploymentContractService {
             if (contract.getEffectiveDate().after(today)) {
                 conn.rollback();
                 return new ContractOperationResult(false,
-                        ContractOperationResult.DATE_MISMATCH,
+                        ContractErrorCode.INVALID_EFFECTIVE_DATE.name(),
                         "Ngày hiệu lực chưa đến.");
             }
 
@@ -231,12 +259,12 @@ public class EmploymentContractService {
                         userId, "Kich hoat hop dong");
 
                 conn.commit();
-                LOGGER.log(Level.INFO, "HR Manual Activation: Contract {0} -> ACTIVE", contractId);
+                LOGGER.log(Level.INFO, "HR kích hoạt thủ công: Hợp đồng {0} -> ACTIVE", contractId);
                 return new ContractOperationResult(true, null, "Kich hoat hop dong thanh cong.");
             } else {
                 conn.rollback();
                 return new ContractOperationResult(false,
-                        ContractOperationResult.SQL_ERROR, "Failed to update contract status.");
+                        ContractErrorCode.DATABASE_ERROR.name(), "Failed to update contract status.");
             }
 
         } catch (SQLException e) {
@@ -246,7 +274,7 @@ public class EmploymentContractService {
             }
             LOGGER.log(Level.SEVERE, "Database error during HR activation for contract " + contractId, e);
             return new ContractOperationResult(false,
-                    ContractOperationResult.SQL_ERROR, "Database connection error: " + e.getMessage());
+                    ContractErrorCode.DATABASE_ERROR.name(), "Database connection error: " + e.getMessage());
         } finally {
             if (conn != null) try {
                 conn.close();
@@ -264,18 +292,18 @@ public class EmploymentContractService {
             EmploymentContract contract = contractDAO.getContractById(conn, contractId);
             if (contract == null) {
                 conn.rollback();
-                return new ContractOperationResult(false, "NOT_FOUND", "Khong tim thay hop dong.");
+                return new ContractOperationResult(false, ContractErrorCode.CONTRACT_NOT_FOUND.name(), "Khong tim thay hop dong.");
             }
 
             if (contract.getStatus() != ContractStatus.PENDING_APPROVAL) {
                 conn.rollback();
-                return new ContractOperationResult(false, "INVALID_STATUS", "Hop dong khong o trang thai cho duyet.");
+                return new ContractOperationResult(false, ContractErrorCode.INVALID_CONTRACT_STATUS.name(), "Hop dong khong o trang thai cho duyet.");
             }
 
             if (contractDAO.hasOverlappingContract(conn, contract.getEmployeeId(),
                     contract.getEffectiveDate(), contract.getEndDate(), contractId)) {
                 conn.rollback();
-                return new ContractOperationResult(false, ContractOperationResult.DATE_OVERLAP,
+                return new ContractOperationResult(false, ContractErrorCode.OVERLAP_DETECTED.name(),
                         "Thoi gian hop dong bi trung lap voi mot hop dong dang co hieu luc.");
             }
 
@@ -291,7 +319,7 @@ public class EmploymentContractService {
             boolean updated = contractDAO.updateContractStatus(conn, contractId, targetStatus, null, null, signedDate);
             if (!updated) {
                 conn.rollback();
-                return new ContractOperationResult(false, ContractOperationResult.SQL_ERROR, "Khong the cap nhat trang thai hop dong.");
+                return new ContractOperationResult(false, ContractErrorCode.DATABASE_ERROR.name(), "Khong the cap nhat trang thai hop dong.");
             }
 
             contractDAO.insertAuditLog(conn, contractId, oldStatus, newStatus, userId, auditNote);
@@ -303,7 +331,7 @@ public class EmploymentContractService {
             } catch (SQLException ex) {
             }
             LOGGER.log(Level.SEVERE, "Database error during contract approval", e);
-            return new ContractOperationResult(false, "SYSTEM_ERROR",
+            return new ContractOperationResult(false, ContractErrorCode.DATABASE_ERROR.name(),
                     "Loi he thong khi phe duyet: " + e.getMessage());
         } finally {
             if (conn != null) try {
@@ -324,7 +352,7 @@ public class EmploymentContractService {
             EmploymentContract contract = contractDAO.getContractById(conn, contractId);
             if (contract == null) {
                 conn.rollback();
-                return new ContractOperationResult(false, "NOT_FOUND", "Không tìm thấy hợp đồng.");
+                return new ContractOperationResult(false, ContractErrorCode.CONTRACT_NOT_FOUND.name(), "Không tìm thấy hợp đồng.");
             }
 
             String oldStatus = contract.getStatus().name();
@@ -339,7 +367,7 @@ public class EmploymentContractService {
             if (!updated) {
                 conn.rollback();
                 return new ContractOperationResult(false,
-                        ContractOperationResult.SQL_ERROR,
+                        ContractErrorCode.DATABASE_ERROR.name(),
                         "Không thể cập nhật trạng thái hợp đồng.");
             }
 
@@ -359,7 +387,7 @@ public class EmploymentContractService {
             LOGGER.log(Level.SEVERE,
                     "Database error during status transition for contract " + contractId, e);
             return new ContractOperationResult(false,
-                    ContractOperationResult.SYSTEM_ERROR,
+                    ContractErrorCode.DATABASE_ERROR.name(),
                     "Lỗi hệ thống: " + e.getMessage());
         } finally {
             if (conn != null) try {
@@ -383,14 +411,14 @@ public class EmploymentContractService {
             EmploymentContract contract = contractDAO.getContractById(conn, contractId);
             if (contract == null) {
                 conn.rollback();
-                return new ContractOperationResult(false, "NOT_FOUND", "Không tìm thấy hợp đồng.");
+                return new ContractOperationResult(false, ContractErrorCode.CONTRACT_NOT_FOUND.name(), "Không tìm thấy hợp đồng.");
             }
 
             ContractStatus status = contract.getStatus();
             if (status != ContractStatus.ACTIVE && status != ContractStatus.PENDING_ACTIVATION) {
                 conn.rollback();
                 return new ContractOperationResult(false,
-                        ContractOperationResult.INVALID_STATUS,
+                        ContractErrorCode.INVALID_CONTRACT_STATUS.name(),
                         "Chỉ có thể chấm dứt hợp đồng đang hiệu lực hoặc đang chờ kích hoạt.");
             }
 
@@ -398,23 +426,23 @@ public class EmploymentContractService {
             if (status == ContractStatus.ACTIVE) {
                 if (terminationDate == null || terminationDate.before(contract.getEffectiveDate())) {
                     conn.rollback();
-                    return new ContractOperationResult(false, "INVALID_DATE",
+                    return new ContractOperationResult(false, ContractErrorCode.INVALID_TERMINATION_DATE.name(),
                             "Ngày chấm dứt không được trước ngày hiệu lực.");
                 }
                 if (contract.getEndDate() != null && terminationDate.after(contract.getEndDate())) {
                     conn.rollback();
-                    return new ContractOperationResult(false, "INVALID_DATE",
+                    return new ContractOperationResult(false, ContractErrorCode.INVALID_TERMINATION_DATE.name(),
                             "Ngày chấm dứt không được sau ngày kết thúc hợp đồng.");
                 }
             } else if (status == ContractStatus.PENDING_ACTIVATION) {
                 if (terminationDate == null || terminationDate.after(contract.getEffectiveDate())) {
                     conn.rollback();
-                    return new ContractOperationResult(false, "INVALID_DATE",
+                    return new ContractOperationResult(false, ContractErrorCode.INVALID_TERMINATION_DATE.name(),
                             "Ngày chấm dứt không được sau ngày hiệu lực của hợp đồng chờ kích hoạt.");
                 }
                 if (terminationDate.after(java.sql.Date.valueOf(LocalDate.now()))) {
                     conn.rollback();
-                    return new ContractOperationResult(false, "INVALID_DATE",
+                    return new ContractOperationResult(false, ContractErrorCode.INVALID_TERMINATION_DATE.name(),
                             "Ngày chấm dứt không được sau ngày hiện tại.");
                 }
             }
@@ -429,7 +457,7 @@ public class EmploymentContractService {
             if (!updated) {
                 conn.rollback();
                 return new ContractOperationResult(false,
-                        ContractOperationResult.SQL_ERROR,
+                        ContractErrorCode.DATABASE_ERROR.name(),
                         "Không thể chấm dứt hợp đồng.");
             }
 
@@ -448,7 +476,7 @@ public class EmploymentContractService {
             LOGGER.log(Level.SEVERE,
                     "Database error during contract termination: " + contractId, e);
             return new ContractOperationResult(false,
-                    ContractOperationResult.SYSTEM_ERROR,
+                    ContractErrorCode.DATABASE_ERROR.name(),
                     "Lỗi hệ thống khi chấm dứt hợp đồng: " + e.getMessage());
         } finally {
             if (conn != null) try {
@@ -467,18 +495,18 @@ public class EmploymentContractService {
             EmploymentContract contract = contractDAO.getContractById(conn, contractId);
             if (contract == null) {
                 conn.rollback();
-                return new ContractOperationResult(false, "NOT_FOUND", "Khong tim thay hop dong.");
+                return new ContractOperationResult(false, ContractErrorCode.CONTRACT_NOT_FOUND.name(), "Khong tim thay hop dong.");
             }
 
             if (contract.getStatus() != ContractStatus.PENDING_APPROVAL) {
                 conn.rollback();
-                return new ContractOperationResult(false, "INVALID_STATUS",
+                return new ContractOperationResult(false, ContractErrorCode.INVALID_CONTRACT_STATUS.name(),
                         "Chi co the tu choi hop dong dang cho duyet.");
             }
 
             if (reason == null || reason.trim().isEmpty()) {
                 conn.rollback();
-                return new ContractOperationResult(false, "REASON_REQUIRED",
+                return new ContractOperationResult(false, ContractErrorCode.REJECTION_REASON_REQUIRED.name(),
                         "Vui long nhap ly do tu choi.");
             }
 
@@ -487,13 +515,13 @@ public class EmploymentContractService {
             boolean updated = contractDAO.updateContractStatus(conn, contractId, ContractStatus.REJECTED, null, null);
             if (!updated) {
                 conn.rollback();
-                return new ContractOperationResult(false, ContractOperationResult.SQL_ERROR, "Khong the tu choi hop dong.");
+                return new ContractOperationResult(false, ContractErrorCode.DATABASE_ERROR.name(), "Khong the tu choi hop dong.");
             }
 
             boolean reasonUpdated = contractDAO.updateRejectionReason(conn, contractId, reason);
             if (!reasonUpdated) {
                 conn.rollback();
-                return new ContractOperationResult(false, ContractOperationResult.SQL_ERROR, "Khong the luu ly do tu choi");
+                return new ContractOperationResult(false, ContractErrorCode.DATABASE_ERROR.name(), "Khong the luu ly do tu choi");
             }
             contractDAO.insertAuditLog(conn, contractId, oldStatus, newStatus, userId,
                     "Tu choi: " + reason);
@@ -506,7 +534,7 @@ public class EmploymentContractService {
             } catch (SQLException ex) {
             }
             LOGGER.log(Level.SEVERE, "Database error during contract rejection", e);
-            return new ContractOperationResult(false, "SYSTEM_ERROR",
+            return new ContractOperationResult(false, ContractErrorCode.DATABASE_ERROR.name(),
                     "Loi he thong khi tu choi: " + e.getMessage());
         } finally {
             if (conn != null) try {
@@ -525,12 +553,12 @@ public class EmploymentContractService {
             EmploymentContract contract = contractDAO.getContractById(conn, contractId);
             if (contract == null) {
                 conn.rollback();
-                return new ContractOperationResult(false, "NOT_FOUND", "Khong tim thay hop dong.");
+                return new ContractOperationResult(false, ContractErrorCode.CONTRACT_NOT_FOUND.name(), "Khong tim thay hop dong.");
             }
 
             if (contract.getStatus() != ContractStatus.PENDING_APPROVAL) {
                 conn.rollback();
-                return new ContractOperationResult(false, "INVALID_STATUS",
+                return new ContractOperationResult(false, ContractErrorCode.INVALID_CONTRACT_STATUS.name(),
                         "Chi co the huy hop dong dang cho duyet.");
             }
 
@@ -541,7 +569,7 @@ public class EmploymentContractService {
 
             if (!isHrStaff) {
                 conn.rollback();
-                return new ContractOperationResult(false, "FORBIDDEN", "Chi nhan su phong HR moi co quen huy hop dong.");
+                return new ContractOperationResult(false, ContractErrorCode.FORBIDDEN.name(), "Chi nhan su phong HR moi co quen huy hop dong.");
             }
 
             String oldStatus = contract.getStatus().name();
@@ -549,7 +577,7 @@ public class EmploymentContractService {
             boolean updated = contractDAO.updateContractStatus(conn, contractId, ContractStatus.CANCELLED, null, "Huy truoc khi duyet");
             if (!updated) {
                 conn.rollback();
-                return new ContractOperationResult(false, ContractOperationResult.SQL_ERROR, "Khong the huy hop dong.");
+                return new ContractOperationResult(false, ContractErrorCode.DATABASE_ERROR.name(), "Khong the huy hop dong.");
             }
             contractDAO.insertAuditLog(conn, contractId, oldStatus, newStatus, userId,
                     "Huy hop dong truoc khi duyet");
@@ -562,7 +590,7 @@ public class EmploymentContractService {
             } catch (SQLException ex) {
             }
             LOGGER.log(Level.SEVERE, "Database error during contract cancellation", e);
-            return new ContractOperationResult(false, "SYSTEM_ERROR",
+            return new ContractOperationResult(false, ContractErrorCode.DATABASE_ERROR.name(),
                     "Loi he thong khi huy: " + e.getMessage());
         } finally {
             if (conn != null) try {
@@ -573,24 +601,23 @@ public class EmploymentContractService {
     }
 
     public ContractOperationResult activatePendingContract(int contractId, Connection conn) throws SQLException {
-        // 1. Re-fetch latest state from DB to prevent race conditions
         EmploymentContract contract = contractDAO.getContractById(conn, contractId);
 
         if (contract == null) {
             return new ContractOperationResult(false,
-                    ContractOperationResult.SYSTEM_ERROR, "Contract not found during auto-activation.");
+                    ContractErrorCode.DATABASE_ERROR.name(), "Contract not found during auto-activation.");
         }
 
         if (contract.getStatus() != ContractStatus.PENDING_ACTIVATION) {
             return new ContractOperationResult(false,
-                    ContractOperationResult.INVALID_STATUS,
+                    ContractErrorCode.INVALID_CONTRACT_STATUS.name(),
                     "Contract is not in PENDING_ACTIVATION state.");
         }
 
         Date today = Date.valueOf(LocalDate.now());
         if (contract.getEffectiveDate().after(today)) {
             return new ContractOperationResult(false,
-                    ContractOperationResult.DATE_MISMATCH,
+                    ContractErrorCode.INVALID_EFFECTIVE_DATE.name(),
                     "Effective date has not arrived yet.");
         }
 
@@ -599,26 +626,63 @@ public class EmploymentContractService {
         if (success) {
             contractDAO.insertAuditLog(conn, contractId,
                     ContractStatus.PENDING_ACTIVATION.name(), ContractStatus.ACTIVE.name(),
-                    0, "System auto-activation");
+                    1, "Hệ thống tự động kích hoạt");
 
             return new ContractOperationResult(true, null, "System auto-activation successful.");
         } else {
             return new ContractOperationResult(false,
-                    ContractOperationResult.SQL_ERROR, "Failed to execute auto-activation update.");
+                    ContractErrorCode.DATABASE_ERROR.name(), "Failed to execute auto-activation update.");
         }
     }
 
-    /**
-     * Process all pending activations and expirations for the day.
-     *
-     * This is the entry point for the midnight batch cron job. Implements
-     * per-row transaction isolation to ensure one failure does not crash the
-     * entire batch.
-     */
+    public ContractOperationResult createRenewalContract(int oldContractId,
+            BigDecimal newSalary, java.sql.Date newEndDate, int userId) {
+
+        try (Connection conn = dbContext.getConnection()) {
+            conn.setAutoCommit(false);
+
+            EmploymentContract oldContract = contractDAO.getContractById(conn, oldContractId);
+
+            java.sql.Date newEffectiveDate = null;
+            if (oldContract != null && oldContract.getEndDate() != null) {
+                newEffectiveDate = java.sql.Date.valueOf(oldContract.getEndDate().toLocalDate().plusDays(1));
+            }
+
+            ValidationResult vr = validateRenewal(oldContract, newEffectiveDate, newEndDate);
+            if (!vr.isSuccess()) {
+                return new ContractOperationResult(false, "RENEWAL_VALIDATION_FAILED", vr.getMessage());
+            }
+
+            EmploymentContract renewalContract = new EmploymentContract();
+            renewalContract.setEmployeeId(oldContract.getEmployeeId());
+            renewalContract.setContractType(oldContract.getContractType());
+            renewalContract.setSignedDate(java.sql.Date.valueOf(java.time.LocalDate.now()));
+            renewalContract.setEffectiveDate(newEffectiveDate);
+            renewalContract.setEndDate(newEndDate);
+            renewalContract.setSalary(newSalary);
+            renewalContract.setStatus(ContractStatus.PENDING_APPROVAL);
+            renewalContract.setPreviousContractId(oldContract.getContractId());
+            renewalContract.setCreatedBy(userId);
+            renewalContract.setNote("Gia hạn từ hợp đồng #" + oldContract.getContractCode());
+
+            ContractOperationResult result = createContract(renewalContract);
+
+            if (result.isSuccess()) {
+                conn.commit();
+            } else {
+                conn.rollback();
+            }
+
+            return result;
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Error during contract renewal", e);
+            return new ContractOperationResult(false, "DB_ERROR", "Lỗi hệ thống khi gia hạn hợp đồng.");
+        }
+    }
+
     public void processDailyContractUpdates() {
         LOGGER.log(Level.INFO, "Starting Automated Daily Contract Updates Batch Process...");
 
-        // PHASE 1: PENDING_ACTIVATION -> ACTIVE
         List<EmploymentContract> pendingList = contractDAO.getContractsReadyForActivation();
         LOGGER.log(Level.INFO, "Found {0} contracts ready for auto-activation.", pendingList.size());
 
@@ -642,7 +706,6 @@ public class EmploymentContractService {
             }
         }
 
-        // PHASE 2: ACTIVE -> EXPIRED
         List<EmploymentContract> expirationList = contractDAO.getContractsReadyForExpiration();
         LOGGER.log(Level.INFO, "Found {0} contracts ready for auto-expiration.", expirationList.size());
 
@@ -663,7 +726,7 @@ public class EmploymentContractService {
                     // Audit log for auto-expiration
                     contractDAO.insertAuditLog(conn, id,
                             oldStatus, ContractStatus.EXPIRED.name(),
-                            0, "System auto-expiration");
+                            1, "Hệ thống tự động hết hạn");
 
                     conn.commit();
                     LOGGER.log(Level.INFO, "Transaction committed: Contract {0} expired by system.", id);
