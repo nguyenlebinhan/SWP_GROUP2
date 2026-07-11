@@ -19,7 +19,7 @@ import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import enums.ContractType;
-
+import java.math.BigDecimal;
 
 /**
  * Service Layer for Employee Contract Management.
@@ -44,7 +44,6 @@ public class EmploymentContractService {
         this.employeeDAO = employeeDAO;
         this.dbContext = dbContext;
     }
-
 
     private ValidationResult validateEmployee(int employeeId) {
         if (employeeId <= 0) {
@@ -102,6 +101,34 @@ public class EmploymentContractService {
             return ValidationResult.failure(ValidationError.OVERLAPPING_CONTRACT,
                     "Thời gian hợp đồng bị trùng lặp với hợp đồng đang có hiệu lực hoặc đang chờ duyệt của nhân viên này.");
         }
+        return ValidationResult.success();
+    }
+
+    private ValidationResult validateRenewal(EmploymentContract oldContract, java.sql.Date newEffectiveDate, java.sql.Date newEndDate) {
+        if (oldContract == null) {
+            return ValidationResult.failure(ValidationError.EMPLOYEE_NOT_FOUND, "Hợp đồng cũ không tồn tại.");
+        }
+
+        if (oldContract.getStatus() != ContractStatus.ACTIVE) {
+            return ValidationResult.failure(ValidationError.CONTRACT_NOT_ACTIVE, "Chỉ hợp đồng đang có hiệu lực (ACTIVE) mới có thể gia hạn.");
+        }
+
+        if (oldContract.getEndDate() == null) {
+            return ValidationResult.failure(ValidationError.CONTRACT_INDEFINITE, "Hợp đồng không thời hạn không cần gia hạn.");
+        }
+
+        java.sql.Date expectedEffectiveDate = java.sql.Date.valueOf(
+                oldContract.getEndDate().toLocalDate().plusDays(1));
+
+        if (newEffectiveDate == null || !newEffectiveDate.equals(expectedEffectiveDate)) {
+            return ValidationResult.failure(ValidationError.INVALID_RENEWAL_DATE,
+                    "Ngày hiệu lực mới phải là ngày tiếp theo của ngày hết hạn cũ (" + expectedEffectiveDate + ").");
+        }
+
+        if (newEndDate == null || newEndDate.before(newEffectiveDate)) {
+            return ValidationResult.failure(ValidationError.END_DATE_BEFORE_START_DATE, "Ngày hết hạn mới phải sau ngày hiệu lực.");
+        }
+
         return ValidationResult.success();
     }
 
@@ -574,7 +601,6 @@ public class EmploymentContractService {
     }
 
     public ContractOperationResult activatePendingContract(int contractId, Connection conn) throws SQLException {
-        // 1. Re-fetch latest state from DB to prevent race conditions
         EmploymentContract contract = contractDAO.getContractById(conn, contractId);
 
         if (contract == null) {
@@ -609,17 +635,54 @@ public class EmploymentContractService {
         }
     }
 
-    /**
-     * Process all pending activations and expirations for the day.
-     *
-     * This is the entry point for the midnight batch cron job. Implements
-     * per-row transaction isolation to ensure one failure does not crash the
-     * entire batch.
-     */
+    public ContractOperationResult createRenewalContract(int oldContractId,
+            BigDecimal newSalary, java.sql.Date newEndDate, int userId) {
+
+        try (Connection conn = dbContext.getConnection()) {
+            conn.setAutoCommit(false);
+
+            EmploymentContract oldContract = contractDAO.getContractById(conn, oldContractId);
+
+            java.sql.Date newEffectiveDate = null;
+            if (oldContract != null && oldContract.getEndDate() != null) {
+                newEffectiveDate = java.sql.Date.valueOf(oldContract.getEndDate().toLocalDate().plusDays(1));
+            }
+
+            ValidationResult vr = validateRenewal(oldContract, newEffectiveDate, newEndDate);
+            if (!vr.isSuccess()) {
+                return new ContractOperationResult(false, "RENEWAL_VALIDATION_FAILED", vr.getMessage());
+            }
+
+            EmploymentContract renewalContract = new EmploymentContract();
+            renewalContract.setEmployeeId(oldContract.getEmployeeId());
+            renewalContract.setContractType(oldContract.getContractType());
+            renewalContract.setSignedDate(java.sql.Date.valueOf(java.time.LocalDate.now()));
+            renewalContract.setEffectiveDate(newEffectiveDate);
+            renewalContract.setEndDate(newEndDate);
+            renewalContract.setSalary(newSalary);
+            renewalContract.setStatus(ContractStatus.PENDING_APPROVAL);
+            renewalContract.setPreviousContractId(oldContract.getContractId());
+            renewalContract.setCreatedBy(userId);
+            renewalContract.setNote("Gia hạn từ hợp đồng #" + oldContract.getContractCode());
+
+            ContractOperationResult result = createContract(renewalContract);
+
+            if (result.isSuccess()) {
+                conn.commit();
+            } else {
+                conn.rollback();
+            }
+
+            return result;
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Error during contract renewal", e);
+            return new ContractOperationResult(false, "DB_ERROR", "Lỗi hệ thống khi gia hạn hợp đồng.");
+        }
+    }
+
     public void processDailyContractUpdates() {
         LOGGER.log(Level.INFO, "Starting Automated Daily Contract Updates Batch Process...");
 
-        // PHASE 1: PENDING_ACTIVATION -> ACTIVE
         List<EmploymentContract> pendingList = contractDAO.getContractsReadyForActivation();
         LOGGER.log(Level.INFO, "Found {0} contracts ready for auto-activation.", pendingList.size());
 
@@ -643,7 +706,6 @@ public class EmploymentContractService {
             }
         }
 
-        // PHASE 2: ACTIVE -> EXPIRED
         List<EmploymentContract> expirationList = contractDAO.getContractsReadyForExpiration();
         LOGGER.log(Level.INFO, "Found {0} contracts ready for auto-expiration.", expirationList.size());
 

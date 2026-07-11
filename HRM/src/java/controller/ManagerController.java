@@ -151,6 +151,9 @@ public class ManagerController extends HttpServlet {
             case "/contract/terminate":
                 displayTerminateContractList(request, response, user);
                 break;
+            case "/contract/renewal":
+                displayRenewalForm(request, response, user);
+                break;
             case "/contract/amendments":
                 displayContractAmendments(request, response, user);
                 break;
@@ -1334,6 +1337,46 @@ public class ManagerController extends HttpServlet {
         request.setAttribute("contracts", terminableContracts);
         setPermissionFlags(request, perms);
         request.getRequestDispatcher("/public/manager/contract/terminate_contract_list.jsp").forward(request, response);
+    }
+
+    private void displayRenewalForm(HttpServletRequest request, HttpServletResponse response, User user)
+            throws ServletException, IOException {
+        if (!isHrManager(user) || !hasPermission(user, "ADD_EMPLOYMENT_CONTRACT")) {
+            request.getSession().setAttribute("error", "Bạn không có quyền gia hạn hợp đồng.");
+            response.sendRedirect(request.getContextPath() + "/v1/manager/dashboard");
+            return;
+        }
+
+        Integer contractId = parseIntOrNull(request.getParameter("contractId"));
+        if (contractId == null) {
+            response.sendRedirect(request.getContextPath() + "/v1/manager/contract/history");
+            return;
+        }
+
+        EmploymentContract contract = contractDAO.getContractById(contractId);
+        if (contract == null) {
+            request.getSession().setAttribute("error", "Không tìm thấy hợp đồng.");
+            response.sendRedirect(request.getContextPath() + "/v1/manager/contract/history");
+            return;
+        }
+
+        if (contract.getStatus() != ContractStatus.ACTIVE || contract.getEndDate() == null) {
+            request.getSession().setAttribute("error", "Hợp đồng này không thể gia hạn.");
+            response.sendRedirect(request.getContextPath() + "/v1/manager/contract/detail?contractId=" + contractId);
+            return;
+        }
+
+        EmployeeDetailDTO employee = employeeDAO.getEmployeeById(contract.getEmployeeId());
+
+        request.setAttribute("oldContract", contract);
+        request.setAttribute("employee", employee);
+
+        java.sql.Date newEffectiveDate = java.sql.Date.valueOf(
+                contract.getEndDate().toLocalDate().plusDays(1));
+        request.setAttribute("newEffectiveDate", newEffectiveDate);
+
+        request.getRequestDispatcher("/public/manager/contract/renewal_contract.jsp")
+                .forward(request, response);
     }
 
     private void displayContractAmendments(HttpServletRequest request, HttpServletResponse response,

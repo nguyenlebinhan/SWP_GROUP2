@@ -139,6 +139,12 @@
                             </button>
                         </form>
                     </c:if>
+                    <c:if test="${contract.status == 'ACTIVE' and not empty contract.endDate}">
+                        <a href="${pageContext.request.contextPath}/v1/manager/contract/renewal?contractId=${contract.contractId}"
+                           class="btn btn-outline-primary">
+                            <i class="fa-solid fa-rotate-right me-1"></i>Gia hạn
+                        </a>
+                    </c:if>
                 </div>
             </div>
 
