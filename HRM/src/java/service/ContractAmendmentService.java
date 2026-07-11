@@ -12,6 +12,8 @@ import dto.EmployeeDetailDTO;
 import model.ContractAmendment;
 import model.ContractOperationResult;
 import model.EmploymentContract;
+import enums.AmendmentType;
+import enums.ContractErrorCode;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -43,6 +45,26 @@ public class ContractAmendmentService {
         this.dbContext = dbContext;
     }
 
+    public int recordAmendment(Connection conn, ContractAmendment amendment) throws SQLException {
+        if (amendment == null) {
+            throw new IllegalArgumentException("Amendment cannot be null");
+        }
+        if (amendment.getContractId() <= 0) {
+            throw new IllegalArgumentException("ContractId is required for amendment");
+        }
+        if (amendment.getAmendmentType() == null) {
+            throw new IllegalArgumentException("AmendmentType is required");
+        }
+        if (amendment.getEffectiveDate() == null) {
+            throw new IllegalArgumentException("EffectiveDate is required");
+        }
+        if (amendment.getCreatedBy() == null || amendment.getCreatedBy() <= 0) {
+            throw new IllegalArgumentException("CreatedBy (userId) is required");
+        }
+
+        return amendmentDAO.addAmendment(conn, amendment);
+    }
+    
     public ContractOperationResult createTransferAmendment(TransferRequestDTO form, EmployeeDetailDTO currentEmployee, int approverEmployeeId) {
         if (form == null || currentEmployee == null || approverEmployeeId <= 0) {
             return new ContractOperationResult(false, "INVALID_INPUT", "Du lieu phu luc hop dong khong hop le.");
@@ -72,27 +94,30 @@ public class ContractAmendmentService {
             ContractAmendment amendment = new ContractAmendment();
             amendment.setContractId(contract.getContractId());
             amendment.setAmendmentCode(generateAmendmentCode(contract.getContractId(), form.getFormId()));
-            amendment.setAmendmentType("TRANSFER");
+
+            amendment.setAmendmentType(AmendmentType.TRANSFER);
+
             amendment.setEffectiveDate(Date.valueOf(LocalDate.now()));
 
             amendment.setOldDepartmentId(currentEmployee.getDepartmentId());
             amendment.setNewDepartmentId(form.getTargetDepartmentId());
             amendment.setOldPositionId(currentEmployee.getPositionId());
-            amendment.setNewPositionId(currentEmployee.getPositionId());
+            amendment.setNewPositionId(currentEmployee.getPositionId()); 
 
             amendment.setOldSalary(contract.getSalary());
-            amendment.setNewSalary(contract.getSalary());
+            amendment.setNewSalary(contract.getSalary()); 
 
             amendment.setReason(form.getReason());
             amendment.setSourceFormId(form.getFormId());
-            amendment.setStatus("APPROVED");
+            amendment.setStatus("APPROVED"); 
             amendment.setCreatedBy(approverUserId);
             amendment.setApprovedBy(approverUserId);
 
-            int amendmentId = amendmentDAO.addAmendment(conn, amendment);
+
+            int amendmentId = recordAmendment(conn, amendment);
             if (amendmentId <= 0) {
                 conn.rollback();
-                return new ContractOperationResult(false, ContractOperationResult.SQL_ERROR, "Khong the tao phu luc hop dong.");
+                return new ContractOperationResult(false, ContractErrorCode.DATABASE_ERROR.name(), "Khong the tao phu luc hop dong.");
             }
 
             contractDAO.insertAuditLog(conn, contract.getContractId(), contract.getStatus().name(), contract.getStatus().name(),
@@ -108,7 +133,7 @@ public class ContractAmendmentService {
                 }
             }
             LOGGER.log(Level.SEVERE, "Error creating transfer contact amendment", e);
-            return new ContractOperationResult(false, ContractOperationResult.SYSTEM_ERROR, "Loi he thong khi tao phu luc hop dong: " + e.getMessage());
+            return new ContractOperationResult(false, ContractErrorCode.DATABASE_ERROR.name(), "Loi he thong khi tao phu luc hop dong: " + e.getMessage());
         } finally {
             if (conn != null) {
                 try {
@@ -123,19 +148,19 @@ public class ContractAmendmentService {
         String date = LocalDate.now().format(DateTimeFormatter.BASIC_ISO_DATE);
         return "AMD-" + contractId + "-" + formId + "-" + date;
     }
-    
+
     private int getApproverUserId(Connection conn, int employeeId) {
-    String sql = "SELECT userId FROM Employees WHERE employeeId = ?";
-    try (PreparedStatement ps = conn.prepareStatement(sql)) {
-        ps.setInt(1, employeeId);
-        try (ResultSet rs = ps.executeQuery()) {
-            if (rs.next()) {
-                return rs.getInt("userId");
+        String sql = "SELECT userId FROM Employees WHERE employeeId = ?";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, employeeId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt("userId");
+                }
             }
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Error querying userId from employeeId: " + employeeId, e);
         }
-    } catch (SQLException e) {
-        LOGGER.log(Level.SEVERE, "Error querying userId from employeeId: " + employeeId, e);
+        return -1;
     }
-    return -1;
-}
 }

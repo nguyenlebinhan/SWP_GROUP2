@@ -65,6 +65,9 @@ import dal.DBContext;
 import java.time.LocalTime;
 import java.sql.Time;
 import utils.AttendanceExcelExporter;
+import dao.ContractAmendmentDAO;
+import model.ContractAmendment;
+import java.util.stream.Collectors;
 
 @MultipartConfig(
         fileSizeThreshold = 1024 * 1024, // 1MB ghi ra đĩa
@@ -80,6 +83,8 @@ public class ManagerController extends HttpServlet {
     private static final DepartmentDAO departmentDAO = new DepartmentDAO();
     private static final PermissionDAO permissionDAO = new PermissionDAO();
     private static final EmploymentContractDAO contractDAO = new EmploymentContractDAO();
+    private static final ContractAmendmentDAO amendmentDAO = new ContractAmendmentDAO();
+    private static final service.ContractAmendmentService contractAmendmentService = new service.ContractAmendmentService(amendmentDAO, contractDAO, new dal.DBContext());
     private static final FormRequestDAO formRequestDAO = new FormRequestDAO();
     private static final EmploymentContractService contractService = new EmploymentContractService(contractDAO, employeeDAO, new dal.DBContext());
     private static final AttendanceDAO attendanceDAO = new AttendanceDAO();
@@ -145,6 +150,9 @@ public class ManagerController extends HttpServlet {
                 break;
             case "/contract/terminate":
                 displayTerminateContractList(request, response, user);
+                break;
+            case "/contract/amendments":
+                displayContractAmendments(request, response, user);
                 break;
             case "/department/employee-detail":
                 displayEmployeeDepartmentDetail(request, response, user);
@@ -1279,6 +1287,8 @@ public class ManagerController extends HttpServlet {
         request.setAttribute("backUrl", contract.getStatus() == ContractStatus.PENDING_APPROVAL
                 ? "/v1/manager/contract/pending"
                 : "/v1/manager/contract/history");
+        List<ContractAmendment> amendments = amendmentDAO.getByContractId(contract.getContractId());
+        request.setAttribute("amendments", amendments);
         setPermissionFlags(request, perms);
         request.getRequestDispatcher("/public/manager/contract/contract_preview.jsp").forward(request, response);
     }
@@ -1324,6 +1334,60 @@ public class ManagerController extends HttpServlet {
         request.setAttribute("contracts", terminableContracts);
         setPermissionFlags(request, perms);
         request.getRequestDispatcher("/public/manager/contract/terminate_contract_list.jsp").forward(request, response);
+    }
+
+    private void displayContractAmendments(HttpServletRequest request, HttpServletResponse response,
+            User user) throws ServletException, IOException {
+        if (!isHrManager(user)
+                || !(hasPermission(user, "VIEW_ALL_CONTRACTS") || hasPermission(user, "VIEW_PENDING_CONTRACTS"))) {
+            request.getSession().setAttribute("error", "Bạn không có quyền xem phụ lục hợp đồng.");
+            response.sendRedirect(request.getContextPath() + "/v1/manager/dashboard");
+            return;
+        }
+
+        String keyword = trimToNull(request.getParameter("keyword"));
+        String type = trimToNull(request.getParameter("type"));
+        String contractIdParam = trimToNull(request.getParameter("contractId"));
+
+        int contractId = 0;
+        EmploymentContract contract = null;
+        EmployeeDetailDTO employee = null;
+
+        if (contractIdParam != null) {
+            try {
+                contractId = Integer.parseInt(contractIdParam);
+                contract = contractDAO.getContractById(contractId);
+                if (contract != null) {
+                    employee = employeeDAO.getEmployeeById(contract.getEmployeeId());
+                }
+            } catch (NumberFormatException e) {
+                // ignore
+            }
+        }
+
+        List<ContractAmendment> amendments;
+        if (contractId > 0) {
+
+            amendments = amendmentDAO.getByContractId(contractId);
+
+            if (keyword != null || type != null) {
+                amendments = amendments.stream()
+                        .filter(a -> (keyword == null || a.getAmendmentCode().contains(keyword) || a.getReason().contains(keyword)))
+                        .filter(a -> (type == null || type.equals("ALL") || a.getAmendmentType().name().equals(type)))
+                        .collect(Collectors.toList());
+            }
+        } else {
+            amendments = amendmentDAO.searchAmendments(keyword, type);
+        }
+
+        request.setAttribute("contract", contract);
+        request.setAttribute("employee", employee);
+        request.setAttribute("amendments", amendments);
+        request.setAttribute("currentKeyword", keyword);
+        request.setAttribute("currentType", type);
+
+        request.getRequestDispatcher("/public/manager/contract/amendment_history.jsp")
+                .forward(request, response);
     }
 
     private void displayEmployeeDepartmentDetail(HttpServletRequest request, HttpServletResponse response,

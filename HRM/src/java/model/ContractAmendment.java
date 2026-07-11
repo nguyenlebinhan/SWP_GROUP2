@@ -6,6 +6,7 @@ package model;
 
 import java.math.BigDecimal;
 import java.sql.Date;
+import enums.AmendmentType;
 
 /**
  *
@@ -15,7 +16,7 @@ public class ContractAmendment {
     private int amendmentId;
     private int contractId;
     private String amendmentCode;
-    private String amendmentType;
+    private AmendmentType amendmentType;
     private Date effectiveDate;
     
     private Integer oldDepartmentId;
@@ -30,7 +31,7 @@ public class ContractAmendment {
     private Integer sourceFormId;
     private String status;
     
-    private int createdBy;
+    private Integer createdBy;
     private Integer approvedBy;
     private Date createdAt;
     private Date approvedAt;
@@ -62,11 +63,11 @@ public class ContractAmendment {
         this.amendmentCode = amendmentCode;
     }
 
-    public String getAmendmentType() {
+    public AmendmentType getAmendmentType() {
         return amendmentType;
     }
 
-    public void setAmendmentType(String amendmentType) {
+    public void setAmendmentType(AmendmentType amendmentType) {
         this.amendmentType = amendmentType;
     }
 
@@ -150,11 +151,11 @@ public class ContractAmendment {
         this.status = status;
     }
 
-    public int getCreatedBy() {
+    public Integer getCreatedBy() {
         return createdBy;
     }
 
-    public void setCreatedBy(int createdBy) {
+    public void setCreatedBy(Integer createdBy) {
         this.createdBy = createdBy;
     }
 
@@ -181,6 +182,5 @@ public class ContractAmendment {
     public void setApprovedAt(Date approvedAt) {
         this.approvedAt = approvedAt;
     }
-    
     
 }

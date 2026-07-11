@@ -156,6 +156,13 @@
         </a>
     </c:if>
 
+    <c:if test="${sessionScope.userPermissions.contains('VIEW_ALL_CONTRACTS')}">
+        <a href="${pageContext.request.contextPath}/v1/manager/contract/amendments"
+           class="${pageContext.request.servletPath == '/public/manager/contract/amendment_history.jsp' ? 'active' : ''}">
+            Lịch sử phụ lục
+        </a>
+    </c:if>
+
     <div class="nav-section">Quản lý tăng ca</div>
     <a href="${pageContext.request.contextPath}/v1/manager/forms/ot-requests"
        class="${pageContext.request.servletPath == '/public/manager/forms/ot_requests.jsp' || pageContext.request.servletPath == '/public/manager/forms/ot_create.jsp' ? 'active' : ''}">
