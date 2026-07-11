@@ -1,5 +1,7 @@
 package model;
 
+import enums.ValidationError;
+
 /**
  * Immutable validation result.
  * Used by Service validation layer — separate from ContractOperationResult.

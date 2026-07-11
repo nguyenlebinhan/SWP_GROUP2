@@ -1,5 +1,7 @@
 package model;
 
+import enums.ContractType;
+import enums.ContractStatus;
 import java.math.BigDecimal;
 import java.sql.Date;
 

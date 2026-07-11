@@ -97,12 +97,33 @@
         </a>
     </c:if>
 
+    <div class="nav-section">Hợp đồng</div>
+    <c:if test="${sessionScope.userPermissions.contains('ADD_EMPLOYMENT_CONTRACT')}">
+        <a href="${pageContext.request.contextPath}/v1/employee/contract/add">
+            Tạo hợp đồng
+        </a>
+    </c:if>
+
+    <c:if test="${sessionScope.userPermissions.contains('VIEW_ALL_CONTRACTS')}">
+
+        <a href="${pageContext.request.contextPath}/v1/employee/contract/history">
+            Lịch sử hợp đồng
+        </a>
+    </c:if>
+
+    <c:if test="${sessionScope.userPermissions.contains('VIEW_OWN_CONTRACT')}">
+        <a href="${pageContext.request.contextPath}/v1/employee/contract/history?scope=own">
+            Lịch sử hợp đồng của bản thân
+        </a>
+    </c:if>
+
     <div class="nav-section">Chấm công</div>
     <c:if test="${sessionScope.userPermissions.contains('VIEW_ALL_ATTENDANCE')}">
         <a href="${pageContext.request.contextPath}/v1/employee/attendance/overview">
             Tổng quan chấm công
         </a>
     </c:if>
+
     <c:if test="${sessionScope.userPermissions.contains('VIEW_ATTENDANCE')}">
         <a href="${pageContext.request.contextPath}/v1/employee/attendance/list">
             Xem chấm công
