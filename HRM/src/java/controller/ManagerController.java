@@ -284,6 +284,9 @@ public class ManagerController extends HttpServlet {
             case "/contract/terminate":
                 handleTerminateContract(request, response, user);
                 break;
+            case "/contract/renewal":
+                handleRenewContract(request, response, user);
+                break;
             case "/department/unassign":
                 handleUnassignDepartment(request, response, user);
                 break;
@@ -2153,6 +2156,54 @@ public class ManagerController extends HttpServlet {
             request.setAttribute("terminationReason", terminationReason);
             setPermissionFlags(request, perms);
             request.getRequestDispatcher("/public/manager/contract/terminate_contract.jsp").forward(request, response);
+        }
+    }
+
+    private void handleRenewContract(HttpServletRequest request, HttpServletResponse response, User user)
+            throws ServletException, IOException {
+        try {
+            Integer contractId = parseIntOrNull(request.getParameter("contractId"));
+            BigDecimal newSalary = null;
+            java.sql.Date newEndDate = null;
+
+            String salaryStr = trimToNull(request.getParameter("newSalary"));
+            if (salaryStr != null) {
+                try {
+                    newSalary = new BigDecimal(salaryStr);
+                } catch (NumberFormatException e) {
+                }
+            }
+
+            String dateStr = trimToNull(request.getParameter("newEndDate"));
+            if (dateStr != null) {
+                try {
+                    newEndDate = java.sql.Date.valueOf(dateStr);
+                } catch (IllegalArgumentException e) {
+                }
+            }
+
+            if (contractId == null || newSalary == null || newEndDate == null) {
+                request.getSession().setAttribute("error", "Thiếu thông tin gia hạn hợp đồng.");
+                response.sendRedirect(request.getContextPath() + "/v1/manager/contract/detail?contractId="
+                        + (contractId != null ? contractId : ""));
+                return;
+            }
+
+            // Gọi service thực hiện gia hạn (Backend Phase 1)
+            ContractOperationResult result = contractService.createRenewalContract(
+                    contractId, newSalary, newEndDate, user.getUserId());
+
+            if (result.isSuccess()) {
+                request.getSession().setAttribute("success", "Đã tạo yêu cầu gia hạn hợp đồng thành công.");
+                // Redirect về detail của hợp đồng cũ để thấy chain
+                response.sendRedirect(request.getContextPath() + "/v1/manager/contract/detail?contractId=" + contractId);
+            } else {
+                request.getSession().setAttribute("error", "Gia hạn thất bại: " + result.getMessage());
+                response.sendRedirect(request.getContextPath() + "/v1/manager/contract/detail?contractId=" + contractId);
+            }
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Error handling renewal", e);
+            response.sendRedirect(request.getContextPath() + "/v1/manager/contract/detail");
         }
     }
 
