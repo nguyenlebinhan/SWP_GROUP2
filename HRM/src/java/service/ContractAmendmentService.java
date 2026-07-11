@@ -64,7 +64,7 @@ public class ContractAmendmentService {
 
         return amendmentDAO.addAmendment(conn, amendment);
     }
-    
+
     public ContractOperationResult createTransferAmendment(TransferRequestDTO form, EmployeeDetailDTO currentEmployee, int approverEmployeeId) {
         if (form == null || currentEmployee == null || approverEmployeeId <= 0) {
             return new ContractOperationResult(false, "INVALID_INPUT", "Du lieu phu luc hop dong khong hop le.");
@@ -102,17 +102,16 @@ public class ContractAmendmentService {
             amendment.setOldDepartmentId(currentEmployee.getDepartmentId());
             amendment.setNewDepartmentId(form.getTargetDepartmentId());
             amendment.setOldPositionId(currentEmployee.getPositionId());
-            amendment.setNewPositionId(currentEmployee.getPositionId()); 
+            amendment.setNewPositionId(currentEmployee.getPositionId());
 
             amendment.setOldSalary(contract.getSalary());
-            amendment.setNewSalary(contract.getSalary()); 
+            amendment.setNewSalary(contract.getSalary());
 
             amendment.setReason(form.getReason());
             amendment.setSourceFormId(form.getFormId());
-            amendment.setStatus("APPROVED"); 
+            amendment.setStatus("APPROVED");
             amendment.setCreatedBy(approverUserId);
             amendment.setApprovedBy(approverUserId);
-
 
             int amendmentId = recordAmendment(conn, amendment);
             if (amendmentId <= 0) {
@@ -137,6 +136,79 @@ public class ContractAmendmentService {
         } finally {
             if (conn != null) {
                 try {
+                    conn.close();
+                } catch (SQLException ignored) {
+                }
+            }
+        }
+    }
+
+    public ContractOperationResult createPositionAmendment(TransferRequestDTO form,
+            EmployeeDetailDTO currentEmployee, int approverEmployeeId) {
+        if (form == null || currentEmployee == null || approverEmployeeId <= 0) {
+            return new ContractOperationResult(false, "INVALID_INPUT", "Du lieu phu luc khong hop le.");
+        }
+
+        if (form.getTargetRoleId() == null) {
+            return new ContractOperationResult(false, "INVALID_PROMOTION", "Don thang/giam chuc khong co chuc danh dich.");
+        }
+
+        Connection conn = null;
+        try {
+            conn = dbContext.getConnection();
+            conn.setAutoCommit(false);
+
+            int approverUserId = getApproverUserId(conn, approverEmployeeId);
+            if (approverUserId <= 0) {
+                conn.rollback();
+                return new ContractOperationResult(false, "INVALID_APPROVER", "Khong tim thay userId cua nguoi duyet.");
+            }
+
+            EmploymentContract contract = contractDAO.getActiveOrPendingContract(conn, currentEmployee.getEmployeeId());
+            if (contract == null) {
+                conn.rollback();
+                return new ContractOperationResult(false, "NO_CONTRACT", "Nhan vien chua co hop dong hien tai hoac sap hieu luc.");
+            }
+
+            ContractAmendment amendment = new ContractAmendment();
+            amendment.setContractId(contract.getContractId());
+            amendment.setAmendmentCode(generateAmendmentCode(contract.getContractId(), form.getFormId()));
+            amendment.setAmendmentType(AmendmentType.POSITION_CHANGE);
+            amendment.setEffectiveDate(Date.valueOf(LocalDate.now()));
+
+            amendment.setOldPositionId(currentEmployee.getPositionId());
+            amendment.setNewPositionId(form.getTargetRoleId());
+            amendment.setReason(form.getReason());
+            amendment.setSourceFormId(form.getFormId());
+            amendment.setStatus("APPROVED");
+            amendment.setCreatedBy(approverUserId);
+            amendment.setApprovedBy(approverUserId);
+
+            int amendmentId = recordAmendment(conn, amendment);
+            if (amendmentId <= 0) {
+                conn.rollback();
+                return new ContractOperationResult(false, ContractErrorCode.DATABASE_ERROR.name(), "Khong the tao phu luc.");
+            }
+
+            contractDAO.insertAuditLog(conn, contract.getContractId(), contract.getStatus().name(), contract.getStatus().name(),
+                    approverUserId, "Tao phu luc thay doi chuc danh tu don #" + form.getFormId());
+
+            conn.commit();
+            return new ContractOperationResult(true, null, "Tao phu luc chuc danh thanh cong");
+
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Cannot create position amendment", e);
+            if (conn != null) {
+                try {
+                    conn.rollback();
+                } catch (SQLException ignored) {
+                }
+            }
+            return new ContractOperationResult(false, ContractErrorCode.DATABASE_ERROR.name(), "Loi he thong khi tao phu luc.");
+        } finally {
+            if (conn != null) {
+                try {
+                    conn.setAutoCommit(true);
                     conn.close();
                 } catch (SQLException ignored) {
                 }

@@ -13,7 +13,8 @@ public enum AmendmentType {
     TRANSFER("Chuyển phòng ban"),
     SALARY_CHANGE("Thay đổi lương"),
     POSITION_CHANGE("Thay đổi chức danh"),
-    COMBINED("Thay đổi nhiều field cùng lúc");
+    COMBINED("Thay đổi nhiều field cùng 1 lúc"),
+    PROMOTION_DEMOTION("Thăng/Giáng chức");
     
     private final String displayName;
 

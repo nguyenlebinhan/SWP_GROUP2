@@ -72,6 +72,7 @@
                             <option value="PROMOTION_DEMOTION" ${currentType == 'PROMOTION_DEMOTION' ? 'selected' : ''}>Thăng/Giáng chức</option>
                             <option value="SALARY_ADJUSTMENT" ${currentType == 'SALARY_ADJUSTMENT' ? 'selected' : ''}>Điều chỉnh lương</option>
                             <option value="COMBINED" ${currentType == 'COMBINED' ? 'selected' : ''}>Kết hợp</option>
+                            <option value="POSITION_CHANGE" ${currentType == 'POSITION_CHANGE' ? 'selected' : ''}>Thăng/Giáng chức</option>
                         </select>
                     </div>
 

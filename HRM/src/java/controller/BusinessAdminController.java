@@ -1311,7 +1311,7 @@ public class BusinessAdminController extends HttpServlet {
                     departmentDAO.assignManager(emp.getDepartmentId(), emp.getEmployeeId());
                 }
             }
-
+            contractAmendmentService.createPositionAmendment(tf, emp, approverId);
         }
     }
 
