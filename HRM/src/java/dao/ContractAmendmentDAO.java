@@ -1,16 +1,19 @@
-
 package dao;
 
 import dal.DBContext;
+import enums.AmendmentType;
 import java.math.BigDecimal;
 import model.ContractAmendment;
 
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class ContractAmendmentDAO {
 
+    private static final Logger LOGGER = Logger.getLogger(ContractAmendmentDAO.class.getName());
     private final DBContext dbContext = new DBContext();
 
     public int addAmendment(Connection conn, ContractAmendment amendment) throws SQLException {
@@ -22,7 +25,9 @@ public class ContractAmendmentDAO {
         try (PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             ps.setInt(1, amendment.getContractId());
             ps.setString(2, amendment.getAmendmentCode());
-            ps.setString(3, amendment.getAmendmentType());
+            ps.setString(3, amendment.getAmendmentType() != null
+                    ? amendment.getAmendmentType().name()
+                    : null);
             ps.setDate(4, amendment.getEffectiveDate());
 
             setNullableInt(ps, 5, amendment.getOldDepartmentId());
@@ -82,7 +87,15 @@ public class ContractAmendmentDAO {
         amendment.setAmendmentId(rs.getInt("amendmentId"));
         amendment.setContractId(rs.getInt("contractId"));
         amendment.setAmendmentCode(rs.getString("amendmentCode"));
-        amendment.setAmendmentType(rs.getString("amendmentType"));
+        String typeStr = rs.getString("amendmentType");
+        if (typeStr != null) {
+            try {
+                amendment.setAmendmentType(AmendmentType.valueOf(typeStr));
+            } catch (IllegalArgumentException e) {
+                amendment.setAmendmentType(AmendmentType.COMBINED);
+                LOGGER.log(Level.WARNING, "Invalid amendmentType in DB: {0}, fallback to COMBINED", typeStr);
+            }
+        }
         amendment.setEffectiveDate(rs.getDate("effectiveDate"));
 
         int oldDepartmentId = rs.getInt("oldDepartmentId");
@@ -115,6 +128,40 @@ public class ContractAmendmentDAO {
         amendment.setApprovedAt(rs.getDate("approvedAt"));
 
         return amendment;
+    }
+
+    public List<ContractAmendment> searchAmendments(String keyword, String type) {
+        List<ContractAmendment> list = new ArrayList<>();
+        String SQL = "SELECT * FROM Contract_Amendments WHERE 1=1 ";
+
+        if (keyword != null && !keyword.trim().isEmpty()) {
+            SQL += " AND (amendmentCode LIKE ? OR reason LIKE ?)";
+        }
+        if (type != null && !type.trim().isEmpty() && !type.equals("ALL")) {
+            SQL += " AND amendmentType = ?";
+        }
+        SQL += " ORDER BY createdAt DESC";
+
+        try (Connection conn = dbContext.getConnection(); PreparedStatement ps = conn.prepareStatement(SQL)) {
+            int paramIdx = 1;
+            if (keyword != null && !keyword.trim().isEmpty()) {
+                String k = "%" + keyword.trim() + "%";
+                ps.setString(paramIdx++, k);
+                ps.setString(paramIdx++, k);
+            }
+            if (type != null && !type.trim().isEmpty() && !type.equals("ALL")) {
+                ps.setString(paramIdx++, type);
+            }
+
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    list.add(mapAmendment(rs));
+                }
+            }
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Cannot search amendments", e);
+        }
+        return list;
     }
 
     private void setNullableInt(PreparedStatement ps, int index, Integer value) throws SQLException {

@@ -14,8 +14,8 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import model.ContractAuditLog;
 import model.ContractOperationResult;
-import model.ContractStatus;
-import model.ContractType;
+import enums.ContractStatus;
+import enums.ContractType;
 import model.EmploymentContract;
 
 public class EmploymentContractDAO {
@@ -149,16 +149,16 @@ public class EmploymentContractDAO {
         return null;
     }
 
-    public EmploymentContract getCurrentOrUpcomingContract(int employeeId) {
-      try (Connection conn = getInternalConnection()) {
-          return getCurrentOrUpcomingContract(conn, employeeId);
-      } catch (SQLException e) {
-          LOGGER.log(Level.SEVERE, "Cannot retrieve current/upcoming contract for employeeId: " + employeeId, e);
-      }
-      return null;
-  }
+    public EmploymentContract getActiveOrPendingContract(int employeeId) {
+        try (Connection conn = getInternalConnection()) {
+            return getActiveOrPendingContract(conn, employeeId);
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Cannot retrieve current/upcoming contract for employeeId: " + employeeId, e);
+        }
+        return null;
+    }
 
-    public EmploymentContract getCurrentOrUpcomingContract(Connection conn, int employeeId) throws SQLException {
+    public EmploymentContract getActiveOrPendingContract(Connection conn, int employeeId) throws SQLException {
         String SQL = "SELECT " + BASE_COLUMNS + " FROM Employment_Contracts WHERE employeeId = ? "
                 + "AND status IN ('ACTIVE', 'PENDING_ACTIVATION') "
                 + "ORDER BY CASE WHEN status = 'ACTIVE' THEN 0 ELSE 1 END, "
@@ -363,6 +363,40 @@ public class EmploymentContractDAO {
             }
         } catch (SQLException e) {
             LOGGER.log(Level.SEVERE, "Cannot retrieve contracts ready for expiration", e);
+        }
+        return contracts;
+    }
+
+    public List<EmploymentContract> getContractsExpiringSoon(int days) {
+        List<EmploymentContract> contracts = new ArrayList<>();
+        String SQL = "SELECT ec.*, e.employeeCode, u.fullName, d.departmentName, p.positionName "
+                + "FROM Employment_Contracts ec "
+                + "JOIN Employees e ON ec.employeeId = e.employeeId "
+                + "JOIN Users u ON u.userId = e.userId "
+                + "LEFT JOIN Departments d ON e.departmentId = d.departmentId "
+                + "LEFT JOIN Positions p ON e.positionId = p.positionId "
+                + "WHERE ec.status = 'ACTIVE' "
+                + "AND ec.endDate IS NOT NULL "
+                + "AND ec.endDate = DATE_ADD(CURRENT_DATE, INTERVAL ? DAY) "
+                + "ORDER BY ec.endDate ASC";
+        try (Connection conn = getInternalConnection(); PreparedStatement ps = conn.prepareStatement(SQL)) {
+            ps.setInt(1, days);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    EmploymentContract contract = mapContract(rs);
+                    try {
+                        contract.setDepartmentName(rs.getString("departmentName"));
+                    } catch (SQLException ignored) {
+                    }
+                    try {
+                        contract.setPositionName(rs.getString("positionName"));
+                    } catch (SQLException ignored) {
+                    }
+                    contracts.add(contract);
+                }
+            }
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Cannot retrieve contracts expiring in " + days + " days", e);
         }
         return contracts;
     }

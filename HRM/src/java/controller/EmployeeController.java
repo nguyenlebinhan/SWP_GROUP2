@@ -1,5 +1,7 @@
 package controller;
 
+import enums.ContractType;
+import enums.ContractStatus;
 import dao.AttendanceDAO;
 import dao.CandidateDAO;
 import dao.DepartmentDAO;
@@ -455,7 +457,7 @@ public class EmployeeController extends HttpServlet {
     private void displayCurrentContract(HttpServletRequest request, HttpServletResponse response,
             User user) throws ServletException, IOException {
         EmployeeDetailDTO employee = employeeDAO.getEmployeeByUserId(user.getUserId());
-        EmploymentContract contract = contractDAO.getCurrentOrUpcomingContract(employee.getEmployeeId());
+        EmploymentContract contract = contractDAO.getActiveOrPendingContract(employee.getEmployeeId());
         request.setAttribute("activeContract", contract);
         request.setAttribute("employee", employee);
         request.getRequestDispatcher("/public/employee/contract/contract_current.jsp").forward(request, response);

@@ -1,4 +1,4 @@
-package model;
+package enums;
 
 public enum ContractStatus {
     PENDING_APPROVAL("Chờ duyệt"),
