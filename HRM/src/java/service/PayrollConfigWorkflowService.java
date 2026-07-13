@@ -50,8 +50,8 @@ public class PayrollConfigWorkflowService {
         request.setSettingDescription(setting.getDescription());
         request.setOldValue(settingOldValue(setting.getSettingKey()));
         request.setNewValue("key=" + setting.getSettingKey()
-                + "; value=" + setting.getSettingValue()
-                + "; description=" + setting.getDescription());
+                + "; giá trị=" + displayPayrollSettingValue(setting)
+                + "; mô tả=" + setting.getDescription());
         request.setRequestedBy(requestedBy.getUserId());
         return requestDAO.createRequest(request);
     }
@@ -330,8 +330,8 @@ public class PayrollConfigWorkflowService {
         for (PayrollSetting setting : payrollConfigDAO.getAllSettings()) {
             if (setting.getSettingKey().equals(settingKey)) {
                 return "key=" + setting.getSettingKey()
-                        + "; value=" + setting.getSettingValue()
-                        + "; description=" + setting.getDescription();
+                        + "; giá trị=" + displayPayrollSettingValue(setting)
+                        + "; mô tả=" + setting.getDescription();
             }
         }
         return "Chưa có giá trị hiện tại.";
@@ -343,12 +343,12 @@ public class PayrollConfigWorkflowService {
     }
 
     private String deductionValue(PayrollDeductionRule rule) {
-        return "code=" + rule.getRuleCode()
-                + "; name=" + rule.getRuleName()
-                + "; type=" + rule.getRuleType()
-                + "; totalRate=" + rule.getRate()
-                + "; employerRate=" + rule.getEmployerRate()
-                + "; employeeRate=" + rule.getEmployeeRate();
+        return "mã=" + rule.getRuleCode()
+                + "; tên=" + rule.getRuleName()
+                + "; loại=" + ("INSURANCE".equals(rule.getRuleType()) ? "Bảo hiểm" : rule.getRuleType())
+                + "; tổng tỷ lệ=" + numberDisplay(rule.getRate())
+                + "; công ty đóng=" + numberDisplay(rule.getEmployerRate())
+                + "; nhân viên đóng=" + numberDisplay(rule.getEmployeeRate());
     }
 
     private String taxValue(List<PayrollTaxBracket> brackets) {
@@ -360,9 +360,13 @@ public class PayrollConfigWorkflowService {
             if (sb.length() > 0) {
                 sb.append("; ");
             }
-            sb.append("[").append(b.getMinIncome()).append(" - ")
-                    .append(b.getMaxIncome() == null ? "MAX" : b.getMaxIncome())
-                    .append(": ").append(b.getTaxRate()).append("]");
+            sb.append("[");
+            if (b.getMaxIncome() == null) {
+                sb.append(">").append(numberDisplay(b.getMinIncome()));
+            } else {
+                sb.append(numberDisplay(b.getMinIncome())).append(" - ").append(numberDisplay(b.getMaxIncome()));
+            }
+            sb.append(": ").append(numberDisplay(b.getTaxRate())).append("]");
         }
         return sb.toString();
     }
@@ -385,6 +389,10 @@ public class PayrollConfigWorkflowService {
         int hour = minutes / 60;
         int minute = minutes % 60;
         return String.format("%02d:%02d", hour, minute);
+    }
+
+    private String numberDisplay(BigDecimal value) {
+        return value == null ? "" : new DecimalFormat("#,##0.######", DecimalFormatSymbols.getInstance(Locale.US)).format(value);
     }
 
     private String trim(String raw) {
