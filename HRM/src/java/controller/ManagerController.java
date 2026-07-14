@@ -1,5 +1,6 @@
 package controller;
 
+import config.ContractSchedulerInitializerListener;
 import dao.*;
 import dto.AttendanceImportResultDTO;
 import dto.CandidateImportResultDTO;
@@ -286,6 +287,9 @@ public class ManagerController extends HttpServlet {
                 break;
             case "/contract/renewal":
                 handleRenewContract(request, response, user);
+                break;
+            case "/scheduler/run-now":
+                handleRunSchedulerNow(request, response, user);
                 break;
             case "/department/unassign":
                 handleUnassignDepartment(request, response, user);
@@ -1260,6 +1264,7 @@ public class ManagerController extends HttpServlet {
         request.setAttribute("contracts", contracts);
         request.setAttribute("employeeMap", employeeMap);
         setPermissionFlags(request, perms);
+        request.setAttribute("isHrStaffRole", isHrStaff(user));
         request.getRequestDispatcher("/public/manager/contract/contract_history.jsp").forward(request, response);
     }
 
@@ -2204,6 +2209,47 @@ public class ManagerController extends HttpServlet {
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "Error handling renewal", e);
             response.sendRedirect(request.getContextPath() + "/v1/manager/contract/detail");
+        }
+    }
+
+    private void handleRunSchedulerNow(HttpServletRequest request, HttpServletResponse response, User user)
+            throws ServletException, IOException {
+
+        if (!isHrManager(user)) {
+            request.getSession().setAttribute("error", "Bạn không có quyền thực hiện thao tác này.");
+            if (!isAjaxRequest(request)) {
+                response.sendRedirect(request.getContextPath() + "/v1/manager/dashboard");
+            } else {
+                response.setContentType("application/json");
+                response.getWriter().write("{\"success\":false,\"message\":\"Permission denied.\"}");
+            }
+            return;
+        }
+
+        try {
+            ContractSchedulerInitializerListener listener = (ContractSchedulerInitializerListener) getServletContext().getAttribute("contractSchedulerListener");
+
+            if (listener == null) {
+                String msg = "Scheduler is not available (listener not initialized).";
+                sendJsonResponse(response, false, msg);
+                return;
+            }
+
+            if (listener.isRunning()) {
+                sendJsonResponse(response, false, "Scheduler is already running. Please wait.");
+                return;
+            }
+
+            boolean submitted = listener.runNow();
+            if (submitted) {
+                sendJsonResponse(response, true, "Scheduler task submitted successfully.");
+            } else {
+                sendJsonResponse(response, false, "Scheduler is not available (shutting down or error).");
+            }
+
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Error running scheduler manually", e);
+            sendJsonResponse(response, false, "Internal error: " + e.getMessage());
         }
     }
 
@@ -3499,6 +3545,17 @@ public class ManagerController extends HttpServlet {
         request.setAttribute("canApproveContract", perms.contains("APPROVE_CONTRACT"));
         request.setAttribute("canRejectContract", perms.contains("REJECT_CONTRACT"));
         request.setAttribute("canTerminateContract", perms.contains("TERMINATE_CONTRACT"));
+    }
+
+    private void sendJsonResponse(HttpServletResponse response, boolean success, String message) throws IOException {
+        response.setContentType("application/json");
+        response.setCharacterEncoding("UTF-8");
+        response.getWriter().write("{\"success\":" + success + ",\"message\":\"" + message + "\"}");
+    }
+
+    private boolean isAjaxRequest(HttpServletRequest request) {
+        String xRequestedWith = request.getHeader("X-Requested-With");
+        return "XMLHttpRequest".equals(xRequestedWith);
     }
 
     private boolean isBlank(String v) {

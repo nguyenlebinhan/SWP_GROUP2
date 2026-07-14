@@ -103,5 +103,17 @@
         </c:choose>
     </div>
 </div>
-</body>
+<script>
+    document.querySelectorAll('.change-text').forEach(function (cell) {
+        cell.textContent = cell.textContent
+            .replace(/\bkey=/g, 'key=').replace(/\bvalue=/g, 'giá trị=').replace(/\bdescription=/g, 'mô tả=')
+            .replace(/\bcode=/g, 'mã=').replace(/\bname=/g, 'tên=').replace(/\btype=INSURANCE\b/g, 'loại=Bảo hiểm')
+            .replace(/\btotalRate=/g, 'tổng tỷ lệ=').replace(/\bemployerRate=/g, 'công ty đóng=').replace(/\bemployeeRate=/g, 'nhân viên đóng=')
+            .replace(/(\d+(?:\.\d+)?)\s*-\s*MAX\b/g, '>$1')
+            .replace(/\bmax=(-?\d+(?:\.\d+)?)/g, '>$1')
+            .replace(/-?\d+(?:\.\d+)?/g, function (value) {
+                return Number(value).toLocaleString('en-US', {maximumFractionDigits: 6});
+            });
+    });
+</script></body>
 </html>

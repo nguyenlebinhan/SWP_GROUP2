@@ -21,12 +21,15 @@ import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.text.DecimalFormat;
+import java.text.DecimalFormatSymbols;
 import java.time.LocalTime;
 import java.time.YearMonth;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Locale;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -1071,7 +1074,7 @@ public class PayrollService {
         if (rule != null && "UNION_FEE".equals(rule.getRuleCode())) {
             return "nền tính: tổng lương.";
         }
-        return "nền tính: min(lương tính bảo hiểm, mức trần " + scale(config.insuranceSalaryCap) + ").";
+        return "nền tính: min(lương tính bảo hiểm, mức trần " + moneyDisplay(config.insuranceSalaryCap) + ").";
     }
 
     private String buildDeductionBaseNote(PayrollDeductionRule rule, PayrollRuntimeConfig config) {
@@ -1107,6 +1110,10 @@ public class PayrollService {
 
     private String percent(BigDecimal rate) {
         return moneyOrZero(rate).multiply(new BigDecimal("100")).stripTrailingZeros().toPlainString() + "%";
+    }
+
+    private String moneyDisplay(BigDecimal value) {
+        return new DecimalFormat("#,##0.##", DecimalFormatSymbols.getInstance(Locale.US)).format(moneyOrZero(value));
     }
 
     private BigDecimal lateDeductionBlockAmount(PayrollPreviewDTO preview) {

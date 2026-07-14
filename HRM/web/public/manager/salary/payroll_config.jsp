@@ -163,7 +163,7 @@
             <table class="table align-middle">
                 <thead>
                     <tr>
-                        <th>Code</th><th>Tên</th><th>Loại</th><th>Nền tính</th>
+                        <th>Code</th><th>Tên</th><th>Nền tính</th>
                         <th>Công ty trả %</th><th>Nhân viên trả %</th><th>Tổng %</th>
                         <c:if test="${canEditPayrollConfig}"><th></th></c:if>
                     </tr>
@@ -179,10 +179,10 @@
                                 <td>
                                     <input form="deductionForm${st.index}" type="hidden" name="ruleId" value="${r.ruleId}">
                                     <input form="deductionForm${st.index}" type="hidden" name="ruleCode" value="${r.ruleCode}">
+                                    <input form="deductionForm${st.index}" type="hidden" name="ruleType" value="${r.ruleType}">
                                     <span class="readonly-value fw-semibold"><c:out value="${r.ruleCode}" /></span>
                                 </td>
                                 <td><input form="deductionForm${st.index}" type="hidden" name="ruleName" value="${fn:escapeXml(r.ruleName)}"><span class="readonly-value"><c:out value="${r.ruleName}" /></span></td>
-                                <td><input form="deductionForm${st.index}" type="hidden" name="ruleType" value="${r.ruleType}"><span class="readonly-value"><c:out value="${r.ruleType}" /></span></td>
                                 <td><span class="readonly-value">${r.ruleCode == 'UNION_FEE' ? 'Tổng lương' : 'Lương tính bảo hiểm'}</span></td>
                                 <td><input form="deductionForm${st.index}" name="employerRate" class="form-control mini-input employer-rate" value="${employerRatePercent}"></td>
                                 <td><input form="deductionForm${st.index}" name="employeeRate" class="form-control mini-input employee-rate" value="${employeeRatePercent}"></td>
@@ -191,7 +191,6 @@
                             <c:otherwise>
                                 <td><span class="readonly-value fw-semibold"><c:out value="${r.ruleCode}" /></span></td>
                                 <td><span class="readonly-value"><c:out value="${r.ruleName}" /></span></td>
-                                <td><span class="readonly-value"><c:out value="${r.ruleType}" /></span></td>
                                 <td><span class="readonly-value">${r.ruleCode == 'UNION_FEE' ? 'Tổng lương' : 'Lương tính bảo hiểm'}</span></td>
                                 <td><span class="readonly-value"><c:out value="${employerRatePercent}" /></span></td>
                                 <td><span class="readonly-value"><c:out value="${employeeRatePercent}" /></span></td>
@@ -319,5 +318,17 @@
         });
     });
 </script>
-</body>
+<script>
+    document.querySelectorAll('.change-text').forEach(function (cell) {
+        cell.textContent = cell.textContent
+            .replace(/\bkey=/g, 'key=').replace(/\bvalue=/g, 'giá trị=').replace(/\bdescription=/g, 'mô tả=')
+            .replace(/\bcode=/g, 'mã=').replace(/\bname=/g, 'tên=').replace(/\btype=INSURANCE\b/g, 'loại=Bảo hiểm')
+            .replace(/\btotalRate=/g, 'tổng tỷ lệ=').replace(/\bemployerRate=/g, 'công ty đóng=').replace(/\bemployeeRate=/g, 'nhân viên đóng=')
+            .replace(/(\d+(?:\.\d+)?)\s*-\s*MAX\b/g, '>$1')
+            .replace(/\bmax=(-?\d+(?:\.\d+)?)/g, '>$1')
+            .replace(/-?\d+(?:\.\d+)?/g, function (value) {
+                return Number(value).toLocaleString('en-US', {maximumFractionDigits: 6});
+            });
+    });
+</script></body>
 </html>
