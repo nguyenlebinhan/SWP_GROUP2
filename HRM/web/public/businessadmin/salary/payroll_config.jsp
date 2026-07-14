@@ -326,8 +326,8 @@
             .replace(/\btotalRate=/g, 'tổng tỷ lệ=').replace(/\bemployerRate=/g, 'công ty đóng=').replace(/\bemployeeRate=/g, 'nhân viên đóng=')
             .replace(/(\d+(?:\.\d+)?)\s*-\s*MAX\b/g, '>$1')
             .replace(/\bmax=(-?\d+(?:\.\d+)?)/g, '>$1')
-            .replace(/-?\d+(?:\.\d+)?/g, function (value) {
-                return Number(value).toLocaleString('en-US', {maximumFractionDigits: 6});
+            .replace(/-?\d[\d,]*(?:\.\d+)?/g, function (value) {
+                return Number(value.replace(/,/g, '')).toLocaleString('en-US', {maximumFractionDigits: 6});
             });
     });
 </script></body>
