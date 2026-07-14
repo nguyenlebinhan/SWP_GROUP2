@@ -1074,7 +1074,7 @@ public class PayrollService {
         if (rule != null && "UNION_FEE".equals(rule.getRuleCode())) {
             return "nền tính: tổng lương.";
         }
-        return "nền tính: min(lương tính bảo hiểm, mức trần " + moneyDisplay(config.insuranceSalaryCap) + ").";
+                return "nền tính: lương tính bảo hiểm, mức trần " + moneyDisplay(config.insuranceSalaryCap) + ".";
     }
 
     private String buildDeductionBaseNote(PayrollDeductionRule rule, PayrollRuntimeConfig config) {
