@@ -122,11 +122,7 @@ public class DBInitializer {
                 + "departmentName NVARCHAR(150) NOT NULL UNIQUE,"
                 + "description NVARCHAR(500),"
                 + "managerId INT,"
-                //                + "maxHeadCount INT,"
-                + "status TINYINT DEFAULT 1," // 0: Inactive, 1: Active
-                //                + "region NVARCHAR(100),"
-                //                + "budget DECIMAL(15,2),"
-                //                + "foundedDate DATE,"
+                + "status TINYINT DEFAULT 1," 
                 + "createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,"
                 + "updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,"
                 + "FOREIGN KEY (managerId) REFERENCES Employees(employeeId)"
@@ -232,34 +228,6 @@ public class DBInitializer {
                 + "FOREIGN KEY (approvedBy) REFERENCES Users(userId)"
                 + ")";
         execute(conn, SQL, "CREATE CONTRACT_AMENDMENTS TABLE SUCCESSFULLY");
-    }
-
-    public void createTableCandidates(Connection conn) {
-        String SQL = "CREATE TABLE Candidates("
-                + "candidateId INT PRIMARY KEY AUTO_INCREMENT,"
-                + "candidateCode VARCHAR(50) NOT NULL UNIQUE,"
-                + "fullName NVARCHAR(150) NOT NULL,"
-                + "email VARCHAR(100) NOT NULL,"
-                + "phoneNumber VARCHAR(20),"
-                + "dateOfBirth DATE,"
-                + "gender VARCHAR(20),"
-                + "address NVARCHAR(255),"
-                + "skills NVARCHAR(500),"
-                + "experience NVARCHAR(500),"
-                + "certificates NVARCHAR(255),"
-                + "degree NVARCHAR(100),"
-                + "cvFileUrl VARCHAR(500),"
-                + "departmentId INT NOT NULL,"
-                + "positionId INT NOT NULL,"
-                + "importFileId INT,"
-                + "status TINYINT DEFAULT 0," // 0: Đang xét, 1: Phỏng vấn, 2: Thử việc, 3: Đậu, 4: Trượt
-                + "createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,"
-                + "updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,"
-                + "FOREIGN KEY (departmentId) REFERENCES Departments(departmentId),"
-                + "FOREIGN KEY (positionId) REFERENCES Positions(positionId),"
-                + "FOREIGN KEY (importFileId) REFERENCES Uploaded_Files(fileId)"
-                + ")";
-        execute(conn, SQL, "CREATE CANDIDATES TABLE SUCCESSFULLY");
     }
 
     // ==================== NGHỈ PHÉP ====================
@@ -672,7 +640,6 @@ public class DBInitializer {
                         case "Contract_Audit_Log": createTableContractAuditLog(conn); break;
                         case "Contract_Amendments": createTableContractAmendments(conn); break;
                         case "Uploaded_Files":    createTableUploadedFiles(conn);     break;
-                        case "Candidates":        createTableCandidates(conn);        break;
                         case "Form_Types":       createTableFormTypes(conn);         break;
                         case "Form_Requests":    createTableFormRequests(conn);     break;
                         case "Overtime_Details": createTableOvertimeDetails(conn);  break;
