@@ -549,9 +549,7 @@ public class DBInitializer {
 
             String[] dropOrder = {
                 "Audit_Logs",
-                "Notifications",
                 "Payroll_Tax_Brackets",
-                "Payroll_Config_Change_History",
                 "Payroll_Config_Change_Requests",
                 "Payroll_Deduction_Rules",
                 "Payroll_Settings",
@@ -559,7 +557,6 @@ public class DBInitializer {
                 "Attendance_Period_Status",
                 "Attendance_Adjustment_History",
                 "Attendance",
-                "Candidates",
                 "Uploaded_Files",
                 "Leave_Balances",
                 "Overtime_Assignees",
@@ -574,7 +571,6 @@ public class DBInitializer {
                 "Department_Roles",
                 "Role_Permissions",
                 "Permissions",
-                "Email_Templates",
                 "Departments",
                 "Positions",
                 "Roles"
@@ -584,7 +580,6 @@ public class DBInitializer {
                 "Roles",
                 "Permissions",
                 "Role_Permissions",
-                "Email_Templates",
                 "Positions",
                 "Departments",
                 "Department_Roles",
@@ -594,7 +589,6 @@ public class DBInitializer {
                 "Contract_Audit_Log",
                 "Contract_Amendments",
                 "Uploaded_Files",
-                "Candidates",
                 "Form_Types",
                 "Form_Requests",
                 "Overtime_Details",
@@ -608,7 +602,6 @@ public class DBInitializer {
                 "Payroll_Deduction_Rules",
                 "Payroll_Tax_Brackets",
                 "Payroll_Config_Change_Requests",
-                "Notifications",
                 "Audit_Logs"
             };
 
