@@ -40,14 +40,13 @@ import service.ContractAmendmentService;
 import dao.ContractAmendmentDAO;
 import dao.EmploymentContractDAO;
 import dal.DBContext;
+import dto.ClosingResult;
 
 public class BusinessAdminController extends HttpServlet {
 
     private static final Logger LOGGER = Logger.getLogger(BusinessAdminController.class.getName());
     private static final UserDAO userDAO = new UserDAO();
-    private static final EmailService emailService = new EmailService();
     private static final RoleDAO roleDAO = new RoleDAO();
-    private static final PermissionDAO permissionDAO = new PermissionDAO();
     private static final EmployeeDAO employeeDAO = new EmployeeDAO();
     private static final DepartmentDAO departmentDAO = new DepartmentDAO();
     private static final HolidayDAO holidayDAO = new HolidayDAO();
@@ -813,7 +812,7 @@ public class BusinessAdminController extends HttpServlet {
         java.time.LocalDate prev = java.time.LocalDate.now().minusMonths(1);
         int month = paramOr(request, "month", prev.getMonthValue());
         int year = paramOr(request, "year", prev.getYear());
-        service.AttendanceClosingService.ClosingResult result
+        ClosingResult result
                 = attendanceClosingService.approveByBa(year, month, user);
         request.getSession().setAttribute(result.isSuccess() ? "success" : "error", result.getMessage());
         response.sendRedirect(request.getContextPath()

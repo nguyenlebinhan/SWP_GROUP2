@@ -34,10 +34,7 @@ public class AttendanceSummaryDTO {
                 : workedHours.setScale(0, RoundingMode.HALF_UP).intValue();
     }
 
-    /**
-     * Giờ làm hiển thị: giữ phần thập phân (theo block 30 phút) thay vì làm tròn về số nguyên.
-     * VD: 150.50 -> "150.5", 152.00 -> "152".
-     */
+
     public String getWorkedHoursDisplay() {
         if (workedHours == null) {
             return "0";
