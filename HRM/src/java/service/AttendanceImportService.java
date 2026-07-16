@@ -7,7 +7,6 @@ package service;
 import dal.DBContext;
 import dao.AttendanceDAO;
 import dao.FormRequestDAO;
-import dao.HolidayDAO;
 import dao.UploadedFileDAO;
 import dto.AttendanceDataDTO;
 import dto.AttendanceImportResultDTO;
@@ -48,7 +47,6 @@ public class AttendanceImportService {
     private final DBContext dbContext;
     private final AttendanceDAO attendanceDAO;
     private final UploadedFileDAO uploadedFileDAO;
-    private final HolidayDAO holidayDAO;
     private final FormRequestDAO formRequestDAO;
     private final dao.OvertimeDAO overtimeDAO;
     private final ExcelAttendanceParser parser;
@@ -57,7 +55,6 @@ public class AttendanceImportService {
         this.dbContext = new DBContext();
         this.attendanceDAO = new AttendanceDAO();
         this.uploadedFileDAO = new UploadedFileDAO();
-        this.holidayDAO = new HolidayDAO();
         this.formRequestDAO = new FormRequestDAO();
         this.overtimeDAO = new dao.OvertimeDAO();
         this.parser = new ExcelAttendanceParser();
@@ -305,7 +302,7 @@ public class AttendanceImportService {
 
     private AttendanceStatus deriveStatus(Time timeIn, Time timeOut) {
         // Thiếu cả hai: chưa chấm công ngày đó -> Vắng mặt (có thể được xét lại
-        // thành nghỉ phép/lễ/cuối tuần ở determineFinalStatus).
+        // thành nghỉ phép/cuối tuần ở determineFinalStatus).
         if (timeIn == null && timeOut == null) {
             return AttendanceStatus.ABSENT;
         }
@@ -324,9 +321,6 @@ public class AttendanceImportService {
         if (base == AttendanceStatus.PRESENT || base == AttendanceStatus.LATE
                 || base == AttendanceStatus.MISSING_CHECK) {
             return base;
-        }
-        if (holidayDAO.isHoliday(conn, workDate)) {
-            return AttendanceStatus.HOLIDAY;
         }
         if (isWeekend(workDate)) {
             return AttendanceStatus.WEEKEND;

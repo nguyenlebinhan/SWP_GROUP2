@@ -15,7 +15,6 @@ import dao.RoleDAO;
 import dao.UploadedFileDAO;
 import dao.UserDAO;
 import dao.LeaveBalanceDAO;
-import dao.HolidayDAO;
 import dto.AttendanceDetailDTO;
 import dto.AttendanceImportResultDTO;
 import dto.AttendanceReportDTO;
@@ -81,7 +80,6 @@ public class EmployeeController extends HttpServlet {
     private final AttendanceDAO attendanceDAO = new AttendanceDAO();
     private final UploadedFileDAO uploadedFileDAO = new UploadedFileDAO();
     private final LeaveBalanceDAO leaveBalanceDAO = new LeaveBalanceDAO();
-    private final HolidayDAO holidayDAO = new HolidayDAO();
     private final AttendanceImportService importService = new AttendanceImportService();
     private final EmploymentContractService contractService = new EmploymentContractService(contractDAO, employeeDAO, new dal.DBContext());
     private final AttendanceService attendanceService = new AttendanceService();
@@ -521,9 +519,6 @@ public class EmployeeController extends HttpServlet {
                 case 2:
                 case 3:
                     summary.setAbsentDays(summary.getAbsentDays() + 1);
-                    break;
-                case 5:
-                    summary.setHolidayDays(summary.getHolidayDays() + 1);
                     break;
                 case 6:
                     summary.setWeekendDays(summary.getWeekendDays() + 1);
@@ -2361,7 +2356,6 @@ public class EmployeeController extends HttpServlet {
             request.getRequestDispatcher("/public/employee/forms/leave_form.jsp").forward(request, response);
             return;
         }
-        List<Holiday> holidays = holidayDAO.getAllHolidays();
         int totalDays = 0;
         LocalDate current = startDate.toLocalDate();
         LocalDate end = endDate.toLocalDate();
@@ -2372,28 +2366,12 @@ public class EmployeeController extends HttpServlet {
                 current = current.plusDays(1);
                 continue;
             }
-
-            boolean isHoliday = false;
-            for (Holiday h : holidays) {
-                if (!h.isActive()) {
-                    continue;
-                }
-                LocalDate hStart = h.getStartDate().toLocalDate();
-                LocalDate hEnd = h.getEndDate().toLocalDate();
-                if (!current.isBefore(hStart) && !current.isAfter(hEnd)) {
-                    isHoliday = true;
-                    break;
-                }
-            }
-
-            if (!isHoliday) {
-                totalDays++;
-            }
+            totalDays++;
             current = current.plusDays(1);
         }
 
         if (totalDays == 0) {
-            request.setAttribute("error", "Khoảng thời gian bạn chọn toàn bộ là ngày nghỉ Lễ/Cuối tuần. Không cần phải xin phép!");
+            request.setAttribute("error", "Khoảng thời gian bạn chọn toàn bộ là ngày cuối tuần. Không cần phải xin phép!");
             setPermissionFlags(request, getPermissions(user));
             request.getRequestDispatcher("/public/employee/forms/leave_form.jsp").forward(request, response);
             return;

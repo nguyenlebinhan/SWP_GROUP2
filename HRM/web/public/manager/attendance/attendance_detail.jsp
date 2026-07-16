@@ -20,7 +20,6 @@
         .badge-s2 { background:#fee2e2; color:#991b1b; }
         .badge-s3 { background:#e5e7eb; color:#374151; }
         .badge-s4 { background:#dbeafe; color:#1e40af; }
-        .badge-s5 { background:#ede9fe; color:#5b21b6; }
         .badge-s6 { background:#f3f4f6; color:#4b5563; }
         .hdr-chip { background:#f1f5f9; border-radius:10px; padding:8px 14px; font-size:13px; font-weight:600; color:#334155; }
     </style>
@@ -63,7 +62,6 @@
             <span class="badge-st badge-s1">Đi muộn: ${sm.lateDays}</span>
             <span class="badge-st badge-s4">Nghỉ phép: ${sm.leaveDays}</span>
             <span class="badge-st badge-s2">Vắng mặt: ${sm.absentDays}</span>
-            <span class="badge-st badge-s5">Nghỉ lễ: ${sm.holidayDays}</span>
             <span class="badge-st badge-s6">Cuối tuần: ${sm.weekendDays}</span>
         </div>
     </div>

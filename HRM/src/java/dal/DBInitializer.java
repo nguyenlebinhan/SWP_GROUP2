@@ -278,7 +278,7 @@ public class DBInitializer {
                 + "otDate DATE NOT NULL,"
                 + "startTime TIME NOT NULL,"
                 + "endTime TIME NOT NULL,"
-                + "dayType TINYINT NOT NULL," // 1: Thường, 2: Cuối tuần, 3: Lễ
+                + "dayType TINYINT NOT NULL," // 1: Thường, 2: Cuối tuần
                 + "FOREIGN KEY (formId) REFERENCES Form_Requests(formId) ON DELETE CASCADE"
                 + ")";
         execute(conn, SQL, "CREATE OVERTIME_DETAILS TABLE SUCCESSFULLY");

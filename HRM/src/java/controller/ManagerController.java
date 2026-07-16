@@ -495,9 +495,6 @@ public class ManagerController extends HttpServlet {
                 case 3:
                     summary.setAbsentDays(summary.getAbsentDays() + 1);
                     break;
-                case 5:
-                    summary.setHolidayDays(summary.getHolidayDays() + 1);
-                    break;
                 case 6:
                     summary.setWeekendDays(summary.getWeekendDays() + 1);
                     break;
@@ -3172,6 +3169,11 @@ public class ManagerController extends HttpServlet {
             }
 
             int dayType = Integer.parseInt(dayTypeStr);
+            if (dayType != 1 && dayType != 2) {
+                request.getSession().setAttribute("error", "Loại ngày tăng ca không hợp lệ.");
+                response.sendRedirect(request.getContextPath() + "/v1/manager/forms/create-ot");
+                return;
+            }
 
             // Tìm formTypeId của OVERTIME
             int formTypeId = -1;

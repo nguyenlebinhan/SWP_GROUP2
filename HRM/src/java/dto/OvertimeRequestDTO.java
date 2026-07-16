@@ -58,7 +58,6 @@ public class OvertimeRequestDTO extends FormRequestDTO {
         switch (dayType) {
             case 1: return "Ngày thường";
             case 2: return "Cuối tuần";
-            case 3: return "Ngày lễ";
             default: return "Không xác định";
         }
     }

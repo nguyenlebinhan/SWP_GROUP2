@@ -279,7 +279,6 @@ public class AttendanceDAO {
                 + "COALESCE(SUM(a.attendanceStatus = 1), 0) AS lateDays, "
                 + "COALESCE(SUM(a.attendanceStatus = 4), 0) AS leaveDays, "
                 + "COALESCE(SUM(a.attendanceStatus IN (2,3)), 0) AS absentDays, "
-                + "COALESCE(SUM(a.attendanceStatus = 5), 0) AS holidayDays, "
                 + "COALESCE(SUM(a.attendanceStatus = 6), 0) AS weekendDays, "
                 + "COALESCE(SUM(a.attendanceStatus = 7), 0) AS missingCheckDays "
                 + "FROM Employees e JOIN Attendance a ON a.employeeId = e.employeeId "
@@ -313,7 +312,6 @@ public class AttendanceDAO {
                     s.setLateDays(rs.getInt("lateDays"));
                     s.setLeaveDays(rs.getInt("leaveDays"));
                     s.setAbsentDays(rs.getInt("absentDays"));
-                    s.setHolidayDays(rs.getInt("holidayDays"));
                     s.setWeekendDays(rs.getInt("weekendDays"));
                     s.setMissingCheckDays(rs.getInt("missingCheckDays"));
                     list.add(s);
@@ -526,7 +524,6 @@ public class AttendanceDAO {
             case 2: return "Vắng mặt";
             case 3: return "Không phép";
             case 4: return "Nghỉ phép";
-            case 5: return "Nghỉ lễ";
             case 6: return "Cuối tuần";
             case 7: return "Quên chấm công";
             default: return "Không xác định";
