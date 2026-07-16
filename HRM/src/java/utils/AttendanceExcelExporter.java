@@ -20,7 +20,7 @@ public class AttendanceExcelExporter {
     private static final String[] HEADERS = {
         "Employee Code", "Employee Name", "Department", "Position",
         "Standard Hours", "Worked Hours",
-        "Present", "Late", "Leave", "Absent", "Holiday", "Weekend",
+        "Present", "Late", "Leave", "Absent", "Weekend",
         "Attendance Rate (%)"
     };
 
@@ -71,7 +71,6 @@ public class AttendanceExcelExporter {
                 row.createCell(col++).setCellValue(s.getLateDays());
                 row.createCell(col++).setCellValue(s.getLeaveDays());
                 row.createCell(col++).setCellValue(s.getAbsentDays());
-                row.createCell(col++).setCellValue(s.getHolidayDays());
                 row.createCell(col++).setCellValue(s.getWeekendDays());
                 row.createCell(col).setCellValue(s.getAttendanceRate());
             }
