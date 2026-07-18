@@ -1074,6 +1074,7 @@ public class PayrollService {
 
     private String baseNote(PayrollDeductionRule rule, PayrollRuntimeConfig config) {
         return "nền tính: lương làm căn cứ đóng bảo hiểm, mức trần " + moneyDisplay(config.insuranceSalaryCap) + ".";
+
     }
     
 
