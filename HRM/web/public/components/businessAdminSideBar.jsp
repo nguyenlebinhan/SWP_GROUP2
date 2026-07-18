@@ -37,7 +37,6 @@
     <a href="${pageContext.request.contextPath}/v1/businessadmin/department">Phòng ban</a>
     <a href="${pageContext.request.contextPath}/v1/businessadmin/add-department">Thêm phòng ban</a>
     <a href="${pageContext.request.contextPath}/v1/businessadmin/attendance/closing">Chấm công</a>
-    <a href="${pageContext.request.contextPath}/v1/businessadmin/holiday">Ngày lễ</a>
     <a href="${pageContext.request.contextPath}/v1/businessadmin/payroll-config">Cấu hình payroll</a>
     <a href="${pageContext.request.contextPath}/v1/businessadmin/forms">Quản lý đơn từ</a>
     <a href="${pageContext.request.contextPath}/v1/businessadmin/my-profile">Hồ sơ của tôi</a>

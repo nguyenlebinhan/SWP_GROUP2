@@ -21,7 +21,6 @@
         .badge-s2 { background:#fee2e2; color:#991b1b; }
         .badge-s3 { background:#e5e7eb; color:#374151; }
         .badge-s4 { background:#dbeafe; color:#1e40af; }
-        .badge-s5 { background:#ede9fe; color:#5b21b6; }
         .badge-s6 { background:#f3f4f6; color:#4b5563; }
         .badge-s7 { background:#ffedd5; color:#9a3412; }
         .badge-st { padding:4px 10px; border-radius:20px; font-size:12px; font-weight:600; }
@@ -62,7 +61,7 @@
         <c:if test="${editLocked}">
             <div class="alert alert-warning">
                 <i class="fa-solid fa-lock me-2"></i>
-                Đã quá hạn chỉnh sửa. Chấm công chỉ được sửa đến hết ngày 5 của tháng kế tiếp tháng chấm công.
+                <c:out value="${lockMessage}" default="Đã quá hạn chỉnh sửa. Chấm công chỉ được sửa đến hết ngày 5 của tháng kế tiếp tháng chấm công."/>
             </div>
         </c:if>
 
@@ -88,7 +87,7 @@
                     <input type="text" class="form-control" value="${attendance.hoursWorkedLabel}" disabled>
                     <div class="form-text">
                         Trạng thái được hệ thống tự xác định lại từ giờ vào / giờ ra khi lưu
-                        (đúng giờ, đi muộn, vắng mặt, nghỉ phép, nghỉ lễ, cuối tuần, quên chấm công). Số giờ làm cũng tự tính lại.
+                        (đúng giờ, đi muộn, vắng mặt, nghỉ phép, cuối tuần, quên chấm công). Số giờ làm cũng tự tính lại.
                     </div>
                 </div>
                 <div class="col-md-12">

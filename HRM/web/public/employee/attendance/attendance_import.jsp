@@ -138,7 +138,7 @@
                 </div>
             </c:if>
 
-            <a href="${pageContext.request.contextPath}/v1/employee/attendance/list?month=${selectedMonth}&year=${selectedYear}"
+            <a href="${pageContext.request.contextPath}/v1/employee/attendance/overview"
                class="btn btn-outline-primary btn-sm">
                 <i class="fa-solid fa-table me-1"></i> Xem dữ liệu chấm công
             </a>

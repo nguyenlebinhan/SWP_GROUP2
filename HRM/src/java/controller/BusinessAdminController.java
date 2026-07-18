@@ -3,7 +3,6 @@ package controller;
 import dao.DepartmentDAO;
 import dao.DependentDAO;
 import dao.EmployeeDAO;
-import dao.HolidayDAO;
 import dao.PermissionDAO;
 import dao.RoleDAO;
 import dao.UserDAO;
@@ -14,8 +13,6 @@ import dao.FormRequestDAO;
 import dao.OvertimeDAO;
 import dto.OvertimeRequestDTO;
 import dao.PayrollConfigDAO;
-import java.sql.Date;
-import model.Holiday;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
@@ -41,18 +38,16 @@ import service.ContractAmendmentService;
 import dao.ContractAmendmentDAO;
 import dao.EmploymentContractDAO;
 import dal.DBContext;
+import dto.ClosingResult;
 
 public class BusinessAdminController extends HttpServlet {
 
     private static final Logger LOGGER = Logger.getLogger(BusinessAdminController.class.getName());
     private static final UserDAO userDAO = new UserDAO();
-    private static final EmailService emailService = new EmailService();
     private static final RoleDAO roleDAO = new RoleDAO();
-    private static final PermissionDAO permissionDAO = new PermissionDAO();
     private static final EmployeeDAO employeeDAO = new EmployeeDAO();
     private static final DepartmentDAO departmentDAO = new DepartmentDAO();
     private static final DependentDAO dependentDAO = new DependentDAO();
-    private static final HolidayDAO holidayDAO = new HolidayDAO();
     private static final FormRequestDAO formRequestDAO = new FormRequestDAO();
     private static final OvertimeDAO overtimeDAO = new OvertimeDAO();
     private static final PayrollConfigDAO payrollConfigDAO = new PayrollConfigDAO();
@@ -104,15 +99,6 @@ public class BusinessAdminController extends HttpServlet {
                 break;
             case "/update-department":
                 displayUpdateDepartmentForm(request, response);
-                break;
-            case "/holiday":
-                displayHolidayList(request, response);
-                break;
-            case "/holiday/add":
-                displayHolidayForm(request, response, false);
-                break;
-            case "/holiday/edit":
-                displayHolidayForm(request, response, true);
                 break;
             case "/payroll-config":
             case "/payrol-config":
@@ -178,15 +164,6 @@ public class BusinessAdminController extends HttpServlet {
                 break;
             case "/update-department":
                 handleUpdateDepartment(request, response);
-                break;
-            case "/holiday/add":
-                handleAddHoliday(request, response);
-                break;
-            case "/holiday/edit":
-                handleUpdateHoliday(request, response);
-                break;
-            case "/holiday/delete":
-                handleDeleteHoliday(request, response);
                 break;
             case "/payroll-config/setting/save":
                 handleSavePayrollSetting(request, response);
@@ -736,9 +713,6 @@ public class BusinessAdminController extends HttpServlet {
         return ids;
     }
 
-    // =========================================================
-    // Quản lý ngày lễ (Holiday)
-    // =========================================================
     // ===================== Attendance Dashboard (Overview / Detail / Export) =====================
     /**
      * HR/Business Admin: 0 hoặc rỗng = toàn công ty; ngược lại lọc theo phòng
@@ -816,7 +790,7 @@ public class BusinessAdminController extends HttpServlet {
         java.time.LocalDate prev = java.time.LocalDate.now().minusMonths(1);
         int month = paramOr(request, "month", prev.getMonthValue());
         int year = paramOr(request, "year", prev.getYear());
-        service.AttendanceClosingService.ClosingResult result
+        ClosingResult result
                 = attendanceClosingService.approveByBa(year, month, user);
         request.getSession().setAttribute(result.isSuccess() ? "success" : "error", result.getMessage());
         response.sendRedirect(request.getContextPath()
@@ -883,141 +857,6 @@ public class BusinessAdminController extends HttpServlet {
         response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
         response.setHeader("Content-Disposition", "attachment; filename=\"" + fileName + "\"");
         attendanceExporter.write(report, response.getOutputStream());
-    }
-
-    private void displayHolidayList(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
-        request.setAttribute("holidays", holidayDAO.getAllHolidays());
-
-        HttpSession session = request.getSession(false);
-        if (session != null) {
-            String success = (String) session.getAttribute("holidaySuccess");
-            String error = (String) session.getAttribute("holidayError");
-            if (success != null) {
-                request.setAttribute("success", success);
-                session.removeAttribute("holidaySuccess");
-            }
-            if (error != null) {
-                request.setAttribute("error", error);
-                session.removeAttribute("holidayError");
-            }
-        }
-        request.getRequestDispatcher("/public/businessadmin/holiday/holiday_list.jsp").forward(request, response);
-    }
-
-    private void displayHolidayForm(HttpServletRequest request, HttpServletResponse response, boolean editMode)
-            throws ServletException, IOException {
-        if (editMode) {
-            Integer holidayId = parseIntParam(request.getParameter("id"));
-            Holiday holiday = (holidayId != null) ? holidayDAO.getHolidayById(holidayId) : null;
-            if (holiday == null) {
-                request.getSession().setAttribute("holidayError", "Không tìm thấy ngày lễ.");
-                response.sendRedirect(request.getContextPath() + "/v1/businessadmin/holiday");
-                return;
-            }
-            request.setAttribute("holiday", holiday);
-        }
-        request.setAttribute("editMode", editMode);
-        request.getRequestDispatcher("/public/businessadmin/holiday/holiday_form.jsp").forward(request, response);
-    }
-
-    private void handleAddHoliday(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
-        Holiday holiday = new Holiday();
-        String error = bindAndValidateHoliday(request, holiday);
-        if (error != null) {
-            request.setAttribute("error", error);
-            request.setAttribute("editMode", false);
-            request.setAttribute("holiday", holiday);
-            request.getRequestDispatcher("/public/businessadmin/holiday/holiday_form.jsp").forward(request, response);
-            return;
-        }
-
-        int newId = holidayDAO.addHoliday(holiday);
-        if (newId > 0) {
-            request.getSession().setAttribute("holidaySuccess",
-                    "Đã thêm ngày lễ \"" + holiday.getHolidayName() + "\".");
-        } else {
-            request.getSession().setAttribute("holidayError", "Thêm ngày lễ thất bại. Vui lòng thử lại.");
-        }
-        response.sendRedirect(request.getContextPath() + "/v1/businessadmin/holiday");
-    }
-
-    private void handleUpdateHoliday(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
-        Integer holidayId = parseIntParam(request.getParameter("holidayId"));
-        if (holidayId == null || holidayDAO.getHolidayById(holidayId) == null) {
-            request.getSession().setAttribute("holidayError", "Không tìm thấy ngày lễ.");
-            response.sendRedirect(request.getContextPath() + "/v1/businessadmin/holiday");
-            return;
-        }
-
-        Holiday holiday = new Holiday();
-        holiday.setHolidayId(holidayId);
-        String error = bindAndValidateHoliday(request, holiday);
-        if (error != null) {
-            request.setAttribute("error", error);
-            request.setAttribute("editMode", true);
-            request.setAttribute("holiday", holiday);
-            request.getRequestDispatcher("/public/businessadmin/holiday/holiday_form.jsp").forward(request, response);
-            return;
-        }
-
-        if (holidayDAO.updateHoliday(holiday)) {
-            request.getSession().setAttribute("holidaySuccess",
-                    "Đã cập nhật ngày lễ \"" + holiday.getHolidayName() + "\".");
-        } else {
-            request.getSession().setAttribute("holidayError", "Cập nhật ngày lễ thất bại. Vui lòng thử lại.");
-        }
-        response.sendRedirect(request.getContextPath() + "/v1/businessadmin/holiday");
-    }
-
-    private void handleDeleteHoliday(HttpServletRequest request, HttpServletResponse response)
-            throws IOException {
-        Integer holidayId = parseIntParam(request.getParameter("holidayId"));
-        if (holidayId == null) {
-            request.getSession().setAttribute("holidayError", "Dữ liệu không hợp lệ.");
-        } else if (holidayDAO.deleteHoliday(holidayId)) {
-            request.getSession().setAttribute("holidaySuccess", "Đã xóa ngày lễ.");
-        } else {
-            request.getSession().setAttribute("holidayError", "Xóa ngày lễ thất bại. Vui lòng thử lại.");
-        }
-        response.sendRedirect(request.getContextPath() + "/v1/businessadmin/holiday");
-    }
-
-    /**
-     * Đọc tham số form vào holiday và validate. Trả về null nếu hợp lệ, ngược
-     * lại trả về thông báo lỗi (đồng thời giữ lại giá trị đã nhập trong holiday
-     * để hiển thị lại form).
-     */
-    private String bindAndValidateHoliday(HttpServletRequest request, Holiday holiday) {
-        String name = request.getParameter("holidayName");
-        String startRaw = request.getParameter("startDate");
-        String endRaw = request.getParameter("endDate");
-        boolean active = request.getParameter("isActive") != null;
-
-        holiday.setHolidayName(name != null ? name.trim() : null);
-        holiday.setActive(active);
-
-        if (isBlank(name)) {
-            return "Vui lòng nhập tên ngày lễ.";
-        }
-        if (isBlank(startRaw) || isBlank(endRaw)) {
-            return "Vui lòng chọn ngày bắt đầu và ngày kết thúc.";
-        }
-        Date start, end;
-        try {
-            start = Date.valueOf(startRaw.trim());
-            end = Date.valueOf(endRaw.trim());
-        } catch (IllegalArgumentException e) {
-            return "Ngày không hợp lệ (yêu cầu yyyy-MM-dd).";
-        }
-        if (end.before(start)) {
-            return "Ngày kết thúc phải bằng hoặc sau ngày bắt đầu.";
-        }
-        holiday.setStartDate(start);
-        holiday.setEndDate(end);
-        return null;
     }
 
     private Integer parseIntParam(String raw) {

@@ -109,7 +109,6 @@
                                 <c:choose>
                                     <c:when test="${otRequest.dayType == 1}"><span class="badge bg-secondary">Ngày thường</span></c:when>
                                     <c:when test="${otRequest.dayType == 2}"><span class="badge bg-info text-dark">Cuối tuần</span></c:when>
-                                    <c:when test="${otRequest.dayType == 3}"><span class="badge bg-danger">Ngày lễ</span></c:when>
                                     <c:otherwise><span class="badge bg-secondary">Không xác định</span></c:otherwise>
                                 </c:choose>
                             </div>

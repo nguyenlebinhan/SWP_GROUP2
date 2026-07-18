@@ -358,7 +358,7 @@ public class PayrollService {
 
         PayrollOvertimeSummaryDTO overtime = overtimeDAO.getPayrollOvertimeSummary(conn, employee.employeeId,
                 year, month, dailyRate, config.workingHoursPerDay, config.overtimeBlockMinutes,
-                config.overtimeWorkdayMultiplier, config.overtimeWeekendMultiplier, config.overtimeHolidayMultiplier);
+                config.overtimeWorkdayMultiplier, config.overtimeWeekendMultiplier);
 
         int unpaidWorkingDays = Math.max(0, standardWorkingDays - attendance.getPaidWorkingDays());
         attendance.setUnauthorizedAbsentDays(unpaidWorkingDays);
@@ -943,6 +943,7 @@ public class PayrollService {
         config.overtimeWorkdayMultiplier = requiredPositiveSetting(settings, "OVERTIME_WORKDAY_MULTIPLIER");
 //        config.overtimeWeekendMultiplier = requiredPositiveSetting(settings, "OVERTIME_WEEKEND_MULTIPLIER");
 //        config.overtimeHolidayMultiplier = requiredPositiveSetting(settings, "OVERTIME_HOLIDAY_MULTIPLIER");
+
         config.deductionRules = payrollConfigDAO.getDeductionRules(true);
         config.taxBrackets = payrollConfigDAO.getTaxBrackets(true);
         if (config.taxBrackets == null || config.taxBrackets.isEmpty()) {
@@ -1260,7 +1261,6 @@ public class PayrollService {
         int overtimeBlockMinutes;
         BigDecimal overtimeWorkdayMultiplier;
         BigDecimal overtimeWeekendMultiplier;
-        BigDecimal overtimeHolidayMultiplier;
         List<PayrollDeductionRule> deductionRules = new ArrayList<>();
         List<PayrollTaxBracket> taxBrackets = new ArrayList<>();
     }

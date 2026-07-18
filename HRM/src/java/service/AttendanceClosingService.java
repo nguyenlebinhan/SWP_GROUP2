@@ -4,6 +4,7 @@ import dao.AttendancePeriodDAO;
 import dao.DepartmentDAO;
 import dao.EmployeeDAO;
 import dao.RoleDAO;
+import dto.ClosingResult;
 import dto.EmployeeDetailDTO;
 import enums.AttendancePeriodStatus;
 import java.time.LocalDate;
@@ -13,18 +14,7 @@ import model.AttendancePeriod;
 import model.Department;
 import model.User;
 
-/**
- * Điều phối quy trình chốt bảng chấm công theo (tháng, phòng ban):
- *
- * OPEN -> (HR đóng kỳ) -> WAITING_MANAGER -> (trưởng phòng chốt) -> MANAGER_CONFIRMED
- *       -> (HR gửi lên BA) -> SUBMITTED_TO_BA -> (BA chốt cuối) -> LOCKED
- *
- * Khi LOCKED: cho phép tính lương và khoá sửa chấm công vĩnh viễn.
- *
- * Ghi chú: phần gửi email được bổ sung ở bước sau; hiện tại chỉ xử lý trạng thái.
- *
- * @author ADMIN
- */
+
 public class AttendanceClosingService {
 
     private final AttendancePeriodDAO periodDAO = new AttendancePeriodDAO();
@@ -32,15 +22,9 @@ public class AttendanceClosingService {
     private final EmployeeDAO employeeDAO = new EmployeeDAO();
     private final RoleDAO roleDAO = new RoleDAO();
     private final AuditLogService auditLogService = new AuditLogService();
-
-    /** Ngày cuối cùng được sửa chấm công: mùng 5 của tháng kế tiếp. */
     private static final int EDIT_DEADLINE_DAY = 5;
 
-    // ── Trạng thái ────────────────────────────────────────────────────────
 
-    /**
-     * Trạng thái hiệu lực của một phòng trong kỳ. Không có dòng dữ liệu = OPEN.
-     */
     public AttendancePeriodStatus getEffectiveStatus(int year, int month, int departmentId) {
         AttendancePeriod row = periodDAO.get(year, month, departmentId);
         if (row == null) {
@@ -53,9 +37,6 @@ public class AttendanceClosingService {
         return periodDAO.listByPeriod(year, month);
     }
 
-    /**
-     * Dòng trạng thái chốt của một phòng ban (không bao giờ null; OPEN nếu chưa có dòng).
-     */
     public AttendancePeriod getClosingRow(int year, int month, int departmentId) {
         AttendancePeriod row = periodDAO.get(year, month, departmentId);
         if (row == null) {
@@ -68,10 +49,7 @@ public class AttendanceClosingService {
         return row;
     }
 
-    /**
-     * Trạng thái chốt của mọi phòng ban có dữ liệu chấm công trong kỳ.
-     * Phòng chưa được đóng kỳ (không có dòng dữ liệu) được coi là OPEN.
-     */
+
     public List<AttendancePeriod> getClosingOverview(int year, int month) {
         List<AttendancePeriod> result = new ArrayList<>();
         for (Integer deptId : periodDAO.getDepartmentIdsWithAttendance(year, month)) {
@@ -88,14 +66,7 @@ public class AttendanceClosingService {
         return result;
     }
 
-    // ── Khoá sửa chấm công ────────────────────────────────────────────────
 
-    /**
-     * Xác định một bản ghi chấm công có bị khoá sửa hay không.
-     *
-     * Khoá khi: đã quá mùng 5 tháng kế tiếp (quy tắc cũ), HOẶC kỳ của phòng đã
-     * bước vào quy trình chốt (khác OPEN). Khi LOCKED thì khoá vĩnh viễn.
-     */
     public boolean isEditLocked(java.sql.Date workDate, Integer departmentId) {
         if (workDate == null) {
             return false;
@@ -115,8 +86,6 @@ public class AttendanceClosingService {
         LocalDate deadline = workDate.withDayOfMonth(1).plusMonths(1).withDayOfMonth(EDIT_DEADLINE_DAY);
         return LocalDate.now().isAfter(deadline);
     }
-
-    // ── Bước 1: HR đóng kỳ, gửi cho trưởng các phòng ──────────────────────
 
     public ClosingResult openPeriodForManagers(int year, int month, User hrUser) {
         if (!isHr(hrUser)) {
@@ -142,8 +111,6 @@ public class AttendanceClosingService {
                 "openedDepartments=" + opened);
         return ClosingResult.ok("Đã gửi bảng chấm công cho trưởng " + opened + " phòng ban để chốt.", opened);
     }
-
-    // ── Bước 2: Trưởng phòng chốt phòng mình ──────────────────────────────
 
     public ClosingResult confirmByManager(int year, int month, int departmentId, User user) {
         if (!isManagerOf(user, departmentId)) {
@@ -229,10 +196,7 @@ public class AttendanceClosingService {
 
     // ── Cổng tính lương ───────────────────────────────────────────────────
 
-    /**
-     * Kỳ đã được BA chốt hoàn toàn: mọi phòng ban có chấm công đều ở trạng thái LOCKED.
-     * Dùng để chặn cứng việc tính lương toàn công ty.
-     */
+
     public boolean isPeriodLocked(int year, int month) {
         List<Integer> deptIds = periodDAO.getDepartmentIdsWithAttendance(year, month);
         if (deptIds.isEmpty()) {
@@ -246,14 +210,11 @@ public class AttendanceClosingService {
         return true;
     }
 
-    /**
-     * Một phòng ban cụ thể đã được BA chốt (dùng khi tính lương theo phòng).
-     */
+
     public boolean isDepartmentLocked(int year, int month, int departmentId) {
         return getEffectiveStatus(year, month, departmentId) == AttendancePeriodStatus.LOCKED;
     }
 
-    // ── Phân quyền ────────────────────────────────────────────────────────
 
     private boolean isHr(User user) {
         if (user == null) {
@@ -279,19 +240,16 @@ public class AttendanceClosingService {
         if (me == null) {
             return false;
         }
-        // 1) Trưởng phòng đã được gán tường minh trong Departments.managerId.
         Department dept = departmentDAO.getDepartmentById(departmentId);
         if (dept != null && dept.getManagerId() != null
                 && dept.getManagerId() == me.getEmployeeId()) {
             return true;
         }
-        // 2) Người có role quản lý (…Manager) và thuộc đúng phòng ban đó
-        //    (khớp cách hệ thống xác định trưởng phòng ở cổng manager).
+
         String role = roleDAO.getRoleByUserId(user.getUserId());
         return role != null && role.contains("Manager") && me.getDepartmentId() == departmentId;
     }
 
-    // ── Tiện ích ──────────────────────────────────────────────────────────
 
     private String departmentLabel(int departmentId) {
         Department dept = departmentDAO.getDepartmentById(departmentId);
@@ -311,39 +269,5 @@ public class AttendanceClosingService {
                 recordLabel, newValue, null, null, "SUCCESS");
     }
 
-    /**
-     * Kết quả một thao tác trong quy trình chốt, dùng cho controller hiển thị thông báo.
-     */
-    public static class ClosingResult {
 
-        private final boolean success;
-        private final String message;
-        private final int affected;
-
-        private ClosingResult(boolean success, String message, int affected) {
-            this.success = success;
-            this.message = message;
-            this.affected = affected;
-        }
-
-        public static ClosingResult ok(String message, int affected) {
-            return new ClosingResult(true, message, affected);
-        }
-
-        public static ClosingResult fail(String message) {
-            return new ClosingResult(false, message, 0);
-        }
-
-        public boolean isSuccess() {
-            return success;
-        }
-
-        public String getMessage() {
-            return message;
-        }
-
-        public int getAffected() {
-            return affected;
-        }
-    }
 }

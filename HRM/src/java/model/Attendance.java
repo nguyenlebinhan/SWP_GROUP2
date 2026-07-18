@@ -232,7 +232,6 @@ public class Attendance {
             case 2: return "Vắng mặt";
             case 3: return "Không phép";
             case 4: return "Nghỉ phép";
-            case 5: return "Nghỉ lễ";
             case 6: return "Cuối tuần";
             case 7: return "Quên chấm công";
             default: return "Không xác định";

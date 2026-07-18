@@ -2,7 +2,6 @@ package service;
 
 import dao.AttendanceDAO;
 import dao.DepartmentDAO;
-import dao.HolidayDAO;
 import dao.OvertimeDAO;
 import dto.AttendanceDetailDTO;
 import dto.AttendanceReportDTO;
@@ -20,14 +19,12 @@ import java.time.LocalTime;
 import java.time.LocalDate;
 import java.util.List;
 import model.Department;
-import model.Holiday;
 
 /**
  */
 public class AttendanceService {
 
     private final AttendanceDAO attendanceDAO = new AttendanceDAO();
-    private final HolidayDAO holidayDAO = new HolidayDAO();
     private final DepartmentDAO departmentDAO = new DepartmentDAO();
     private final OvertimeDAO overtimeDAO = new OvertimeDAO();
 
@@ -81,13 +78,12 @@ public class AttendanceService {
     }
 
     private int workingDaysBetween(LocalDate start, LocalDate end) {
-        List<Holiday> holidays = holidayDAO.getAllHolidays();
         LocalDate cursor = start;
         int count = 0;
         while (!cursor.isAfter(end)) {
             DayOfWeek dow = cursor.getDayOfWeek();
             boolean weekend = (dow == DayOfWeek.SATURDAY || dow == DayOfWeek.SUNDAY);
-            if (!weekend && !isHoliday(cursor, holidays)) {
+            if (!weekend) {
                 count++;
             }
             cursor = cursor.plusDays(1);
@@ -170,18 +166,5 @@ public class AttendanceService {
         return value == null ? BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP) : value;
     }
 
-    private boolean isHoliday(LocalDate date, List<Holiday> holidays) {
-        for (Holiday h : holidays) {
-            if (!h.isActive() || h.getStartDate() == null || h.getEndDate() == null) {
-                continue;
-            }
-            LocalDate start = h.getStartDate().toLocalDate();
-            LocalDate finish = h.getEndDate().toLocalDate();
-            if (!date.isBefore(start) && !date.isAfter(finish)) {
-                return true;
-            }
-        }
-        return false;
-    }
 }
 
