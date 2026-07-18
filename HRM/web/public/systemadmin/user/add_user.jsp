@@ -211,11 +211,6 @@
                             </c:forEach>
                         </select>
                     </div>
-                    <div class="col-md-3">
-                        <label class="form-label" for="dependentCount">So nguoi phu thuoc</label>
-                        <input type="number" id="dependentCount" name="dependentCount" class="form-control"
-                               min="0" step="1" value="${empty param.dependentCount ? 0 : param.dependentCount}"/>
-                    </div>
                     <div class="col-md-3 d-flex align-items-end">
                         <div class="form-check mb-2">
                             <input class="form-check-input" type="checkbox" name="unionMember" id="unionMember"

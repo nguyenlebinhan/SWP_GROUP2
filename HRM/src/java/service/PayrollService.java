@@ -504,7 +504,9 @@ public class PayrollService {
         }
 
         StringBuilder sql = new StringBuilder(
-                "SELECT e.employeeId, e.employeeCode, e.positionId, e.departmentId, e.dependentCount, e.unionMember, "
+                "SELECT e.employeeId, e.employeeCode, e.positionId, e.departmentId, "
+                + "(SELECT COUNT(*) FROM Dependents dep WHERE dep.employeeId = e.employeeId AND dep.status = 1) AS dependentCount, "
+                + "e.unionMember, "
                 + "u.fullName, d.departmentName, p.positionName, ec.salary, ec.effectiveDate, ec.endDate "
                 + "FROM Employees e "
                 + "JOIN Users u ON u.userId = e.userId "
@@ -863,7 +865,9 @@ public class PayrollService {
     }
 
     private String baseEmployeeContractQuery() {
-        return "SELECT e.employeeId, e.employeeCode, e.positionId, e.departmentId, e.dependentCount, e.unionMember, "
+        return "SELECT e.employeeId, e.employeeCode, e.positionId, e.departmentId, "
+                + "(SELECT COUNT(*) FROM Dependents dep WHERE dep.employeeId = e.employeeId AND dep.status = 1) AS dependentCount, "
+                + "e.unionMember, "
                 + "u.fullName, d.departmentName, p.positionName, ec.salary, ec.effectiveDate, ec.endDate "
                 + "FROM Employees e "
                 + "JOIN Users u ON u.userId = e.userId "
@@ -937,8 +941,8 @@ public class PayrollService {
         config.workingHoursPerDay = calculateWorkingHoursPerDay(workStartMinutes, workEndMinutes, workBreakMinutes);
         config.overtimeBlockMinutes = requiredPositiveSetting(settings, "OVERTIME_BLOCK_MINUTES").intValue();
         config.overtimeWorkdayMultiplier = requiredPositiveSetting(settings, "OVERTIME_WORKDAY_MULTIPLIER");
-        config.overtimeWeekendMultiplier = requiredPositiveSetting(settings, "OVERTIME_WEEKEND_MULTIPLIER");
-        config.overtimeHolidayMultiplier = requiredPositiveSetting(settings, "OVERTIME_HOLIDAY_MULTIPLIER");
+//        config.overtimeWeekendMultiplier = requiredPositiveSetting(settings, "OVERTIME_WEEKEND_MULTIPLIER");
+//        config.overtimeHolidayMultiplier = requiredPositiveSetting(settings, "OVERTIME_HOLIDAY_MULTIPLIER");
         config.deductionRules = payrollConfigDAO.getDeductionRules(true);
         config.taxBrackets = payrollConfigDAO.getTaxBrackets(true);
         if (config.taxBrackets == null || config.taxBrackets.isEmpty()) {
@@ -1064,18 +1068,13 @@ public class PayrollService {
 
     private BigDecimal deductionBase(PayrollDeductionRule rule, BigDecimal contractSalary,
             BigDecimal grossSalary, PayrollRuntimeConfig config) {
-        if (rule != null && "UNION_FEE".equals(rule.getRuleCode())) {
-            return moneyOrZero(grossSalary);
-        }
         return insuranceSalaryBase(contractSalary, config.insuranceSalaryCap);
     }
 
     private String baseNote(PayrollDeductionRule rule, PayrollRuntimeConfig config) {
-        if (rule != null && "UNION_FEE".equals(rule.getRuleCode())) {
-            return "nền tính: tổng lương.";
-        }
-        return "nền tính: min(lương tính bảo hiểm, mức trần " + moneyDisplay(config.insuranceSalaryCap) + ").";
+        return "nền tính: lương làm căn cứ đóng bảo hiểm, mức trần " + moneyDisplay(config.insuranceSalaryCap) + ".";
     }
+    
 
     private String buildDeductionBaseNote(PayrollDeductionRule rule, PayrollRuntimeConfig config) {
         return "Tổng: " + percent(rule.getRate())

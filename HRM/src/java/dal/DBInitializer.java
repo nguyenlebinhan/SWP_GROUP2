@@ -336,6 +336,28 @@ public class DBInitializer {
         execute(conn, SQL, "CREATE FORM_REQUESTS TABLE SUCCESSFULLY");
     }
 
+    public void createTableDependents(Connection conn) {
+        String SQL = "CREATE TABLE Dependents("
+                + "dependentId INT PRIMARY KEY AUTO_INCREMENT,"
+                + "employeeId INT NOT NULL,"
+                + "formId INT NOT NULL UNIQUE,"
+                + "fullName NVARCHAR(150) NOT NULL,"
+                + "relationship NVARCHAR(100) NOT NULL,"
+                + "dateOfBirth DATE NULL,"
+                + "taxCode VARCHAR(50) NULL,"
+                + "note NVARCHAR(500) NULL,"
+                + "status TINYINT NOT NULL DEFAULT 0,"
+                + "pendingStatus TINYINT NULL,"
+                + "statusFormId INT NULL,"
+                + "createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,"
+                + "updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,"
+                + "approvedAt TIMESTAMP NULL,"
+                + "FOREIGN KEY (employeeId) REFERENCES Employees(employeeId),"
+                + "FOREIGN KEY (formId) REFERENCES Form_Requests(formId) ON DELETE CASCADE"
+                + ")";
+        execute(conn, SQL, "CREATE DEPENDENTS TABLE SUCCESSFULLY");
+    }
+
     public void createTableOvertimeDetails(Connection conn) {
         String SQL = "CREATE TABLE Overtime_Details("
                 + "formId INT PRIMARY KEY,"
@@ -656,6 +678,7 @@ public class DBInitializer {
                 "Leave_Balances",
                 "Overtime_Assignees",
                 "Overtime_Details",
+                "Dependents",
                 "Form_Requests",
                 "Form_Types",
                 "Contract_Amendments",
@@ -690,6 +713,7 @@ public class DBInitializer {
                 "Application_Stage_Logs",
                 "Form_Types",
                 "Form_Requests",
+                "Dependents",
                 "Overtime_Details",
                 "Overtime_Assignees",
                 "Leave_Balances",
@@ -739,6 +763,7 @@ public class DBInitializer {
                         case "Application_Stage_Logs": createTableApplicationStageLogs(conn); break;
                         case "Form_Types":       createTableFormTypes(conn);         break;
                         case "Form_Requests":    createTableFormRequests(conn);     break;
+                        case "Dependents":       createTableDependents(conn);       break;
                         case "Overtime_Details": createTableOvertimeDetails(conn);  break;
                         case "Overtime_Assignees": createTableOvertimeAssignees(conn); break;
                         case "Leave_Balances":     createTableLeaveBalances(conn);      break;
@@ -764,6 +789,7 @@ public class DBInitializer {
             ensurePayrollApprovalColumns(conn);
             ensurePayrollUnpaidDeductionColumn(conn);
             ensureFormRequestColumns(conn);
+            ensureDependentsTable(conn);
             ensureEmployeeDependentCountColumn(conn);
             ensureEmployeeUnionMemberColumn(conn);
             ensurePayrollConfigChangeRequestColumns(conn);
@@ -912,6 +938,8 @@ public class DBInitializer {
                 insertFormTypeIfAbsent(conn, "PROMOTION_DEMOTION", "Thăng/Giáng chức");
             }
 
+            insertFormTypeIfAbsent(conn, "DEPENDENT", "Dang ky nguoi phu thuoc");
+
             ensureRolePermission(conn, "HRManager", "ADD_EMPLOYMENT_CONTRACT");
             ensureRolePermission(conn, "HRManager", "APPROVE_CONTRACT");
             ensureRolePermission(conn, "HRManager", "REJECT_CONTRACT");
@@ -981,8 +1009,8 @@ public class DBInitializer {
             insertPayrollSetting(conn, "WORK_BREAK_MINUTES", "60", "Số phút nghỉ không tính vào giờ làm chuẩn");
             insertPayrollSetting(conn, "OVERTIME_BLOCK_MINUTES", "30", "Số phút của một block tính OT");
             insertPayrollSetting(conn, "OVERTIME_WORKDAY_MULTIPLIER", "1.5", "Hệ số OT ngày làm việc");
-            insertPayrollSetting(conn, "OVERTIME_WEEKEND_MULTIPLIER", "2.0", "Hệ số OT cuối tuần");
-            insertPayrollSetting(conn, "OVERTIME_HOLIDAY_MULTIPLIER", "3.0", "Hệ số OT ngày lễ");
+//            insertPayrollSetting(conn, "OVERTIME_WEEKEND_MULTIPLIER", "2.0", "Hệ số OT cuối tuần");
+//            insertPayrollSetting(conn, "OVERTIME_HOLIDAY_MULTIPLIER", "3.0", "Hệ số OT ngày lễ");
         }
 
         if (tableExists(conn, "Payroll_Deduction_Rules")) {
@@ -1296,6 +1324,24 @@ public class DBInitializer {
         }
         if (!columnExists(conn, "Employees", "dependentCount")) {
             execute(conn, "ALTER TABLE Employees ADD COLUMN dependentCount INT NOT NULL DEFAULT 0", "ADD EMPLOYEES DEPENDENT COUNT COLUMN");
+        }
+        if (tableExists(conn, "Dependents") && countRows(conn, "Dependents") == 0) {
+            execute(conn, "UPDATE Employees SET dependentCount = 0", "RESET EMPLOYEE DEPENDENT COUNT");
+        }
+    }
+
+    private void ensureDependentsTable(Connection conn) throws SQLException {
+        if (!tableExists(conn, "Dependents")) {
+            createTableDependents(conn);
+        }
+        if (!columnExists(conn, "Dependents", "pendingStatus")) {
+            execute(conn, "ALTER TABLE Dependents ADD COLUMN pendingStatus TINYINT NULL", "ADD DEPENDENTS PENDING STATUS COLUMN");
+        }
+        if (!columnExists(conn, "Dependents", "statusFormId")) {
+            execute(conn, "ALTER TABLE Dependents ADD COLUMN statusFormId INT NULL", "ADD DEPENDENTS STATUS FORM COLUMN");
+        }
+        if (!columnExists(conn, "Dependents", "dateOfBirth")) {
+            execute(conn, "ALTER TABLE Dependents ADD COLUMN dateOfBirth DATE NULL AFTER relationship", "ADD DEPENDENTS DATE OF BIRTH COLUMN");
         }
     }
 

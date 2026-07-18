@@ -69,7 +69,14 @@
                 <label class="form-label">Vị trí</label>
                 <input type="text" class="form-control bg-light" value="${myEmployee != null ? myEmployee.positionName : 'N/A'}" readonly>
             </div>
+            <div class="col-md-6 mb-3">
+                <label class="form-label">So nguoi phu thuoc</label>
+                <input type="text" class="form-control bg-light" value="${myEmployee != null ? myEmployee.dependentCount : 0}" readonly>
+            </div>
         </div>
+        <c:if test="${not empty myEmployee}">
+            <jsp:include page="/public/components/dependentsTable.jsp" />
+        </c:if>
         <hr>
         <h5 class="mb-4 mt-4">Cập nhật hồ sơ (Chỉ nhân viên)</h5>
         <c:choose>

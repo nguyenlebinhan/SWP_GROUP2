@@ -162,6 +162,7 @@
                                 <span class="meta-value"><c:out value="${empty employee.email ? '-' : employee.email}"/></span>
                             </div>
                         </div>
+                        <jsp:include page="/public/components/dependentsTable.jsp" />
                     </div>
                 </div>
 
