@@ -4,7 +4,7 @@
 <!DOCTYPE html>
 <html>
     <head>
-        <title>Danh sách đơn Overtime - HRM</title>
+        <title>Danh sách đơn tăng ca - HRM</title>
         <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
         <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
         <style>
@@ -42,7 +42,7 @@
 
         <div class="main">
             <jsp:include page="/public/components/managerTopBar.jsp">
-                <jsp:param name="title" value="Đơn OT đã tạo" />
+                <jsp:param name="title" value="Đơn tăng ca đã tạo" />
             </jsp:include>
 
             <c:if test="${not empty sessionScope.success}">
@@ -61,9 +61,9 @@
             </c:if>
 
             <div class="d-flex justify-content-between align-items-center mb-4">
-                <h4 class="mb-0"><i class="fa-solid fa-clock me-2"></i>Danh sách đơn Overtime đã tạo</h4>
+                <h4 class="mb-0"><i class="fa-solid fa-clock me-2"></i>Danh sách đơn tăng ca đã tạo</h4>
                 <a href="${pageContext.request.contextPath}/v1/manager/forms/create-ot" class="btn btn-primary">
-                    <i class="fa-solid fa-plus me-1"></i> Tạo đơn OT
+                    <i class="fa-solid fa-plus me-1"></i> Tạo đơn tăng ca
                 </a>
             </div>
 
@@ -74,10 +74,11 @@
                         <label class="form-label">Trạng thái</label>
                         <select name="status" class="form-select">
                             <option value="">Tất cả</option>
-                            <option value="0" ${statusFilter == '0' ? 'selected' : ''}>Chờ duyệt</option>
-                            <option value="1" ${statusFilter == '1' ? 'selected' : ''}>Đã duyệt</option>
-                            <option value="2" ${statusFilter == '2' ? 'selected' : ''}>Từ chối</option>
-                            <option value="3" ${statusFilter == '3' ? 'selected' : ''}>Đã hủy</option>
+                            <option value="0" ${statusFilter eq '0' ? 'selected' : ''}>Chờ duyệt</option>
+                            <option value="1" ${statusFilter eq '1' ? 'selected' : ''}>Đã duyệt</option>
+                            <option value="2" ${statusFilter eq '2' ? 'selected' : ''}>Từ chối</option>
+                            <option value="3" ${statusFilter eq '3' ? 'selected' : ''}>Đã hủy</option>
+                            <option value="4" ${statusFilter eq '4' ? 'selected' : ''}>Hoàn thành</option>
                         </select>
                     </div>
                     <div class="col-md-3">
@@ -165,6 +166,25 @@
                         </tbody>
                     </table>
                 </div>
+                
+                <!-- Pagination -->
+                <c:if test="${totalPages > 1}">
+                    <nav class="mt-4">
+                        <ul class="pagination justify-content-center">
+                            <li class="page-item ${currentPage == 1 ? 'disabled' : ''}">
+                                <a class="page-link" href="?page=${currentPage - 1}&status=${statusFilter}&otDate=${dateFilter}">Trước</a>
+                            </li>
+                            <c:forEach begin="1" end="${totalPages}" var="i">
+                                <li class="page-item ${currentPage == i ? 'active' : ''}">
+                                    <a class="page-link" href="?page=${i}&status=${statusFilter}&otDate=${dateFilter}">${i}</a>
+                                </li>
+                            </c:forEach>
+                            <li class="page-item ${currentPage == totalPages ? 'disabled' : ''}">
+                                <a class="page-link" href="?page=${currentPage + 1}&status=${statusFilter}&otDate=${dateFilter}">Sau</a>
+                            </li>
+                        </ul>
+                    </nav>
+                </c:if>
             </div>
         </div>
 

@@ -3,7 +3,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Tạo đơn Overtime - HRM</title>
+    <title>Tạo đơn tăng ca - HRM</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
     <style>
@@ -37,7 +37,7 @@
 
     <div class="main">
         <jsp:include page="/public/components/managerTopBar.jsp">
-            <jsp:param name="title" value="Tạo đơn Overtime" />
+            <jsp:param name="title" value="Tạo đơn tăng ca" />
             <jsp:param name="backUrl" value="/v1/manager/forms/ot-requests"/>
         </jsp:include>
 
@@ -50,7 +50,7 @@
         </c:if>
 
         <div class="d-flex justify-content-between align-items-center mb-4">
-            <h4 class="mb-0"><i class="fa-solid fa-file-circle-plus me-2"></i>Tạo đơn yêu cầu tăng ca (OT)</h4>
+            <h4 class="mb-0"><i class="fa-solid fa-file-circle-plus me-2"></i>Tạo đơn yêu cầu tăng ca</h4>
         </div>
 
         <div class="section-card">
@@ -75,9 +75,8 @@
                     
                     <div class="col-md-4">
                         <label class="form-label fw-bold">Loại ngày <span class="text-danger">*</span></label>
-                        <select name="dayType" class="form-select" required>
-                            <option value="1">Ngày thường</option>
-                        </select>
+                        <input type="text" readonly class="form-control bg-light text-muted" value="Ngày thường">
+                        <input type="hidden" name="dayType" value="1">
                     </div>
                     <div class="col-md-8">
                         <label class="form-label fw-bold">Mô tả <span class="text-danger">*</span></label>
@@ -86,7 +85,7 @@
                 </div>
 
                 <h5 class="mb-3 text-primary"><i class="fa-solid fa-users me-2"></i>Danh sách nhân viên (Phòng ${department.departmentName})</h5>
-                <p class="text-muted small mb-2">Chọn những nhân viên sẽ tham gia ca OT này.</p>
+                <p class="text-muted small mb-2">Chọn những nhân viên sẽ tham gia ca tăng ca này.</p>
                 <div class="employee-list-box mb-4">
                     <div class="form-check mb-2 pb-2 border-bottom">
                         <input class="form-check-input" type="checkbox" id="selectAll">

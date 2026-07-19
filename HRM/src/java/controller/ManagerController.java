@@ -3014,7 +3014,11 @@ public class ManagerController extends HttpServlet {
             String dateFilter = request.getParameter("otDate");
 
             List<OvertimeRequestDTO> requests = overtimeDAO.getOvertimeRequestsByManager(manager.getEmployeeId(), statusFilter, dateFilter);
-            request.setAttribute("otRequests", requests);
+            
+            // Phân trang
+            List<OvertimeRequestDTO> pagedRequests = utils.Paging.page(request, requests);
+            
+            request.setAttribute("otRequests", pagedRequests);
             request.setAttribute("statusFilter", statusFilter);
             request.setAttribute("dateFilter", dateFilter);
         }
@@ -3150,7 +3154,7 @@ public class ManagerController extends HttpServlet {
                 boolean isWeekend = (dow == java.time.DayOfWeek.SATURDAY || dow == java.time.DayOfWeek.SUNDAY);
 
                 if (isWeekend) {
-                    request.getSession().setAttribute("error", "Không được phép đăng ký OT vào Thứ Bảy và Chủ Nhật.");
+                    request.getSession().setAttribute("error", "Không được phép đăng ký tăng ca vào Thứ Bảy và Chủ Nhật.");
                     response.sendRedirect(request.getContextPath() + "/v1/manager/forms/create-ot");
                     return;
                 }
@@ -3158,7 +3162,7 @@ public class ManagerController extends HttpServlet {
                 java.time.LocalTime minTime = java.time.LocalTime.of(17, 0);
                 java.time.LocalTime maxTime = java.time.LocalTime.of(19, 0);
                 if (start.isBefore(minTime) || end.isAfter(maxTime)) {
-                    request.getSession().setAttribute("error", "Nhân viên chỉ được phép OT trong khung giờ 17:00 đến 19:00.");
+                    request.getSession().setAttribute("error", "Nhân viên chỉ được phép tăng ca trong khung giờ 17:00 đến 19:00.");
                     response.sendRedirect(request.getContextPath() + "/v1/manager/forms/create-ot");
                     return;
                 }
@@ -3168,12 +3172,8 @@ public class ManagerController extends HttpServlet {
                 return;
             }
 
-            int dayType = Integer.parseInt(dayTypeStr);
-            if (dayType != 1 && dayType != 2) {
-                request.getSession().setAttribute("error", "Loại ngày tăng ca không hợp lệ.");
-                response.sendRedirect(request.getContextPath() + "/v1/manager/forms/create-ot");
-                return;
-            }
+            // Khóa cố định Loại ngày là "Ngày thường" (dayType = 1)
+            int dayType = 1;
 
             // Tìm formTypeId của OVERTIME
             int formTypeId = -1;
