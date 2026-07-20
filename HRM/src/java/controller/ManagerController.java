@@ -366,16 +366,60 @@ public class ManagerController extends HttpServlet {
         Set<String> perms = getPermissions(user);
         request.getSession().setAttribute("userPermissions", perms);
 
-        int totalEmployees = employeeDAO.countTotal();
-        int activeEmployees = employeeDAO.countActive();
-        int inactiveEmployees = employeeDAO.countInactive();
-        Map<String, Integer> deptChart = employeeDAO.countByDepartment();
+        EmployeeDetailDTO manager = employeeDAO.getEmployeeByUserId(user.getUserId());
+        request.setAttribute("myEmployee", manager);
+        int totalEmployees = 0;
+        int pendingForms = 0; 
+        List<EmployeeDetailDTO> departmentEmployees = new ArrayList<>();
+        Map<Integer, Integer> leaveBalances = new HashMap<>();
+        List<dto.AttendanceSummaryDTO> topEmployees = new ArrayList<>();
+        int prevMonth = java.time.LocalDate.now().minusMonths(1).getMonthValue();
+        int prevYear = java.time.LocalDate.now().minusMonths(1).getYear();
+
+        if (manager != null && manager.getDepartmentId() > 0) {
+            departmentEmployees = employeeDAO.getEmployeesByDepartmentId(manager.getDepartmentId());
+            totalEmployees = departmentEmployees.size();
+            int currentYear = java.time.LocalDate.now().getYear();
+            
+            for (EmployeeDetailDTO emp : departmentEmployees) {
+                LeaveBalance lb = leaveBalanceDAO.getLeaveBalance(emp.getEmployeeId(), currentYear);
+                if (lb != null) {
+                    leaveBalances.put(emp.getEmployeeId(), lb.getTotalAllowed() - lb.getUsedDays());
+                } else {
+                    leaveBalances.put(emp.getEmployeeId(), 0);
+                }
+            }
+            
+            List<FormRequestDTO> forms = formRequestDAO.getAllFormRequestsByDepartmentId(manager.getDepartmentId(), null, null, null, null);
+            for (FormRequestDTO f : forms) {
+                if (f.getStatus() == 0) pendingForms++;
+            }
+            
+            AttendanceDAO attDAO = new AttendanceDAO();
+            List<dto.AttendanceSummaryDTO> summaries = attDAO.getMonthlySummary(manager.getDepartmentId(), prevMonth, prevYear);
+            if (summaries != null) {
+                summaries.sort((a, b) -> {
+                    if (b.getWorkedHours() == null && a.getWorkedHours() == null) return 0;
+                    if (b.getWorkedHours() == null) return -1;
+                    if (a.getWorkedHours() == null) return 1;
+                    return b.getWorkedHours().compareTo(a.getWorkedHours());
+                });
+                for (int i = 0; i < Math.min(3, summaries.size()); i++) {
+                    topEmployees.add(summaries.get(i));
+                }
+            }
+        } else {
+            totalEmployees = employeeDAO.countTotal();
+        }
 
         request.setAttribute("totalEmployees", totalEmployees);
-        request.setAttribute("activeEmployees", activeEmployees);
-        request.setAttribute("inactiveEmployees", inactiveEmployees);
-        request.setAttribute("pendingLeaves", 0);
-        request.setAttribute("deptChart", deptChart);
+        request.setAttribute("pendingForms", pendingForms);
+        request.setAttribute("departmentEmployees", departmentEmployees);
+        request.setAttribute("leaveBalances", leaveBalances);
+        request.setAttribute("topEmployees", topEmployees);
+        request.setAttribute("prevMonthStr", String.format("%02d/%d", prevMonth, prevYear));
+        request.setAttribute("todayDate", java.time.LocalDate.now().format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy")));
+
         setPermissionFlags(request, perms);
         request.getRequestDispatcher("/public/manager/dashboard.jsp").forward(request, response);
     }

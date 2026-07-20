@@ -1016,7 +1016,7 @@ public class BusinessAdminController extends HttpServlet {
                     return true;
                 })
                 .collect(java.util.stream.Collectors.toList());
-                
+
         // Phân trang
         List<FormRequestDTO> pagedForms = utils.Paging.page(request, forms);
 
