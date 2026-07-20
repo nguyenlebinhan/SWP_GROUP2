@@ -49,6 +49,7 @@
         .status-2 { background-color: #fee2e2; color: #991b1b; }
         .status-3 { background-color: #f3f4f6; color: #374151; }
         .status-4 { background-color: #dbeafe; color: #1e40af; }
+        .status-4 { background-color: #dbeafe; color: #1e40af; }
     </style>
 </head>
 <body>
@@ -88,9 +89,20 @@
                 <label class="form-label">Năm</label>
                 <input type="number" name="year" class="form-control" placeholder="YYYY" value="${filterYear}">
             </div>
-            <div class="col-md-4">
+            <div class="col-md-3">
+                <label class="form-label">Trạng thái</label>
+                <select name="status" class="form-select">
+                    <option value="">Tất cả</option>
+                    <option value="0" ${statusFilter eq '0' ? 'selected' : ''}>Chờ duyệt</option>
+                    <option value="1" ${statusFilter eq '1' ? 'selected' : ''}>Đã duyệt</option>
+                    <option value="2" ${statusFilter eq '2' ? 'selected' : ''}>Từ chối</option>
+                    <option value="3" ${statusFilter eq '3' ? 'selected' : ''}>Đã hủy</option>
+                    <option value="4" ${statusFilter eq '4' ? 'selected' : ''}>Hoàn thành</option>
+                </select>
+            </div>
+            <div class="col-md-3">
                 <label class="form-label">Tìm kiếm (Tên NV, Phòng ban)</label>
-                <input type="text" name="keyword" class="form-control" placeholder="Nhập từ khóa..." value="${keyword}">
+                <input type="text" name="keyword" class="form-control" placeholder="Từ khóa..." value="${keyword}">
             </div>
             <div class="col-md-2 text-end">
                 <button type="submit" class="btn btn-assign w-100">
@@ -129,7 +141,12 @@
                                     <tr>
                                         <td class="ps-4 fw-bold">${f.formCode}</td>
                                         <td>
-                                            <span class="badge bg-secondary">${f.formTypeName}</span>
+                                            <span class="badge bg-secondary">
+                                                <c:choose>
+                                                    <c:when test="${f.formTypeCode == 'OVERTIME'}">Tăng ca</c:when>
+                                                    <c:otherwise>${f.formTypeName}</c:otherwise>
+                                                </c:choose>
+                                            </span>
                                         </td>
                                         <td>
                                             <div class="fw-semibold">${f.fullName}</div>
@@ -171,6 +188,25 @@
                     </tbody>
                 </table>
             </div>
+            
+            <!-- Pagination -->
+            <c:if test="${totalPages > 1}">
+                <nav class="mt-4 pb-3">
+                    <ul class="pagination justify-content-center">
+                        <li class="page-item ${currentPage == 1 ? 'disabled' : ''}">
+                            <a class="page-link" href="?page=${currentPage - 1}&day=${filterDay}&month=${filterMonth}&year=${filterYear}&status=${statusFilter}&keyword=${keyword}">Trước</a>
+                        </li>
+                        <c:forEach begin="1" end="${totalPages}" var="i">
+                            <li class="page-item ${currentPage == i ? 'active' : ''}">
+                                <a class="page-link" href="?page=${i}&day=${filterDay}&month=${filterMonth}&year=${filterYear}&status=${statusFilter}&keyword=${keyword}">${i}</a>
+                            </li>
+                        </c:forEach>
+                        <li class="page-item ${currentPage == totalPages ? 'disabled' : ''}">
+                            <a class="page-link" href="?page=${currentPage + 1}&day=${filterDay}&month=${filterMonth}&year=${filterYear}&status=${statusFilter}&keyword=${keyword}">Sau</a>
+                        </li>
+                    </ul>
+                </nav>
+            </c:if>
         </div>
     </div>
 </div>
