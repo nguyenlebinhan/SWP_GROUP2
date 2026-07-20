@@ -100,8 +100,16 @@ public class BusinessAdminController extends HttpServlet {
             case "/update-department":
                 displayUpdateDepartmentForm(request, response);
                 break;
+            case "/salary/all":
+                displayAllSalaryForBa(request, response, user);
+                break;
+            case "/salary/detail":
+                displaySalaryDetailForBa(request, response, user);
+                break;
+            case "/salary/export":
+                exportSalaryForBa(request, response, user);
+                break;
             case "/payroll-config":
-            case "/payrol-config":
                 displayPayrollConfig(request, response);
                 break;
             case "/payroll-config/history":
@@ -986,6 +994,112 @@ public class BusinessAdminController extends HttpServlet {
         request.getSession().setAttribute("payrollConfigError", message);
     }
 
+    private void displayAllSalaryForBa(HttpServletRequest request, HttpServletResponse response,
+            User user) throws ServletException, IOException {
+
+        java.time.YearMonth latestClosed = java.time.YearMonth.now().minusMonths(1);
+        Integer month = parseIntParam(request.getParameter("month"));
+        Integer year = parseIntParam(request.getParameter("year"));
+        if (month == null || month < 1 || month > 12 || year == null || year < 2000) {
+            month = latestClosed.getMonthValue();
+            year = latestClosed.getYear();
+        }
+        // Không cho xem tháng tương lai
+        java.time.YearMonth selected = java.time.YearMonth.of(year, month);
+        if (selected.isAfter(latestClosed)) {
+            selected = latestClosed;
+            month = selected.getMonthValue();
+            year = selected.getYear();
+        }
+
+        Integer departmentId = parseIntParam(request.getParameter("departmentId"));
+
+        // Tái dụng PayrollService đã có
+        service.PayrollService payrollService = new service.PayrollService();
+        service.AttendanceClosingService closingService = new service.AttendanceClosingService();
+
+        boolean attendanceLocked = departmentId == null
+                ? closingService.isPeriodLocked(year, month)
+                : closingService.isDepartmentLocked(year, month, departmentId);
+
+        java.util.List<dto.PayrollPreviewDTO> previews
+                = payrollService.getAllPayrollForHr(user, year, month, departmentId);
+
+        if (previews.isEmpty()) {
+            request.setAttribute("salaryError",
+                    "Chưa có bảng lương cho tháng " + String.format("%02d/%d", month, year)
+                    + ". Có thể kỳ này chưa được tính lương.");
+        }
+
+        request.setAttribute("payrollPreviews", previews);
+        request.setAttribute("selectedYear", year);
+        request.setAttribute("selectedMonth", month);
+        request.setAttribute("selectedDepartmentId", departmentId);
+        request.setAttribute("departments", departmentDAO.getAllActiveDepartments());
+        request.setAttribute("attendanceLocked", attendanceLocked);
+        request.setAttribute("canGeneratePayroll", false);
+        request.setAttribute("canApprovePayroll", false);
+        request.setAttribute("canExportPayroll", attendanceLocked); // chỉ xuất khi đã chốt
+
+        request.getRequestDispatcher("/public/businessadmin/salary/salary_list.jsp")
+                .forward(request, response);
+    }
+
+    private void displaySalaryDetailForBa(HttpServletRequest request, HttpServletResponse response,
+            User user) throws ServletException, IOException {
+
+        service.PayrollService payrollService = new service.PayrollService();
+        Integer payrollId = parseIntParam(request.getParameter("id"));
+        dto.PayrollPreviewDTO preview = (payrollId != null)
+                ? payrollService.getPayrollDetail(user, payrollId)
+                : null;
+
+        if (preview == null) {
+            request.setAttribute("salaryError", "Không tìm thấy bảng lương cần xem chi tiết.");
+        }
+        request.setAttribute("payrollPreview", preview);
+        request.getRequestDispatcher("/public/businessadmin/salary/salary_detail.jsp")
+                .forward(request, response);
+    }
+
+    private void exportSalaryForBa(HttpServletRequest request, HttpServletResponse response,
+            User user) throws IOException {
+
+        service.PayrollService payrollService = new service.PayrollService();
+        service.AttendanceClosingService closingService = new service.AttendanceClosingService();
+
+        java.time.YearMonth latestClosed = java.time.YearMonth.now().minusMonths(1);
+        Integer month = parseIntParam(request.getParameter("month"));
+        Integer year = parseIntParam(request.getParameter("year"));
+        if (month == null || month < 1 || month > 12 || year == null || year < 2000) {
+            month = latestClosed.getMonthValue();
+            year = latestClosed.getYear();
+        }
+        Integer departmentId = parseIntParam(request.getParameter("departmentId"));
+
+        boolean locked = departmentId == null
+                ? closingService.isPeriodLocked(year, month)
+                : closingService.isDepartmentLocked(year, month, departmentId);
+
+        if (!locked) {
+            request.getSession().setAttribute("error",
+                    "Bảng chấm công kỳ này chưa được chốt. Chưa thể xuất bảng lương.");
+            response.sendRedirect(request.getContextPath()
+                    + "/v1/businessadmin/salary/all?month=" + month + "&year=" + year
+                    + (departmentId == null ? "" : "&departmentId=" + departmentId));
+            return;
+        }
+
+        response.setContentType(
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+        response.setHeader("Content-Disposition",
+                "attachment; filename=payroll_" + String.format("%04d_%02d", year, month) + ".xlsx");
+
+        try (java.io.OutputStream out = response.getOutputStream()) {
+            payrollService.exportPayrollWorkbook(user, year, month, departmentId, out);
+        }
+    }
+
     // =========================================================
     // Quản lý Đơn từ (Form Requests)
     // =========================================================
@@ -1016,7 +1130,7 @@ public class BusinessAdminController extends HttpServlet {
                     return true;
                 })
                 .collect(java.util.stream.Collectors.toList());
-                
+
         // Phân trang
         List<FormRequestDTO> pagedForms = utils.Paging.page(request, forms);
 
