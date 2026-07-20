@@ -1,5 +1,7 @@
 <%@ page contentType="text/html;charset=UTF-8" %>
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
+<%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
+<%@ taglib prefix="fn" uri="http://java.sun.com/jsp/jstl/functions" %>
 <!DOCTYPE html>
 <html>
 <head>
@@ -135,24 +137,122 @@
         <c:remove var="error" scope="session" />
     </c:if>
 
-    <div class="welcome-banner">
-        <div class="welcome-text">
-            <h4>Xin chào, ${empty sessionScope.user.fullName ? sessionScope.user.username : sessionScope.user.fullName}!</h4>
-            <c:choose>
-                <c:when test="${not empty myEmployee}">
-                    <div class="welcome-meta">
-                        <span><i class="fa-solid fa-id-badge me-1"></i> Mã nhân viên:
-                            <strong>${myEmployee.employeeCode}</strong></span>
-                        <span><i class="fa-solid fa-sitemap me-1"></i> Phòng ban:
-                            <strong>${myEmployee.departmentName}</strong></span>
-                    </div>
-                </c:when>
-                <c:otherwise>
-                    <div class="welcome-meta">
-                        <span class="text-white-50">Bạn chưa được phân công vào phòng ban nào.</span>
-                    </div>
-                </c:otherwise>
-            </c:choose>
+    <div class="mb-4 d-flex align-items-center text-muted" style="font-size: 15px;">
+        <strong style="color: #475569;">Xin chào, ${empty sessionScope.user.fullName ? sessionScope.user.username : sessionScope.user.fullName}! 👋</strong>
+        <c:if test="${not empty myEmployee}">
+            <span class="mx-2" style="color: #cbd5e1;">•</span> <span style="font-weight: 500; color: #64748b;">${myEmployee.departmentName}</span>
+        </c:if>
+        <span class="mx-2" style="color: #cbd5e1;">•</span> <span style="font-weight: 500; color: #64748b;">Hôm nay: ${todayDate}</span>
+    </div>
+
+    <!-- Stat Cards -->
+    <div class="row g-4 mb-4">
+        <div class="col-md-6">
+            <div class="stat-card">
+                <div class="flex-grow-1">
+                    <div class="stat-value">${totalEmployees}</div>
+                    <div class="stat-label">Tổng nhân viên</div>
+                </div>
+                <div class="stat-icon blue" style="background: #2563eb; color: white;"><i class="fa-solid fa-users"></i></div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="stat-card">
+                <div class="flex-grow-1">
+                    <div class="stat-value">${pendingForms}</div>
+                    <div class="stat-label">Đơn chờ duyệt</div>
+                </div>
+                <div class="stat-icon purple" style="background: #7c3aed; color: white;"><i class="fa-solid fa-file-signature"></i></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-lg-8">
+            <!-- Employee List -->
+            <div class="section-card h-100">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h5 class="mb-0 fw-bold" style="color: #1e293b;">Danh sách nhân viên — ${not empty myEmployee ? myEmployee.departmentName : 'Công ty'}</h5>
+                    <a href="${pageContext.request.contextPath}/v1/manager/department/my-department-list" class="btn btn-sm px-3 rounded-pill" style="background:#e0f2fe; color:#0369a1; font-weight:600;">Xem tất cả &rarr;</a>
+                </div>
+                <div class="table-responsive">
+            <table class="table recent-table align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th style="width: 60px;">STT</th>
+                        <th>Nhân viên</th>
+                        <th>Chức vụ</th>
+                        <th>Email</th>
+                        <th>Ngày phép còn lại</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <c:choose>
+                        <c:when test="${not empty departmentEmployees}">
+                            <c:forEach var="emp" items="${departmentEmployees}" varStatus="status" end="9">
+                                <tr>
+                                    <td class="text-muted">
+                                        <fmt:formatNumber value="${status.index + 1}" pattern="00"/>
+                                    </td>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <div class="rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 32px; height: 32px; background: #2563eb; color: white; font-weight: 600; font-size: 14px;">
+                                                ${fn:substring(emp.fullName, 0, 1)}
+                                            </div>
+                                            <span class="fw-semibold text-dark">${emp.fullName}</span>
+                                        </div>
+                                    </td>
+                                    <td class="text-muted">${emp.positionName}</td>
+                                    <td class="text-muted">${emp.email}</td>
+                                    <td style="color: #0284c7; font-weight: 500;">${leaveBalances[emp.employeeId]} ngày</td>
+                                </tr>
+                            </c:forEach>
+                        </c:when>
+                        <c:otherwise>
+                            <tr>
+                                <td colspan="6" class="text-center text-muted py-4">Không có nhân viên nào.</td>
+                            </tr>
+                        </c:otherwise>
+                    </c:choose>
+                </tbody>
+            </table>
+        </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-4">
+            <div class="section-card h-100">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h5 class="mb-0 fw-bold" style="color: #1e293b;"><i class="fa-solid fa-medal text-warning me-2"></i>Gương mẫu tháng ${prevMonthStr}</h5>
+                </div>
+                <div class="top-employees-list">
+                    <c:choose>
+                        <c:when test="${not empty topEmployees}">
+                            <c:forEach var="te" items="${topEmployees}" varStatus="status">
+                                <div class="d-flex align-items-center mb-3 p-3" style="background: #f8fafc; border-radius: 12px; border: 1px solid #e2e8f0;">
+                                    <div class="rounded-circle d-flex align-items-center justify-content-center me-3 shadow-sm" style="width: 46px; height: 46px; background: ${status.index == 0 ? 'linear-gradient(135deg, #fcd34d, #f59e0b)' : (status.index == 1 ? 'linear-gradient(135deg, #e2e8f0, #94a3b8)' : 'linear-gradient(135deg, #fdbba7, #d97706)')}; color: white; font-weight: bold; font-size: 18px;">
+                                        #${status.index + 1}
+                                    </div>
+                                    <div class="flex-grow-1">
+                                        <div class="fw-bold" style="color: #0f172a; font-size: 15px;">${te.fullName}</div>
+                                        <div class="text-muted" style="font-size: 13px;">${te.positionName}</div>
+                                    </div>
+                                    <div class="text-end">
+                                        <div class="fw-bold text-success" style="font-size: 16px;">${te.workedHoursDisplay}h</div>
+                                        <div class="text-muted" style="font-size: 11px; text-transform: uppercase; font-weight: 600;">Thời gian làm</div>
+                                    </div>
+                                </div>
+                            </c:forEach>
+                        </c:when>
+                        <c:otherwise>
+                            <div class="text-center text-muted py-5">
+                                <i class="fa-solid fa-folder-open mb-3" style="font-size: 32px; color: #cbd5e1;"></i>
+                                <div>Chưa có dữ liệu chấm công tháng trước.</div>
+                            </div>
+                        </c:otherwise>
+                    </c:choose>
+                </div>
+            </div>
         </div>
     </div>
 </div>
