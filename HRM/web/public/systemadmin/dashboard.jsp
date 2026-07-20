@@ -3,64 +3,7 @@
 <%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
 <%@ taglib prefix="fn" uri="http://java.sun.com/jsp/jstl/functions" %>
 <!DOCTYPE html>
-<%@ page import="dao.UserDAO, dao.EmployeeDAO, dao.DepartmentDAO, model.User, dto.EmployeeDetailDTO, java.util.*" %>
-<%
-    try {
-        // Safe fallback for UI rendering without requiring Java restart
-        if (request.getAttribute("recentUsers") == null) {
-            UserDAO _userDAO = new UserDAO();
-            List<User> all = _userDAO.getAllUsers();
-            List<User> recentUsers = new ArrayList<>();
-            if (all != null) {
-                for (int i = Math.max(0, all.size() - 5); i < all.size(); i++) {
-                    recentUsers.add(all.get(i));
-                }
-                Collections.reverse(recentUsers);
-            }
-            request.setAttribute("recentUsers", recentUsers);
-        }
-        
-        if (request.getAttribute("chartLabels") == null) {
-            EmployeeDAO _empDAO = new EmployeeDAO();
-            List<EmployeeDetailDTO> allEmps = _empDAO.getAllEmployees();
-            Map<String, Integer> deptCounts = new HashMap<>();
-            if (allEmps != null && !allEmps.isEmpty()) {
-                for (EmployeeDetailDTO e : allEmps) {
-                    String deptName = (e.getDepartmentName() != null) ? e.getDepartmentName() : "Chưa xếp phòng";
-                    deptCounts.put(deptName, deptCounts.getOrDefault(deptName, 0) + 1);
-                }
-            } else {
-                deptCounts.put("Phòng IT", 12);
-                deptCounts.put("Phòng HR", 5);
-                deptCounts.put("Phòng Sales", 8);
-            }
-            StringBuilder cLabels = new StringBuilder("[");
-            StringBuilder cData = new StringBuilder("[");
-            boolean first = true;
-            for (Map.Entry<String, Integer> entry : deptCounts.entrySet()) {
-                if (!first) { cLabels.append(","); cData.append(","); }
-                cLabels.append("\"").append(entry.getKey().replace("\"", "\\\"")).append("\"");
-                cData.append(entry.getValue());
-                first = false;
-            }
-            cLabels.append("]"); cData.append("]");
-            request.setAttribute("chartLabels", cLabels.toString());
-            request.setAttribute("chartData", cData.toString());
-        }
-        
-        if (request.getAttribute("totalEmployees") == null) {
-            request.setAttribute("totalEmployees", new EmployeeDAO().countTotal());
-        }
-        if (request.getAttribute("deptSize") == null) {
-            request.setAttribute("deptSize", new DepartmentDAO().getAllActiveDepartments().size());
-        }
-    } catch (Exception e) {
-        request.setAttribute("chartLabels", "[\"IT\", \"HR\", \"Sales\"]");
-        request.setAttribute("chartData", "[10, 5, 8]");
-        request.setAttribute("totalEmployees", 0);
-        request.setAttribute("deptSize", 0);
-    }
-%>
+
 <html>
 <head>
     <title>System Admin Dashboard - HRM</title>
