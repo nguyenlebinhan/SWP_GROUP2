@@ -85,9 +85,7 @@ public class PayrollService {
     }
 
     public boolean canViewAllSalary(User user) {
-        return user != null
-                && isHrStaff(user)
-                && getPermissions(user).contains(PERMISSION_VIEW_ALL_SALARY);
+        return user != null && getPermissions(user).contains(PERMISSION_VIEW_ALL_SALARY);
     }
 
     public boolean canApprovePayroll(User user) {
@@ -1076,7 +1074,6 @@ public class PayrollService {
         return "nền tính: lương làm căn cứ đóng bảo hiểm, mức trần " + moneyDisplay(config.insuranceSalaryCap) + ".";
 
     }
-    
 
     private String buildDeductionBaseNote(PayrollDeductionRule rule, PayrollRuntimeConfig config) {
         return "Tổng: " + percent(rule.getRate())
