@@ -285,8 +285,7 @@ public class OvertimeDAO {
                      "AND fr.status IN (1, 4) " + 
                      "AND od.dayType IN (1, 2) " +
                      "AND MONTH(od.otDate) = ? " +
-                     "AND YEAR(od.otDate) = ? " +
-                     "AND (att.attendanceId IS NULL OR att.timeOut > '17:00:00')";
+                     "AND YEAR(od.otDate) = ?";
         try (Connection conn = dbContext.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, employeeId);
             ps.setInt(2, month);
