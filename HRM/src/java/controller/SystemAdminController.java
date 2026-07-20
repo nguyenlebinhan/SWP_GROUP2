@@ -249,23 +249,7 @@ public class SystemAdminController extends HttpServlet {
         String gender = request.getParameter("gender");
         String address = request.getParameter("address");
         int roleId = Integer.parseInt(request.getParameter("role_selection"));
-        int dependentCount;
-        try {
-            String dependentCountParam = request.getParameter("dependentCount");
-            dependentCount = dependentCountParam == null || dependentCountParam.trim().isEmpty()
-                    ? 0 : Integer.parseInt(dependentCountParam.trim());
-        } catch (NumberFormatException e) {
-            request.setAttribute("roles", roleDAO.getAllActiveRoles());
-            request.setAttribute("error", "So nguoi phu thuoc khong hop le.");
-            request.getRequestDispatcher("/public/systemadmin/user/add_user.jsp").forward(request, response);
-            return;
-        }
-        if (dependentCount < 0) {
-            request.setAttribute("roles", roleDAO.getAllActiveRoles());
-            request.setAttribute("error", "So nguoi phu thuoc khong duoc am.");
-            request.getRequestDispatcher("/public/systemadmin/user/add_user.jsp").forward(request, response);
-            return;
-        }
+        int dependentCount = 0;
         boolean unionMember = request.getParameter("unionMember") != null;
 
         boolean isSuccess = userDAO.addUserAndEmpployee(username, email, password, fullName, dob, gender, address,

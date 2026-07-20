@@ -40,8 +40,12 @@
                 color: #991b1b;
             }
             .status-3 {
-                background: #e5e7eb;
-                color: #374151;
+                background: #d1fae5;
+                color: #065f46;
+            }
+            .status-4 {
+                background: #d1fae5;
+                color: #065f46;
             }
             .reason-cell {
                 max-width: 220px;

@@ -204,7 +204,9 @@ public class FormRequestDTO {
             case 0: return "Chờ duyệt";
             case 1: return "Đồng ý";
             case 2: return "Từ chối";
-            case 3: return "Đã hủy";
+            case 3:
+                return "COMPLAINT".equals(formTypeCode) || "DEPENDENT".equals(formTypeCode)
+                        ? "HR đã duyệt" : "Đã hủy";
             case 4: return "Hoàn thành";
             default: return "Không xác định";
         }

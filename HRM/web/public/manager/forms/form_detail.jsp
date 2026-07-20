@@ -26,7 +26,8 @@
         .status-0 { background: #fef3c7; color: #92400e; }
         .status-1 { background: #d1fae5; color: #065f46; }
         .status-2 { background: #fee2e2; color: #991b1b; }
-        .status-3 { background: #e5e7eb; color: #374151; }
+        .status-3 { background: #d1fae5; color: #065f46; }
+        .status-4 { background: #d1fae5; color: #065f46; }
         .info-label {
             font-size: 0.85rem;
             color: #6c757d;
@@ -231,7 +232,7 @@
                 </c:if>
 
                 <%-- Khu vực duyệt/từ chối: chỉ trưởng phòng của phòng ban này, đơn đang chờ duyệt --%>
-                <c:if test="${form.status == 0 and canApprove}">
+                <c:if test="${form.status == 0 and canApprove and form.formTypeCode ne 'DEPENDENT'}">
                     <hr class="my-4">
                     <h5 class="mb-3"><i class="fa-solid fa-gavel me-2"></i>Xử lý đơn</h5>
                     <form method="post">
@@ -253,7 +254,7 @@
                 </c:if>
 
                 <%-- Khu vực duyệt lần 2 (HR): chỉ áp dụng cho đơn Khiếu nại đã được Manager duyệt (status = 1) --%>
-                <c:if test="${form.status == 1 and form.formTypeCode eq 'COMPLAINT' and isHrStaff}">
+                <c:if test="${((form.status == 1 and form.formTypeCode eq 'COMPLAINT') or (form.status == 0 and form.formTypeCode eq 'DEPENDENT')) and isHrStaff}">
                     <hr class="my-4">
                     <h5 class="mb-3 text-primary"><i class="fa-solid fa-user-tie me-2"></i>Duyệt (HR)</h5>
                     <form method="post">

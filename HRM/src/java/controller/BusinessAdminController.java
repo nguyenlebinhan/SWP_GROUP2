@@ -1,6 +1,7 @@
 package controller;
 
 import dao.DepartmentDAO;
+import dao.DependentDAO;
 import dao.EmployeeDAO;
 import dao.PermissionDAO;
 import dao.RoleDAO;
@@ -46,6 +47,7 @@ public class BusinessAdminController extends HttpServlet {
     private static final RoleDAO roleDAO = new RoleDAO();
     private static final EmployeeDAO employeeDAO = new EmployeeDAO();
     private static final DepartmentDAO departmentDAO = new DepartmentDAO();
+    private static final DependentDAO dependentDAO = new DependentDAO();
     private static final FormRequestDAO formRequestDAO = new FormRequestDAO();
     private static final OvertimeDAO overtimeDAO = new OvertimeDAO();
     private static final PayrollConfigDAO payrollConfigDAO = new PayrollConfigDAO();
@@ -448,6 +450,7 @@ public class BusinessAdminController extends HttpServlet {
             return;
         }
         request.setAttribute("employee", employee);
+        request.setAttribute("dependents", dependentDAO.getActiveByEmployeeId(employee.getEmployeeId()));
         request.getRequestDispatcher("/public/businessadmin/employee/employee_detail.jsp").forward(request, response);
     }
 

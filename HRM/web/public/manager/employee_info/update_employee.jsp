@@ -56,7 +56,7 @@
                 </div>
                 <div class="col-md-6">
                     <label class="form-label">So nguoi phu thuoc</label>
-                    <input type="number" name="dependentCount" class="form-control" min="0" step="1" value="${employee.dependentCount}">
+                    <div class="form-control bg-light">${employee.dependentCount}</div>
                 </div>
                 <div class="col-md-6">
                     <label class="form-label">Thành viên công đoàn</label>

@@ -183,7 +183,7 @@
                                     <span class="readonly-value fw-semibold"><c:out value="${r.ruleCode}" /></span>
                                 </td>
                                 <td><input form="deductionForm${st.index}" type="hidden" name="ruleName" value="${fn:escapeXml(r.ruleName)}"><span class="readonly-value"><c:out value="${r.ruleName}" /></span></td>
-                                <td><span class="readonly-value">${r.ruleCode == 'UNION_FEE' ? 'Tổng lương' : 'Lương tính bảo hiểm'}</span></td>
+                                <td><span class="readonly-value">Lương tính bảo hiểm</span></td>
                                 <td><input form="deductionForm${st.index}" name="employerRate" class="form-control mini-input employer-rate" value="${employerRatePercent}"></td>
                                 <td><input form="deductionForm${st.index}" name="employeeRate" class="form-control mini-input employee-rate" value="${employeeRatePercent}"></td>
                                 <td><input class="form-control mini-input total-rate fw-semibold" value="${totalRatePercent}" readonly></td>
@@ -191,7 +191,7 @@
                             <c:otherwise>
                                 <td><span class="readonly-value fw-semibold"><c:out value="${r.ruleCode}" /></span></td>
                                 <td><span class="readonly-value"><c:out value="${r.ruleName}" /></span></td>
-                                <td><span class="readonly-value">${r.ruleCode == 'UNION_FEE' ? 'Tổng lương' : 'Lương tính bảo hiểm'}</span></td>
+                                <td><span class="readonly-value">Lương tính bảo hiểm</span></td>
                                 <td><span class="readonly-value"><c:out value="${employerRatePercent}" /></span></td>
                                 <td><span class="readonly-value"><c:out value="${employeeRatePercent}" /></span></td>
                                 <td><span class="readonly-value fw-semibold"><c:out value="${totalRatePercent}" /></span></td>
