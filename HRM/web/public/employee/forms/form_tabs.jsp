@@ -20,4 +20,10 @@
             Đơn Thuyên Chuyển
         </a>
     </li>
+    <li class="nav-item">
+        <a class="nav-link ${param.active == 'dependent' ? 'active' : ''}"
+           href="${pageContext.request.contextPath}/v1/employee/forms/dependent/new">
+            Đăng ký người phụ thuộc
+        </a>
+    </li>
 </ul>

@@ -131,6 +131,7 @@
                 <div class="info-value"><c:out value="${empty employee.degree ? '-' : employee.degree}"/></div>
             </div>
         </div>
+        <jsp:include page="/public/components/dependentsTable.jsp" />
     </div>
 </div>
 

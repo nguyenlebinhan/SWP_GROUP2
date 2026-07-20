@@ -5,6 +5,7 @@ import enums.ContractStatus;
 import dao.AttendanceDAO;
 import dao.CandidateDAO;
 import dao.DepartmentDAO;
+import dao.DependentDAO;
 import dao.EmployeeDAO;
 import dao.EmploymentContractDAO;
 import dao.FormRequestDAO;
@@ -71,6 +72,7 @@ public class EmployeeController extends HttpServlet {
     private final Logger LOGGER = Logger.getLogger(EmployeeController.class.getName());
     private final EmployeeDAO employeeDAO = new EmployeeDAO();
     private final DepartmentDAO departmentDAO = new DepartmentDAO();
+    private final DependentDAO dependentDAO = new DependentDAO();
     private final EmploymentContractDAO contractDAO = new EmploymentContractDAO();
     private final UserDAO userDAO = new UserDAO();
     private final PermissionDAO permissionDAO = new PermissionDAO();
@@ -198,6 +200,9 @@ public class EmployeeController extends HttpServlet {
             case "/forms/complaint/new":
                 displayComplaintForm(request, response, user);
                 break;
+            case "/forms/dependent/new":
+                displayDependentForm(request, response, user);
+                break;
             case "/forms/all":
                 displayAllForms(request, response, user);
                 break;
@@ -265,6 +270,18 @@ public class EmployeeController extends HttpServlet {
                 break;
             case "/forms/complaint/submit":
                 handleComplaintFormSubmit(request, response, user);
+                break;
+            case "/forms/dependent/submit":
+                handleDependentFormSubmit(request, response, user);
+                break;
+            case "/forms/dependent/status":
+                handleDependentStatusRequest(request, response, user);
+                break;
+            case "/forms/dependent/approve":
+                handleHrApproveDependentForm(request, response, user);
+                break;
+            case "/forms/dependent/reject":
+                handleHrRejectDependentForm(request, response, user);
                 break;
             case "/forms/transfer/submit":
                 handleRequestTransfer(request, response, user);
@@ -355,6 +372,7 @@ public class EmployeeController extends HttpServlet {
         Set<String> perms = getPermissions(user);
         request.getSession().setAttribute("userPermissions", perms);
         request.setAttribute("employee", employee);
+        request.setAttribute("dependents", dependentDAO.getActiveByEmployeeId(employee.getEmployeeId()));
         setPermissionFlags(request, perms);
         request.getRequestDispatcher("/public/employee/employee_info/employee_detail.jsp").forward(request, response);
     }
@@ -1153,6 +1171,10 @@ public class EmployeeController extends HttpServlet {
         request.setAttribute("currentUser", currentUser);
         EmployeeDetailDTO myEmployee = employeeDAO.getEmployeeByUserId(sessionUser.getUserId());
         request.setAttribute("myEmployee", myEmployee);
+        if (myEmployee != null) {
+            request.setAttribute("dependents", dependentDAO.getActiveByEmployeeId(myEmployee.getEmployeeId()));
+            request.setAttribute("dependentStatusAction", request.getContextPath() + "/v1/employee/forms/dependent/status");
+        }
         request.getRequestDispatcher("/public/employee/employee_info/my_profile.jsp").forward(request, response);
     }
 
@@ -1895,21 +1917,6 @@ public class EmployeeController extends HttpServlet {
         }
 
         int dependentCount = current.getDependentCount();
-        String dependentCountParam = request.getParameter("dependentCount");
-        if (dependentCountParam != null && !dependentCountParam.trim().isEmpty()) {
-            try {
-                dependentCount = Integer.parseInt(dependentCountParam.trim());
-            } catch (NumberFormatException e) {
-                request.getSession().setAttribute("error", "So nguoi phu thuoc khong hop le.");
-                response.sendRedirect(request.getContextPath() + "/v1/employee/update-employee?id=" + employeeId);
-                return;
-            }
-        }
-        if (dependentCount < 0) {
-            request.getSession().setAttribute("error", "So nguoi phu thuoc khong duoc am.");
-            response.sendRedirect(request.getContextPath() + "/v1/employee/update-employee?id=" + employeeId);
-            return;
-        }
 
         int departmentId = current.getDepartmentId();
         int positionId = current.getPositionId();
@@ -2258,6 +2265,7 @@ public class EmployeeController extends HttpServlet {
             }
             request.setAttribute("backUrl", backUrl);
 
+            request.setAttribute("isHrStaff", isHrStaff(user));
             request.setAttribute("form", form);
             request.getRequestDispatcher("/public/employee/forms/form_detail.jsp").forward(request, response);
         } catch (NumberFormatException e) {
@@ -2301,6 +2309,154 @@ public class EmployeeController extends HttpServlet {
         request.getSession().setAttribute("userPermissions", perms);
         setPermissionFlags(request, perms);
         request.getRequestDispatcher("/public/employee/forms/complaint_form.jsp").forward(request, response);
+    }
+
+    private void displayDependentForm(HttpServletRequest request, HttpServletResponse response, User user)
+            throws ServletException, IOException {
+        setPermissionFlags(request, getPermissions(user));
+        request.setAttribute("formAction", request.getContextPath() + "/v1/employee/forms/dependent/submit");
+        request.setAttribute("cancelUrl", request.getContextPath() + "/v1/employee/forms/my-forms");
+        request.getRequestDispatcher("/public/employee/forms/dependent_form.jsp").forward(request, response);
+    }
+
+    private void handleDependentFormSubmit(HttpServletRequest request, HttpServletResponse response, User user)
+            throws ServletException, IOException {
+        FormType ft = formTypeDAO.getByCode("DEPENDENT");
+        EmployeeDetailDTO me = employeeDAO.getEmployeeByUserId(user.getUserId());
+        if (ft == null || me == null) {
+            request.getSession().setAttribute("error", "Khong the tao don nguoi phu thuoc.");
+            response.sendRedirect(request.getContextPath() + "/v1/employee/forms/dependent/new");
+            return;
+        }
+
+        String fullName = trimToNull(request.getParameter("fullName"));
+        String relationship = trimToNull(request.getParameter("relationship"));
+        String rawDateOfBirth = trimToNull(request.getParameter("dateOfBirth"));
+        String taxCode = trimToNull(request.getParameter("taxCode"));
+        String note = trimToNull(request.getParameter("note"));
+        Date dateOfBirth = null;
+        try {
+            if (rawDateOfBirth != null) {
+                dateOfBirth = Date.valueOf(rawDateOfBirth);
+            }
+        } catch (IllegalArgumentException e) {
+            dateOfBirth = null;
+        }
+        if (fullName == null || relationship == null || dateOfBirth == null) {
+            request.setAttribute("error", "Vui lòng nhập tên, quan hệ và ngày sinh người phụ thuộc.");
+            setPermissionFlags(request, getPermissions(user));
+            request.setAttribute("formAction", request.getContextPath() + "/v1/employee/forms/dependent/submit");
+            request.setAttribute("cancelUrl", request.getContextPath() + "/v1/employee/forms/my-forms");
+            request.getRequestDispatcher("/public/employee/forms/dependent_form.jsp").forward(request, response);
+            return;
+        }
+        if (taxCode != null && !taxCode.matches("\\d+")) {
+            request.setAttribute("error", "Mã số thuế chỉ được nhập số.");
+            setPermissionFlags(request, getPermissions(user));
+            request.setAttribute("formAction", request.getContextPath() + "/v1/employee/forms/dependent/submit");
+            request.setAttribute("cancelUrl", request.getContextPath() + "/v1/employee/forms/my-forms");
+            request.getRequestDispatcher("/public/employee/forms/dependent_form.jsp").forward(request, response);
+            return;
+        }
+
+        FormRequest fr = new FormRequest();
+        fr.setFormCode("DEPENDENT-" + me.getEmployeeId() + "-" + System.currentTimeMillis());
+        fr.setEmployeeId(me.getEmployeeId());
+        fr.setFormTypeId(ft.getFormTypeId());
+        fr.setReason("Tên: " + fullName + "\nQuan hệ: " + relationship
+                + "\nNgày sinh: " + dateOfBirth
+                + (taxCode == null ? "" : "\nMã số thuế: " + taxCode)
+                + (note == null ? "" : "\nGhi chú: " + note));
+
+        int formId = formRequestDAO.addFormRequest(fr);
+        boolean ok = formId > 0 && dependentDAO.addPending(formId, me.getEmployeeId(), fullName, relationship, dateOfBirth, taxCode, note);
+        request.getSession().setAttribute(ok ? "success" : "error",
+                ok ? "Đã gửi đơn đăng ký người phụ thuộc, chờ HR duyệt."
+                        : "Gửi đơn người phụ thuộc thất bại.");
+        response.sendRedirect(request.getContextPath() + "/v1/employee/forms/my-forms");
+    }
+
+    private void handleDependentStatusRequest(HttpServletRequest request, HttpServletResponse response, User user)
+            throws ServletException, IOException {
+        EmployeeDetailDTO me = employeeDAO.getEmployeeByUserId(user.getUserId());
+        FormType ft = formTypeDAO.getByCode("DEPENDENT");
+        Integer dependentId = parseIntOrNull(request.getParameter("dependentId"));
+        if (me == null || ft == null || dependentId == null) {
+            request.getSession().setAttribute("error", "Khong the gui yeu cau doi trang thai nguoi phu thuoc.");
+            response.sendRedirect(request.getContextPath() + "/v1/employee/my-profile");
+            return;
+        }
+        if (!dependentDAO.canRequestStatusChange(dependentId, me.getEmployeeId())) {
+            request.getSession().setAttribute("error", "Nguoi phu thuoc khong hop le hoac dang co yeu cau cho duyet.");
+            response.sendRedirect(request.getContextPath() + "/v1/employee/my-profile");
+            return;
+        }
+
+        FormRequest fr = new FormRequest();
+        fr.setFormCode("DEPENDENT-STATUS-" + me.getEmployeeId() + "-" + System.currentTimeMillis());
+        fr.setEmployeeId(me.getEmployeeId());
+        fr.setFormTypeId(ft.getFormTypeId());
+        fr.setReason("Yeu cau ngung tinh nguoi phu thuoc ID: " + dependentId);
+
+        int formId = formRequestDAO.addFormRequest(fr);
+        boolean ok = formId > 0 && dependentDAO.requestStatusChange(dependentId, me.getEmployeeId(), formId, 2);
+        request.getSession().setAttribute(ok ? "success" : "error",
+                ok ? "Da gui yeu cau doi trang thai nguoi phu thuoc, cho HR duyet."
+                        : "Gui yeu cau doi trang thai that bai hoac dang co yeu cau cho duyet.");
+        response.sendRedirect(request.getContextPath() + "/v1/employee/my-profile");
+    }
+
+    private void handleHrApproveDependentForm(HttpServletRequest request, HttpServletResponse response, User user)
+            throws ServletException, IOException {
+        if (!isHrStaff(user)) {
+            request.getSession().setAttribute("error", "Chỉ nhân viên HR mới có thể duyệt đơn này.");
+            response.sendRedirect(request.getContextPath() + "/v1/employee/dashboard");
+            return;
+        }
+        Integer formId = parseIntOrNull(request.getParameter("formId"));
+        EmployeeDetailDTO me = employeeDAO.getEmployeeByUserId(user.getUserId());
+        FormRequestDTO form = formId == null ? null : formRequestDAO.getFormRequestById(formId);
+        if (formId == null || me == null || form == null || !"DEPENDENT".equals(form.getFormTypeCode())) {
+            request.getSession().setAttribute("error", "Không tìm thấy đơn người phụ thuộc.");
+            response.sendRedirect(request.getContextPath() + "/v1/employee/forms/all");
+            return;
+        }
+        String note = trimToNull(request.getParameter("note"));
+        boolean formOk = formRequestDAO.approveFormRequestFromStatus(formId, 0, 4, me.getEmployeeId(), note);
+        boolean added = formOk && dependentDAO.approveByFormId(formId);
+        boolean changed = formOk && !added && dependentDAO.approveStatusChangeByFormId(formId);
+        boolean ok = added || changed;
+        request.getSession().setAttribute(ok ? "success" : "error",
+                ok ? "Thêm người phụ thuộc thành công" : "Duyệt đơn người phụ thuộc thất bại.");
+        if (changed) {
+            request.getSession().setAttribute("success", "Cập nhật người phụ thuộc thành công");
+        }
+        response.sendRedirect(request.getContextPath() + "/v1/employee/forms/all");
+    }
+
+    private void handleHrRejectDependentForm(HttpServletRequest request, HttpServletResponse response, User user)
+            throws ServletException, IOException {
+        if (!isHrStaff(user)) {
+            request.getSession().setAttribute("error", "Chỉ nhân viên HR mới có thể từ chối đơn này.");
+            response.sendRedirect(request.getContextPath() + "/v1/employee/dashboard");
+            return;
+        }
+        Integer formId = parseIntOrNull(request.getParameter("formId"));
+        EmployeeDetailDTO me = employeeDAO.getEmployeeByUserId(user.getUserId());
+        FormRequestDTO form = formId == null ? null : formRequestDAO.getFormRequestById(formId);
+        if (formId == null || me == null || form == null || !"DEPENDENT".equals(form.getFormTypeCode())) {
+            request.getSession().setAttribute("error", "Không tìm thấy đơn người phụ thuộc.");
+            response.sendRedirect(request.getContextPath() + "/v1/employee/forms/all");
+            return;
+        }
+        String note = trimToNull(request.getParameter("note"));
+        boolean formOk = formRequestDAO.approveFormRequestFromStatus(formId, 0, 2, me.getEmployeeId(), note);
+        boolean rejectedAdd = formOk && dependentDAO.rejectByFormId(formId);
+        boolean rejectedChange = formOk && !rejectedAdd && dependentDAO.rejectStatusChangeByFormId(formId);
+        boolean ok = rejectedAdd || rejectedChange;
+        request.getSession().setAttribute(ok ? "success" : "error",
+                ok ? "Đã từ chối đơn người phụ thuộc." : "Từ chối đơn người phụ thuộc thất bại.");
+        response.sendRedirect(request.getContextPath() + "/v1/employee/forms/all");
     }
 
     private void handleLeaveFormSubmit(HttpServletRequest request, HttpServletResponse response, User user)
