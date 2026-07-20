@@ -2020,6 +2020,9 @@ public class ManagerController extends HttpServlet {
         ContractOperationResult result = contractService.createContract(contract);
 
         if (result.isSuccess()) {
+            boolean unionMember = request.getParameter("unionMember") != null;
+            employeeDAO.updateUnionMember(contract.getEmployeeId(), unionMember);
+
             request.getSession().setAttribute("success", "Thêm hợp đồng lao động thành công.");
             EmploymentContract createdContract = contractDAO.getLatestContractByEmployeeId(contract.getEmployeeId());
             if (createdContract != null) {
@@ -2663,7 +2666,6 @@ public class ManagerController extends HttpServlet {
         response.sendRedirect(request.getContextPath() + "/v1/manager/forms/dept-forms");
     }
 
-
     private void onManagerApproveLeave(FormRequestDTO form, EmployeeDetailDTO me) {
         if (form instanceof LeaveFormRequestDTO) {
             LeaveFormRequestDTO leaveForm = (LeaveFormRequestDTO) form;
@@ -2676,7 +2678,6 @@ public class ManagerController extends HttpServlet {
             }
         }
     }
-
 
     private void onManagerApproveComplaint(FormRequestDTO form, EmployeeDetailDTO me) {
         LOGGER.log(Level.INFO, "Manager approved complaint formId={0}, waiting for HR second approval.", form.getFormId());
@@ -3178,10 +3179,10 @@ public class ManagerController extends HttpServlet {
             String dateFilter = request.getParameter("otDate");
 
             List<OvertimeRequestDTO> requests = overtimeDAO.getOvertimeRequestsByManager(manager.getEmployeeId(), statusFilter, dateFilter);
-            
+
             // Phân trang
             List<OvertimeRequestDTO> pagedRequests = utils.Paging.page(request, requests);
-            
+
             request.setAttribute("otRequests", pagedRequests);
             request.setAttribute("statusFilter", statusFilter);
             request.setAttribute("dateFilter", dateFilter);
@@ -3384,7 +3385,6 @@ public class ManagerController extends HttpServlet {
             response.sendRedirect(request.getContextPath() + "/v1/manager/forms/create-ot");
         }
     }
-
 
     private boolean isDepartmentManager(EmployeeDetailDTO me, int formId) {
         if (me == null || me.getDepartmentId() <= 0) {
