@@ -995,19 +995,33 @@ public class BusinessAdminController extends HttpServlet {
         String monthStr = request.getParameter("month");
         String yearStr = request.getParameter("year");
         String keyword = request.getParameter("keyword");
+        String statusStr = request.getParameter("status");
 
         Integer day = parseIntParam(dayStr);
         Integer month = parseIntParam(monthStr);
         Integer year = parseIntParam(yearStr);
+        Integer statusFilter = parseIntParam(statusStr);
 
         List<FormRequestDTO> forms = formRequestDAO.getAllFormRequests(day, month, year, keyword)
                 .stream()
-                .filter(f -> "OVERTIME".equals(f.getFormTypeCode())
-                || "TRANSFER".equals(f.getFormTypeCode())
-                || "PROMOTION_DEMOTION".equals(f.getFormTypeCode()))
+                .filter(f -> {
+                    if (!"OVERTIME".equals(f.getFormTypeCode())
+                            && !"TRANSFER".equals(f.getFormTypeCode())
+                            && !"PROMOTION_DEMOTION".equals(f.getFormTypeCode())) {
+                        return false;
+                    }
+                    if (statusFilter != null && f.getStatus() != statusFilter) {
+                        return false;
+                    }
+                    return true;
+                })
                 .collect(java.util.stream.Collectors.toList());
+                
+        // Phân trang
+        List<FormRequestDTO> pagedForms = utils.Paging.page(request, forms);
 
-        request.setAttribute("forms", forms);
+        request.setAttribute("forms", pagedForms);
+        request.setAttribute("statusFilter", statusStr);
         request.setAttribute("filterDay", day);
         request.setAttribute("filterMonth", month);
         request.setAttribute("filterYear", year);
