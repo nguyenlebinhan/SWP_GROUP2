@@ -59,15 +59,6 @@ public class FormRequestDAO {
         }
     }
 
-    public boolean hasApprovedLeave(int employeeId, java.sql.Date workDate) {
-        try (Connection conn = dbContext.getConnection()) {
-            return hasApprovedLeave(conn, employeeId, workDate);
-        } catch (SQLException e) {
-            LOGGER.log(Level.SEVERE, "Error checking approved leave without connection param", e);
-        }
-        return false;
-    }
-
     // INSERT đơn chung (Loại không có ngày)
     public int addFormRequest(FormRequest fr) {
         String SQL = """
