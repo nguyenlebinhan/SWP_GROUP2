@@ -133,7 +133,6 @@ public class AttendanceClosingService {
         return ClosingResult.ok("Đã chốt bảng chấm công phòng ban.", 1);
     }
 
-    // ── Bước 3: HR gửi toàn bộ lên BA ─────────────────────────────────────
 
     public ClosingResult submitToBa(int year, int month, User hrUser) {
         if (!isHr(hrUser)) {

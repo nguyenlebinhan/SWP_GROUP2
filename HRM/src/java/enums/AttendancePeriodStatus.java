@@ -1,16 +1,7 @@
 package enums;
 
 /**
- * Trạng thái chốt bảng chấm công theo (tháng, phòng ban).
- *
- * Luồng: OPEN -> WAITING_MANAGER -> MANAGER_CONFIRMED -> SUBMITTED_TO_BA -> LOCKED
- *
- * - OPEN: còn trong thời gian sửa chấm công (đến hết mùng 5 tháng sau).
- * - WAITING_MANAGER: HR đã đóng kỳ, chờ trưởng phòng chốt bảng chấm công phòng mình.
- * - MANAGER_CONFIRMED: trưởng phòng đã chốt.
- * - SUBMITTED_TO_BA: HR đã gửi toàn bộ (mọi phòng đã chốt) lên BusinessAdmin chờ duyệt cuối.
- * - LOCKED: BusinessAdmin đã chốt cuối cùng; được phép tính lương và khoá sửa vĩnh viễn.
- *
+
  * @author ADMIN
  */
 public enum AttendancePeriodStatus {

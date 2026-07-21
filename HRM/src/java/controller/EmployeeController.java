@@ -1410,13 +1410,13 @@ public class EmployeeController extends HttpServlet {
         setImportWindowAttributes(request);
 
         if (month < 1 || month > 12) {
-            request.setAttribute("error", "Vui lêng chọn thông hợp lệ (1-12).");
+            request.setAttribute("error", "Vui lòng chọn tháng hợp lệ (1-12).");
             List<Department> activeDepartments = departmentDAO.getAllActiveDepartments();
             request.setAttribute("departments", activeDepartments);
             request.getRequestDispatcher("/public/employee/attendance/attendance_import.jsp").forward(request, response);
         }
         if (year < 2000 || year > 2100) {
-            request.setAttribute("error", "Vui lA?ng ch?n nam h?p l?");
+            request.setAttribute("error", "Vui lòng chọn năm hợp lệ");
             List<Department> activeDepartments = departmentDAO.getAllActiveDepartments();
             request.setAttribute("departments", activeDepartments);
             request.getRequestDispatcher("/public/employee/attendance/attendance_import.jsp").forward(request, response);
@@ -1433,7 +1433,7 @@ public class EmployeeController extends HttpServlet {
 
         Part filePart = request.getPart(FILE_PART);
         if (filePart == null || filePart.getSize() == 0) {
-            request.setAttribute("error", "Vui lêng chọn file Excel .xlsx để import.");
+            request.setAttribute("error", "Vui lòng chọn file Excel .xlsx để import.");
             List<Department> activeDepartments = departmentDAO.getAllActiveDepartments();
             request.setAttribute("departments", activeDepartments);
             request.getRequestDispatcher("/public/employee/attendance/attendance_import.jsp").forward(request, response);
