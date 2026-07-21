@@ -3,20 +3,17 @@
     <editor-bookmarks xmlns="http://www.netbeans.org/ns/editor-bookmarks/2" lastBookmarkId="0"/>
     <open-files xmlns="http://www.netbeans.org/ns/projectui-open-files/2">
         <group>
-
             <file>file:/C:/Users/ADMIN/Desktop/SWP_GROUP2/HRM/web/public/components/employeeTopBar.jsp</file>
             <file>file:/C:/Users/ADMIN/Desktop/SWP_GROUP2/HRM/src/java/service/PayrollService.java</file>
             <file>file:/C:/Users/ADMIN/Desktop/SWP_GROUP2/HRM/src/java/dal/DBInitializer.java</file>
             <file>file:/C:/Users/ADMIN/Desktop/SWP_GROUP2/HRM/src/java/dto/AttendanceDetailDTO.java</file>
             <file>file:/C:/Users/ADMIN/Desktop/SWP_GROUP2/HRM/web/public/employee/attendance/attendance_overview.jsp</file>
-            <file>file:/C:/Users/ADMIN/Desktop/SWP_GROUP2/HRM/web/public/employee/salary/payroll_config.jsp</file>
             <file>file:/C:/Users/ADMIN/Desktop/SWP_GROUP2/HRM/src/java/dao/UploadedFileDAO.java</file>
             <file>file:/C:/Users/ADMIN/Desktop/SWP_GROUP2/HRM/src/java/utils/AttendanceExcelExporter.java</file>
             <file>file:/C:/Users/ADMIN/Desktop/SWP_GROUP2/HRM/web/public/systemadmin/dashboard.jsp</file>
             <file>file:/C:/Users/ADMIN/Desktop/SWP_GROUP2/HRM/web/public/components/businessAdminSideBar.jsp</file>
             <file>file:/C:/Users/ADMIN/Desktop/SWP_GROUP2/HRM/web/public/manager/forms/dept_form_list.jsp</file>
             <file>file:/C:/Users/ADMIN/Desktop/SWP_GROUP2/HRM/src/java/dao/OvertimeDAO.java</file>
-            <file>file:/C:/Users/ADMIN/Desktop/SWP_GROUP2/HRM/src/java/service/AttendanceClosingService.java</file>
             <file>file:/C:/Users/ADMIN/Desktop/SWP_GROUP2/HRM/src/java/dao/UserDAO.java</file>
             <file>file:/C:/Users/ADMIN/Desktop/SWP_GROUP2/HRM/web/public/manager/attendance/attendance_overview.jsp</file>
             <file>file:/C:/Users/ADMIN/Desktop/SWP_GROUP2/HRM/web/public/systemadmin/role/role_detail.jsp</file>
@@ -39,7 +36,6 @@
             <file>file:/C:/Users/ADMIN/Desktop/SWP_GROUP2/HRM/web/public/employee/forms/all_form_list.jsp</file>
             <file>file:/C:/Users/ADMIN/Desktop/SWP_GROUP2/HRM/src/java/config/.env</file>
             <file>file:/C:/Users/ADMIN/Desktop/SWP_GROUP2/HRM/web/public/businessadmin/attendance/attendance_closing.jsp</file>
-            <file>file:/C:/Users/ADMIN/Desktop/SWP_GROUP2/HRM/src/java/enums/AttendancePeriodStatus.java</file>
             <file>file:/C:/Users/ADMIN/Desktop/SWP_GROUP2/HRM/src/java/service/AttendanceService.java</file>
             <file>file:/C:/Users/ADMIN/Desktop/SWP_GROUP2/HRM/src/java/model/FormRequest.java</file>
             <file>file:/C:/Users/ADMIN/Desktop/SWP_GROUP2/HRM/web/public/employee/attendance/attendance_import.jsp</file>
@@ -84,44 +80,8 @@
             <file>file:/C:/Users/ADMIN/Desktop/SWP_GROUP2/HRM/src/java/dao/EmployeeDAO.java</file>
             <file>file:/C:/Users/ADMIN/Desktop/SWP_GROUP2/HRM/src/java/dto/AttendanceImportResultDTO.java</file>
             <file>file:/C:/Users/ADMIN/Desktop/SWP_GROUP2/HRM/src/java/utils/ConfigManager.java</file>
-            <file>file:/C:/Users/ADMIN/Desktop/SWP_GROUP2/HRM/src/java/dao/CandidateDAO.java</file>
             <file>file:/C:/Users/ADMIN/Desktop/SWP_GROUP2/HRM/src/java/dao/AttendancePeriodDAO.java</file>
-
-            <file>file:/C:/Users/FPT/SWP_GROUP2/HRM/web/public/employee/attendance/attendance_import.jsp</file>
-            <file>file:/C:/Users/FPT/SWP_GROUP2/HRM/web/public/businessadmin/employee/my_profile.jsp</file>
-            <file>file:/C:/Users/FPT/SWP_GROUP2/HRM/web/public/employee/attendance/attendance_overview.jsp</file>
-            <file>file:/C:/Users/FPT/SWP_GROUP2/HRM/src/java/dal/DBInitializer.java</file>
-            <file>file:/C:/Users/FPT/SWP_GROUP2/HRM/src/java/dao/PermissionDAO.java</file>
-            <file>file:/C:/Users/FPT/SWP_GROUP2/HRM/src/java/controller/EmployeeController.java</file>
-            <file>file:/C:/Users/FPT/SWP_GROUP2/HRM/web/public/manager/forms/ot_requests.jsp</file>
-            <file>file:/C:/Users/FPT/SWP_GROUP2/HRM/src/java/dao/EmployeeDAO.java</file>
-            <file>file:/C:/Users/FPT/SWP_GROUP2/HRM/src/java/config/.env</file>
-            <file>file:/C:/Users/FPT/SWP_GROUP2/HRM/src/java/controller/BusinessAdminController.java</file>
-            <file>file:/C:/Users/FPT/SWP_GROUP2/HRM/src/java/dao/OvertimeDAO.java</file>
-            <file>file:/C:/Users/FPT/SWP_GROUP2/HRM/src/java/model/Department.java</file>
-            <file>file:/C:/Users/FPT/SWP_GROUP2/HRM/src/java/filter/AuditLogFilter.java</file>
-            <file>jar:file:/C:/Users/FPT/SWP_GROUP2/HRM/web/downloads/candidate_import_template.xlsx!/%5BContent_Types%5D.xml</file>
-            <file>file:/C:/Users/FPT/SWP_GROUP2/HRM/web/public/businessadmin/overtime/form_requests.jsp</file>
-            <file>file:/C:/Users/FPT/SWP_GROUP2/HRM/src/java/dto/PayrollPreviewDTO.java</file>
-            <file>file:/C:/Users/FPT/SWP_GROUP2/HRM/web/public/manager/attendance/attendance_import.jsp</file>
-            <file>file:/C:/Users/FPT/SWP_GROUP2/HRM/src/java/service/PayrollService.java</file>
-            <file>file:/C:/Users/FPT/SWP_GROUP2/HRM/src/java/dao/DepartmentDAO.java</file>
-            <file>file:/C:/Users/FPT/SWP_GROUP2/HRM/src/java/filter/AuthorizationFilter.java</file>
-            <file>file:/C:/Users/FPT/SWP_GROUP2/HRM/web/public/employee/salary/salary_detail.jsp</file>
-            <file>file:/C:/Users/FPT/SWP_GROUP2/HRM/src/java/controller/SystemAdminController.java</file>
-            <file>file:/C:/Users/FPT/SWP_GROUP2/HRM/web/public/employee/attendance/attendance_detail.jsp</file>
-            <file>file:/C:/Users/FPT/SWP_GROUP2/HRM/src/java/exception/InvalidFormatException.java</file>
-            <file>file:/C:/Users/FPT/SWP_GROUP2/HRM/src/java/dto/OvertimeRequestDTO.java</file>
-            <file>file:/C:/Users/FPT/SWP_GROUP2/HRM/src/java/config/ContractSchedulerInitializerListener.java</file>
-            <file>file:/C:/Users/FPT/SWP_GROUP2/HRM/src/java/controller/ManagerController.java</file>
-            <file>file:/C:/Users/FPT/SWP_GROUP2/HRM/web/public/systemadmin/permissions/edit_role_permissions.jsp</file>
-            <file>file:/C:/Users/FPT/SWP_GROUP2/HRM/web/public/manager/forms/ot_create.jsp</file>
-            <file>file:/C:/Users/FPT/SWP_GROUP2/HRM/web/public/employee/contract/add_contract.jsp</file>
-            <file>file:/C:/Users/FPT/SWP_GROUP2/HRM/src/java/model/Attendance.java</file>
-            <file>file:/C:/Users/FPT/SWP_GROUP2/HRM/web/public/businessadmin/salary/payroll_config.jsp</file>
-            <file>file:/C:/Users/FPT/SWP_GROUP2/HRM/src/java/service/AttendanceImportService.java</file>
-            <file>file:/C:/Users/FPT/SWP_GROUP2/HRM/src/java/model/PayrollDeductionRule.java</file>
-            <file>jar:file:/C:/Users/FPT/SWP_GROUP2/HRM/web/downloads/candidate_import_template.xlsx!/_rels/.rels</file>
+            <file>file:/C:/Users/ADMIN/Desktop/SWP_GROUP2/HRM/src/java/dao/CandidateDAO.java</file>
         </group>
     </open-files>
 </project-private>

@@ -793,7 +793,6 @@ public class EmployeeController extends HttpServlet {
         int[] period = parseSalaryPeriod(request);
         Integer departmentId = parseIntOrNull(request.getParameter("departmentId"));
 
-        // Chặn cứng: chỉ được tính lương khi bảng chấm công đã được BA chốt (LOCKED).
         boolean locked = departmentId == null
                 ? attendanceClosingService.isPeriodLocked(period[0], period[1])
                 : attendanceClosingService.isDepartmentLocked(period[0], period[1], departmentId);
@@ -1182,6 +1181,7 @@ public class EmployeeController extends HttpServlet {
             response.sendRedirect(request.getContextPath() + "/v1/employee/dashboard");
             return;
         }
+        
         Set<String> perms = getPermissions(user);
         request.getSession().setAttribute("userPermissions", perms);
         setImportWindowAttributes(request);
@@ -1364,7 +1364,6 @@ public class EmployeeController extends HttpServlet {
         if (calcTimeIn != null && calcTimeOut != null && (status == 0 || status == 1)) {
             hoursWorked = utils.WorkHoursCalculator.hoursWorked(calcTimeIn, calcTimeOut);
 
-            // Không OT thì giờ công không vượt quá 8 tiếng chuẩn.
             BigDecimal standardHours = new BigDecimal("8.00");
             if (!hasOT && hoursWorked.compareTo(standardHours) > 0) {
                 hoursWorked = standardHours;
@@ -1392,6 +1391,7 @@ public class EmployeeController extends HttpServlet {
         Set<String> perms = getPermissions(user);
         request.getSession().setAttribute("userPermissions", perms);
 
+        
         int month, year;
         int departmentId = 0;
         try {
@@ -1406,7 +1406,17 @@ public class EmployeeController extends HttpServlet {
             response.sendRedirect(request.getContextPath() + "/v1/employee/attendance/import");
             return;
         }
+        
+        boolean locked = (departmentId  == 0)
+            ? attendanceClosingService.isPeriodLocked(year, month)
+            : attendanceClosingService.isDepartmentLocked(year, month, departmentId);
 
+        if (locked) {
+        request.getSession().setAttribute("error", 
+            "Kỳ chấm công tháng " + month + "/" + year + " đã được đóng/khóa. Không thể import dữ liệu mới!");
+        response.sendRedirect(request.getContextPath() + "/v1/employee/attendance/import?month=" + month + "&year=" + year);
+        return; 
+        }
         setImportWindowAttributes(request);
 
         if (month < 1 || month > 12) {
