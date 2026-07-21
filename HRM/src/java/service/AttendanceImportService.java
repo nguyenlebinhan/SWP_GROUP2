@@ -197,7 +197,7 @@ public class AttendanceImportService {
 
             Time maxTime = hasOT ? Time.valueOf("19:00:00") : Time.valueOf("17:00:00");
 
-            if (timeOut.after(maxTime)) {
+            if (!timeOut.before(maxTime)) {
                 boolean otRevived = overtimeDAO.reviveAndCompleteOTForm(conn, employeeId, workDate);
                 if (otRevived && !hasOT) {
                     hasOT = true;

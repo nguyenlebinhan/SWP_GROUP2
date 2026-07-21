@@ -376,6 +376,64 @@ public class ManagerController extends HttpServlet {
         request.setAttribute("inactiveEmployees", inactiveEmployees);
         request.setAttribute("pendingLeaves", 0);
         request.setAttribute("deptChart", deptChart);
+        
+        // --- NEW DASHBOARD LOGIC (Appended without deleting base code) ---
+        EmployeeDetailDTO manager = employeeDAO.getEmployeeByUserId(user.getUserId());
+        request.setAttribute("myEmployee", manager);
+        
+        int deptTotalEmployees = totalEmployees;
+        int pendingForms = 0; 
+        List<EmployeeDetailDTO> departmentEmployees = new ArrayList<>();
+        Map<Integer, Integer> leaveBalances = new HashMap<>();
+        List<dto.AttendanceSummaryDTO> topEmployees = new ArrayList<>();
+        int prevMonth = java.time.LocalDate.now().minusMonths(1).getMonthValue();
+        int prevYear = java.time.LocalDate.now().minusMonths(1).getYear();
+
+        if (manager != null && manager.getDepartmentId() > 0) {
+            departmentEmployees = employeeDAO.getEmployeesByDepartmentId(manager.getDepartmentId());
+            deptTotalEmployees = departmentEmployees.size();
+            int currentYear = java.time.LocalDate.now().getYear();
+            
+            dao.LeaveBalanceDAO lbDAO = new dao.LeaveBalanceDAO();
+            for (EmployeeDetailDTO emp : departmentEmployees) {
+                model.LeaveBalance lb = lbDAO.getLeaveBalance(emp.getEmployeeId(), currentYear);
+                if (lb != null) {
+                    leaveBalances.put(emp.getEmployeeId(), lb.getTotalAllowed() - lb.getUsedDays());
+                } else {
+                    leaveBalances.put(emp.getEmployeeId(), 0);
+                }
+            }
+            
+            List<dto.FormRequestDTO> forms = formRequestDAO.getAllFormRequestsByDepartmentId(manager.getDepartmentId(), null, null, null, null);
+            for (dto.FormRequestDTO f : forms) {
+                if (f.getStatus() == 0) pendingForms++;
+            }
+            
+            dao.AttendanceDAO attDAO = new dao.AttendanceDAO();
+            List<dto.AttendanceSummaryDTO> summaries = attDAO.getMonthlySummary(manager.getDepartmentId(), prevMonth, prevYear);
+            if (summaries != null) {
+                summaries.sort((a, b) -> {
+                    if (b.getWorkedHours() == null && a.getWorkedHours() == null) return 0;
+                    if (b.getWorkedHours() == null) return -1;
+                    if (a.getWorkedHours() == null) return 1;
+                    return b.getWorkedHours().compareTo(a.getWorkedHours());
+                });
+                for (int i = 0; i < Math.min(3, summaries.size()); i++) {
+                    topEmployees.add(summaries.get(i));
+                }
+            }
+        }
+
+        // We use 'deptTotalEmployees' to override 'totalEmployees' for the new UI's specific needs,
+        // but the base code above still ran properly.
+        request.setAttribute("totalEmployees", deptTotalEmployees);
+        request.setAttribute("pendingForms", pendingForms);
+        request.setAttribute("departmentEmployees", departmentEmployees);
+        request.setAttribute("leaveBalances", leaveBalances);
+        request.setAttribute("topEmployees", topEmployees);
+        request.setAttribute("prevMonthStr", String.format("%02d/%d", prevMonth, prevYear));
+        request.setAttribute("todayDate", java.time.LocalDate.now().format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy")));
+        // -----------------------------------------------------------------
         setPermissionFlags(request, perms);
         request.getRequestDispatcher("/public/manager/dashboard.jsp").forward(request, response);
     }
@@ -1976,6 +2034,9 @@ public class ManagerController extends HttpServlet {
         ContractOperationResult result = contractService.createContract(contract);
 
         if (result.isSuccess()) {
+            boolean unionMember = request.getParameter("unionMember") != null;
+            employeeDAO.updateUnionMember(contract.getEmployeeId(), unionMember);
+
             request.getSession().setAttribute("success", "Thêm hợp đồng lao động thành công.");
             EmploymentContract createdContract = contractDAO.getLatestContractByEmployeeId(contract.getEmployeeId());
             if (createdContract != null) {
@@ -2619,7 +2680,6 @@ public class ManagerController extends HttpServlet {
         response.sendRedirect(request.getContextPath() + "/v1/manager/forms/dept-forms");
     }
 
-
     private void onManagerApproveLeave(FormRequestDTO form, EmployeeDetailDTO me) {
         if (form instanceof LeaveFormRequestDTO) {
             LeaveFormRequestDTO leaveForm = (LeaveFormRequestDTO) form;
@@ -2632,7 +2692,6 @@ public class ManagerController extends HttpServlet {
             }
         }
     }
-
 
     private void onManagerApproveComplaint(FormRequestDTO form, EmployeeDetailDTO me) {
         LOGGER.log(Level.INFO, "Manager approved complaint formId={0}, waiting for HR second approval.", form.getFormId());
@@ -3131,10 +3190,10 @@ public class ManagerController extends HttpServlet {
             String dateFilter = request.getParameter("otDate");
 
             List<OvertimeRequestDTO> requests = overtimeDAO.getOvertimeRequestsByManager(manager.getEmployeeId(), statusFilter, dateFilter);
-            
+
             // Phân trang
             List<OvertimeRequestDTO> pagedRequests = utils.Paging.page(request, requests);
-            
+
             request.setAttribute("otRequests", pagedRequests);
             request.setAttribute("statusFilter", statusFilter);
             request.setAttribute("dateFilter", dateFilter);
@@ -3247,6 +3306,13 @@ public class ManagerController extends HttpServlet {
                 response.sendRedirect(request.getContextPath() + "/v1/manager/forms/create-ot");
                 return;
             }
+            
+            List<String> busyEmployees = overtimeDAO.getBusyEmployeeNamesForOT(assigneeIds, otDate);
+            if (!busyEmployees.isEmpty()) {
+                request.getSession().setAttribute("error", "Các nhân viên sau đã có lịch OT (Đang chờ/Đã duyệt/Hoàn thành) vào ngày này: " + String.join(", ", busyEmployees));
+                response.sendRedirect(request.getContextPath() + "/v1/manager/forms/create-ot");
+                return;
+            }
 
             try {
                 java.time.LocalTime start = java.time.LocalTime.parse(startTime);
@@ -3337,7 +3403,6 @@ public class ManagerController extends HttpServlet {
             response.sendRedirect(request.getContextPath() + "/v1/manager/forms/create-ot");
         }
     }
-
 
     private boolean isDepartmentManager(EmployeeDetailDTO me, int formId) {
         if (me == null || me.getDepartmentId() <= 0) {

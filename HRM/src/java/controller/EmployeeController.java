@@ -1238,8 +1238,8 @@ public class EmployeeController extends HttpServlet {
             return;
         }
         request.setAttribute("attendance", attendance);
-        boolean deadlineLocked =
-                attendanceClosingService.isEditLocked(attendance.getWorkDate(), attendance.getDepartmentId());
+        boolean deadlineLocked
+                = attendanceClosingService.isEditLocked(attendance.getWorkDate(), attendance.getDepartmentId());
         boolean weekendLocked = isWeekend(attendance.getWorkDate());
         request.setAttribute("editLocked", deadlineLocked || weekendLocked);
         request.setAttribute("lockMessage", weekendLocked
@@ -2022,6 +2022,9 @@ public class EmployeeController extends HttpServlet {
 
         ContractOperationResult result = contractService.createContract(contract);
         if (result.isSuccess()) {
+            boolean unionMember = request.getParameter("unionMember") != null;
+            employeeDAO.updateUnionMember(contract.getEmployeeId(), unionMember);
+
             request.getSession().setAttribute("success", "Thêm hợp đồng lao động thành công.");
             response.sendRedirect(
                     request.getContextPath() + "/v1/employee/contract/preview?employeeId=" + contract.getEmployeeId());
@@ -2806,8 +2809,8 @@ public class EmployeeController extends HttpServlet {
     }
 
     /**
-     * Trả về true nếu ngày chấm công rơi vào thứ Bảy hoặc Chủ Nhật.
-     * Dùng để chặn chỉnh sửa chấm công của ngày cuối tuần.
+     * Trả về true nếu ngày chấm công rơi vào thứ Bảy hoặc Chủ Nhật. Dùng để
+     * chặn chỉnh sửa chấm công của ngày cuối tuần.
      */
     private boolean isWeekend(java.sql.Date date) {
         if (date == null) {
