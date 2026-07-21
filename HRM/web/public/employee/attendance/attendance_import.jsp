@@ -30,27 +30,41 @@
     </jsp:include>
 
     <c:if test="${not empty error}">
-        <div class="alert alert-danger alert-dismissible fade show" role="alert">
-            <i class="fa-solid fa-circle-xmark me-2"></i>${error}
+        <div class="alert alert-danger alert-dismissible fade show w-100 mb-3 d-flex align-items-center" role="alert">
+            <i class="fa-solid fa-circle-xmark me-2 fs-5"></i>
+            <div class="flex-grow-1">${error}</div>
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    </c:if>
+
+    <c:if test="${isLocked}">
+        <div class="alert alert-danger w-100 mb-3 d-flex align-items-center" role="alert">
+            <i class="fa-solid fa-lock me-2 fs-5"></i>
+            <div>
+                <strong>Kỳ chấm công đã đóng!</strong> Tháng ${allowedMonth}/${allowedYear} đã được BA/Nhân sự chốt công và khóa dữ liệu. Không thể import thêm.
+            </div>
         </div>
     </c:if>
 
     <div class="section-card">
         <c:choose>
             <c:when test="${importWindowOpen}">
-                <div class="alert alert-info">
-                    <i class="fa-solid fa-circle-info me-2"></i>
-                    Chỉ được import chấm công trong <strong>2 ngày đầu mỗi tháng</strong> (ngày 1 và 2)
-                    và chỉ cho <strong>tháng liền trước</strong>.
-                    Kỳ được phép hiện tại: <strong>Tháng ${allowedMonth}/${allowedYear}</strong>.
+                <div class="alert alert-info w-100 mb-4 d-flex align-items-center">
+                    <i class="fa-solid fa-circle-info me-2 fs-5"></i>
+                    <div>
+                        Chỉ được import chấm công trong <strong>2 ngày đầu mỗi tháng</strong> (ngày 1 và 2)
+                        và chỉ cho <strong>tháng liền trước</strong>.
+                        Kỳ được phép hiện tại: <strong>Tháng ${allowedMonth}/${allowedYear}</strong>.
+                    </div>
                 </div>
             </c:when>
             <c:otherwise>
-                <div class="alert alert-warning">
-                    <i class="fa-solid fa-triangle-exclamation me-2"></i>
-                    Đã quá hạn import. Chỉ được import trong <strong>2 ngày đầu mỗi tháng</strong> (ngày 1 và 2)
-                    cho tháng liền trước. Vui lòng quay lại vào đầu tháng sau.
+                <div class="alert alert-warning w-100 mb-4 d-flex align-items-center">
+                    <i class="fa-solid fa-triangle-exclamation me-2 fs-5"></i>
+                    <div>
+                        Đã quá hạn import. Chỉ được import trong <strong>2 ngày đầu mỗi tháng</strong> (ngày 1 và 2)
+                        cho tháng liền trước. Vui lòng quay lại vào đầu tháng sau.
+                    </div>
                 </div>
             </c:otherwise>
         </c:choose>
@@ -59,25 +73,29 @@
               enctype="multipart/form-data">
             <input type="hidden" name="month" value="${allowedMonth}">
             <input type="hidden" name="year" value="${allowedYear}">
+            
             <div class="row g-3">
                 <div class="col-md-12">
-                    <label class="form-label">Kỳ chấm công</label>
+                    <label class="form-label fw-bold">Kỳ chấm công</label>
                     <input type="text" class="form-control"
                            value="Tháng ${allowedMonth}/${allowedYear}" disabled>
                 </div>
 
                 <div class="col-md-12">
-                    <label class="form-label">File Excel (.xlsx) <span class="text-danger">*</span></label>
+                    <label class="form-label fw-bold">File Excel (.xlsx) <span class="text-danger">*</span></label>
+                    <!-- Disable nếu quá hạn HOẶC kỳ công đã bị đóng -->
                     <input type="file" name="attendanceFile" class="form-control" accept=".xlsx"
-                           ${importWindowOpen ? 'required' : 'disabled'}>
-                    <small class="text-muted">
+                           ${(importWindowOpen && !isLocked) ? 'required' : 'disabled'}>
+                    <small class="text-muted d-block mt-1">
                         Cột yêu cầu (dòng 1 là header): employeeCode, fullName, Department, workDate, timeIn, timeOut.
                         Trạng thái được tự suy từ giờ vào/ra. Khi chọn "Tất cả phòng ban", hệ thống tự xác định phòng của từng nhân viên. Tối đa 10MB.
                     </small>
                 </div>
             </div>
-            <div class="mt-3">
-                <button type="submit" class="btn btn-primary" ${importWindowOpen ? '' : 'disabled'}>
+
+            <div class="mt-4">
+                <!-- Disable nút bấm nếu quá hạn HOẶC kỳ công đã bị đóng -->
+                <button type="submit" class="btn btn-primary px-4" ${(importWindowOpen && !isLocked) ? '' : 'disabled'}>
                     <i class="fa-solid fa-upload me-1"></i> Upload &amp; Import
                 </button>
             </div>
@@ -89,13 +107,13 @@
             <h5 class="mb-3"><i class="fa-solid fa-list-check me-2"></i>Kết quả import</h5>
             <c:choose>
                 <c:when test="${importResult.status == 1}">
-                    <div class="alert alert-success">${importResult.note}</div>
+                    <div class="alert alert-success w-100">${importResult.note}</div>
                 </c:when>
                 <c:when test="${importResult.status == 3}">
-                    <div class="alert alert-warning">${importResult.note}</div>
+                    <div class="alert alert-warning w-100">${importResult.note}</div>
                 </c:when>
                 <c:otherwise>
-                    <div class="alert alert-danger">${importResult.note}</div>
+                    <div class="alert alert-danger w-100">${importResult.note}</div>
                 </c:otherwise>
             </c:choose>
 
@@ -139,7 +157,7 @@
             </c:if>
 
             <a href="${pageContext.request.contextPath}/v1/employee/attendance/overview"
-               class="btn btn-outline-primary btn-sm">
+               class="btn btn-outline-primary btn-sm mt-2">
                 <i class="fa-solid fa-table me-1"></i> Xem dữ liệu chấm công
             </a>
         </div>

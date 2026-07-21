@@ -38,10 +38,8 @@ public class AttendanceImportService {
 
     private static final Time WORK_START = Time.valueOf("08:00:00");
 
-    /** Giờ kết thúc ca chuẩn. Khi không có đơn OT được duyệt, giờ ra bị giới hạn ở mốc này. */
     private static final Time WORK_END = Time.valueOf("17:00:00");
 
-    /** Số giờ làm chuẩn trong một ngày. Khi không có đơn OT được duyệt, giờ công bị giới hạn tối đa ở mức này. */
     private static final BigDecimal STANDARD_HOURS = new BigDecimal("8.00");
 
     private final DBContext dbContext;

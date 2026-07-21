@@ -88,9 +88,6 @@ public class EmployeeController extends HttpServlet {
     private final AttendanceExcelExporter attendanceExporter = new AttendanceExcelExporter();
     private final String UPLOAD_DIR = config.getProperty("UPLOAD_DIR");
     private final String FILE_PART = config.getProperty("FILE_PART");
-    private final CandidateDAO candidateDAO = new CandidateDAO();
-    private final EmailService emailService = new EmailService();
-    private final CandidateImportService candidateImportService = new CandidateImportService();
     private final PayrollService payrollService = new PayrollService();
     private final AttendanceClosingService attendanceClosingService = new AttendanceClosingService();
     private final PayrollConfigDAO payrollConfigDAO = new PayrollConfigDAO();
@@ -796,7 +793,6 @@ public class EmployeeController extends HttpServlet {
         int[] period = parseSalaryPeriod(request);
         Integer departmentId = parseIntOrNull(request.getParameter("departmentId"));
 
-        // Chặn cứng: chỉ được tính lương khi bảng chấm công đã được BA chốt (LOCKED).
         boolean locked = departmentId == null
                 ? attendanceClosingService.isPeriodLocked(period[0], period[1])
                 : attendanceClosingService.isDepartmentLocked(period[0], period[1], departmentId);
@@ -1185,6 +1181,7 @@ public class EmployeeController extends HttpServlet {
             response.sendRedirect(request.getContextPath() + "/v1/employee/dashboard");
             return;
         }
+        
         Set<String> perms = getPermissions(user);
         request.getSession().setAttribute("userPermissions", perms);
         setImportWindowAttributes(request);
@@ -1367,7 +1364,6 @@ public class EmployeeController extends HttpServlet {
         if (calcTimeIn != null && calcTimeOut != null && (status == 0 || status == 1)) {
             hoursWorked = utils.WorkHoursCalculator.hoursWorked(calcTimeIn, calcTimeOut);
 
-            // Không OT thì giờ công không vượt quá 8 tiếng chuẩn.
             BigDecimal standardHours = new BigDecimal("8.00");
             if (!hasOT && hoursWorked.compareTo(standardHours) > 0) {
                 hoursWorked = standardHours;
@@ -1395,6 +1391,7 @@ public class EmployeeController extends HttpServlet {
         Set<String> perms = getPermissions(user);
         request.getSession().setAttribute("userPermissions", perms);
 
+        
         int month, year;
         int departmentId = 0;
         try {
@@ -1409,17 +1406,27 @@ public class EmployeeController extends HttpServlet {
             response.sendRedirect(request.getContextPath() + "/v1/employee/attendance/import");
             return;
         }
+        
+        boolean locked = (departmentId  == 0)
+            ? attendanceClosingService.isPeriodLocked(year, month)
+            : attendanceClosingService.isDepartmentLocked(year, month, departmentId);
 
+        if (locked) {
+        request.getSession().setAttribute("error", 
+            "Kỳ chấm công tháng " + month + "/" + year + " đã được đóng/khóa. Không thể import dữ liệu mới!");
+        response.sendRedirect(request.getContextPath() + "/v1/employee/attendance/import?month=" + month + "&year=" + year);
+        return; 
+        }
         setImportWindowAttributes(request);
 
         if (month < 1 || month > 12) {
-            request.setAttribute("error", "Vui lêng chọn thông hợp lệ (1-12).");
+            request.setAttribute("error", "Vui lòng chọn tháng hợp lệ (1-12).");
             List<Department> activeDepartments = departmentDAO.getAllActiveDepartments();
             request.setAttribute("departments", activeDepartments);
             request.getRequestDispatcher("/public/employee/attendance/attendance_import.jsp").forward(request, response);
         }
         if (year < 2000 || year > 2100) {
-            request.setAttribute("error", "Vui lA?ng ch?n nam h?p l?");
+            request.setAttribute("error", "Vui lòng chọn năm hợp lệ");
             List<Department> activeDepartments = departmentDAO.getAllActiveDepartments();
             request.setAttribute("departments", activeDepartments);
             request.getRequestDispatcher("/public/employee/attendance/attendance_import.jsp").forward(request, response);
@@ -1436,7 +1443,7 @@ public class EmployeeController extends HttpServlet {
 
         Part filePart = request.getPart(FILE_PART);
         if (filePart == null || filePart.getSize() == 0) {
-            request.setAttribute("error", "Vui lêng chọn file Excel .xlsx để import.");
+            request.setAttribute("error", "Vui lòng chọn file Excel .xlsx để import.");
             List<Department> activeDepartments = departmentDAO.getAllActiveDepartments();
             request.setAttribute("departments", activeDepartments);
             request.getRequestDispatcher("/public/employee/attendance/attendance_import.jsp").forward(request, response);
