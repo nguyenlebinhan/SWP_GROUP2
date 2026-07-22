@@ -407,7 +407,7 @@ public class OvertimeDAO {
                      "JOIN Overtime_Details od ON fr.formId = od.formId " +
                      "JOIN Overtime_Assignees oa ON fr.formId = oa.formId " +
                      "SET fr.status = 4 " +
-                     "WHERE oa.employeeId = ? AND od.otDate = ? AND od.dayType IN (1, 2) AND fr.status IN (1, 3)";
+                     "WHERE oa.employeeId = ? AND od.otDate = ? AND od.dayType IN (1, 2) AND (fr.status = 1 OR (fr.status = 3 AND fr.approverNote = 'Auto-cancelled by System'))";
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, employeeId);
             ps.setDate(2, workDate);
@@ -419,11 +419,46 @@ public class OvertimeDAO {
     public void cancelUnfulfilledOTForms(Connection conn, java.sql.Date workDate) throws SQLException {
         String sql = "UPDATE Form_Requests fr " +
                      "JOIN Overtime_Details od ON fr.formId = od.formId " +
-                     "SET fr.status = 3 " +
+                     "SET fr.status = 3, fr.approverNote = 'Auto-cancelled by System' " +
                      "WHERE od.otDate = ? AND od.dayType IN (1, 2) AND fr.status = 1";
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setDate(1, workDate);
             ps.executeUpdate();
         }
+    }
+
+    public List<String> getBusyEmployeeNamesForOT(String[] employeeIds, String otDate) {
+        List<String> busyNames = new ArrayList<>();
+        if (employeeIds == null || employeeIds.length == 0) return busyNames;
+        
+        StringBuilder placeholders = new StringBuilder();
+        for (int i = 0; i < employeeIds.length; i++) {
+            placeholders.append("?");
+            if (i < employeeIds.length - 1) placeholders.append(",");
+        }
+        
+        String sql = "SELECT DISTINCT u.fullName, e.employeeCode " +
+                     "FROM Form_Requests fr " +
+                     "JOIN Overtime_Details od ON fr.formId = od.formId " +
+                     "JOIN Overtime_Assignees oa ON fr.formId = oa.formId " +
+                     "JOIN Employees e ON oa.employeeId = e.employeeId " +
+                     "JOIN Users u ON e.userId = u.userId " +
+                     "WHERE od.otDate = ? AND fr.status IN (0, 1, 4) " +
+                     "AND oa.employeeId IN (" + placeholders.toString() + ")";
+                     
+        try (Connection conn = dbContext.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, otDate);
+            for (int i = 0; i < employeeIds.length; i++) {
+                ps.setInt(i + 2, Integer.parseInt(employeeIds[i]));
+            }
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    busyNames.add(rs.getString("fullName") + " (" + rs.getString("employeeCode") + ")");
+                }
+            }
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Cannot check active OT for employees", e);
+        }
+        return busyNames;
     }
 }

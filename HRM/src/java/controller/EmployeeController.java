@@ -88,9 +88,6 @@ public class EmployeeController extends HttpServlet {
     private final AttendanceExcelExporter attendanceExporter = new AttendanceExcelExporter();
     private final String UPLOAD_DIR = config.getProperty("UPLOAD_DIR");
     private final String FILE_PART = config.getProperty("FILE_PART");
-    private final CandidateDAO candidateDAO = new CandidateDAO();
-    private final EmailService emailService = new EmailService();
-    private final CandidateImportService candidateImportService = new CandidateImportService();
     private final PayrollService payrollService = new PayrollService();
     private final AttendanceClosingService attendanceClosingService = new AttendanceClosingService();
     private final PayrollConfigDAO payrollConfigDAO = new PayrollConfigDAO();
@@ -309,6 +306,12 @@ public class EmployeeController extends HttpServlet {
                 break;
             case "/payroll-config/tax/save":
                 handleRequestPayrollTaxBracket(request, response, user);
+                break;
+            case "/payroll-config/allowance/save":
+                handleRequestPayrollAllowance(request, response, user);
+                break;
+            case "/payroll-config/allowance/delete":
+                handleRequestPayrollAllowanceDelete(request, response, user);
                 break;
             default:
                 response.sendRedirect(request.getContextPath() + "/v1/employee/dashboard");
@@ -601,6 +604,7 @@ public class EmployeeController extends HttpServlet {
         request.setAttribute("payrollPreview", payrollPreview);
         request.setAttribute("selectedYear", period[0]);
         request.setAttribute("selectedMonth", period[1]);
+        request.setAttribute("allowanceTypes", payrollConfigDAO.getAllowanceTypes(true));
         request.getRequestDispatcher("/public/employee/salary/own_salary.jsp").forward(request, response);
     }
 
@@ -622,6 +626,7 @@ public class EmployeeController extends HttpServlet {
         request.setAttribute("settings", settings);
         request.setAttribute("deductionRules", payrollConfigDAO.getDeductionRules(false));
         request.setAttribute("taxBrackets", payrollConfigDAO.getTaxBrackets(false));
+        request.setAttribute("allowanceTypes", payrollConfigDAO.getAllowanceTypes(false));
         request.setAttribute("payrollConfigBaseUrl", request.getContextPath() + "/v1/employee/payroll-config");
         request.setAttribute("canEditPayrollConfig", true);
         request.setAttribute("canApprovePayrollConfig", false);
@@ -700,10 +705,12 @@ public class EmployeeController extends HttpServlet {
         request.setAttribute("departments", departmentDAO.getAllActiveDepartments());
         request.setAttribute("attendanceLocked", attendanceLocked);
         request.setAttribute("canExportPayroll", payrollService.canExportPayroll(user));
+        request.setAttribute("periodFinalized", payrollService.isPeriodFinalized(period[0], period[1]));
         boolean canApproveAll = payrollService.canApprovePayroll(user);
         request.setAttribute("canApprovePayroll", canApproveAll);
         if (canApproveAll) {
-            int pendingCount = payrollService.countPendingApprovalForPeriod(user, period[0], period[1], departmentId);
+            // Duyệt luôn áp dụng cho toàn công ty nên số đếm cũng không lọc theo phòng ban đang xem.
+            int pendingCount = payrollService.countPendingApprovalForPeriod(user, period[0], period[1], null);
             request.setAttribute("pendingApprovalCount", pendingCount);
         }
         request.getRequestDispatcher("/public/employee/salary/salary_list.jsp").forward(request, response);
@@ -727,6 +734,7 @@ public class EmployeeController extends HttpServlet {
             request.setAttribute("salaryError", "Không tìm thấy bảng lương cần xem chi tiết.");
         }
         request.setAttribute("payrollPreview", payrollPreview);
+        request.setAttribute("allowanceTypes", payrollConfigDAO.getAllowanceTypes(true));
         request.getRequestDispatcher("/public/employee/salary/salary_detail.jsp").forward(request, response);
     }
 
@@ -768,7 +776,8 @@ public class EmployeeController extends HttpServlet {
         int[] period = parseSalaryPeriod(request);
         Integer departmentId = parseIntOrNull(request.getParameter("departmentId"));
 
-        int approvedCount = payrollService.approveAllPayrollForPeriod(user, period[0], period[1], departmentId);
+        // Duyệt luôn áp dụng cho toàn công ty, không bị giới hạn bởi bộ lọc phòng ban đang xem.
+        int approvedCount = payrollService.approveAllPayrollForPeriod(user, period[0], period[1], null);
         if (approvedCount > 0) {
             request.getSession().setAttribute("success",
                     "Đã duyệt " + approvedCount + " bảng lương cho kỳ lương "
@@ -796,7 +805,15 @@ public class EmployeeController extends HttpServlet {
         int[] period = parseSalaryPeriod(request);
         Integer departmentId = parseIntOrNull(request.getParameter("departmentId"));
 
-        // Chặn cứng: chỉ được tính lương khi bảng chấm công đã được BA chốt (LOCKED).
+        if (payrollService.isPeriodFinalized(period[0], period[1])) {
+            request.getSession().setAttribute("error",
+                    "Kỳ lương này đã được chốt, không thể tạo lại bảng lương.");
+            response.sendRedirect(request.getContextPath() + "/v1/employee/salary/all?month=" + period[1]
+                    + "&year=" + period[0]
+                    + (departmentId == null ? "" : "&departmentId=" + departmentId));
+            return;
+        }
+
         boolean locked = departmentId == null
                 ? attendanceClosingService.isPeriodLocked(period[0], period[1])
                 : attendanceClosingService.isDepartmentLocked(period[0], period[1], departmentId);
@@ -913,6 +930,55 @@ public class EmployeeController extends HttpServlet {
         request.getSession().setAttribute(requestId > 0 ? "payrollConfigSuccess" : "payrollConfigError",
                 requestId > 0 ? "Đã gửi yêu cầu thay đổi bậc thuế chờ Quản trị doanh nghiệp duyệt."
                         : "Không thể gửi yêu cầu thay đổi bậc thuế.");
+        response.sendRedirect(redirect);
+    }
+
+    private void handleRequestPayrollAllowance(HttpServletRequest request, HttpServletResponse response,
+            User user) throws IOException {
+        String redirect = request.getContextPath() + "/v1/employee/payroll-config";
+        if (!isHrStaff(user) || !hasPermission(user, "CONFIG_PAYROLL")) {
+            request.getSession().setAttribute("payrollConfigError", "Bạn không có quyền cấu hình lương.");
+            response.sendRedirect(redirect);
+            return;
+        }
+        PayrollAllowanceType type = payrollConfigWorkflowService.buildAllowanceType(
+                request.getParameter("allowanceId"),
+                request.getParameter("allowanceCode"),
+                request.getParameter("allowanceName"),
+                request.getParameter("amount"),
+                request.getParameter("insuranceApplicable"),
+                request.getParameter("active"));
+        String error = payrollConfigWorkflowService.validateAllowanceType(type);
+        if (error != null) {
+            request.getSession().setAttribute("payrollConfigError", error);
+            response.sendRedirect(redirect);
+            return;
+        }
+        int requestId = payrollConfigWorkflowService.requestAllowanceSave(type, user);
+        request.getSession().setAttribute(requestId > 0 ? "payrollConfigSuccess" : "payrollConfigError",
+                requestId > 0 ? "Đã gửi yêu cầu thay đổi loại phụ cấp chờ Quản trị doanh nghiệp duyệt."
+                        : "Không thể gửi yêu cầu thay đổi loại phụ cấp.");
+        response.sendRedirect(redirect);
+    }
+
+    private void handleRequestPayrollAllowanceDelete(HttpServletRequest request, HttpServletResponse response,
+            User user) throws IOException {
+        String redirect = request.getContextPath() + "/v1/employee/payroll-config";
+        if (!isHrStaff(user) || !hasPermission(user, "CONFIG_PAYROLL")) {
+            request.getSession().setAttribute("payrollConfigError", "Bạn không có quyền cấu hình lương.");
+            response.sendRedirect(redirect);
+            return;
+        }
+        Integer allowanceId = parseIntOrNull(request.getParameter("allowanceId"));
+        if (allowanceId == null) {
+            request.getSession().setAttribute("payrollConfigError", "Thiếu loại phụ cấp cần xóa.");
+            response.sendRedirect(redirect);
+            return;
+        }
+        int requestId = payrollConfigWorkflowService.requestAllowanceDelete(allowanceId, user);
+        request.getSession().setAttribute(requestId > 0 ? "payrollConfigSuccess" : "payrollConfigError",
+                requestId > 0 ? "Đã gửi yêu cầu xóa loại phụ cấp chờ Quản trị doanh nghiệp duyệt."
+                        : "Không thể gửi yêu cầu xóa loại phụ cấp.");
         response.sendRedirect(redirect);
     }
 
@@ -1185,6 +1251,7 @@ public class EmployeeController extends HttpServlet {
             response.sendRedirect(request.getContextPath() + "/v1/employee/dashboard");
             return;
         }
+        
         Set<String> perms = getPermissions(user);
         request.getSession().setAttribute("userPermissions", perms);
         setImportWindowAttributes(request);
@@ -1367,7 +1434,6 @@ public class EmployeeController extends HttpServlet {
         if (calcTimeIn != null && calcTimeOut != null && (status == 0 || status == 1)) {
             hoursWorked = utils.WorkHoursCalculator.hoursWorked(calcTimeIn, calcTimeOut);
 
-            // Không OT thì giờ công không vượt quá 8 tiếng chuẩn.
             BigDecimal standardHours = new BigDecimal("8.00");
             if (!hasOT && hoursWorked.compareTo(standardHours) > 0) {
                 hoursWorked = standardHours;
@@ -1395,6 +1461,7 @@ public class EmployeeController extends HttpServlet {
         Set<String> perms = getPermissions(user);
         request.getSession().setAttribute("userPermissions", perms);
 
+        
         int month, year;
         int departmentId = 0;
         try {
@@ -1409,17 +1476,27 @@ public class EmployeeController extends HttpServlet {
             response.sendRedirect(request.getContextPath() + "/v1/employee/attendance/import");
             return;
         }
+        
+        boolean locked = (departmentId  == 0)
+            ? attendanceClosingService.isPeriodLocked(year, month)
+            : attendanceClosingService.isDepartmentLocked(year, month, departmentId);
 
+        if (locked) {
+        request.getSession().setAttribute("error", 
+            "Kỳ chấm công tháng " + month + "/" + year + " đã được đóng/khóa. Không thể import dữ liệu mới!");
+        response.sendRedirect(request.getContextPath() + "/v1/employee/attendance/import?month=" + month + "&year=" + year);
+        return; 
+        }
         setImportWindowAttributes(request);
 
         if (month < 1 || month > 12) {
-            request.setAttribute("error", "Vui lêng chọn thông hợp lệ (1-12).");
+            request.setAttribute("error", "Vui lòng chọn tháng hợp lệ (1-12).");
             List<Department> activeDepartments = departmentDAO.getAllActiveDepartments();
             request.setAttribute("departments", activeDepartments);
             request.getRequestDispatcher("/public/employee/attendance/attendance_import.jsp").forward(request, response);
         }
         if (year < 2000 || year > 2100) {
-            request.setAttribute("error", "Vui lA?ng ch?n nam h?p l?");
+            request.setAttribute("error", "Vui lòng chọn năm hợp lệ");
             List<Department> activeDepartments = departmentDAO.getAllActiveDepartments();
             request.setAttribute("departments", activeDepartments);
             request.getRequestDispatcher("/public/employee/attendance/attendance_import.jsp").forward(request, response);
@@ -1436,7 +1513,7 @@ public class EmployeeController extends HttpServlet {
 
         Part filePart = request.getPart(FILE_PART);
         if (filePart == null || filePart.getSize() == 0) {
-            request.setAttribute("error", "Vui lêng chọn file Excel .xlsx để import.");
+            request.setAttribute("error", "Vui lòng chọn file Excel .xlsx để import.");
             List<Department> activeDepartments = departmentDAO.getAllActiveDepartments();
             request.setAttribute("departments", activeDepartments);
             request.getRequestDispatcher("/public/employee/attendance/attendance_import.jsp").forward(request, response);
@@ -2908,7 +2985,7 @@ public class EmployeeController extends HttpServlet {
         request.setAttribute("canAssignDept", perms.contains("ASSIGN_DEPARTMENT"));
         request.setAttribute("canUnassignDept", perms.contains("UNASSIGN_DEPARTMENT"));
         request.setAttribute("canEditAttendance", perms.contains("EDIT_ATTENDANCE"));
-        request.setAttribute("canViewOwnSalary", perms.contains("VIEW_OWN_SALARY"));
+        request.setAttribute("canViewOwnSalary", true);
         request.setAttribute("canViewAllSalary", perms.contains("VIEW_ALL_SALARY"));
         request.setAttribute("canExportPayroll", perms.contains("EXPORT_PAYROLL"));
         request.setAttribute("canViewOwnContract", perms.contains("VIEW_OWN_CONTRACT"));

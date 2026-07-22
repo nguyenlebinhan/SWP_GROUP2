@@ -105,9 +105,13 @@
             }
             .salary-layout {
                 display:grid;
-                grid-template-columns:1fr;
+                grid-template-columns:2fr 1fr;
                 gap:20px;
                 align-items:start;
+            }
+            .allowance-scroll {
+                max-height:220px;
+                overflow-y:auto;
             }
             .salary-section {
                 border:1px solid #eef2f7;
@@ -248,8 +252,11 @@
                             </div>
                             <div class="d-flex align-items-center gap-2 flex-wrap">
                                 <c:choose>
+                                    <c:when test="${p.status == 2}">
+                                        <span class="status-badge status-paid">Đã chốt</span>
+                                    </c:when>
                                     <c:when test="${p.status == 1}">
-                                        <span class="status-badge status-paid">Nhân sự đã duyệt</span>
+                                        <span class="status-badge status-approved">HR đã duyệt - chờ chốt</span>
                                     </c:when>
                                     <c:otherwise>
                                         <span class="status-badge status-pending">Chờ duyệt</span>
@@ -267,11 +274,11 @@
                                         <div class="money text-success"><fmt:formatNumber value="${p.baseSalary}" type="number" groupingUsed="true" /> VND</div>
                                     </div>
                                     <div class="salary-row">
-                                        <div><strong>Phụ cấp + tăng ca + thưởng</strong><div class="salary-note">Các khoản cộng thêm vào lương.</div></div>
+                                        <div><strong>Phụ cấp + tăng ca + thưởng</strong><div class="salary-note"><fmt:formatNumber value="${p.allowance}" type="number" groupingUsed="true" /> + <fmt:formatNumber value="${p.overtimePay}" type="number" groupingUsed="true" /> + <fmt:formatNumber value="${p.bonus}" type="number" groupingUsed="true" /></div></div>
                                         <div class="money text-success">+<fmt:formatNumber value="${p.allowance + p.overtimePay + p.bonus}" type="number" groupingUsed="true" /> VND</div>
                                     </div>
                                     <div class="salary-row bg-success-subtle">
-                                        <div><strong>Tổng thu nhập</strong><div class="salary-note">Trước khi trừ bảo hiểm, thuế và ngày không làm.</div></div>
+                                        <div><strong>Tổng thu nhập</strong><div class="salary-note">Lương hợp đồng + Phụ cấp + Tăng ca + Thưởng</div></div>
                                         <div class="money"><fmt:formatNumber value="${p.grossSalary}" type="number" groupingUsed="true" /> VND</div>
                                     </div>
                                 </div>
@@ -279,29 +286,91 @@
                                 <div class="salary-section">
                                     <h6>Khấu trừ</h6>
                                     <div class="salary-row">
-                                        <div><strong>Bảo hiểm và các khoản trừ</strong><div class="salary-note">Trạng thái bảo hiểm: ${payrollPreview.insuranceCalculated ? 'Có tính' : 'Không tính'}.</div></div>
-                                        <div class="money text-danger">-<fmt:formatNumber value="${totalDeduction - p.unpaidDeduction - p.personalIncomeTax}" type="number" groupingUsed="true" /> VND</div>
+                                        <div><strong>Bảo hiểm / phí công đoàn</strong><div class="salary-note">Lương căn cứ đóng BH: <fmt:formatNumber value="${p.insuranceSalaryBase}" type="number" groupingUsed="true" /> (${payrollPreview.insuranceCalculated ? 'Có tính' : 'Không tính'})</div></div>
+                                        <div class="money text-danger">-<fmt:formatNumber value="${p.insuranceDeduction}" type="number" groupingUsed="true" /> VND</div>
                                     </div>
                                     <div class="salary-row">
-                                        <div><strong>Ngày không làm / đi muộn</strong><div class="salary-note">${payrollPreview.notWorkedDays} ngày; ${payrollPreview.lateDeductionBlocks} lượt đi muộn.</div></div>
+                                        <div><strong>Ngày không làm / đi muộn</strong><div class="salary-note">${payrollPreview.notWorkedDays} ngày không làm; ${payrollPreview.lateDeductionBlocks} lượt đi muộn</div></div>
                                         <div class="money text-danger">-<fmt:formatNumber value="${p.unpaidDeduction}" type="number" groupingUsed="true" /> VND</div>
                                     </div>
                                     <div class="salary-row">
-                                        <div><strong>Thuế TNCN</strong><div class="salary-note">Thu nhập tính thuế: <fmt:formatNumber value="${taxableIncome}" type="number" groupingUsed="true" /> VND.</div></div>
+                                        <div><strong>Thuế TNCN</strong><div class="salary-note"><c:out value="${payrollPreview.personalIncomeTaxFormula}" /></div></div>
                                         <div class="money text-danger">-<fmt:formatNumber value="${p.personalIncomeTax}" type="number" groupingUsed="true" /> VND</div>
                                     </div>
                                     <div class="salary-row bg-danger-subtle">
-                                        <div><strong>Tổng khấu trừ</strong><div class="salary-note">Tất cả khoản trừ trong kỳ.</div></div>
+                                        <div><strong>Tổng khấu trừ</strong><div class="salary-note">Bảo hiểm + Ngày không làm + Thuế TNCN</div></div>
                                         <div class="money">-<fmt:formatNumber value="${totalDeduction}" type="number" groupingUsed="true" /> VND</div>
                                     </div>
                                 </div>
                             </div>
 
-                            <div class="salary-section net-card">
-                                <h6>Lương thực nhận</h6>
-                                <div class="salary-row">
-                                    <div><strong>Thực nhận trong kỳ</strong><div class="salary-note">Tổng thu nhập - tổng khấu trừ.</div></div>
-                                    <div class="money"><fmt:formatNumber value="${p.netSalary}" type="number" groupingUsed="true" /> VND</div>
+                            <div>
+                                <div class="salary-section net-card">
+                                    <h6>Lương thực nhận</h6>
+                                    <div class="salary-row">
+                                        <div><strong>Thực nhận trong kỳ</strong><div class="salary-note">Tổng thu nhập - tổng khấu trừ.</div></div>
+                                        <div class="money"><fmt:formatNumber value="${p.netSalary}" type="number" groupingUsed="true" /> VND</div>
+                                    </div>
+                                </div>
+
+                                <div class="salary-section">
+                                    <h6>Bảo hiểm</h6>
+                                    <div class="table-responsive">
+                                        <table class="table table-sm align-middle mb-0">
+                                            <tbody>
+                                                <c:forEach var="d" items="${payrollPreview.details}">
+                                                    <c:if test="${d.deduction and d.code ne 'PERSONAL_INCOME_TAX' and d.code ne 'UNPAID_DEDUCTION'}">
+                                                        <tr>
+                                                            <td>
+                                                                <div><c:out value="${d.name}" /></div>
+                                                                <div class="small text-muted"><fmt:formatNumber value="${d.base}" type="number" groupingUsed="true" /> x <fmt:formatNumber value="${d.employeeRatePercent}" type="number" maxFractionDigits="2" groupingUsed="false" />%</div>
+                                                            </td>
+                                                            <td class="text-end fw-bold text-danger">-<fmt:formatNumber value="${d.amount}" type="number" groupingUsed="true" /> VND</td>
+                                                        </tr>
+                                                    </c:if>
+                                                </c:forEach>
+                                                <tr class="fw-bold">
+                                                    <td>Tổng bảo hiểm</td>
+                                                    <td class="text-end text-danger">-<fmt:formatNumber value="${p.insuranceDeduction}" type="number" groupingUsed="true" /> VND</td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+
+                                <div class="salary-section">
+                                    <h6>Phụ cấp</h6>
+                                    <div class="table-responsive allowance-scroll">
+                                        <table class="table table-sm align-middle mb-0">
+                                            <tbody>
+                                                <c:set var="totalAllowanceTypes" value="${0}" />
+                                                <c:forEach var="a" items="${allowanceTypes}">
+                                                    <c:set var="totalAllowanceTypes" value="${totalAllowanceTypes + a.amount}" />
+                                                    <tr>
+                                                        <td>
+                                                            <c:out value="${a.allowanceName}" />
+                                                            <c:if test="${a.insuranceApplicable}">
+                                                                <span class="text-danger fw-bold">*</span>
+                                                            </c:if>
+                                                        </td>
+                                                        <td class="text-end"><fmt:formatNumber value="${a.amount}" type="number" groupingUsed="true" /> VND</td>
+                                                    </tr>
+                                                </c:forEach>
+                                                <c:if test="${empty allowanceTypes}">
+                                                    <tr><td colspan="2" class="text-muted text-center">Không có phụ cấp nào.</td></tr>
+                                                </c:if>
+                                                <c:if test="${not empty allowanceTypes}">
+                                                    <tr class="fw-bold">
+                                                        <td>Tổng phụ cấp</td>
+                                                        <td class="text-end"><fmt:formatNumber value="${totalAllowanceTypes}" type="number" groupingUsed="true" /> VND</td>
+                                                    </tr>
+                                                </c:if>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    <div class="small text-muted mt-2 px-3 pb-2">
+                                        <span class="text-danger fw-bold">*</span> Tính vào lương làm căn cứ đóng BHXH.
+                                    </div>
                                 </div>
                             </div>
                         </div>

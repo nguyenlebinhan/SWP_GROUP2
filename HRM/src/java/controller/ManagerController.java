@@ -50,6 +50,7 @@ import model.FormRequest;
 import model.FormType;
 import model.LeaveBalance;
 import model.Position;
+import model.PayrollAllowanceType;
 import model.PayrollConfigChangeRequest;
 import model.PayrollDeductionRule;
 import model.PayrollSetting;
@@ -355,6 +356,12 @@ public class ManagerController extends HttpServlet {
             case "/payroll-config/tax/save":
                 handleRequestPayrollTaxBracket(request, response, user);
                 break;
+            case "/payroll-config/allowance/save":
+                handleRequestPayrollAllowance(request, response, user);
+                break;
+            case "/payroll-config/allowance/delete":
+                handleRequestPayrollAllowanceDelete(request, response, user);
+                break;
             default:
                 response.sendRedirect(request.getContextPath() + "/v1/manager/dashboard");
                 break;
@@ -376,6 +383,64 @@ public class ManagerController extends HttpServlet {
         request.setAttribute("inactiveEmployees", inactiveEmployees);
         request.setAttribute("pendingLeaves", 0);
         request.setAttribute("deptChart", deptChart);
+        
+        // --- NEW DASHBOARD LOGIC (Appended without deleting base code) ---
+        EmployeeDetailDTO manager = employeeDAO.getEmployeeByUserId(user.getUserId());
+        request.setAttribute("myEmployee", manager);
+        
+        int deptTotalEmployees = totalEmployees;
+        int pendingForms = 0; 
+        List<EmployeeDetailDTO> departmentEmployees = new ArrayList<>();
+        Map<Integer, Integer> leaveBalances = new HashMap<>();
+        List<dto.AttendanceSummaryDTO> topEmployees = new ArrayList<>();
+        int prevMonth = java.time.LocalDate.now().minusMonths(1).getMonthValue();
+        int prevYear = java.time.LocalDate.now().minusMonths(1).getYear();
+
+        if (manager != null && manager.getDepartmentId() > 0) {
+            departmentEmployees = employeeDAO.getEmployeesByDepartmentId(manager.getDepartmentId());
+            deptTotalEmployees = departmentEmployees.size();
+            int currentYear = java.time.LocalDate.now().getYear();
+            
+            dao.LeaveBalanceDAO lbDAO = new dao.LeaveBalanceDAO();
+            for (EmployeeDetailDTO emp : departmentEmployees) {
+                model.LeaveBalance lb = lbDAO.getLeaveBalance(emp.getEmployeeId(), currentYear);
+                if (lb != null) {
+                    leaveBalances.put(emp.getEmployeeId(), lb.getTotalAllowed() - lb.getUsedDays());
+                } else {
+                    leaveBalances.put(emp.getEmployeeId(), 0);
+                }
+            }
+            
+            List<dto.FormRequestDTO> forms = formRequestDAO.getAllFormRequestsByDepartmentId(manager.getDepartmentId(), null, null, null, null);
+            for (dto.FormRequestDTO f : forms) {
+                if (f.getStatus() == 0) pendingForms++;
+            }
+            
+            dao.AttendanceDAO attDAO = new dao.AttendanceDAO();
+            List<dto.AttendanceSummaryDTO> summaries = attDAO.getMonthlySummary(manager.getDepartmentId(), prevMonth, prevYear);
+            if (summaries != null) {
+                summaries.sort((a, b) -> {
+                    if (b.getWorkedHours() == null && a.getWorkedHours() == null) return 0;
+                    if (b.getWorkedHours() == null) return -1;
+                    if (a.getWorkedHours() == null) return 1;
+                    return b.getWorkedHours().compareTo(a.getWorkedHours());
+                });
+                for (int i = 0; i < Math.min(3, summaries.size()); i++) {
+                    topEmployees.add(summaries.get(i));
+                }
+            }
+        }
+
+        // We use 'deptTotalEmployees' to override 'totalEmployees' for the new UI's specific needs,
+        // but the base code above still ran properly.
+        request.setAttribute("totalEmployees", deptTotalEmployees);
+        request.setAttribute("pendingForms", pendingForms);
+        request.setAttribute("departmentEmployees", departmentEmployees);
+        request.setAttribute("leaveBalances", leaveBalances);
+        request.setAttribute("topEmployees", topEmployees);
+        request.setAttribute("prevMonthStr", String.format("%02d/%d", prevMonth, prevYear));
+        request.setAttribute("todayDate", java.time.LocalDate.now().format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy")));
+        // -----------------------------------------------------------------
         setPermissionFlags(request, perms);
         request.getRequestDispatcher("/public/manager/dashboard.jsp").forward(request, response);
     }
@@ -555,6 +620,7 @@ public class ManagerController extends HttpServlet {
         request.setAttribute("payrollPreview", payrollPreview);
         request.setAttribute("selectedYear", period[0]);
         request.setAttribute("selectedMonth", period[1]);
+        request.setAttribute("allowanceTypes", payrollConfigDAO.getAllowanceTypes(true));
         request.getRequestDispatcher("/public/manager/salary/own_salary.jsp").forward(request, response);
     }
 
@@ -576,6 +642,7 @@ public class ManagerController extends HttpServlet {
         request.setAttribute("settings", settings);
         request.setAttribute("deductionRules", payrollConfigDAO.getDeductionRules(false));
         request.setAttribute("taxBrackets", payrollConfigDAO.getTaxBrackets(false));
+        request.setAttribute("allowanceTypes", payrollConfigDAO.getAllowanceTypes(false));
         request.setAttribute("payrollConfigBaseUrl", request.getContextPath() + "/v1/manager/payroll-config");
         request.setAttribute("canEditPayrollConfig", true);
         request.setAttribute("canApprovePayrollConfig", false);
@@ -654,10 +721,12 @@ public class ManagerController extends HttpServlet {
         request.setAttribute("departments", departmentDAO.getAllActiveDepartments());
         request.setAttribute("attendanceLocked", attendanceLocked);
         request.setAttribute("canExportPayroll", payrollService.canExportPayroll(user));
+        request.setAttribute("periodFinalized", payrollService.isPeriodFinalized(period[0], period[1]));
         boolean canApproveAll = payrollService.canApprovePayroll(user);
         request.setAttribute("canApprovePayroll", canApproveAll);
         if (canApproveAll) {
-            int pendingCount = payrollService.countPendingApprovalForPeriod(user, period[0], period[1], departmentId);
+            // Duyệt luôn áp dụng cho toàn công ty nên số đếm cũng không lọc theo phòng ban đang xem.
+            int pendingCount = payrollService.countPendingApprovalForPeriod(user, period[0], period[1], null);
             request.setAttribute("pendingApprovalCount", pendingCount);
         }
         request.getRequestDispatcher("/public/manager/salary/salary_list.jsp").forward(request, response);
@@ -681,6 +750,7 @@ public class ManagerController extends HttpServlet {
             request.setAttribute("salaryError", "Không tìm thấy bảng lương cần xem chi tiết.");
         }
         request.setAttribute("payrollPreview", payrollPreview);
+        request.setAttribute("allowanceTypes", payrollConfigDAO.getAllowanceTypes(true));
         request.getRequestDispatcher("/public/manager/salary/salary_detail.jsp").forward(request, response);
     }
 
@@ -722,7 +792,8 @@ public class ManagerController extends HttpServlet {
         int[] period = parseSalaryPeriod(request);
         Integer departmentId = parseIntOrNull(request.getParameter("departmentId"));
 
-        int approvedCount = payrollService.approveAllPayrollForPeriod(user, period[0], period[1], departmentId);
+        // Duyệt luôn áp dụng cho toàn công ty, không bị giới hạn bởi bộ lọc phòng ban đang xem.
+        int approvedCount = payrollService.approveAllPayrollForPeriod(user, period[0], period[1], null);
         if (approvedCount > 0) {
             request.getSession().setAttribute("success",
                     "Đã duyệt " + approvedCount + " bảng lương cho kỳ lương "
@@ -749,6 +820,15 @@ public class ManagerController extends HttpServlet {
         }
         int[] period = parseSalaryPeriod(request);
         Integer departmentId = parseIntOrNull(request.getParameter("departmentId"));
+
+        if (payrollService.isPeriodFinalized(period[0], period[1])) {
+            request.getSession().setAttribute("error",
+                    "Kỳ lương này đã được chốt, không thể tạo lại bảng lương.");
+            response.sendRedirect(request.getContextPath() + "/v1/manager/salary/all?month=" + period[1]
+                    + "&year=" + period[0]
+                    + (departmentId == null ? "" : "&departmentId=" + departmentId));
+            return;
+        }
 
         boolean locked = departmentId == null
                 ? attendanceClosingService.isPeriodLocked(period[0], period[1])
@@ -866,6 +946,55 @@ public class ManagerController extends HttpServlet {
         request.getSession().setAttribute(requestId > 0 ? "payrollConfigSuccess" : "payrollConfigError",
                 requestId > 0 ? "Đã gửi yêu cầu thay đổi bậc thuế chờ Quản trị doanh nghiệp duyệt."
                         : "Không thể gửi yêu cầu thay đổi bậc thuế.");
+        response.sendRedirect(redirect);
+    }
+
+    private void handleRequestPayrollAllowance(HttpServletRequest request, HttpServletResponse response,
+            User user) throws IOException {
+        String redirect = request.getContextPath() + "/v1/manager/payroll-config";
+        if (!isHrStaff(user) || !hasPermission(user, "CONFIG_PAYROLL")) {
+            request.getSession().setAttribute("payrollConfigError", "Bạn không có quyền cấu hình lương.");
+            response.sendRedirect(redirect);
+            return;
+        }
+        PayrollAllowanceType type = payrollConfigWorkflowService.buildAllowanceType(
+                request.getParameter("allowanceId"),
+                request.getParameter("allowanceCode"),
+                request.getParameter("allowanceName"),
+                request.getParameter("amount"),
+                request.getParameter("insuranceApplicable"),
+                request.getParameter("active"));
+        String error = payrollConfigWorkflowService.validateAllowanceType(type);
+        if (error != null) {
+            request.getSession().setAttribute("payrollConfigError", error);
+            response.sendRedirect(redirect);
+            return;
+        }
+        int requestId = payrollConfigWorkflowService.requestAllowanceSave(type, user);
+        request.getSession().setAttribute(requestId > 0 ? "payrollConfigSuccess" : "payrollConfigError",
+                requestId > 0 ? "Đã gửi yêu cầu thay đổi loại phụ cấp chờ Quản trị doanh nghiệp duyệt."
+                        : "Không thể gửi yêu cầu thay đổi loại phụ cấp.");
+        response.sendRedirect(redirect);
+    }
+
+    private void handleRequestPayrollAllowanceDelete(HttpServletRequest request, HttpServletResponse response,
+            User user) throws IOException {
+        String redirect = request.getContextPath() + "/v1/manager/payroll-config";
+        if (!isHrStaff(user) || !hasPermission(user, "CONFIG_PAYROLL")) {
+            request.getSession().setAttribute("payrollConfigError", "Bạn không có quyền cấu hình lương.");
+            response.sendRedirect(redirect);
+            return;
+        }
+        Integer allowanceId = parseIntOrNull(request.getParameter("allowanceId"));
+        if (allowanceId == null) {
+            request.getSession().setAttribute("payrollConfigError", "Thiếu loại phụ cấp cần xóa.");
+            response.sendRedirect(redirect);
+            return;
+        }
+        int requestId = payrollConfigWorkflowService.requestAllowanceDelete(allowanceId, user);
+        request.getSession().setAttribute(requestId > 0 ? "payrollConfigSuccess" : "payrollConfigError",
+                requestId > 0 ? "Đã gửi yêu cầu xóa loại phụ cấp chờ Quản trị doanh nghiệp duyệt."
+                        : "Không thể gửi yêu cầu xóa loại phụ cấp.");
         response.sendRedirect(redirect);
     }
 
@@ -2707,10 +2836,7 @@ public class ManagerController extends HttpServlet {
         response.sendRedirect(request.getContextPath() + "/v1/manager/forms/all");
     }
 
-    /**
-     * HR duyệt COMPLAINT (bước 2): update Attendance nếu record tồn tại, không
-     * INSERT mới nếu không có dữ liệu chấm công.
-     */
+
     private void onHrApproveComplaint(FormRequestDTO form, EmployeeDetailDTO me, HttpServletRequest request) {
         if (!(form instanceof ComplaintFormRequestDTO)) {
             return;
@@ -3251,6 +3377,13 @@ public class ManagerController extends HttpServlet {
                 response.sendRedirect(request.getContextPath() + "/v1/manager/forms/create-ot");
                 return;
             }
+            
+            List<String> busyEmployees = overtimeDAO.getBusyEmployeeNamesForOT(assigneeIds, otDate);
+            if (!busyEmployees.isEmpty()) {
+                request.getSession().setAttribute("error", "Các nhân viên sau đã có lịch OT (Đang chờ/Đã duyệt/Hoàn thành) vào ngày này: " + String.join(", ", busyEmployees));
+                response.sendRedirect(request.getContextPath() + "/v1/manager/forms/create-ot");
+                return;
+            }
 
             try {
                 java.time.LocalTime start = java.time.LocalTime.parse(startTime);
@@ -3428,7 +3561,7 @@ public class ManagerController extends HttpServlet {
         request.setAttribute("canEditDepts", perms.contains("EDIT_DEPARTMENTS"));
         request.setAttribute("canAssignDept", perms.contains("ASSIGN_DEPARTMENT"));
         request.setAttribute("canReassignDept", perms.contains("REASSIGN_DEPARTMENT"));
-        request.setAttribute("canViewOwnSalary", perms.contains("VIEW_OWN_SALARY"));
+        request.setAttribute("canViewOwnSalary", true);
         request.setAttribute("canViewAllSalary", perms.contains("VIEW_ALL_SALARY"));
         request.setAttribute("canExportPayroll", perms.contains("EXPORT_PAYROLL"));
         request.setAttribute("canViewOwnContract", perms.contains("VIEW_OWN_CONTRACT"));

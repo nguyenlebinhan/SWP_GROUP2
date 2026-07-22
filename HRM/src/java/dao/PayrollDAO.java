@@ -26,7 +26,6 @@ public class PayrollDAO {
     }
 
     // ── Lưu / lấy ─────────────────────────────────────────────────────────────
-
     public int saveOrUpdatePayroll(Payroll payroll) {
         try (Connection conn = dbContext.getConnection()) {
             Integer existingId = findPayrollId(conn, payroll.getEmployeeId(),
@@ -44,8 +43,7 @@ public class PayrollDAO {
 
     public Payroll getPayrollById(int payrollId) {
         String SQL = basePayrollSelect() + " WHERE payrollId = ?";
-        try (Connection conn = dbContext.getConnection();
-                PreparedStatement ps = conn.prepareStatement(SQL)) {
+        try (Connection conn = dbContext.getConnection(); PreparedStatement ps = conn.prepareStatement(SQL)) {
             ps.setInt(1, payrollId);
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
@@ -75,8 +73,7 @@ public class PayrollDAO {
                 + "    ORDER BY ec2.contractId DESC LIMIT 1 "
                 + ") "
                 + "WHERE p.payrollId = ?";
-        try (Connection conn = dbContext.getConnection();
-                PreparedStatement ps = conn.prepareStatement(SQL)) {
+        try (Connection conn = dbContext.getConnection(); PreparedStatement ps = conn.prepareStatement(SQL)) {
             ps.setInt(1, payrollId);
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
@@ -101,8 +98,7 @@ public class PayrollDAO {
         String SQL = basePayrollSelect()
                 + " WHERE employeeId = ? AND periodStart = ? AND periodEnd = ?"
                 + " ORDER BY payrollId DESC LIMIT 1";
-        try (Connection conn = dbContext.getConnection();
-                PreparedStatement ps = conn.prepareStatement(SQL)) {
+        try (Connection conn = dbContext.getConnection(); PreparedStatement ps = conn.prepareStatement(SQL)) {
             ps.setInt(1, employeeId);
             ps.setDate(2, periodStart);
             ps.setDate(3, periodEnd);
@@ -149,8 +145,7 @@ public class PayrollDAO {
             params.add(status);
         }
         sql.append("ORDER BY d.departmentName, e.employeeCode");
-        try (Connection conn = dbContext.getConnection();
-                PreparedStatement ps = conn.prepareStatement(sql.toString())) {
+        try (Connection conn = dbContext.getConnection(); PreparedStatement ps = conn.prepareStatement(sql.toString())) {
             for (int i = 0; i < params.size(); i++) {
                 ps.setObject(i + 1, params.get(i));
             }
@@ -174,7 +169,6 @@ public class PayrollDAO {
     }
 
     // ── Duyệt tổng (0 → 1) ────────────────────────────────────────────────────
-
     public int approveAllPendingPayroll(Date periodStart, Date periodEnd, Integer departmentId,
             int approvedByUserId, Integer excludeEmployeeId) {
         StringBuilder sql = new StringBuilder(
@@ -193,8 +187,7 @@ public class PayrollDAO {
             sql.append("AND employeeId != ? ");
             params.add(excludeEmployeeId);
         }
-        try (Connection conn = dbContext.getConnection();
-                PreparedStatement ps = conn.prepareStatement(sql.toString())) {
+        try (Connection conn = dbContext.getConnection(); PreparedStatement ps = conn.prepareStatement(sql.toString())) {
             for (int i = 0; i < params.size(); i++) {
                 ps.setObject(i + 1, params.get(i));
             }
@@ -221,8 +214,7 @@ public class PayrollDAO {
             sql.append("AND employeeId != ? ");
             params.add(excludeEmployeeId);
         }
-        try (Connection conn = dbContext.getConnection();
-                PreparedStatement ps = conn.prepareStatement(sql.toString())) {
+        try (Connection conn = dbContext.getConnection(); PreparedStatement ps = conn.prepareStatement(sql.toString())) {
             for (int i = 0; i < params.size(); i++) {
                 ps.setObject(i + 1, params.get(i));
             }
@@ -236,11 +228,101 @@ public class PayrollDAO {
     }
 
     // ── Generic status update (giữ lại, không gây hại) ────────────────────────
+    public int countApprovedForPeriod(Date periodStart, Date periodEnd) {
+        String sql = "SELECT COUNT(*) FROM Payroll WHERE periodStart = ? AND periodEnd = ? AND status = 1";
+        try (Connection conn = dbContext.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setDate(1, periodStart);
+            ps.setDate(2, periodEnd);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next() ? rs.getInt(1) : 0;
+            }
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Cannot count approved payroll for period", e);
+        }
+        return 0;
+    }
+
+    // ── Duyệt chốt cuối (1 → 2, Business Admin) ────────────────────────────────
+    public int finalizeApprovedPayroll(Date periodStart, Date periodEnd, Integer departmentId,
+            Integer approvedByUserId) {
+        StringBuilder sql = new StringBuilder(
+                "UPDATE Payroll "
+                + "SET status = 2, approvedBy = ?, approvedAt = CURRENT_TIMESTAMP "
+                + "WHERE periodStart = ? AND periodEnd = ? AND status = 1 ");
+        List<Object> params = new ArrayList<>();
+        params.add(approvedByUserId);
+        params.add(periodStart);
+        params.add(periodEnd);
+        if (departmentId != null) {
+            sql.append("AND departmentId = ? ");
+            params.add(departmentId);
+        }
+        try (Connection conn = dbContext.getConnection(); PreparedStatement ps = conn.prepareStatement(sql.toString())) {
+            for (int i = 0; i < params.size(); i++) {
+                ps.setObject(i + 1, params.get(i));
+            }
+            return ps.executeUpdate();
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Cannot finalize payroll for period", e);
+        }
+        return 0;
+    }
+
+    public int countAwaitingFinalization(Date periodStart, Date periodEnd, Integer departmentId) {
+        StringBuilder sql = new StringBuilder(
+                "SELECT COUNT(*) FROM Payroll "
+                + "WHERE periodStart = ? AND periodEnd = ? AND status = 1 ");
+        List<Object> params = new ArrayList<>();
+        params.add(periodStart);
+        params.add(periodEnd);
+        if (departmentId != null) {
+            sql.append("AND departmentId = ? ");
+            params.add(departmentId);
+        }
+        try (Connection conn = dbContext.getConnection(); PreparedStatement ps = conn.prepareStatement(sql.toString())) {
+            for (int i = 0; i < params.size(); i++) {
+                ps.setObject(i + 1, params.get(i));
+            }
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next() ? rs.getInt(1) : 0;
+            }
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Cannot count payroll awaiting finalization", e);
+        }
+        return 0;
+    }
+
+    public int countFinalizedForPeriod(Date periodStart, Date periodEnd) {
+        String sql = "SELECT COUNT(*) FROM Payroll WHERE periodStart = ? AND periodEnd = ? AND status = 2";
+        try (Connection conn = dbContext.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setDate(1, periodStart);
+            ps.setDate(2, periodEnd);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next() ? rs.getInt(1) : 0;
+            }
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Cannot count finalized payroll for period", e);
+        }
+        return 0;
+    }
+
+    // Hạn chốt tự động: mọi payroll của các kỳ đã quá hạn (periodStart <= cutoff) mà vẫn
+    // chưa được chốt (status 0 hoặc 1) sẽ tự động chuyển thành đã chốt (2).
+    public int autoFinalizeOverdue(Date cutoffPeriodStart) {
+        String sql = "UPDATE Payroll SET status = 2, approvedAt = CURRENT_TIMESTAMP "
+                + "WHERE status IN (0, 1) AND periodStart <= ?";
+        try (Connection conn = dbContext.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setDate(1, cutoffPeriodStart);
+            return ps.executeUpdate();
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Cannot auto-finalize overdue payroll", e);
+        }
+        return 0;
+    }
 
     public boolean updatePayrollStatus(int payrollId, int status) {
         String SQL = "UPDATE Payroll SET status = ? WHERE payrollId = ?";
-        try (Connection conn = dbContext.getConnection();
-                PreparedStatement ps = conn.prepareStatement(SQL)) {
+        try (Connection conn = dbContext.getConnection(); PreparedStatement ps = conn.prepareStatement(SQL)) {
             ps.setInt(1, status);
             ps.setInt(2, payrollId);
             return ps.executeUpdate() > 0;
@@ -251,7 +333,6 @@ public class PayrollDAO {
     }
 
     // ── Private helpers ────────────────────────────────────────────────────────
-
     private Integer findPayrollId(Connection conn, int employeeId, Date periodStart, Date periodEnd)
             throws SQLException {
         String SQL = "SELECT payrollId FROM Payroll "
@@ -271,9 +352,10 @@ public class PayrollDAO {
         String SQL = "INSERT INTO Payroll "
                 + "(periodStart, periodEnd, employeeId, positionId, departmentId, workingDays, hoursWorked, "
                 + "baseSalary, allowance, bonus, overtimePay, unpaidDeduction, grossSalary, "
-                + "insuranceDeduction, personalIncomeTax, netSalary, note, status, "
+                + "insuranceDeduction, personalIncomeTax, netSalary, "
+                + "insuranceSalaryBase, postInsuranceIncome, taxableIncome, employerContribution, note, status, "
                 + "approvedBy, approvedAt) "
-                + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         try (PreparedStatement ps = conn.prepareStatement(SQL, Statement.RETURN_GENERATED_KEYS)) {
             bindPayroll(ps, payroll, false);
             int rows = ps.executeUpdate();
@@ -291,7 +373,8 @@ public class PayrollDAO {
                 + "periodStart = ?, periodEnd = ?, employeeId = ?, positionId = ?, departmentId = ?, "
                 + "workingDays = ?, hoursWorked = ?, baseSalary = ?, allowance = ?, bonus = ?, "
                 + "overtimePay = ?, unpaidDeduction = ?, grossSalary = ?, insuranceDeduction = ?, personalIncomeTax = ?, "
-                + "netSalary = ?, note = ?, status = ?, "
+                + "netSalary = ?, insuranceSalaryBase = ?, postInsuranceIncome = ?, taxableIncome = ?, employerContribution = ?, "
+                + "note = ?, status = ?, "
                 + "approvedBy = ?, approvedAt = ? "
                 + "WHERE payrollId = ?";
         try (PreparedStatement ps = conn.prepareStatement(SQL)) {
@@ -321,17 +404,21 @@ public class PayrollDAO {
         setBigDecimal(ps, 14, p.getInsuranceDeduction());
         setBigDecimal(ps, 15, p.getPersonalIncomeTax());
         setBigDecimal(ps, 16, p.getNetSalary());
-        ps.setNString(17, p.getNote());
-        ps.setInt(18, p.getStatus());
-        
+        setBigDecimal(ps, 17, p.getInsuranceSalaryBase());
+        setBigDecimal(ps, 18, p.getPostInsuranceIncome());
+        setBigDecimal(ps, 19, p.getTaxableIncome());
+        setBigDecimal(ps, 20, p.getEmployerContribution());
+        ps.setNString(21, p.getNote());
+        ps.setInt(22, p.getStatus());
+
         if (p.getApprovedBy() != null) {
-            ps.setInt(19, p.getApprovedBy());
+            ps.setInt(23, p.getApprovedBy());
         } else {
-            ps.setNull(19, Types.INTEGER);
+            ps.setNull(23, Types.INTEGER);
         }
-        ps.setTimestamp(20, p.getApprovedAt());
+        ps.setTimestamp(24, p.getApprovedAt());
         if (includeIdAtEnd) {
-            ps.setInt(21, p.getPayrollId());
+            ps.setInt(25, p.getPayrollId());
         }
     }
 
@@ -346,7 +433,8 @@ public class PayrollDAO {
     private String basePayrollSelect() {
         return "SELECT payrollId, periodStart, periodEnd, employeeId, positionId, departmentId, "
                 + "workingDays, hoursWorked, baseSalary, allowance, bonus, overtimePay, unpaidDeduction, "
-                + "grossSalary, insuranceDeduction, personalIncomeTax, netSalary, note, status, "
+                + "grossSalary, insuranceDeduction, personalIncomeTax, netSalary, "
+                + "insuranceSalaryBase, postInsuranceIncome, taxableIncome, employerContribution, note, status, "
                 + "approvedBy, approvedAt, "
                 + "createdAt, updatedAt FROM Payroll";
     }
@@ -371,6 +459,10 @@ public class PayrollDAO {
         p.setInsuranceDeduction(rs.getBigDecimal("insuranceDeduction"));
         p.setPersonalIncomeTax(rs.getBigDecimal("personalIncomeTax"));
         p.setNetSalary(rs.getBigDecimal("netSalary"));
+        p.setInsuranceSalaryBase(rs.getBigDecimal("insuranceSalaryBase"));
+        p.setPostInsuranceIncome(rs.getBigDecimal("postInsuranceIncome"));
+        p.setTaxableIncome(rs.getBigDecimal("taxableIncome"));
+        p.setEmployerContribution(rs.getBigDecimal("employerContribution"));
         p.setNote(rs.getNString("note"));
         p.setStatus(rs.getInt("status"));
         int approvedBy = rs.getInt("approvedBy");
@@ -379,5 +471,90 @@ public class PayrollDAO {
         p.setCreatedAt(rs.getTimestamp("createdAt"));
         p.setUpdatedAt(rs.getTimestamp("updatedAt"));
         return p;
+    }
+
+    public long countPayrollsInMonth(int year, int month) {
+        String sql = "SELECT COUNT(*) FROM Payroll "
+                + "WHERE YEAR(periodStart) = ? AND MONTH(periodStart) = ?";
+        try (Connection conn = dbContext.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, year);
+            ps.setInt(2, month);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getLong(1);
+                }
+            }
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Cannot count payrolls in month: " + year + "-" + month, e);
+        }
+        return 0L;
+    }
+
+    public long[] getMonthlySalaryCosts(int year) {
+        long[] costs = new long[13];
+        String sql = "SELECT MONTH(periodStart) AS m, "
+                + "SUM(netSalary + insuranceDeduction + personalIncomeTax + employerContribution) AS total "
+                + "FROM Payroll "
+                + "WHERE YEAR(periodStart) = ? "
+                + "GROUP BY MONTH(periodStart)";
+        try (Connection conn = dbContext.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, year);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    int m = rs.getInt("m");
+                    if (m >= 1 && m <= 12) {
+                        BigDecimal total = rs.getBigDecimal("total");
+                        costs[m] = total != null ? total.longValue() : 0L;
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Cannot load monthly salary costs for year: " + year, e);
+        }
+        return costs;
+    }
+
+    public List<Integer> getAvailableSalaryYears() {
+        List<Integer> years = new ArrayList<>();
+        String sql = "SELECT DISTINCT YEAR(periodStart) AS y "
+                + "FROM Payroll "
+                + "ORDER BY y DESC";
+        try (Connection conn = dbContext.getConnection(); PreparedStatement ps = conn.prepareStatement(sql); ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) {
+                years.add(rs.getInt("y"));
+            }
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Cannot load available salary years", e);
+        }
+        // Đảm bảo luôn có ít nhất năm hiện tại để dropdown không rỗng
+        int currentYear = java.time.LocalDate.now().getYear();
+        if (!years.contains(currentYear)) {
+            years.add(0, currentYear);
+        }
+        return years;
+    }
+
+    public java.util.LinkedHashMap<String, Long> getDepartmentSalaryCosts(int year, int month) {
+        java.util.LinkedHashMap<String, Long> result = new java.util.LinkedHashMap<>();
+        String sql = "SELECT COALESCE(d.departmentName, 'Chưa phân bổ') AS deptName, "
+                + "SUM(p.netSalary + p.insuranceDeduction + p.personalIncomeTax + p.employerContribution) AS total "
+                + "FROM Payroll p "
+                + "LEFT JOIN Departments d ON d.departmentId = p.departmentId "
+                + "WHERE YEAR(p.periodStart) = ? AND MONTH(p.periodStart) = ? "
+                + "GROUP BY d.departmentName "
+                + "ORDER BY total DESC";
+        try (Connection conn = dbContext.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, year);
+            ps.setInt(2, month);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    BigDecimal total = rs.getBigDecimal("total");
+                    result.put(rs.getString("deptName"), total != null ? total.longValue() : 0L);
+                }
+            }
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Cannot load department salary costs for " + month + "/" + year, e);
+        }
+        return result;
     }
 }

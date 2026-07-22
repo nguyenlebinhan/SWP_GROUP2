@@ -13,6 +13,8 @@ public class PayrollConfigChangeRequest {
     public static final String TYPE_DEDUCTION_SAVE = "DEDUCTION_SAVE";
     public static final String TYPE_DEDUCTION_DELETE = "DEDUCTION_DELETE";
     public static final String TYPE_TAX_SAVE = "TAX_SAVE";
+    public static final String TYPE_ALLOWANCE_SAVE = "ALLOWANCE_SAVE";
+    public static final String TYPE_ALLOWANCE_DELETE = "ALLOWANCE_DELETE";
 
     private int requestId;
     private String requestType;
@@ -35,6 +37,10 @@ public class PayrollConfigChangeRequest {
     private boolean taxableDeduction;
     private boolean active;
     private String taxPayload;
+    private String allowanceCode;
+    private String allowanceName;
+    private BigDecimal allowanceAmount;
+    private boolean allowanceInsuranceApplicable;
     private int status;
     private int requestedBy;
     private String requestedByName;
@@ -210,6 +216,38 @@ public class PayrollConfigChangeRequest {
 
     public void setTaxPayload(String taxPayload) {
         this.taxPayload = taxPayload;
+    }
+
+    public String getAllowanceCode() {
+        return allowanceCode;
+    }
+
+    public void setAllowanceCode(String allowanceCode) {
+        this.allowanceCode = allowanceCode;
+    }
+
+    public String getAllowanceName() {
+        return allowanceName;
+    }
+
+    public void setAllowanceName(String allowanceName) {
+        this.allowanceName = allowanceName;
+    }
+
+    public BigDecimal getAllowanceAmount() {
+        return allowanceAmount;
+    }
+
+    public void setAllowanceAmount(BigDecimal allowanceAmount) {
+        this.allowanceAmount = allowanceAmount;
+    }
+
+    public boolean isAllowanceInsuranceApplicable() {
+        return allowanceInsuranceApplicable;
+    }
+
+    public void setAllowanceInsuranceApplicable(boolean allowanceInsuranceApplicable) {
+        this.allowanceInsuranceApplicable = allowanceInsuranceApplicable;
     }
 
     public int getStatus() {
