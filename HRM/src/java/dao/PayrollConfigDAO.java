@@ -13,6 +13,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import model.PayrollAllowanceType;
 import model.PayrollDeductionRule;
 import model.PayrollSetting;
 import model.PayrollTaxBracket;
@@ -244,6 +245,103 @@ public class PayrollConfigDAO {
             LOGGER.log(Level.SEVERE, "Cannot update payroll tax brackets", e);
         }
         return false;
+    }
+
+    public List<PayrollAllowanceType> getAllowanceTypes(boolean activeOnly) {
+        List<PayrollAllowanceType> list = new ArrayList<>();
+        String sql = "SELECT allowanceId, allowanceCode, allowanceName, amount, insuranceApplicable, isActive, description "
+                + "FROM Payroll_Allowance_Types "
+                + (activeOnly ? "WHERE isActive = 1 " : "")
+                + "ORDER BY allowanceId";
+        try (Connection conn = dbContext.getConnection();
+                PreparedStatement ps = conn.prepareStatement(sql);
+                ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) {
+                list.add(mapAllowanceType(rs));
+            }
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Cannot get payroll allowance types", e);
+        }
+        return list;
+    }
+
+    public PayrollAllowanceType getAllowanceTypeById(int allowanceId) {
+        String sql = "SELECT allowanceId, allowanceCode, allowanceName, amount, insuranceApplicable, isActive, description "
+                + "FROM Payroll_Allowance_Types WHERE allowanceId = ?";
+        try (Connection conn = dbContext.getConnection();
+                PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, allowanceId);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next() ? mapAllowanceType(rs) : null;
+            }
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Cannot get payroll allowance type", e);
+        }
+        return null;
+    }
+
+    public int addAllowanceType(PayrollAllowanceType type) {
+        String sql = "INSERT INTO Payroll_Allowance_Types "
+                + "(allowanceCode, allowanceName, amount, insuranceApplicable, isActive, description) "
+                + "VALUES (?, ?, ?, ?, ?, ?)";
+        try (Connection conn = dbContext.getConnection();
+                PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+            bindAllowanceType(ps, type);
+            ps.executeUpdate();
+            try (ResultSet rs = ps.getGeneratedKeys()) {
+                return rs.next() ? rs.getInt(1) : -1;
+            }
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Cannot add payroll allowance type", e);
+        }
+        return -1;
+    }
+
+    public boolean updateAllowanceType(PayrollAllowanceType type) {
+        String sql = "UPDATE Payroll_Allowance_Types SET allowanceCode = ?, allowanceName = ?, amount = ?, "
+                + "insuranceApplicable = ?, isActive = ?, description = ? WHERE allowanceId = ?";
+        try (Connection conn = dbContext.getConnection();
+                PreparedStatement ps = conn.prepareStatement(sql)) {
+            bindAllowanceType(ps, type);
+            ps.setInt(7, type.getAllowanceId());
+            return ps.executeUpdate() > 0;
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Cannot update payroll allowance type", e);
+        }
+        return false;
+    }
+
+    public boolean deleteAllowanceType(int allowanceId) {
+        String sql = "DELETE FROM Payroll_Allowance_Types WHERE allowanceId = ?";
+        try (Connection conn = dbContext.getConnection();
+                PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, allowanceId);
+            return ps.executeUpdate() > 0;
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Cannot delete payroll allowance type", e);
+        }
+        return false;
+    }
+
+    private void bindAllowanceType(PreparedStatement ps, PayrollAllowanceType t) throws SQLException {
+        ps.setString(1, t.getAllowanceCode());
+        ps.setNString(2, t.getAllowanceName());
+        ps.setBigDecimal(3, t.getAmount());
+        ps.setInt(4, t.isInsuranceApplicable() ? 1 : 0);
+        ps.setInt(5, t.isActive() ? 1 : 0);
+        ps.setNString(6, t.getDescription());
+    }
+
+    private PayrollAllowanceType mapAllowanceType(ResultSet rs) throws SQLException {
+        PayrollAllowanceType t = new PayrollAllowanceType();
+        t.setAllowanceId(rs.getInt("allowanceId"));
+        t.setAllowanceCode(rs.getString("allowanceCode"));
+        t.setAllowanceName(rs.getNString("allowanceName"));
+        t.setAmount(rs.getBigDecimal("amount"));
+        t.setInsuranceApplicable(rs.getInt("insuranceApplicable") == 1);
+        t.setActive(rs.getInt("isActive") == 1);
+        t.setDescription(rs.getNString("description"));
+        return t;
     }
 
     private void bindDeductionRule(PreparedStatement ps, PayrollDeductionRule r) throws SQLException {

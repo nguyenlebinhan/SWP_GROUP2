@@ -38,7 +38,10 @@ import service.ContractAmendmentService;
 import dao.ContractAmendmentDAO;
 import dao.EmploymentContractDAO;
 import dal.DBContext;
+import dao.PayrollDAO;
 import dto.ClosingResult;
+import java.time.YearMonth;
+import java.util.LinkedHashMap;
 
 public class BusinessAdminController extends HttpServlet {
 
@@ -50,10 +53,12 @@ public class BusinessAdminController extends HttpServlet {
     private static final DependentDAO dependentDAO = new DependentDAO();
     private static final FormRequestDAO formRequestDAO = new FormRequestDAO();
     private static final OvertimeDAO overtimeDAO = new OvertimeDAO();
+    private static final PayrollDAO payrollDAO = new PayrollDAO();
     private static final PayrollConfigDAO payrollConfigDAO = new PayrollConfigDAO();
     private static final PayrollConfigWorkflowService payrollConfigWorkflowService = new PayrollConfigWorkflowService();
     private static final service.AttendanceService attendanceService = new service.AttendanceService();
     private static final service.AttendanceClosingService attendanceClosingService = new service.AttendanceClosingService();
+    private static final service.PayrollService payrollService = new service.PayrollService();
     private static final ContractAmendmentService contractAmendmentService = new ContractAmendmentService(new ContractAmendmentDAO(), new EmploymentContractDAO(), new DBContext());
     private static final utils.AttendanceExcelExporter attendanceExporter = new utils.AttendanceExcelExporter();
 
@@ -185,6 +190,12 @@ public class BusinessAdminController extends HttpServlet {
             case "/payroll-config/tax/save":
                 handleSavePayrollTaxBracket(request, response);
                 break;
+            case "/payroll-config/allowance/save":
+                handleSavePayrollAllowance(request, response);
+                break;
+            case "/payroll-config/allowance/delete":
+                handleDeletePayrollAllowance(request, response);
+                break;
             case "/payroll-config/request/approve":
                 handleApprovePayrollConfigRequest(request, response, user);
                 break;
@@ -199,6 +210,9 @@ public class BusinessAdminController extends HttpServlet {
                 break;
             case "/attendance/approve":
                 handleApproveAttendancePeriod(request, response, user);
+                break;
+            case "/salary/finalize":
+                handleFinalizePayroll(request, response, user);
                 break;
             default:
                 response.sendRedirect(request.getContextPath() + "/");
@@ -217,11 +231,126 @@ public class BusinessAdminController extends HttpServlet {
 
     private void displayDashboard(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-        int userSize = userDAO.countUsers("", "");
-        request.setAttribute("userSize", userSize);
 
-        int deptSize = departmentDAO.getAllActiveDepartments().size();
-        request.setAttribute("deptSize", deptSize);
+        // ── Thống kê cơ bản ──
+        request.setAttribute("deptSize", departmentDAO.getAllActiveDepartments().size());
+        request.setAttribute("employeeSize", employeeDAO.getAllEmployees().size());
+
+        // ── Năm được chọn ──
+        int currentYear = java.time.LocalDate.now().getYear();
+        int salaryYear = currentYear;
+        String yearParam = request.getParameter("salaryYear");
+        if (yearParam != null && !yearParam.isBlank()) {
+            try {
+                salaryYear = Integer.parseInt(yearParam.trim());
+            } catch (NumberFormatException ignored) {
+            }
+        }
+
+        // ── Lấy data qua DAO ──
+        long[] monthlyCosts = payrollDAO.getMonthlySalaryCosts(salaryYear);
+
+        // ── Build JSON cho Chart.js ──
+        java.time.YearMonth now = java.time.YearMonth.now();
+        String[] monthNames = {"", "Th1", "Th2", "Th3", "Th4", "Th5", "Th6",
+            "Th7", "Th8", "Th9", "Th10", "Th11", "Th12"};
+        StringBuilder labelsJson = new StringBuilder("[");
+        StringBuilder dataJson = new StringBuilder("[");
+        long yearTotal = 0L;
+
+        for (int m = 1; m <= 12; m++) {
+            labelsJson.append("\"").append(monthNames[m]).append("\"");
+
+            boolean isFuture = java.time.YearMonth.of(salaryYear, m).isAfter(now);
+            if (isFuture) {
+                dataJson.append("null");
+            } else {
+                long valMillion = Math.round(monthlyCosts[m] / 1_000_000.0);
+                dataJson.append(valMillion);
+                yearTotal += valMillion;
+            }
+
+            if (m < 12) {
+                labelsJson.append(",");
+                dataJson.append(",");
+            }
+        }
+        labelsJson.append("]");
+        dataJson.append("]");
+
+        // ── Tháng gần nhất ──
+        java.time.YearMonth latest = now.minusMonths(1);
+        long latestCount = payrollDAO.countPayrollsInMonth(
+                latest.getYear(), latest.getMonthValue());
+
+        //tất cả năm
+        List<Integer> availableYears = payrollDAO.getAvailableSalaryYears();
+
+        // ── Chi phí lương theo phòng ban (kỳ được chọn, mặc định tháng gần nhất) ──
+        YearMonth deptPeriod = latest;
+        String deptYearParam = request.getParameter("deptYear");
+        String deptMonthParam = request.getParameter("deptMonth");
+        if (deptYearParam != null && !deptYearParam.isBlank()
+                && deptMonthParam != null && !deptMonthParam.isBlank()) {
+            try {
+                deptPeriod = YearMonth.of(Integer.parseInt(deptYearParam.trim()), Integer.parseInt(deptMonthParam.trim()));
+            } catch (Exception ignored) {
+            }
+        }
+        LinkedHashMap<String, Long> deptCosts = payrollDAO.getDepartmentSalaryCosts(
+                deptPeriod.getYear(), deptPeriod.getMonthValue());
+        StringBuilder deptLabelsJson = new StringBuilder("[");
+        StringBuilder deptDataJson = new StringBuilder("[");
+        boolean firstDept = true;
+        for (Map.Entry<String, Long> entry : deptCosts.entrySet()) {
+            if (!firstDept) {
+                deptLabelsJson.append(",");
+                deptDataJson.append(",");
+            }
+            deptLabelsJson.append("\"").append(entry.getKey().replace("\"", "'")).append("\"");
+            deptDataJson.append(Math.round(entry.getValue() / 1_000_000.0));
+            firstDept = false;
+        }
+        deptLabelsJson.append("]");
+        deptDataJson.append("]");
+
+        // ── Bảng lương chờ duyệt (kỳ gần nhất) ──
+        java.sql.Date pendingPeriodStart = java.sql.Date.valueOf(latest.atDay(1));
+        java.sql.Date pendingPeriodEnd = java.sql.Date.valueOf(latest.atEndOfMonth());
+        long pendingPayrollCount = payrollDAO.countPendingApproval(pendingPeriodStart, pendingPeriodEnd, null, null);
+
+        // ── Đơn chờ duyệt (đơn từ + cấu hình lương) ──
+        List<FormRequestDTO> pendingForms = formRequestDAO.getAllFormRequests(null, null, null, null)
+                .stream()
+                .filter(f -> "OVERTIME".equals(f.getFormTypeCode())
+                        || "TRANSFER".equals(f.getFormTypeCode())
+                        || "PROMOTION_DEMOTION".equals(f.getFormTypeCode()))
+                .filter(f -> f.getStatus() == 0)
+                .collect(java.util.stream.Collectors.toList());
+        long pendingOtCount = pendingForms.stream()
+                .filter(f -> "OVERTIME".equals(f.getFormTypeCode())).count();
+        long pendingOtherFormsCount = pendingForms.size() - pendingOtCount;
+        long pendingPayrollConfigCount = payrollConfigWorkflowService.getPendingRequests().size();
+        long pendingTotalCount = pendingForms.size() + pendingPayrollConfigCount;
+
+        request.setAttribute("salaryLabelsJson", labelsJson.toString());
+        request.setAttribute("salaryDataJson", dataJson.toString());
+        request.setAttribute("salaryYear", salaryYear);
+        request.setAttribute("availableYears", availableYears);
+        request.setAttribute("currentYear", currentYear);
+        request.setAttribute("salaryYearTotal", yearTotal);
+        request.setAttribute("latestPaidCount", latestCount);
+        request.setAttribute("latestPayMonth",
+                String.format("%02d/%d", latest.getMonthValue(), latest.getYear()));
+        request.setAttribute("deptLabelsJson", deptLabelsJson.toString());
+        request.setAttribute("deptDataJson", deptDataJson.toString());
+        request.setAttribute("deptYear", deptPeriod.getYear());
+        request.setAttribute("deptMonth", deptPeriod.getMonthValue());
+        request.setAttribute("pendingTotalCount", pendingTotalCount);
+        request.setAttribute("pendingOtCount", pendingOtCount);
+        request.setAttribute("pendingOtherFormsCount", pendingOtherFormsCount);
+        request.setAttribute("pendingPayrollConfigCount", pendingPayrollConfigCount);
+        request.setAttribute("pendingPayrollCount", pendingPayrollCount);
 
         request.getRequestDispatcher("/public/businessadmin/dashboard.jsp")
                 .forward(request, response);
@@ -887,6 +1016,7 @@ public class BusinessAdminController extends HttpServlet {
         request.setAttribute("settings", settings);
         request.setAttribute("deductionRules", payrollConfigDAO.getDeductionRules(false));
         request.setAttribute("taxBrackets", payrollConfigDAO.getTaxBrackets(false));
+        request.setAttribute("allowanceTypes", payrollConfigDAO.getAllowanceTypes(false));
         request.setAttribute("pendingRequests", payrollConfigWorkflowService.getPendingRequests());
         request.setAttribute("payrollConfigBaseUrl", request.getContextPath() + "/v1/businessadmin/payroll-config");
         request.setAttribute("canEditPayrollConfig", false);
@@ -951,6 +1081,18 @@ public class BusinessAdminController extends HttpServlet {
     }
 
     private void handleSavePayrollTaxBracket(HttpServletRequest request, HttpServletResponse response)
+            throws IOException {
+        setPayrollConfigError(request, "Quản trị doanh nghiệp chỉ duyệt yêu cầu thay đổi cấu hình lương, không chỉnh trực tiếp.");
+        response.sendRedirect(request.getContextPath() + "/v1/businessadmin/payroll-config");
+    }
+
+    private void handleSavePayrollAllowance(HttpServletRequest request, HttpServletResponse response)
+            throws IOException {
+        setPayrollConfigError(request, "Quản trị doanh nghiệp chỉ duyệt yêu cầu thay đổi cấu hình lương, không chỉnh trực tiếp.");
+        response.sendRedirect(request.getContextPath() + "/v1/businessadmin/payroll-config");
+    }
+
+    private void handleDeletePayrollAllowance(HttpServletRequest request, HttpServletResponse response)
             throws IOException {
         setPayrollConfigError(request, "Quản trị doanh nghiệp chỉ duyệt yêu cầu thay đổi cấu hình lương, không chỉnh trực tiếp.");
         response.sendRedirect(request.getContextPath() + "/v1/businessadmin/payroll-config");
@@ -1040,9 +1182,37 @@ public class BusinessAdminController extends HttpServlet {
         request.setAttribute("canGeneratePayroll", false);
         request.setAttribute("canApprovePayroll", false);
         request.setAttribute("canExportPayroll", attendanceLocked); // chỉ xuất khi đã chốt
+        request.setAttribute("canFinalizePayroll", true);
+        // Chốt luôn áp dụng cho toàn công ty, không bị giới hạn bởi bộ lọc phòng ban đang xem.
+        request.setAttribute("countAwaitingFinalization",
+                payrollService.countAwaitingFinalizationForPeriod(year, month, null));
 
         request.getRequestDispatcher("/public/businessadmin/salary/salary_list.jsp")
                 .forward(request, response);
+    }
+
+    private void handleFinalizePayroll(HttpServletRequest request, HttpServletResponse response,
+            User user) throws IOException {
+        Integer month = parseIntParam(request.getParameter("month"));
+        Integer year = parseIntParam(request.getParameter("year"));
+        if (month == null || year == null) {
+            response.sendRedirect(request.getContextPath() + "/v1/businessadmin/salary/all");
+            return;
+        }
+
+        service.PayrollService payrollService = new service.PayrollService();
+        int finalizedCount = payrollService.finalizePayrollForPeriod(user, year, month, null);
+        if (finalizedCount > 0) {
+            request.getSession().setAttribute("success",
+                    "Đã chốt " + finalizedCount + " bảng lương cho kỳ lương "
+                    + String.format("%02d/%d", month, year) + ".");
+        } else {
+            request.getSession().setAttribute("error",
+                    "Không có bảng lương nào đang chờ chốt để xử lý.");
+        }
+
+        response.sendRedirect(request.getContextPath() + "/v1/businessadmin/salary/all?month=" + month
+                + "&year=" + year);
     }
 
     private void displaySalaryDetailForBa(HttpServletRequest request, HttpServletResponse response,
@@ -1058,6 +1228,7 @@ public class BusinessAdminController extends HttpServlet {
             request.setAttribute("salaryError", "Không tìm thấy bảng lương cần xem chi tiết.");
         }
         request.setAttribute("payrollPreview", preview);
+        request.setAttribute("allowanceTypes", payrollConfigDAO.getAllowanceTypes(true));
         request.getRequestDispatcher("/public/businessadmin/salary/salary_detail.jsp")
                 .forward(request, response);
     }
