@@ -161,11 +161,7 @@
                                                     Đến: <strong>${f.targetDepartmentName}</strong>
                                                 </div>
                                             </c:if>
-                                            <c:if test="${f.formTypeCode == 'PROMOTION_DEMOTION'}">
-                                                <div class="small text-muted mt-1">
-                                                    Role: <strong>${f.targetRoleName}</strong>
-                                                </div>
-                                            </c:if>
+
                                         </td>
                                         <td class="text-center">
                                             <c:choose>

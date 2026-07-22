@@ -65,10 +65,18 @@
             <div class="row g-3">
                 <div class="col-md-6">
                     <label class="form-label fw-bold">Phòng ban mong muốn <span class="text-danger">*</span></label>
-                    <select name="targetDepartmentId" class="form-select" required>
+                    <select name="targetDepartmentId" id="targetDepartmentId" class="form-select" required onchange="filterRoles()">
                         <option value="">-- Chọn phòng ban --</option>
                         <c:forEach var="dept" items="${departments}">
-                            <option value="${dept.departmentId}">${dept.departmentName}</option>
+                            <option value="${dept.departmentId}" data-roles="${deptRolesMap[dept.departmentId]}">${dept.departmentName}</option>
+                        </c:forEach>
+                    </select>
+                    
+                    <label class="form-label fw-bold">Vị trí mong muốn <span class="text-danger">*</span></label>
+                    <select name="targetRoleId" id="targetRoleId" class="form-select" required>
+                        <option value="">-- Chọn vị trí --</option>
+                        <c:forEach var="role" items="${roles}">
+                            <option value="${role.roleId}" data-name="${role.roleName}">${role.roleName}</option>
                         </c:forEach>
                     </select>
                 </div>
@@ -94,3 +102,41 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
+<script>
+function filterRoles() {
+    var deptSelect = document.getElementById("targetDepartmentId");
+    // Lấy Option Phòng ban đang được chọn
+    var selectedOption = deptSelect.options[deptSelect.selectedIndex];
+    var rolesStr = selectedOption.getAttribute("data-roles"); 
+    
+    var roleSelect = document.getElementById("targetRoleId");
+    roleSelect.value = ""; // Reset chức vụ đang chọn
+    
+    if (!rolesStr) {
+        // Nếu chưa chọn phòng ban, ẩn tất cả các Role
+        for (var i = 1; i < roleSelect.options.length; i++) {
+            roleSelect.options[i].style.display = "none";
+        }
+        return;
+    }
+    // Tách chuỗi thành mảng các Role Name (VD: ["ITManager", "ITEmployee"])
+    var allowedRoles = rolesStr.split(",");
+    
+    // Lặp qua tất cả thẻ Option trong Dropdown Chức vụ
+    for (var i = 1; i < roleSelect.options.length; i++) { 
+        var option = roleSelect.options[i];
+        var roleName = option.getAttribute("data-name");
+        
+        // Hiện Role nếu Tên Role nằm trong danh sách allowedRoles của phòng ban đó
+        if (roleName && allowedRoles.includes(roleName)) {
+            option.style.display = ""; // Hiện lên
+        } else {
+            option.style.display = "none"; // Ẩn đi
+        }
+    }
+}
+// Chạy filterRoles 1 lần lúc trang vừa load xong để reset danh sách Role
+document.addEventListener("DOMContentLoaded", function() {
+    filterRoles();
+});
+</script>

@@ -117,8 +117,25 @@
         const s = document.getElementById('startDate').value;
         const e = document.getElementById('endDate').value;
         if (s && e) {
-            const diff = (new Date(e) - new Date(s)) / (1000 * 60 * 60 * 24) + 1;
-            document.getElementById('totalDays').value = diff > 0 ? diff + ' ngày' : '';
+            let start = new Date(s);
+            let end = new Date(e);
+            
+            // Kiểm tra tính hợp lệ của ngày (Start <= End)
+            if (start <= end) {
+                let count = 0;
+                let current = new Date(start);
+                
+                // Lặp qua từng ngày để đếm (Bỏ qua T7 - 6 và CN - 0)
+                while (current <= end) {
+                    if (current.getDay() !== 0 && current.getDay() !== 6) {
+                        count++;
+                    }
+                    current.setDate(current.getDate() + 1);
+                }
+                document.getElementById('totalDays').value = count + ' ngày';
+            } else {
+                document.getElementById('totalDays').value = '';
+            }
         } else {
             document.getElementById('totalDays').value = '';
         }

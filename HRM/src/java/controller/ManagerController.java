@@ -66,6 +66,7 @@ import service.PayrollConfigWorkflowService;
 import service.EmploymentContractService;
 import dal.DBContext;
 import java.time.LocalTime;
+import java.sql.Date;
 import java.sql.Time;
 import utils.AttendanceExcelExporter;
 import dao.ContractAmendmentDAO;
@@ -73,8 +74,7 @@ import dto.ClosingResult;
 import model.ContractAmendment;
 import java.util.stream.Collectors;
 
-@MultipartConfig(
-        fileSizeThreshold = 1024 * 1024, // 1MB ghi ra đĩa
+@MultipartConfig(fileSizeThreshold = 1024 * 1024, // 1MB ghi ra đĩa
         maxFileSize = 10L * 1024 * 1024, // 10MB / file
         maxRequestSize = 11L * 1024 * 1024 // 11MB / request
 )
@@ -89,9 +89,11 @@ public class ManagerController extends HttpServlet {
     private static final PermissionDAO permissionDAO = new PermissionDAO();
     private static final EmploymentContractDAO contractDAO = new EmploymentContractDAO();
     private static final ContractAmendmentDAO amendmentDAO = new ContractAmendmentDAO();
-    private static final service.ContractAmendmentService contractAmendmentService = new service.ContractAmendmentService(amendmentDAO, contractDAO, new dal.DBContext());
+    private static final service.ContractAmendmentService contractAmendmentService = new service.ContractAmendmentService(
+            amendmentDAO, contractDAO, new dal.DBContext());
     private static final FormRequestDAO formRequestDAO = new FormRequestDAO();
-    private static final EmploymentContractService contractService = new EmploymentContractService(contractDAO, employeeDAO, new dal.DBContext());
+    private static final EmploymentContractService contractService = new EmploymentContractService(contractDAO,
+            employeeDAO, new dal.DBContext());
     private static final AttendanceDAO attendanceDAO = new AttendanceDAO();
     private static final service.AttendanceService attendanceService = new service.AttendanceService();
     private static final AttendanceExcelExporter attendanceExporter = new utils.AttendanceExcelExporter();
@@ -376,13 +378,13 @@ public class ManagerController extends HttpServlet {
         request.setAttribute("inactiveEmployees", inactiveEmployees);
         request.setAttribute("pendingLeaves", 0);
         request.setAttribute("deptChart", deptChart);
-        
+
         // --- NEW DASHBOARD LOGIC (Appended without deleting base code) ---
         EmployeeDetailDTO manager = employeeDAO.getEmployeeByUserId(user.getUserId());
         request.setAttribute("myEmployee", manager);
-        
+
         int deptTotalEmployees = totalEmployees;
-        int pendingForms = 0; 
+        int pendingForms = 0;
         List<EmployeeDetailDTO> departmentEmployees = new ArrayList<>();
         Map<Integer, Integer> leaveBalances = new HashMap<>();
         List<dto.AttendanceSummaryDTO> topEmployees = new ArrayList<>();
@@ -393,7 +395,7 @@ public class ManagerController extends HttpServlet {
             departmentEmployees = employeeDAO.getEmployeesByDepartmentId(manager.getDepartmentId());
             deptTotalEmployees = departmentEmployees.size();
             int currentYear = java.time.LocalDate.now().getYear();
-            
+
             dao.LeaveBalanceDAO lbDAO = new dao.LeaveBalanceDAO();
             for (EmployeeDetailDTO emp : departmentEmployees) {
                 model.LeaveBalance lb = lbDAO.getLeaveBalance(emp.getEmployeeId(), currentYear);
@@ -403,19 +405,25 @@ public class ManagerController extends HttpServlet {
                     leaveBalances.put(emp.getEmployeeId(), 0);
                 }
             }
-            
-            List<dto.FormRequestDTO> forms = formRequestDAO.getAllFormRequestsByDepartmentId(manager.getDepartmentId(), null, null, null, null);
+
+            List<dto.FormRequestDTO> forms = formRequestDAO.getAllFormRequestsByDepartmentId(manager.getDepartmentId(),
+                    null, null, null, null);
             for (dto.FormRequestDTO f : forms) {
-                if (f.getStatus() == 0) pendingForms++;
+                if (f.getStatus() == 0)
+                    pendingForms++;
             }
-            
+
             dao.AttendanceDAO attDAO = new dao.AttendanceDAO();
-            List<dto.AttendanceSummaryDTO> summaries = attDAO.getMonthlySummary(manager.getDepartmentId(), prevMonth, prevYear);
+            List<dto.AttendanceSummaryDTO> summaries = attDAO.getMonthlySummary(manager.getDepartmentId(), prevMonth,
+                    prevYear);
             if (summaries != null) {
                 summaries.sort((a, b) -> {
-                    if (b.getWorkedHours() == null && a.getWorkedHours() == null) return 0;
-                    if (b.getWorkedHours() == null) return -1;
-                    if (a.getWorkedHours() == null) return 1;
+                    if (b.getWorkedHours() == null && a.getWorkedHours() == null)
+                        return 0;
+                    if (b.getWorkedHours() == null)
+                        return -1;
+                    if (a.getWorkedHours() == null)
+                        return 1;
                     return b.getWorkedHours().compareTo(a.getWorkedHours());
                 });
                 for (int i = 0; i < Math.min(3, summaries.size()); i++) {
@@ -424,7 +432,8 @@ public class ManagerController extends HttpServlet {
             }
         }
 
-        // We use 'deptTotalEmployees' to override 'totalEmployees' for the new UI's specific needs,
+        // We use 'deptTotalEmployees' to override 'totalEmployees' for the new UI's
+        // specific needs,
         // but the base code above still ran properly.
         request.setAttribute("totalEmployees", deptTotalEmployees);
         request.setAttribute("pendingForms", pendingForms);
@@ -432,7 +441,8 @@ public class ManagerController extends HttpServlet {
         request.setAttribute("leaveBalances", leaveBalances);
         request.setAttribute("topEmployees", topEmployees);
         request.setAttribute("prevMonthStr", String.format("%02d/%d", prevMonth, prevYear));
-        request.setAttribute("todayDate", java.time.LocalDate.now().format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy")));
+        request.setAttribute("todayDate",
+                java.time.LocalDate.now().format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy")));
         // -----------------------------------------------------------------
         setPermissionFlags(request, perms);
         request.getRequestDispatcher("/public/manager/dashboard.jsp").forward(request, response);
@@ -473,7 +483,8 @@ public class ManagerController extends HttpServlet {
             totalPages = 1;
         }
 
-        List<EmployeeDetailDTO> employees = employeeDAO.getEmployeesFiltered(null, manager.getDepartmentId(), keyword, null, status, offset, PAGE_SIZE);
+        List<EmployeeDetailDTO> employees = employeeDAO.getEmployeesFiltered(null, manager.getDepartmentId(), keyword,
+                null, status, offset, PAGE_SIZE);
 
         request.setAttribute("departmentName", manager.getDepartmentName());
         request.setAttribute("employees", employees);
@@ -497,7 +508,8 @@ public class ManagerController extends HttpServlet {
         EmployeeDetailDTO manager = employeeDAO.getEmployeeByUserId(user.getUserId());
         if (manager == null || manager.getDepartmentId() <= 0) {
             request.setAttribute("error", "Bạn chưa được phân công vào phòng ban nào.");
-            request.getRequestDispatcher("/public/manager/attendance/department_attendance.jsp").forward(request, response);
+            request.getRequestDispatcher("/public/manager/attendance/department_attendance.jsp").forward(request,
+                    response);
             return;
         }
 
@@ -506,9 +518,10 @@ public class ManagerController extends HttpServlet {
         int month = paramOr(request, "month", now.minusMonths(1).getMonthValue());
         int year = paramOr(request, "year", now.minusMonths(1).getYear());
 
-        // Cùng dữ liệu tổng hợp như trang tổng quan, nhưng khoá cứng vào phòng của trưởng phòng.
-        java.util.List<dto.AttendanceSummaryDTO> summaries
-                = attendanceService.getMonthlySummaries(departmentId, month, year);
+        // Cùng dữ liệu tổng hợp như trang tổng quan, nhưng khoá cứng vào phòng của
+        // trưởng phòng.
+        java.util.List<dto.AttendanceSummaryDTO> summaries = attendanceService.getMonthlySummaries(departmentId, month,
+                year);
         request.setAttribute("summaries", summaries);
         request.setAttribute("pagedSummaries", utils.Paging.page(request, summaries));
         request.setAttribute("canViewAll", false);
@@ -518,8 +531,7 @@ public class ManagerController extends HttpServlet {
         request.setAttribute("selectedYear", year);
 
         // Panel chốt bảng chấm công cho trưởng phòng.
-        model.AttendancePeriod closingRow
-                = attendanceClosingService.getClosingRow(year, month, departmentId);
+        model.AttendancePeriod closingRow = attendanceClosingService.getClosingRow(year, month, departmentId);
         java.util.List<model.AttendancePeriod> closingPeriods = new java.util.ArrayList<>();
         closingPeriods.add(closingRow);
         request.setAttribute("closingPeriods", closingPeriods);
@@ -672,7 +684,8 @@ public class ManagerController extends HttpServlet {
         int totalItems = payrollConfigWorkflowService.countHistory(status, q);
         int totalPages = Math.max(1, (totalItems + pageSize - 1) / pageSize);
         int currentPage = Math.min(Math.max(1, requestedPage == null ? 1 : requestedPage), totalPages);
-        request.setAttribute("changeHistory", payrollConfigWorkflowService.getHistory(status, q, currentPage, pageSize));
+        request.setAttribute("changeHistory",
+                payrollConfigWorkflowService.getHistory(status, q, currentPage, pageSize));
         request.setAttribute("statusFilter", status);
         request.setAttribute("q", q);
         request.setAttribute("currentPage", currentPage);
@@ -701,7 +714,8 @@ public class ManagerController extends HttpServlet {
         boolean attendanceLocked = departmentId == null
                 ? attendanceClosingService.isPeriodLocked(period[0], period[1])
                 : attendanceClosingService.isDepartmentLocked(period[0], period[1], departmentId);
-        List<PayrollPreviewDTO> payrollPreviews = payrollService.getAllPayrollForHr(user, period[0], period[1], departmentId);
+        List<PayrollPreviewDTO> payrollPreviews = payrollService.getAllPayrollForHr(user, period[0], period[1],
+                departmentId);
         if (payrollPreviews.isEmpty()) {
             request.setAttribute("salaryError", buildSalaryPeriodMessage(period[0], period[1]));
         }
@@ -734,7 +748,8 @@ public class ManagerController extends HttpServlet {
         }
 
         Integer payrollId = parseIntOrNull(request.getParameter("id"));
-        PayrollPreviewDTO payrollPreview = payrollId == null ? null : payrollService.getPayrollDetailForHr(user, payrollId);
+        PayrollPreviewDTO payrollPreview = payrollId == null ? null
+                : payrollService.getPayrollDetailForHr(user, payrollId);
         if (payrollPreview == null) {
             request.setAttribute("salaryError", "Không tìm thấy bảng lương cần xem chi tiết.");
         }
@@ -784,7 +799,7 @@ public class ManagerController extends HttpServlet {
         if (approvedCount > 0) {
             request.getSession().setAttribute("success",
                     "Đã duyệt " + approvedCount + " bảng lương cho kỳ lương "
-                    + String.format("%02d/%d", period[1], period[0]) + ".");
+                            + String.format("%02d/%d", period[1], period[0]) + ".");
         } else {
             request.getSession().setAttribute("error",
                     "Không có bảng lương nào đang chờ duyệt để xử lý (hoặc tất cả đều là lương của chính bạn).");
@@ -947,7 +962,8 @@ public class ManagerController extends HttpServlet {
                 + "/v1/manager/attendance/my-department-attendance?month=" + month + "&year=" + year);
     }
 
-    // ===================== Attendance Dashboard (Overview / Detail / Export) =====================
+    // ===================== Attendance Dashboard (Overview / Detail / Export)
+    // =====================
     private Integer resolveManagerDepartmentId(User user) {
         EmployeeDetailDTO manager = employeeDAO.getEmployeeByUserId(user.getUserId());
         if (manager == null || manager.getDepartmentId() <= 0) {
@@ -989,7 +1005,8 @@ public class ManagerController extends HttpServlet {
         boolean canViewDept = perms.contains("VIEW_DEPARTMENT_ATTENDANCE");
         if (!canViewAll && !canViewDept) {
             request.setAttribute("error", "Bạn không có quyền xem chấm công.");
-            request.getRequestDispatcher("/public/manager/attendance/attendance_overview.jsp").forward(request, response);
+            request.getRequestDispatcher("/public/manager/attendance/attendance_overview.jsp").forward(request,
+                    response);
             return;
         }
 
@@ -1011,25 +1028,26 @@ public class ManagerController extends HttpServlet {
             request.setAttribute("canViewAll", false);
             if (departmentId == null) {
                 request.setAttribute("error", "Bạn chưa được phân công vào phòng ban nào.");
-                request.getRequestDispatcher("/public/manager/attendance/attendance_overview.jsp").forward(request, response);
+                request.getRequestDispatcher("/public/manager/attendance/attendance_overview.jsp").forward(request,
+                        response);
                 return;
             }
             model.Department dept = departmentDAO.getDepartmentById(departmentId);
             request.setAttribute("departmentName", dept != null ? dept.getDepartmentName() : "");
         }
 
-        java.util.List<dto.AttendanceSummaryDTO> summaries
-                = attendanceService.getMonthlySummaries(departmentId, month, year);
+        java.util.List<dto.AttendanceSummaryDTO> summaries = attendanceService.getMonthlySummaries(departmentId, month,
+                year);
         request.setAttribute("summaries", summaries);
         request.setAttribute("pagedSummaries", utils.Paging.page(request, summaries));
         request.setAttribute("selectedDepartmentId", departmentId);
         request.setAttribute("selectedMonth", month);
         request.setAttribute("selectedYear", year);
 
-        // Trạng thái chốt của phòng đang xem: hiển thị nút "Chốt phòng" khi đang chờ trưởng phòng.
+        // Trạng thái chốt của phòng đang xem: hiển thị nút "Chốt phòng" khi đang chờ
+        // trưởng phòng.
         if (departmentId != null) {
-            model.AttendancePeriod closingRow
-                    = attendanceClosingService.getClosingRow(year, month, departmentId);
+            model.AttendancePeriod closingRow = attendanceClosingService.getClosingRow(year, month, departmentId);
             java.util.List<model.AttendancePeriod> closingPeriods = new java.util.ArrayList<>();
             closingPeriods.add(closingRow);
             request.setAttribute("closingPeriods", closingPeriods);
@@ -1376,14 +1394,16 @@ public class ManagerController extends HttpServlet {
                     request.getSession().setAttribute("error", "Không tìm thấy hợp đồng.");
                 } else if (contract.getStatus() != ContractStatus.ACTIVE
                         && contract.getStatus() != ContractStatus.PENDING_ACTIVATION) {
-                    request.getSession().setAttribute("error", "Chỉ có thể chấm dứt hợp đồng đang hiệu lực hoặc chờ hiệu lực.");
+                    request.getSession().setAttribute("error",
+                            "Chỉ có thể chấm dứt hợp đồng đang hiệu lực hoặc chờ hiệu lực.");
                 } else {
                     // Valid - forward to form page
                     EmployeeDetailDTO employee = employeeDAO.getEmployeeById(contract.getEmployeeId());
                     request.setAttribute("contract", contract);
                     request.setAttribute("employee", employee);
                     setPermissionFlags(request, perms);
-                    request.getRequestDispatcher("/public/manager/contract/terminate_contract.jsp").forward(request, response);
+                    request.getRequestDispatcher("/public/manager/contract/terminate_contract.jsp").forward(request,
+                            response);
                     return;
                 }
             } catch (NumberFormatException e) {
@@ -1475,7 +1495,8 @@ public class ManagerController extends HttpServlet {
 
             if (keyword != null || type != null) {
                 amendments = amendments.stream()
-                        .filter(a -> (keyword == null || a.getAmendmentCode().contains(keyword) || a.getReason().contains(keyword)))
+                        .filter(a -> (keyword == null || a.getAmendmentCode().contains(keyword)
+                                || a.getReason().contains(keyword)))
                         .filter(a -> (type == null || type.equals("ALL") || a.getAmendmentType().name().equals(type)))
                         .collect(Collectors.toList());
             }
@@ -1531,7 +1552,8 @@ public class ManagerController extends HttpServlet {
         request.setAttribute("department", department);
         request.setAttribute("employees", employees);
         setPermissionFlags(request, perms);
-        request.getRequestDispatcher("/public/manager/employee_info/department_employee_detail.jsp").forward(request, response);
+        request.getRequestDispatcher("/public/manager/employee_info/department_employee_detail.jsp").forward(request,
+                response);
     }
 
     private void displayAssignDepartmentForm(HttpServletRequest request, HttpServletResponse response,
@@ -1581,7 +1603,8 @@ public class ManagerController extends HttpServlet {
         request.setAttribute("myEmployee", myEmployee);
         if (myEmployee != null) {
             request.setAttribute("dependents", dependentDAO.getActiveByEmployeeId(myEmployee.getEmployeeId()));
-            request.setAttribute("dependentStatusAction", request.getContextPath() + "/v1/manager/forms/dependent/status");
+            request.setAttribute("dependentStatusAction",
+                    request.getContextPath() + "/v1/manager/forms/dependent/status");
         }
         request.getRequestDispatcher("/public/manager/employee_info/my_profile.jsp").forward(request, response);
     }
@@ -1659,8 +1682,7 @@ public class ManagerController extends HttpServlet {
                 isBlank(phoneNumber) ? null : phoneNumber.trim(),
                 isBlank(skills) ? null : skills.trim(),
                 isBlank(experience) ? null : experience.trim(),
-                isBlank(degree) ? null : degree.trim()
-        );
+                isBlank(degree) ? null : degree.trim());
 
         if (!success) {
             request.setAttribute("error", "Phân cóng thất bại. Vui lêng thử lại.");
@@ -1686,7 +1708,7 @@ public class ManagerController extends HttpServlet {
             }
         }
 
-        LOGGER.log(Level.INFO, "Employee assigned: userId={0} → deptId={1}", new Object[]{userId, departmentId});
+        LOGGER.log(Level.INFO, "Employee assigned: userId={0} → deptId={1}", new Object[] { userId, departmentId });
 
         request.getSession().setAttribute("success", "Phân cóng nhân viên vào phòng ban thành cóng.");
         response.sendRedirect(request.getContextPath() + "/v1/manager/dashboard");
@@ -1796,7 +1818,7 @@ public class ManagerController extends HttpServlet {
             departmentDAO.replaceDepartmentRoles(newDeptId, roleIds);
         }
 
-        LOGGER.log(Level.INFO, "Department created: code={0} by userId={1}", new Object[]{code, user.getUserId()});
+        LOGGER.log(Level.INFO, "Department created: code={0} by userId={1}", new Object[] { code, user.getUserId() });
         request.getSession().setAttribute("success", "Thêm phòng ban \"" + name.trim() + "\" thành cóng.");
         response.sendRedirect(request.getContextPath() + "/v1/manager/dashboard");
     }
@@ -1860,7 +1882,8 @@ public class ManagerController extends HttpServlet {
 
         if (isBlank(idParam) || isBlank(name)) {
             request.getSession().setAttribute("error", "Tên phòng ban là bắt buộc.");
-            response.sendRedirect(request.getContextPath() + "/v1/manager/department/update?id=" + (idParam != null ? idParam : ""));
+            response.sendRedirect(
+                    request.getContextPath() + "/v1/manager/department/update?id=" + (idParam != null ? idParam : ""));
             return;
         }
 
@@ -1940,7 +1963,8 @@ public class ManagerController extends HttpServlet {
         int positionId = current.getPositionId();
         int userRoleId = userDAO.getRoleIdByUserId(current.getUserId());
         if (!departmentDAO.isRoleAllowedForDepartment(departmentId, userRoleId)) {
-            request.getSession().setAttribute("error", "Vai trò hiện tại của nhân viên không phù hợp với phòng ban đã chọn.");
+            request.getSession().setAttribute("error",
+                    "Vai trò hiện tại của nhân viên không phù hợp với phòng ban đã chọn.");
             response.sendRedirect(request.getContextPath() + "/v1/manager/employee/update?id=" + employeeId);
             return;
         }
@@ -1987,7 +2011,8 @@ public class ManagerController extends HttpServlet {
 
         // Input format validation (parsing)
         if (code == null || type == null || isBlank(employeeParam) || isBlank(effectiveDate) || isBlank(salaryParam)) {
-            request.setAttribute("error", "Vui lòng nhập đầy đủ mã hợp đồng, nhân viên, loại hợp đồng, ngày bắt đầu và lương.");
+            request.setAttribute("error",
+                    "Vui lòng nhập đầy đủ mã hợp đồng, nhân viên, loại hợp đồng, ngày bắt đầu và lương.");
             request.setAttribute("employees", employeeDAO.getAllEmployees(user.getUserId()));
             setPermissionFlags(request, getPermissions(user));
             request.getRequestDispatcher("/public/manager/contract/add_contract.jsp").forward(request, response);
@@ -2025,7 +2050,8 @@ public class ManagerController extends HttpServlet {
             return;
         }
 
-        // Business validation moved to Service layer (validateForCreate + createContract)
+        // Business validation moved to Service layer (validateForCreate +
+        // createContract)
         contract.setContractCode(code);
         contract.setStatus(ContractStatus.PENDING_APPROVAL);
         contract.setNote(trimToNull(request.getParameter("note")));
@@ -2177,7 +2203,8 @@ public class ManagerController extends HttpServlet {
         }
 
         if (terminationReason == null) {
-            error = (error == null) ? "Lý do chấm dứt không được để trống." : error + " Lý do chấm dứt không được để trống.";
+            error = (error == null) ? "Lý do chấm dứt không được để trống."
+                    : error + " Lý do chấm dứt không được để trống.";
         }
 
         if (error != null) {
@@ -2245,10 +2272,12 @@ public class ManagerController extends HttpServlet {
             if (result.isSuccess()) {
                 request.getSession().setAttribute("success", "Đã tạo yêu cầu gia hạn hợp đồng thành công.");
                 // Redirect về detail của hợp đồng cũ để thấy chain
-                response.sendRedirect(request.getContextPath() + "/v1/manager/contract/detail?contractId=" + contractId);
+                response.sendRedirect(
+                        request.getContextPath() + "/v1/manager/contract/detail?contractId=" + contractId);
             } else {
                 request.getSession().setAttribute("error", "Gia hạn thất bại: " + result.getMessage());
-                response.sendRedirect(request.getContextPath() + "/v1/manager/contract/detail?contractId=" + contractId);
+                response.sendRedirect(
+                        request.getContextPath() + "/v1/manager/contract/detail?contractId=" + contractId);
             }
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "Error handling renewal", e);
@@ -2271,7 +2300,8 @@ public class ManagerController extends HttpServlet {
         }
 
         try {
-            ContractSchedulerInitializerListener listener = (ContractSchedulerInitializerListener) getServletContext().getAttribute("contractSchedulerListener");
+            ContractSchedulerInitializerListener listener = (ContractSchedulerInitializerListener) getServletContext()
+                    .getAttribute("contractSchedulerListener");
 
             if (listener == null) {
                 String msg = "Scheduler is not available (listener not initialized).";
@@ -2435,7 +2465,8 @@ public class ManagerController extends HttpServlet {
 
         Part filePart = request.getPart(ATTENDANCE_FILE_PART);
         if (filePart == null || filePart.getSize() == 0) {
-            forwardImportError(request, response, "Vui lòng chọn file Excel .xlsx để import.", month, year, departmentId);
+            forwardImportError(request, response, "Vui lòng chọn file Excel .xlsx để import.", month, year,
+                    departmentId);
             return;
         }
 
@@ -2447,7 +2478,8 @@ public class ManagerController extends HttpServlet {
 
         String contentType = filePart.getContentType();
         if (contentType != null && !isAcceptableXlsxContentType(contentType)) {
-            forwardImportError(request, response, "Loại file không hợp lệ. Yêu cầu file Excel .xlsx.", month, year, departmentId);
+            forwardImportError(request, response, "Loại file không hợp lệ. Yêu cầu file Excel .xlsx.", month, year,
+                    departmentId);
             return;
         }
 
@@ -2471,7 +2503,8 @@ public class ManagerController extends HttpServlet {
             }
         } catch (IOException e) {
             LOGGER.log(Level.SEVERE, "Cannot save uploaded attendance file", e);
-            forwardImportError(request, response, "Không thể lưu file lên máy chủ. Vui lòng thử lại.", month, year, departmentId);
+            forwardImportError(request, response, "Không thể lưu file lên máy chủ. Vui lòng thử lại.", month, year,
+                    departmentId);
             return;
         }
 
@@ -2486,7 +2519,8 @@ public class ManagerController extends HttpServlet {
         uf.setYear(year);
         int fileId = uploadedFileDAO.createUploadedFile(uf);
         if (fileId <= 0) {
-            forwardImportError(request, response, "Không thể tạo bản ghi file. Vui lòng thử lại.", month, year, departmentId);
+            forwardImportError(request, response, "Không thể tạo bản ghi file. Vui lòng thử lại.", month, year,
+                    departmentId);
             return;
         }
 
@@ -2529,7 +2563,8 @@ public class ManagerController extends HttpServlet {
                 || ct.contains("application/zip");
     }
 
-    private void displayAllForms(HttpServletRequest request, HttpServletResponse response, User user) throws ServletException, IOException {
+    private void displayAllForms(HttpServletRequest request, HttpServletResponse response, User user)
+            throws ServletException, IOException {
         if (!hasPermission(user, "VIEW_ALL_FORMS")) {
             request.getSession().setAttribute("error", "Bạn không có quyền xem tất cả đơn");
             response.sendRedirect(request.getContextPath() + "/v1/manager/dashboard");
@@ -2595,7 +2630,8 @@ public class ManagerController extends HttpServlet {
         Integer month = parseIntOrNull(request.getParameter("month"));
         Integer year = parseIntOrNull(request.getParameter("year"));
         String name = request.getParameter("empName");
-        request.setAttribute("forms", formRequestDAO.getAllFormRequestsByDepartmentId(me.getDepartmentId(), day, month, year, name));
+        request.setAttribute("forms",
+                formRequestDAO.getAllFormRequestsByDepartmentId(me.getDepartmentId(), day, month, year, name));
         request.setAttribute("filterDay", day);
         request.setAttribute("filterMonth", month);
         request.setAttribute("filterYear", year);
@@ -2648,7 +2684,8 @@ public class ManagerController extends HttpServlet {
                 if (lb != null) {
                     int remaining = lb.getRemainingDays();
                     if (leaveForm.getTotalDays() != null && leaveForm.getTotalDays() > remaining) {
-                        request.getSession().setAttribute("error", "Duyệt đơn thất bại do vượt quá số phép. Đơn nghỉ (" + leaveForm.getTotalDays() + " ngày), Phép còn lại (" + remaining + " ngày).");
+                        request.getSession().setAttribute("error", "Duyệt đơn thất bại do vượt quá số phép. Đơn nghỉ ("
+                                + leaveForm.getTotalDays() + " ngày), Phép còn lại (" + remaining + " ngày).");
                         response.sendRedirect(request.getContextPath() + "/v1/manager/forms/dept-forms");
                         return;
                     }
@@ -2665,7 +2702,9 @@ public class ManagerController extends HttpServlet {
                             onManagerApproveComplaint(form, me);
                             break;
                         case "DEPENDENT":
-                            LOGGER.log(Level.INFO, "Manager approved dependent formId={0}, waiting for HR second approval.", form.getFormId());
+                            LOGGER.log(Level.INFO,
+                                    "Manager approved dependent formId={0}, waiting for HR second approval.",
+                                    form.getFormId());
                             break;
                         default:
                             break;
@@ -2694,10 +2733,12 @@ public class ManagerController extends HttpServlet {
     }
 
     private void onManagerApproveComplaint(FormRequestDTO form, EmployeeDetailDTO me) {
-        LOGGER.log(Level.INFO, "Manager approved complaint formId={0}, waiting for HR second approval.", form.getFormId());
+        LOGGER.log(Level.INFO, "Manager approved complaint formId={0}, waiting for HR second approval.",
+                form.getFormId());
     }
 
-    // ========== Xử LÝ DUYỆT LẦN 2 (HR - BƯỚc 2, chỉ áp dụng cho COMPLAINT) ==========
+    // ========== Xử LÝ DUYỆT LẦN 2 (HR - BƯỚc 2, chỉ áp dụng cho COMPLAINT)
+    // ==========
     private void handleHrApproveForm(HttpServletRequest request, HttpServletResponse response, User user)
             throws ServletException, IOException {
 
@@ -2765,14 +2806,14 @@ public class ManagerController extends HttpServlet {
         response.sendRedirect(request.getContextPath() + "/v1/manager/forms/all");
     }
 
-
     private void onHrApproveComplaint(FormRequestDTO form, EmployeeDetailDTO me, HttpServletRequest request) {
         if (!(form instanceof ComplaintFormRequestDTO)) {
             return;
         }
         ComplaintFormRequestDTO compForm = (ComplaintFormRequestDTO) form;
         if (compForm.getStartDate() == null || compForm.getStartTime() == null || compForm.getEndTime() == null) {
-            LOGGER.log(Level.WARNING, "Complaint formId={0} missing date/time data, skipping attendance update.", form.getFormId());
+            LOGGER.log(Level.WARNING, "Complaint formId={0} missing date/time data, skipping attendance update.",
+                    form.getFormId());
             return;
         }
         Time timeIn = compForm.getStartTime() != null ? Time.valueOf(compForm.getStartTime().toLocalTime()) : null;
@@ -2810,8 +2851,15 @@ public class ManagerController extends HttpServlet {
             hoursWorked = standardHours;
         }
 
-        LocalTime stdStart = LocalTime.of(8, 30);
-        int newStatus = compForm.getStartTime().toLocalTime().isAfter(stdStart) ? 2 : 1;
+        int newStatus = 0;
+        try {
+            AttendanceImportService attService = new AttendanceImportService();
+            enums.AttendanceStatus statusEnum = attService.resolveStatus(form.getEmployeeId(),
+                    new Date(compForm.getStartDate().getTime()), timeIn, calcTimeOut);
+            newStatus = statusEnum.getRelatedNum();
+        } catch (Exception ex) {
+            LOGGER.log(Level.SEVERE, "Error resolving attendance status in complaint", ex);
+        }
 
         Attendance att = attendanceDAO.getAttendanceByDate(form.getEmployeeId(), compForm.getStartDate());
         if (att != null) {
@@ -2821,15 +2869,15 @@ public class ManagerController extends HttpServlet {
                     hoursWorked, newStatus,
                     "Updated by complaint approval (HR step)", me.getUserId());
             LOGGER.log(Level.INFO, "Attendance updated via complaint HR approval: formId={0}, attId={1}",
-                    new Object[]{form.getFormId(), att.getAttendanceId()});
+                    new Object[] { form.getFormId(), att.getAttendanceId() });
         } else {
             // Không INSERT mới — chỉ báo warning
             LOGGER.log(Level.WARNING,
                     "Complaint formId={0}: no attendance record found for employeeId={1} on date={2}. Attendance NOT inserted.",
-                    new Object[]{form.getFormId(), form.getEmployeeId(), compForm.getStartDate()});
+                    new Object[] { form.getFormId(), form.getEmployeeId(), compForm.getStartDate() });
             request.getSession().setAttribute("warning",
                     "Đơn khiếu nại được duyệt nhưng không tìm thấy bản ghi chấm công ngày "
-                    + compForm.getStartDate() + " — không có gì được cập nhật.");
+                            + compForm.getStartDate() + " — không có gì được cập nhật.");
         }
     }
 
@@ -2898,7 +2946,8 @@ public class ManagerController extends HttpServlet {
                 dependentDAO.rejectStatusChangeByFormId(formId);
             }
             request.getSession().setAttribute(ok ? "success" : "error",
-                    ok ? "HR đã từ chối đơn khiếu nại thành công." : "Từ chối đơn thất bại — đơn có thể đã được xử lý rồi.");
+                    ok ? "HR đã từ chối đơn khiếu nại thành công."
+                            : "Từ chối đơn thất bại — đơn có thể đã được xử lý rồi.");
         } catch (NumberFormatException e) {
             request.getSession().setAttribute("error", "Mã đơn không hợp lệ.");
         }
@@ -2956,7 +3005,8 @@ public class ManagerController extends HttpServlet {
 
         // Ràng buộc: targetRole phải được phép trong phòng ban hiện tại của nhân viên
         if (!departmentDAO.isRoleAllowedForDepartment(emp.getDepartmentId(), targetRoleId)) {
-            request.getSession().setAttribute("error", "Vai trò mới không phù hợp với phòng ban hiện tại của nhân viên.");
+            request.getSession().setAttribute("error",
+                    "Vai trò mới không phù hợp với phòng ban hiện tại của nhân viên.");
             response.sendRedirect(request.getContextPath() + "/v1/manager/forms/submit-promotion");
             return;
         }
@@ -2979,8 +3029,9 @@ public class ManagerController extends HttpServlet {
         int newId = formRequestDAO.addFormRequest(fr);
         if (newId > 0) {
             LOGGER.log(Level.INFO, "Promotion/Demotion request submitted: employeeId={0}, targetRoleId={1}, formId={2}",
-                    new Object[]{empId, targetRoleId, newId});
-            request.getSession().setAttribute("success", "Đơn thăng/giáng chức đã được gửi, chờ Business Admin phê duyệt.");
+                    new Object[] { empId, targetRoleId, newId });
+            request.getSession().setAttribute("success",
+                    "Đơn thăng/giáng chức đã được gửi, chờ Business Admin phê duyệt.");
         } else {
             request.getSession().setAttribute("error", "Gửi đơn thăng/giáng chức thất bại. Vui lòng thử lại.");
         }
@@ -3068,7 +3119,8 @@ public class ManagerController extends HttpServlet {
                 + (note == null ? "" : "\nGhi chú: " + note));
 
         int formId = formRequestDAO.addFormRequest(fr);
-        boolean ok = formId > 0 && dependentDAO.addPending(formId, me.getEmployeeId(), fullName, relationship, dateOfBirth, taxCode, note);
+        boolean ok = formId > 0 && dependentDAO.addPending(formId, me.getEmployeeId(), fullName, relationship,
+                dateOfBirth, taxCode, note);
         request.getSession().setAttribute(ok ? "success" : "error",
                 ok ? "Đã gửi đơn đăng ký người phụ thuộc, chờ HR duyệt."
                         : "Gửi đơn người phụ thuộc thất bại.");
@@ -3094,8 +3146,7 @@ public class ManagerController extends HttpServlet {
                 isBlank(phoneNumber) ? null : phoneNumber.trim(),
                 isBlank(skills) ? null : skills.trim(),
                 isBlank(experience) ? null : experience.trim(),
-                isBlank(degree) ? null : degree.trim()
-        );
+                isBlank(degree) ? null : degree.trim());
 
         if (success) {
             request.getSession().setAttribute("success", "Cập nhật hồ sơ thành cóng.");
@@ -3105,7 +3156,8 @@ public class ManagerController extends HttpServlet {
         response.sendRedirect(request.getContextPath() + "/v1/manager/my-profile");
     }
 
-    private void handleUpdateEmployeeDetail(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+    private void handleUpdateEmployeeDetail(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
         String rawEmployeeId = request.getParameter("employeeId");
         String rawStatus = request.getParameter("status");
         String phoneNumber = request.getParameter("phoneNumber");
@@ -3143,8 +3195,7 @@ public class ManagerController extends HttpServlet {
                 isBlank(phoneNumber) ? null : phoneNumber.trim(),
                 isBlank(skills) ? null : skills.trim(),
                 isBlank(experience) ? null : experience.trim(),
-                isBlank(degree) ? null : degree.trim()
-        );
+                isBlank(degree) ? null : degree.trim());
 
         if (statusSuccess || profileSuccess) {
             request.getSession().setAttribute("success", "Cập nhật nhân viên thành cóng.");
@@ -3153,7 +3204,8 @@ public class ManagerController extends HttpServlet {
         }
 
         if (employeeDetail.getDepartmentId() > 0) {
-            response.sendRedirect(request.getContextPath() + "/v1/manager/department/employee-detail?id=" + employeeDetail.getDepartmentId());
+            response.sendRedirect(request.getContextPath() + "/v1/manager/department/employee-detail?id="
+                    + employeeDetail.getDepartmentId());
         } else {
             response.sendRedirect(request.getContextPath() + "/v1/manager/employee/detail?id=" + employeeId);
         }
@@ -3166,12 +3218,14 @@ public class ManagerController extends HttpServlet {
 
         EmployeeDetailDTO manager = employeeDAO.getEmployeeByUserId(user.getUserId());
         if (manager == null || manager.getDepartmentId() <= 0) {
-            request.getSession().setAttribute("error", "Bạn chưa được phân công vào phòng ban nào nên không thể tạo đơn OT.");
+            request.getSession().setAttribute("error",
+                    "Bạn chưa được phân công vào phòng ban nào nên không thể tạo đơn OT.");
             response.sendRedirect(request.getContextPath() + "/v1/manager/dashboard");
             return;
         }
 
-        List<EmployeeDetailDTO> departmentEmployees = employeeDAO.getEmployeesFiltered(null, manager.getDepartmentId(), "", null, "", 0, 1000);
+        List<EmployeeDetailDTO> departmentEmployees = employeeDAO.getEmployeesFiltered(null, manager.getDepartmentId(),
+                "", null, "", 0, 1000);
 
         request.setAttribute("department", departmentDAO.getDepartmentById(manager.getDepartmentId()));
         request.setAttribute("departmentEmployees", departmentEmployees);
@@ -3189,7 +3243,8 @@ public class ManagerController extends HttpServlet {
             String statusFilter = request.getParameter("status");
             String dateFilter = request.getParameter("otDate");
 
-            List<OvertimeRequestDTO> requests = overtimeDAO.getOvertimeRequestsByManager(manager.getEmployeeId(), statusFilter, dateFilter);
+            List<OvertimeRequestDTO> requests = overtimeDAO.getOvertimeRequestsByManager(manager.getEmployeeId(),
+                    statusFilter, dateFilter);
 
             // Phân trang
             List<OvertimeRequestDTO> pagedRequests = utils.Paging.page(request, requests);
@@ -3225,7 +3280,8 @@ public class ManagerController extends HttpServlet {
             }
 
             EmployeeDetailDTO manager = employeeDAO.getEmployeeByUserId(user.getUserId());
-            if (manager == null || (otRequest.getEmployeeId() != manager.getEmployeeId() && !hasPermission(user, "VIEW_ALL_DEPT_FORMS") && !hasPermission(user, "VIEW_ALL_FORMS"))) {
+            if (manager == null || (otRequest.getEmployeeId() != manager.getEmployeeId()
+                    && !hasPermission(user, "VIEW_ALL_DEPT_FORMS") && !hasPermission(user, "VIEW_ALL_FORMS"))) {
                 request.getSession().setAttribute("error", "Bạn không có quyền xem đơn OT này.");
                 response.sendRedirect(request.getContextPath() + "/v1/manager/forms/ot-requests");
                 return;
@@ -3264,21 +3320,25 @@ public class ManagerController extends HttpServlet {
             if (manager != null) {
                 dto.FormRequestDTO fr = formRequestDAO.getFormRequestById(formId);
                 if (fr != null && fr.getEmployeeId() == manager.getEmployeeId() && fr.getStatus() == 0) {
-                    boolean success = formRequestDAO.updateFormRequest(formId, 3, manager.getEmployeeId(), "Đã hủy bởi người tạo");
+                    boolean success = formRequestDAO.updateFormRequest(formId, 3, manager.getEmployeeId(),
+                            "Đã hủy bởi người tạo");
                     if (success) {
                         request.getSession().setAttribute("success", "Đã hủy đơn OT thành cóng.");
                     } else {
-                        request.getSession().setAttribute("error", "Lỗi khi cập nhật trạng thái hủy đơn. Vui lòng thử lại.");
+                        request.getSession().setAttribute("error",
+                                "Lỗi khi cập nhật trạng thái hủy đơn. Vui lòng thử lại.");
                     }
                 } else {
-                    request.getSession().setAttribute("error", "Đơn không tồn tại, không thuộc về bạn, hoặc đã được xử lý.");
+                    request.getSession().setAttribute("error",
+                            "Đơn không tồn tại, không thuộc về bạn, hoặc đã được xử lý.");
                 }
             } else {
                 request.getSession().setAttribute("error", "Không tìm thấy thông tin quản lý.");
             }
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "Lỗi hủy đơn OT", e);
-            request.getSession().setAttribute("error", "Đã xảy ra lỗi hệ thống: " + e.getClass().getName() + " - " + e.getMessage());
+            request.getSession().setAttribute("error",
+                    "Đã xảy ra lỗi hệ thống: " + e.getClass().getName() + " - " + e.getMessage());
         }
         response.sendRedirect(request.getContextPath() + "/v1/manager/forms/ot-requests");
     }
@@ -3301,15 +3361,19 @@ public class ManagerController extends HttpServlet {
             String[] assigneeIds = request.getParameterValues("assignees");
 
             if (otDate == null || otDate.isEmpty() || startTime == null || startTime.isEmpty()
-                    || endTime == null || endTime.isEmpty() || dayTypeStr == null || assigneeIds == null || assigneeIds.length == 0) {
-                request.getSession().setAttribute("error", "Vui lòng điền đầy đủ thông tin và chọn ít nhất 1 nhân viên.");
+                    || endTime == null || endTime.isEmpty() || dayTypeStr == null || assigneeIds == null
+                    || assigneeIds.length == 0) {
+                request.getSession().setAttribute("error",
+                        "Vui lòng điền đầy đủ thông tin và chọn ít nhất 1 nhân viên.");
                 response.sendRedirect(request.getContextPath() + "/v1/manager/forms/create-ot");
                 return;
             }
-            
+
             List<String> busyEmployees = overtimeDAO.getBusyEmployeeNamesForOT(assigneeIds, otDate);
             if (!busyEmployees.isEmpty()) {
-                request.getSession().setAttribute("error", "Các nhân viên sau đã có lịch OT (Đang chờ/Đã duyệt/Hoàn thành) vào ngày này: " + String.join(", ", busyEmployees));
+                request.getSession().setAttribute("error",
+                        "Các nhân viên sau đã có lịch OT (Đang chờ/Đã duyệt/Hoàn thành) vào ngày này: "
+                                + String.join(", ", busyEmployees));
                 response.sendRedirect(request.getContextPath() + "/v1/manager/forms/create-ot");
                 return;
             }
@@ -3328,7 +3392,8 @@ public class ManagerController extends HttpServlet {
                 java.time.LocalDate today = java.time.LocalDate.now();
 
                 if (!date.isAfter(today)) {
-                    request.getSession().setAttribute("error", "Chỉ được phép đăng ký OT cho các ngày tiếp theo (không được đăng ký cho ngày hiện tại hoặc quá khứ).");
+                    request.getSession().setAttribute("error",
+                            "Chỉ được phép đăng ký OT cho các ngày tiếp theo (không được đăng ký cho ngày hiện tại hoặc quá khứ).");
                     response.sendRedirect(request.getContextPath() + "/v1/manager/forms/create-ot");
                     return;
                 }
@@ -3337,7 +3402,8 @@ public class ManagerController extends HttpServlet {
                 boolean isWeekend = (dow == java.time.DayOfWeek.SATURDAY || dow == java.time.DayOfWeek.SUNDAY);
 
                 if (isWeekend) {
-                    request.getSession().setAttribute("error", "Không được phép đăng ký tăng ca vào Thứ Bảy và Chủ Nhật.");
+                    request.getSession().setAttribute("error",
+                            "Không được phép đăng ký tăng ca vào Thứ Bảy và Chủ Nhật.");
                     response.sendRedirect(request.getContextPath() + "/v1/manager/forms/create-ot");
                     return;
                 }
@@ -3345,7 +3411,8 @@ public class ManagerController extends HttpServlet {
                 java.time.LocalTime minTime = java.time.LocalTime.of(17, 0);
                 java.time.LocalTime maxTime = java.time.LocalTime.of(19, 0);
                 if (start.isBefore(minTime) || end.isAfter(maxTime)) {
-                    request.getSession().setAttribute("error", "Nhân viên chỉ được phép tăng ca trong khung giờ 17:00 đến 19:00.");
+                    request.getSession().setAttribute("error",
+                            "Nhân viên chỉ được phép tăng ca trong khung giờ 17:00 đến 19:00.");
                     response.sendRedirect(request.getContextPath() + "/v1/manager/forms/create-ot");
                     return;
                 }
@@ -3388,7 +3455,8 @@ public class ManagerController extends HttpServlet {
                 boolean detailAdded = overtimeDAO.addOvertimeDetails(newFormId, otDate, startTime, endTime, dayType);
                 boolean assigneesAdded = overtimeDAO.addOvertimeAssignees(newFormId, assigneeIds);
                 if (detailAdded && assigneesAdded) {
-                    request.getSession().setAttribute("success", "Đã tạo đơn Overtime thành cóng (Mã đơn: " + formCode + ") và gửi chờ duyệt.");
+                    request.getSession().setAttribute("success",
+                            "Đã tạo đơn Overtime thành cóng (Mã đơn: " + formCode + ") và gửi chờ duyệt.");
                     response.sendRedirect(request.getContextPath() + "/v1/manager/forms/ot-requests");
                     return;
                 }
@@ -3429,13 +3497,13 @@ public class ManagerController extends HttpServlet {
         Integer year = parseIntOrNull(request.getParameter("year"));
         Integer month = parseIntOrNull(request.getParameter("month"));
         if (year == null || year < 2000 || month == null || month < 1 || month > 12) {
-            return new int[]{latestClosedPeriod.getYear(), latestClosedPeriod.getMonthValue()};
+            return new int[] { latestClosedPeriod.getYear(), latestClosedPeriod.getMonthValue() };
         }
         java.time.YearMonth selected = java.time.YearMonth.of(year, month);
         if (selected.isAfter(latestClosedPeriod)) {
             selected = latestClosedPeriod;
         }
-        return new int[]{selected.getYear(), selected.getMonthValue()};
+        return new int[] { selected.getYear(), selected.getMonthValue() };
     }
 
     private String buildSalaryPeriodMessage(int year, int month) {

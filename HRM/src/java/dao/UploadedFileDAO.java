@@ -28,7 +28,6 @@ public class UploadedFileDAO {
         this.dbContext = new DBContext();
     }
 
-
     public int createUploadedFile(UploadedFile file) {
         LOGGER.log(Level.INFO, "Creating uploaded file record: {0}", file.getFileCode());
         String SQL = "INSERT INTO Uploaded_Files "
@@ -79,10 +78,14 @@ public class UploadedFileDAO {
     }
 
     /**
-     * Updates the import result on the caller-supplied transaction connection. This MUST
-     * be used while an import transaction is still open on {@code conn}: updating the row
-     * through a separate connection would block on locks held by the open transaction and
-     * fail with "Lock wait timeout exceeded". Reusing {@code conn} keeps lock owner and
+     * Updates the import result on the caller-supplied transaction connection. This
+     * MUST
+     * be used while an import transaction is still open on {@code conn}: updating
+     * the row
+     * through a separate connection would block on locks held by the open
+     * transaction and
+     * fail with "Lock wait timeout exceeded". Reusing {@code conn} keeps lock owner
+     * and
      * updater on the same transaction.
      */
     public boolean updateImportResult(Connection conn, int fileId, int totalRows, int importedRows,
@@ -100,17 +103,17 @@ public class UploadedFileDAO {
             return true;
         }
     }
-    public int[] getLatestAttendanceImportMonthYear(int departmentId) {
-        String SQL = "SELECT month, year FROM Uploaded_Files WHERE departmentId = ? AND fileType = 'ATTENDANCE' AND status = 1 ORDER BY createdAt DESC LIMIT 1";
+
+    public int[] getLatestAttendanceImportMonthYear() {
+        String SQL = "SELECT month, year FROM Uploaded_Files WHERE fileType = 'ATTENDANCE' AND status = 1 ORDER BY submittedAt DESC LIMIT 1";
         try (Connection conn = dbContext.getConnection(); PreparedStatement ps = conn.prepareStatement(SQL)) {
-            ps.setInt(1, departmentId);
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
-                    return new int[]{rs.getInt("month"), rs.getInt("year")};
+                    return new int[] { rs.getInt("month"), rs.getInt("year") };
                 }
             }
         } catch (SQLException e) {
-            LOGGER.log(Level.SEVERE, "Cannot get latest attendance import for dept: " + departmentId, e);
+            LOGGER.log(Level.SEVERE, "Cannot get latest attendance import ", e);
         }
         return null;
     }

@@ -21,8 +21,7 @@ import model.EmploymentContract;
 public class EmploymentContractDAO {
 
     private static final Logger LOGGER = Logger.getLogger(EmploymentContractDAO.class.getName());
-    private static final String BASE_COLUMNS
-            = "contractId, contractCode, employeeId, contractType, signedDate, "
+    private static final String BASE_COLUMNS = "contractId, contractCode, employeeId, contractType, signedDate, "
             + "effectiveDate, endDate, actualEndDate, salary, status, note, "
             + "previousContractId, terminationReason, rejectionReason, "
             + "createdBy, createdAt, updatedAt";
@@ -196,7 +195,8 @@ public class EmploymentContractDAO {
 
     public List<EmploymentContract> getFutureContracts(int employeeId) {
         List<EmploymentContract> contracts = new ArrayList<>();
-        String SQL = "SELECT " + BASE_COLUMNS + " FROM Employment_Contracts WHERE employeeId = ? AND status = 'PENDING_ACTIVATION' "
+        String SQL = "SELECT " + BASE_COLUMNS
+                + " FROM Employment_Contracts WHERE employeeId = ? AND status = 'PENDING_ACTIVATION' "
                 + "ORDER BY effectiveDate ASC";
         try (Connection conn = getInternalConnection(); PreparedStatement ps = conn.prepareStatement(SQL)) {
             ps.setInt(1, employeeId);
@@ -288,7 +288,8 @@ public class EmploymentContractDAO {
             ps.setInt(5, contractId);
             return ps.executeUpdate() > 0;
         } catch (SQLException e) {
-            LOGGER.log(Level.SEVERE, "Cannot update contract status (with signedDate) for contractId: " + contractId, e);
+            LOGGER.log(Level.SEVERE, "Cannot update contract status (with signedDate) for contractId: " + contractId,
+                    e);
         }
         return false;
     }
@@ -342,7 +343,8 @@ public class EmploymentContractDAO {
         return contracts;
     }
 
-    public boolean updateContractStatusWithoutEndDate(Connection conn, int contractId, ContractStatus newStatus) throws SQLException {
+    public boolean updateContractStatusWithoutEndDate(Connection conn, int contractId, ContractStatus newStatus)
+            throws SQLException {
         String SQL = "UPDATE Employment_Contracts SET status = ?, updatedAt = CURRENT_TIMESTAMP WHERE contractId = ?";
         try (PreparedStatement ps = conn.prepareStatement(SQL)) {
             ps.setString(1, newStatus.name());
@@ -420,14 +422,13 @@ public class EmploymentContractDAO {
         List<ContractAuditLog> logs = new ArrayList<>();
         StringBuilder sql = new StringBuilder(
                 "SELECT la.LogId, la.ContractId, la.OldStatus, la.NewStatus, "
-                + "la.ChangedBy, la.ChangeDate, la.ActionReason, "
-                + "u.userName AS changedByName, ec.employeeId, e.fullName AS employeeName "
-                + "FROM Contract_Audit_Log la "
-                + "JOIN Employment_Contracts ec ON la.ContractId = ec.contractId "
-                + "JOIN Users u ON la.ChangedBy = u.userId "
-                + "JOIN Employees e ON ec.employeeId = e.employeeId "
-                + "WHERE 1=1 "
-        );
+                        + "la.ChangedBy, la.ChangeDate, la.ActionReason, "
+                        + "u.userName AS changedByName, ec.employeeId, e.fullName AS employeeName "
+                        + "FROM Contract_Audit_Log la "
+                        + "JOIN Employment_Contracts ec ON la.ContractId = ec.contractId "
+                        + "JOIN Users u ON la.ChangedBy = u.userId "
+                        + "JOIN Employees e ON ec.employeeId = e.employeeId "
+                        + "WHERE 1=1 ");
 
         if (targetEmpId != null) {
             sql.append("AND ec.employeeId = ? ");

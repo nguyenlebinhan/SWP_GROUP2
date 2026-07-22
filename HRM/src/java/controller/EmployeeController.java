@@ -83,11 +83,14 @@ public class EmployeeController extends HttpServlet {
     private final UploadedFileDAO uploadedFileDAO = new UploadedFileDAO();
     private final LeaveBalanceDAO leaveBalanceDAO = new LeaveBalanceDAO();
     private final AttendanceImportService importService = new AttendanceImportService();
-    private final EmploymentContractService contractService = new EmploymentContractService(contractDAO, employeeDAO, new dal.DBContext());
+    private final EmploymentContractService contractService = new EmploymentContractService(contractDAO, employeeDAO,
+            new dal.DBContext());
     private final AttendanceService attendanceService = new AttendanceService();
     private final AttendanceExcelExporter attendanceExporter = new AttendanceExcelExporter();
     private final String UPLOAD_DIR = config.getProperty("UPLOAD_DIR");
-    private final String FILE_PART = config.getProperty("FILE_PART");
+    // private final String FILE_PART = config.getProperty("FILE_PART");
+    private static final String FILE_PART = "attendanceFile";
+    private final EmailService emailService = new EmailService();
     private final PayrollService payrollService = new PayrollService();
     private final AttendanceClosingService attendanceClosingService = new AttendanceClosingService();
     private final PayrollConfigDAO payrollConfigDAO = new PayrollConfigDAO();
@@ -2302,7 +2305,23 @@ public class EmployeeController extends HttpServlet {
             int currentYear = LocalDate.now().getYear();
             LeaveBalance lb = leaveBalanceDAO.getLeaveBalance(me.getEmployeeId(), currentYear);
             if (lb == null) {
-                lb = new LeaveBalance(0, me.getEmployeeId(), currentYear, 12, 0);
+                EmploymentContract contract = contractDAO.getActiveContract(user.getUserId());
+                int allowedDays = 12;
+                LocalDate startDate = null;
+
+                if (contract != null && contract.getEffectiveDate() != null) {
+                    startDate = contract.getEffectiveDate().toLocalDate();
+                }
+
+                if (startDate != null) {
+                    int startYear = startDate.getYear();
+                    if (startYear == currentYear) {
+                        allowedDays = 12 - startDate.getMonthValue() + 1;
+                    } else if (currentYear - startDate.getYear() >= 5) {
+                        allowedDays = 12 + ((currentYear - startYear) / 5);
+                    }
+                }
+                lb = new LeaveBalance(0, me.getEmployeeId(), currentYear, allowedDays, 0);
                 leaveBalanceDAO.createLeaveBalance(lb);
             }
             request.setAttribute("remainingDays", lb.getRemainingDays());
@@ -2678,17 +2697,34 @@ public class EmployeeController extends HttpServlet {
             request.getRequestDispatcher("/public/employee/forms/complaint_form.jsp").forward(request, response);
             return;
         }
+        LocalDate localDate = startDate.toLocalDate();
+
+        if (localDate.getDayOfWeek().equals(DayOfWeek.SATURDAY) ||
+                localDate.getDayOfWeek().equals(DayOfWeek.SUNDAY)) {
+            request.setAttribute("error", "Công ty không hoạt động vào cuối tuần");
+            setPermissionFlags(request, getPermissions(user));
+            request.getRequestDispatcher("/public/employee/forms/complaint_form.jsp").forward(request, response);
+            return;
+        }
 
         // Ràng buộc: Chỉ được khiếu nại trong tháng import chấm công mới nhất
-        int[] latestPeriod = uploadedFileDAO.getLatestAttendanceImportMonthYear(me.getDepartmentId());
+        int[] latestPeriod = uploadedFileDAO.getLatestAttendanceImportMonthYear();
         if (latestPeriod != null) {
-            java.time.LocalDate localDate = startDate.toLocalDate();
             if (localDate.getMonthValue() != latestPeriod[0] || localDate.getYear() != latestPeriod[1]) {
-                request.setAttribute("error", String.format("Bạn chỉ được nộp đơn khiếu nại chấm công cho tháng %02d/%d (kỳ import gần nhất).", latestPeriod[0], latestPeriod[1]));
+                request.setAttribute("error",
+                        String.format(
+                                "Bạn chỉ được nộp đơn khiếu nại chấm công cho tháng %02d/%d (kỳ import gần nhất).",
+                                latestPeriod[0], latestPeriod[1]));
                 setPermissionFlags(request, getPermissions(user));
                 request.getRequestDispatcher("/public/employee/forms/complaint_form.jsp").forward(request, response);
                 return;
             }
+        } else {
+            request.setAttribute("error",
+                    "Phòng ban của bạn chưa có dữ liệu chấm công nào được import, nên không thể tạo đơn khiếu nại chấm công.");
+            setPermissionFlags(request, getPermissions(user));
+            request.getRequestDispatcher("/public/employee/forms/complaint_form.jsp").forward(request, response);
+            return;
         }
 
         // Xử lý file đính kèm
@@ -2939,8 +2975,18 @@ public class EmployeeController extends HttpServlet {
 
     private void displayRequestTransferForm(HttpServletRequest request, HttpServletResponse response, User user)
             throws ServletException, IOException {
-        request.setAttribute("departments", departmentDAO.getAllActiveDepartments());
-        request.setAttribute("positions", departmentDAO.getAllPositions());
+        List<model.Department> departments = departmentDAO.getAllActiveDepartments();
+        request.setAttribute("departments", departments);
+        request.setAttribute("roles", roleDAO.getAllActiveRoles());
+
+        // Thêm Map chứa danh sách các Role hợp lệ cho từng Phòng ban để JS có thể đọc
+        Map<Integer, String> deptRolesMap = new HashMap<>();
+        for (model.Department d : departments) {
+            java.util.List<String> allowedRoles = departmentDAO.getAllowedRoleNames(d.getDepartmentId());
+            deptRolesMap.put(d.getDepartmentId(), String.join(",", allowedRoles));
+        }
+        request.setAttribute("deptRolesMap", deptRolesMap);
+
         request.getRequestDispatcher("/public/employee/forms/transfer_form.jsp").forward(request, response);
     }
 
@@ -2963,36 +3009,48 @@ public class EmployeeController extends HttpServlet {
         }
 
         String rawTargetDeptId = request.getParameter("targetDepartmentId");
+        String rawTargetRoleId = request.getParameter("targetRoleId");
         String reason = request.getParameter("reason");
-        if (isBlank(rawTargetDeptId)) {
-            request.getSession().setAttribute("error", "Vui lòng chọn phòng ban muốn chuyển đến.");
+        if (isBlank(rawTargetDeptId) || isBlank(rawTargetRoleId)) {
+            request.getSession().setAttribute("error", "Vui lòng chọn phòng ban và vị trí muốn chuyển đến.");
             response.sendRedirect(request.getContextPath() + "/v1/employee/forms/transfer/new");
             return;
         }
 
         int targetDepartmentId;
+        int targetRoleId;
         try {
             targetDepartmentId = Integer.parseInt(rawTargetDeptId);
+            targetRoleId = Integer.parseInt(rawTargetRoleId);
         } catch (NumberFormatException e) {
-            request.getSession().setAttribute("error", "Phòng ban không hợp lệ.");
+            request.getSession().setAttribute("error", "Phòng ban hoặc vị trí không hợp lệ.");
             response.sendRedirect(request.getContextPath() + "/v1/employee/forms/transfer/new");
             return;
         }
 
-        if (targetDepartmentId == me.getDepartmentId()) {
-            request.getSession().setAttribute("error", "Bạn đã ở phòng ban này rồi.");
+        if (!departmentDAO.isRoleAllowedForDepartment(targetDepartmentId, targetRoleId)) {
+            request.getSession().setAttribute("error", "Vị trí này không tồn tại trong phòng ban này");
             response.sendRedirect(request.getContextPath() + "/v1/employee/forms/transfer/new");
             return;
         }
 
-        // Tự động resolve targetRoleId từ deptCode + "Employee"
-        String deptCode = departmentDAO.getDepartmentCodeById(targetDepartmentId);
-        Integer targetRoleId = null;
-        if (deptCode != null) {
-            model.Role role = roleDAO.getRoleByName(deptCode + "Employee");
-            if (role != null) {
-                targetRoleId = role.getRoleId();
-            }
+        if (targetDepartmentId == me.getDepartmentId() && targetRoleId == me.getRoleId()) {
+            request.getSession().setAttribute("error", "Bạn đã ở vị trí của phòng ban này rồi.");
+            response.sendRedirect(request.getContextPath() + "/v1/employee/forms/transfer/new");
+            return;
+        }
+
+        Role targetRoleObj = roleDAO.getRoleById(targetRoleId);
+        if (targetRoleObj == null) {
+            request.getSession().setAttribute("error", "Chức vụ không tồn tại");
+            response.sendRedirect(request.getContextPath() + "/v1/employee/transfer/new");
+            return;
+        }
+
+        if (!targetRoleObj.getRoleName().substring(2).equals(me.getRoleName().substring(2))) {
+            request.getSession().setAttribute("error", "Bạn chỉ được chuyển phòng ban ngang cấp bậc");
+            response.sendRedirect(request.getContextPath() + "/v1/employee/forms/transfer/new");
+            return;
         }
 
         // Lấy formTypeId của TRANSFER
@@ -3013,7 +3071,7 @@ public class EmployeeController extends HttpServlet {
 
         int newId = formRequestDAO.addFormRequest(fr);
         if (newId > 0) {
-            request.getSession().setAttribute("success", "Đơn thuyên chuyển đã được gửi, chờ Business Admin phê duyệt.");
+            request.getSession().setAttribute("success", "Đơn thuyên chuyển đã được gửi, chờ HR phê duyệt.");
         } else {
             request.getSession().setAttribute("error", "Gửi đơn thuyên chuyển thất bại. Vui lòng thử lại.");
         }

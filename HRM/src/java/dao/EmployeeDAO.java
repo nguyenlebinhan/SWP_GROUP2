@@ -69,8 +69,8 @@ public class EmployeeDAO {
         List<EmployeeDetailDTO> list = new ArrayList<>();
         String SQL = "SELECT e.employeeId, e.employeeCode, e.userId, e.departmentId, e.positionId, "
                 + "e.phoneNumber, e.skills, e.experience, e.degree, e.dependentCount, e.unionMember, e.status, e.managerId, "
-                + "u.fullName, u.email, u.username, "
-                + "d.departmentName, p.positionName, r.roleName "
+                + "u.fullName, u.email, u.username, u.roleId, "
+                        + "d.departmentName, p.positionName, r.roleName, u.roleId "
                 + "FROM Employees e "
                 + "JOIN Users u ON u.userId = e.userId "
                 + "LEFT JOIN Departments d ON d.departmentId = e.departmentId "
@@ -93,8 +93,8 @@ public class EmployeeDAO {
         List<EmployeeDetailDTO> list = new ArrayList<>();
         String SQL = "SELECT e.employeeId, e.employeeCode, e.userId, e.departmentId, e.positionId, "
                 + "e.phoneNumber, e.skills, e.experience, e.degree, e.dependentCount, e.unionMember, e.status, e.managerId, "
-                + "u.fullName, u.email, u.username, "
-                + "d.departmentName, p.positionName, r.roleName "
+                + "u.fullName, u.email, u.username, u.roleId, "
+                        + "d.departmentName, p.positionName, r.roleName, u.roleId "
                 + "FROM Employees e "
                 + "JOIN Users u ON u.userId = e.userId "
                 + "LEFT JOIN Departments d ON d.departmentId = e.departmentId "
@@ -119,8 +119,8 @@ public class EmployeeDAO {
         List<EmployeeDetailDTO> list = new ArrayList<>();
         String SQL = "SELECT e.employeeId, e.employeeCode, e.userId, e.departmentId, e.positionId, "
                 + "e.phoneNumber, e.skills, e.experience, e.degree, e.dependentCount, e.unionMember, e.status, e.managerId, "
-                + "u.fullName, u.email, u.username, "
-                + "d.departmentName, p.positionName, r.roleName "
+                + "u.fullName, u.email, u.username, u.roleId, "
+                        + "d.departmentName, p.positionName, r.roleName, u.roleId "
                 + "FROM Employees e "
                 + "JOIN Users u ON u.userId = e.userId "
                 + "LEFT JOIN Departments d ON d.departmentId = e.departmentId "
@@ -144,8 +144,8 @@ public class EmployeeDAO {
     public EmployeeDetailDTO getEmployeeById(int employeeId) {
         String SQL = "SELECT e.employeeId, e.employeeCode, e.userId, e.departmentId, e.positionId, "
                 + "e.phoneNumber, e.skills, e.experience, e.degree, e.dependentCount, e.unionMember, e.status, e.managerId, "
-                + "u.fullName, u.email, u.username, "
-                + "d.departmentName, p.positionName, r.roleName "
+                + "u.fullName, u.email, u.username, u.roleId, "
+                        + "d.departmentName, p.positionName, r.roleName, u.roleId "
                 + "FROM Employees e "
                 + "JOIN Users u ON u.userId = e.userId "
                 + "LEFT JOIN Departments d ON d.departmentId = e.departmentId "
@@ -168,8 +168,8 @@ public class EmployeeDAO {
     public EmployeeDetailDTO getEmployeeByUserId(int userId) {
         String SQL = "SELECT e.employeeId, e.employeeCode, e.userId, e.departmentId, e.positionId, "
                 + "e.phoneNumber, e.skills, e.experience, e.degree, e.dependentCount, e.unionMember, e.status, e.managerId, "
-                + "u.fullName, u.email, u.username, "
-                + "d.departmentName, p.positionName, r.roleName "
+                + "u.fullName, u.email, u.username, u.roleId, "
+                        + "d.departmentName, p.positionName, r.roleName, u.roleId "
                 + "FROM Employees e "
                 + "JOIN Users u ON u.userId = e.userId "
                 + "LEFT JOIN Departments d ON d.departmentId = e.departmentId "
@@ -193,8 +193,8 @@ public class EmployeeDAO {
         List<EmployeeDetailDTO> list = new ArrayList<>();
         String SQL = "SELECT e.employeeId, e.employeeCode, e.userId, e.departmentId, e.positionId, "
                 + "e.phoneNumber, e.skills, e.experience, e.degree, e.dependentCount, e.unionMember, e.status, e.managerId, "
-                + "u.fullName, u.email, u.username, "
-                + "d.departmentName, p.positionName, r.roleName "
+                + "u.fullName, u.email, u.username, u.roleId, "
+                        + "d.departmentName, p.positionName, r.roleName, u.roleId "
                 + "FROM Employees e "
                 + "JOIN Users u ON u.userId = e.userId "
                 + "LEFT JOIN Departments d ON d.departmentId = e.departmentId "
@@ -215,12 +215,14 @@ public class EmployeeDAO {
         return list;
     }
 
-    public int countEmployeesFiltered(Integer hrUserId, Integer managerDepartmentId, String keyword, String deptName, String statusStr) {
+    public int countEmployeesFiltered(Integer hrUserId, Integer managerDepartmentId, String keyword, String deptName,
+            String statusStr) {
         StringBuilder sql = new StringBuilder(
                 "SELECT COUNT(*) FROM Employees e "
                 + "JOIN Users u ON u.userId = e.userId "
                 + "LEFT JOIN Departments d ON d.departmentId = e.departmentId "
                 + "WHERE 1=1 ");
+
 
         List<Object> params = new ArrayList<>();
         if (hrUserId != null) {
@@ -262,12 +264,13 @@ public class EmployeeDAO {
         return 0;
     }
 
-    public List<EmployeeDetailDTO> getEmployeesFiltered(Integer hrUserId, Integer managerDepartmentId, String keyword, String deptName, String statusStr, int offset, int limit) {
+    public List<EmployeeDetailDTO> getEmployeesFiltered(Integer hrUserId, Integer managerDepartmentId, String keyword,
+            String deptName, String statusStr, int offset, int limit) {
         List<EmployeeDetailDTO> list = new ArrayList<>();
         StringBuilder sql = new StringBuilder(
                 "SELECT e.employeeId, e.employeeCode, e.userId, e.departmentId, e.positionId, "
                 + "e.phoneNumber, e.skills, e.experience, e.degree, e.dependentCount, e.unionMember, e.status, e.managerId, "
-                + "u.fullName, u.email, u.username, "
+                + "u.fullName, u.email, u.username, u.roleId, "
                 + "d.departmentName, p.positionName, r.roleName "
                 + "FROM Employees e "
                 + "JOIN Users u ON u.userId = e.userId "
@@ -574,8 +577,8 @@ public class EmployeeDAO {
         List<EmployeeDetailDTO> list = new ArrayList<>();
         String SQL = "SELECT e.employeeId, e.employeeCode, e.userId, e.departmentId, e.positionId, "
                 + "e.phoneNumber, e.skills, e.experience, e.degree, e.dependentCount, e.unionMember, e.status, e.managerId, "
-                + "u.fullName, u.email, u.username, "
-                + "d.departmentName, p.positionName, r.roleName "
+                + "u.fullName, u.email, u.username, u.roleId, "
+                        + "d.departmentName, p.positionName, r.roleName, u.roleId "
                 + "FROM Employees e "
                 + "JOIN Users u ON u.userId = e.userId "
                 + "LEFT JOIN Departments d ON d.departmentId = e.departmentId "
@@ -804,8 +807,10 @@ public class EmployeeDAO {
         e.setDepartmentName(rs.getNString("departmentName"));
         e.setPositionName(rs.getNString("positionName"));
         e.setRoleName(rs.getString("roleName"));
+        e.setRoleId(rs.getInt("roleId")); 
         return e;
     }
+
 
     public boolean updateOwnProfile(int employeeId, String phoneNumber, String skills, String experience,
             String degree) {

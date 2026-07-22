@@ -27,13 +27,14 @@ public class EmployeeDetailDTO {
     private String username;
     private String departmentName;
     private String positionName;
+    private int roleId;
     private String roleName;    
     private java.math.BigDecimal otHours;
 
     public EmployeeDetailDTO() {
     }
 
-    public EmployeeDetailDTO(int employeeId, String employeeCode, int userId, int departmentId, int positionId, String phoneNumber, String skills, String experience, String degree, int status, Integer managerId, String fullName, String email, String username, String departmentName, String positionName, String roleName) {
+    public EmployeeDetailDTO(int employeeId, String employeeCode, int userId, int departmentId, int positionId, String phoneNumber, String skills, String experience, String degree, int status, Integer managerId, String fullName, String email, String username, String departmentName, String positionName, int roleId, String roleName) {
         this.employeeId = employeeId;
         this.employeeCode = employeeCode;
         this.userId = userId;
@@ -50,6 +51,7 @@ public class EmployeeDetailDTO {
         this.username = username;
         this.departmentName = departmentName;
         this.positionName = positionName;
+        this.roleId = roleId;
         this.roleName = roleName;
     }
 
@@ -197,6 +199,14 @@ public class EmployeeDetailDTO {
         this.positionName = positionName;
     }
 
+    public int getRoleId() {
+        return roleId;
+    }
+    
+    public void setRoleId(int roleId) {
+        this.roleId = roleId;
+    }
+    
     public String getRoleName() {
         return roleName;
     }

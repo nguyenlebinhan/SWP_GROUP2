@@ -1120,7 +1120,6 @@ public class BusinessAdminController extends HttpServlet {
                 .stream()
                 .filter(f -> {
                     if (!"OVERTIME".equals(f.getFormTypeCode())
-                            && !"TRANSFER".equals(f.getFormTypeCode())
                             && !"PROMOTION_DEMOTION".equals(f.getFormTypeCode())) {
                         return false;
                     }
@@ -1220,9 +1219,6 @@ public class BusinessAdminController extends HttpServlet {
 
             if (ok) {
                 switch (form.getFormTypeCode()) {
-                    case "TRANSFER":
-                        onApproveTransfer(form, approverId);
-                        break;
                     case "PROMOTION_DEMOTION":
                         onApprovePromotion(form, approverId);
                         break;
@@ -1238,29 +1234,6 @@ public class BusinessAdminController extends HttpServlet {
             request.getSession().setAttribute("error", "Lỗi hệ thống khi duyệt đơn.");
         }
         response.sendRedirect(request.getContextPath() + "/v1/businessadmin/forms");
-    }
-
-    private void onApproveTransfer(FormRequestDTO form, int approverId) {
-        if (!(form instanceof TransferRequestDTO)) {
-            return;
-        }
-        TransferRequestDTO tf = (TransferRequestDTO) form;
-
-        if (tf.getTargetDepartmentId() != null) {
-            EmployeeDetailDTO emp = employeeDAO.getEmployeeById(tf.getEmployeeId());
-            if (emp != null) {
-                // Update position and department
-                int currentPosId = emp.getPositionId(); //!= null) ? emp.getPositionId() : 0;
-                employeeDAO.reassignEmployeeDepartment(tf.getEmployeeId(), tf.getTargetDepartmentId(), currentPosId);
-
-                // Update role if targetRoleId exists
-                if (tf.getTargetRoleId() != null) {
-                    userDAO.updateUserRole(emp.getUserId(), tf.getTargetRoleId());
-                }
-
-                contractAmendmentService.createTransferAmendment(tf, emp, approverId);
-            }
-        }
     }
 
     private void onApprovePromotion(FormRequestDTO form, int approverId) {
