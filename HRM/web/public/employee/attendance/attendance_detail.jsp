@@ -18,7 +18,6 @@
         .badge-s2,.cl2 { background:#fee2e2; color:#991b1b; }
         .badge-s3,.cl3 { background:#e5e7eb; color:#374151; }
         .badge-s4,.cl4 { background:#dbeafe; color:#1e40af; }
-        .badge-s5,.cl5 { background:#ede9fe; color:#5b21b6; }
         .badge-s6,.cl6 { background:#f3f4f6; color:#4b5563; }
         .badge-s7,.cl7 { background:#ffedd5; color:#9a3412; }
         .hdr-chip { background:#f1f5f9; border-radius:10px; padding:8px 14px; font-size:13px; font-weight:600; color:#334155; }
@@ -79,7 +78,6 @@
             <span class="badge-st badge-s1">Đi muộn: ${sm.lateDays}</span>
             <span class="badge-st badge-s4">Nghỉ phép: ${sm.leaveDays}</span>
             <span class="badge-st badge-s2">Vắng mặt: ${sm.absentDays}</span>
-            <span class="badge-st badge-s5">Nghỉ lễ: ${sm.holidayDays}</span>
             <span class="badge-st badge-s6">Cuối tuần: ${sm.weekendDays}</span>
             <span class="badge-st badge-s7">Quên chấm công: ${sm.missingCheckDays}</span>
         </div>
@@ -120,7 +118,6 @@
                 <span class="cl1">Đi muộn</span>
                 <span class="cl4">Nghỉ phép</span>
                 <span class="cl2">Vắng mặt</span>
-                <span class="cl5">Nghỉ lễ</span>
                 <span class="cl6">Cuối tuần</span>
                 <span class="cl7">Quên chấm công</span>
             </div>

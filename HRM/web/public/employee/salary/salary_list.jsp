@@ -290,13 +290,8 @@
                     <c:set var="totalEmployees" value="${totalEmployees + 1}" />
                     <c:set var="totalEmployeeInsurance" value="${totalEmployeeInsurance + row.payroll.insuranceDeduction}" />
                     <c:set var="totalNetSalary" value="${totalNetSalary + row.payroll.netSalary}" />
-                    <c:set var="totalCompanyCost" value="${totalCompanyCost + row.payroll.grossSalary}" />
-                    <c:forEach var="detail" items="${row.details}">
-                        <c:if test="${detail.companyCost}">
-                            <c:set var="totalCompanyInsurance" value="${totalCompanyInsurance + detail.amount}" />
-                            <c:set var="totalCompanyCost" value="${totalCompanyCost + detail.amount}" />
-                        </c:if>
-                    </c:forEach>
+                    <c:set var="totalCompanyInsurance" value="${totalCompanyInsurance + row.payroll.employerContribution}" />
+                    <c:set var="totalCompanyCost" value="${totalCompanyCost + row.payroll.netSalary + row.payroll.insuranceDeduction + row.payroll.personalIncomeTax + row.payroll.employerContribution}" />
                 </c:if>
             </c:forEach>
 
@@ -307,7 +302,7 @@
                     Tháng lương: Tháng <span id="pillMonth">${selectedMonth}</span>/<span id="pillYear">${selectedYear}</span>
                 </div>
                 <div class="action-group">
-                    <c:if test="${canViewAllSalary && attendanceLocked}">
+                    <c:if test="${canViewAllSalary && attendanceLocked && !periodFinalized}">
                         <form id="generateForm" method="post"
                               action="${pageContext.request.contextPath}/v1/employee/salary/generate"
                               class="m-0">
@@ -315,7 +310,7 @@
                             <input type="hidden" name="year"  id="genYear"  value="${selectedYear}">
                             <input type="hidden" name="departmentId" id="genDept" value="${selectedDepartmentId}">
                             <button type="submit" class="btn-blue border-0"
-                                    onclick="return confirmGenerate();">
+                                    onclick="return confirm('Tạo lại bảng lương tháng ${selectedMonth}/${selectedYear} từ dữ liệu hệ thống?');">
                                 <i class="fa-solid fa-calculator me-1"></i> Tạo bảng lương từ dữ liệu tháng này
                             </button>
                         </form>
@@ -334,7 +329,7 @@
                             <input type="hidden" name="year"  id="appYear"  value="${selectedYear}">
                             <input type="hidden" name="departmentId" id="appDept" value="${selectedDepartmentId}">
                             <button type="submit" class="btn-blue border-0" style="background:#16a34a;"
-                                    onclick="return confirmApprove();">
+                                    onclick="return confirm('Duyệt tất cả sẽ áp dụng cho TOÀN CÔNG TY trong kỳ lương Tháng ${selectedMonth}/${selectedYear}, không chỉ riêng phòng ban đang lọc. Xác nhận duyệt?');">
                                 <i class="fa-solid fa-check-double me-1"></i>
                                 Duyệt tất cả (${pendingApprovalCount})
                             </button>
@@ -349,6 +344,12 @@
                     Bảng chấm công kỳ này chưa được Quản trị doanh nghiệp chốt nên chưa thể tạo hoặc xuất bảng lương.
                 </div>
             </c:if>
+            <c:if test="${canViewAllSalary && periodFinalized}">
+                <div class="alert alert-info">
+                    <i class="fa-solid fa-circle-info me-2"></i>
+                    Kỳ lương này đã được Business Admin chốt nên không thể tạo lại bảng lương.
+                </div>
+            </c:if>
 
             <%-- Lọc form --%>
             <div class="filter-card">
@@ -356,7 +357,7 @@
                       class="row g-3 align-items-end">
                     <div class="col-md-2">
                         <label class="form-label fw-semibold">Tháng</label>
-                        <select name="month" id="filterMonth" class="form-select" onchange="syncPeriod()">
+                        <select name="month" id="filterMonth" class="form-select">
                             <c:forEach var="m" begin="1" end="12">
                                 <option value="${m}" ${selectedMonth == m ? 'selected' : ''}>Tháng ${m}</option>
                             </c:forEach>
@@ -366,11 +367,11 @@
                         <label class="form-label fw-semibold">Năm</label>
                         <input type="number" name="year" id="filterYear"
                                min="2000" max="2100" class="form-control"
-                               value="${selectedYear}" oninput="syncPeriod()">
+                               value="${selectedYear}">
                     </div>
                     <div class="col-md-3">
                         <label class="form-label fw-semibold">Phòng ban</label>
-                        <select name="departmentId" id="filterDept" class="form-select" onchange="syncPeriod()">
+                        <select name="departmentId" id="filterDept" class="form-select">
                             <option value="">Tất cả phòng ban</option>
                             <c:forEach var="d" items="${departments}">
                                 <option value="${d.departmentId}"
@@ -516,8 +517,11 @@
                                                     </td>
                                                     <td>
                                                         <c:choose>
+                                                            <c:when test="${row.payroll.status == 2}">
+                                                                <span class="status-badge status-paid">Đã chốt</span>
+                                                            </c:when>
                                                             <c:when test="${row.payroll.status == 1}">
-                                                                <span class="status-badge status-paid">Nhân sự đã duyệt</span>
+                                                                <span class="status-badge status-approved">HR đã duyệt - chờ chốt</span>
                                                             </c:when>
                                                             <c:otherwise>
                                                                 <span class="status-badge status-pending">Chờ duyệt</span>
@@ -554,62 +558,5 @@
             </div>
         </div>
 
-        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-        <script>
-                            function syncPeriod() {
-                                var month = document.getElementById('filterMonth').value;
-                                var year = document.getElementById('filterYear').value;
-                                var dept = document.getElementById('filterDept').value;
-
-                                // Đồng bộ vào form tạo bảng lương
-                                var gm = document.getElementById('genMonth');
-                                var gy = document.getElementById('genYear');
-                                var gd = document.getElementById('genDept');
-                                if (gm)
-                                    gm.value = month;
-                                if (gy)
-                                    gy.value = year;
-                                if (gd)
-                                    gd.value = dept;
-
-                                // Đồng bộ vào form duyệt tất cả
-                                var am = document.getElementById('appMonth');
-                                var ay = document.getElementById('appYear');
-                                var ad = document.getElementById('appDept');
-                                if (am)
-                                    am.value = month;
-                                if (ay)
-                                    ay.value = year;
-                                if (ad)
-                                    ad.value = dept;
-
-                                // Cập nhật link xuất file
-                                var exportLink = document.getElementById('exportLink');
-                                if (exportLink) {
-                                    var base = exportLink.href.split('?')[0];
-                                    exportLink.href = base + '?month=' + month + '&year=' + year + '&departmentId=' + dept;
-                                }
-
-                                // Cập nhật period pill
-                                var pm = document.getElementById('pillMonth');
-                                var py = document.getElementById('pillYear');
-                                if (pm)
-                                    pm.textContent = month;
-                                if (py)
-                                    py.textContent = year;
-                            }
-
-                            function confirmGenerate() {
-                                var month = document.getElementById('filterMonth').value;
-                                var year = document.getElementById('filterYear').value;
-                                return confirm('Tạo lại bảng lương tháng ' + month + '/' + year + ' từ dữ liệu hệ thống?');
-                            }
-
-                            function confirmApprove() {
-                                var month = document.getElementById('filterMonth').value;
-                                var year = document.getElementById('filterYear').value;
-                                return confirm('Xác nhận duyệt toàn bộ bảng lương đang chờ duyệt trong kỳ lương Tháng ' + month + '/' + year + '?');
-                            }
-        </script>
     </body>
 </html>

@@ -14,7 +14,7 @@ import java.util.logging.Logger;
 import model.AttendancePeriod;
 
 /**
- * Truy xuất trạng thái chốt bảng chấm công theo (năm, tháng, phòng ban).
+ * 
  *
  * @author ADMIN
  */
@@ -97,10 +97,7 @@ public class AttendancePeriodDAO {
         return -1;
     }
 
-    /**
-     * Trưởng phòng chốt bảng chấm công của một phòng ban: WAITING_MANAGER -> MANAGER_CONFIRMED.
-     * Chỉ đổi khi đang ở đúng trạng thái nguồn để tránh nhảy cóc.
-     */
+
     public boolean markManagerConfirmed(int year, int month, int departmentId, int managerUserId) {
         String sql = "UPDATE Attendance_Period_Status "
                 + "SET status = ?, managerConfirmedBy = ?, managerConfirmedAt = CURRENT_TIMESTAMP "
@@ -115,10 +112,7 @@ public class AttendancePeriodDAO {
         });
     }
 
-    /**
-     * HR gửi toàn bộ kỳ lên BA: mọi phòng đang MANAGER_CONFIRMED -> SUBMITTED_TO_BA.
-     * Trả về số phòng được cập nhật.
-     */
+
     public int markSubmittedToBa(int year, int month, int hrUserId) {
         String sql = "UPDATE Attendance_Period_Status "
                 + "SET status = ?, submittedToBaBy = ?, submittedToBaAt = CURRENT_TIMESTAMP "
@@ -132,10 +126,7 @@ public class AttendancePeriodDAO {
         });
     }
 
-    /**
-     * BA chốt cuối cùng: mọi phòng đang SUBMITTED_TO_BA -> LOCKED.
-     * Trả về số phòng được cập nhật.
-     */
+
     public int markLocked(int year, int month, int baUserId) {
         String sql = "UPDATE Attendance_Period_Status "
                 + "SET status = ?, baApprovedBy = ?, baApprovedAt = CURRENT_TIMESTAMP "
@@ -149,9 +140,7 @@ public class AttendancePeriodDAO {
         });
     }
 
-    /**
-     * Các phòng ban có dữ liệu chấm công trong tháng (bỏ qua bản ghi chưa gán phòng).
-     */
+
     public List<Integer> getDepartmentIdsWithAttendance(int year, int month) {
         List<Integer> list = new ArrayList<>();
         String sql = "SELECT DISTINCT departmentId FROM Attendance "
@@ -193,7 +182,6 @@ public class AttendancePeriodDAO {
         return p;
     }
 
-    // ── helpers ────────────────────────────────────────────────────────────
 
     private interface StatementBinder {
         void bind(PreparedStatement ps) throws SQLException;

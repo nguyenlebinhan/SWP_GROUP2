@@ -19,7 +19,6 @@
         .st2,.cl2 { background:#fee2e2; color:#991b1b; }
         .cl3 { background:#e5e7eb; color:#374151; }
         .st4,.cl4 { background:#dbeafe; color:#1e40af; }
-        .st5,.cl5 { background:#ede9fe; color:#5b21b6; }
         .st6,.cl6 { background:#f3f4f6; color:#4b5563; }
         .st7,.cl7 { background:#ffedd5; color:#9a3412; }
         .stx { background:#eef2ff; color:#3730a3; }
@@ -59,7 +58,6 @@
             <div class="col"><div class="stat st1"><div class="num">${summary.lateDays}</div><div class="lbl">Đi muộn</div></div></div>
             <div class="col"><div class="stat st4"><div class="num">${summary.leaveDays}</div><div class="lbl">Nghỉ phép</div></div></div>
             <div class="col"><div class="stat st2"><div class="num">${summary.absentDays}</div><div class="lbl">Vắng mặt</div></div></div>
-            <div class="col"><div class="stat st5"><div class="num">${summary.holidayDays}</div><div class="lbl">Nghỉ lễ</div></div></div>
             <div class="col"><div class="stat st6"><div class="num">${summary.weekendDays}</div><div class="lbl">Cuối tuần</div></div></div>
             <div class="col"><div class="stat st7"><div class="num">${summary.missingCheckDays}</div><div class="lbl">Quên chấm công</div></div></div>
         </div>
@@ -107,7 +105,6 @@
                 <span class="cl1">Đi muộn</span>
                 <span class="cl4">Nghỉ phép</span>
                 <span class="cl2">Vắng mặt</span>
-                <span class="cl5">Nghỉ lễ</span>
                 <span class="cl6">Cuối tuần</span>
                 <span class="cl7">Quên chấm công</span>
             </div>

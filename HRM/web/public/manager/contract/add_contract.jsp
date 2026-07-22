@@ -113,6 +113,20 @@
                             <textarea name="note" id="note" class="form-control" rows="3">${draft != null ? draft.note : param.note}</textarea>
                         </div>
                         <div class="col-12">
+                            <div class="form-check mt-2">
+                                <input class="form-check-input" type="checkbox"
+                                       name="unionMember" id="unionMember"
+                                       ${param.unionMember != null ? 'checked' : ''}>
+                                <label class="form-check-label" for="unionMember">
+                                    <i class="fa-solid fa-people-group me-1 text-primary"></i>
+                                    Tham gia công đoàn
+                                </label>
+                                <div class="form-text text-muted">
+                                    Tích nếu nhân viên đăng ký tham gia tổ chức công đoàn.
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-12">
                             <label class="form-label">File hợp đồng đã ký (PDF)</label>
                             <input type="file" name="signedContract" id="signedContract" class="form-control" accept="application/pdf">
                             <div class="form-text">Chỉ chấp nhận file PDF, tối đa 10MB.</div>
@@ -127,6 +141,7 @@
                            onclick="return confirm('Bạn có chắc muốn hủy? Thông tin chưa lưu sẽ mất.');">
                             <i class="fa-solid fa-ban me-1"></i>Hủy
                         </a>
+                        <<<<<<< HEAD
                         <a class="btn btn-outline-info" href="${pageContext.request.contextPath}/v1/manager/contract/blank-template?type=fixed_term">
                             <i class="fa-solid fa-file-export me-1"></i> Tải mẫu hợp đồng trống
                         </a>
@@ -142,6 +157,7 @@
         </div>
 
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+        <<<<<<< HEAD
         <script>
                                document.addEventListener('DOMContentLoaded', function () {
                                    const contractType = document.getElementById('contractType');
@@ -227,5 +243,7 @@
                                    }
                                });
         </script>
+        =======
+        >>>>>>> 184a1144a1fd9114ced214d47b5fe1628bf7886b
     </body>
 </html>

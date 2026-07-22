@@ -13,6 +13,11 @@ public class PayrollDetailDTO {
     private String type;
     private BigDecimal amount;
     private String note;
+    private BigDecimal base;
+    private BigDecimal employeeRatePercent;
+    private BigDecimal employerRatePercent;
+    private BigDecimal totalRatePercent;
+    private BigDecimal employerAmount;
 
     public PayrollDetailDTO() {
     }
@@ -75,5 +80,45 @@ public class PayrollDetailDTO {
 
     public boolean isCompanyCost() {
         return TYPE_COMPANY_COST.equals(type);
+    }
+
+    public BigDecimal getBase() {
+        return base;
+    }
+
+    public void setBase(BigDecimal base) {
+        this.base = base;
+    }
+
+    public BigDecimal getEmployeeRatePercent() {
+        return employeeRatePercent;
+    }
+
+    public void setEmployeeRatePercent(BigDecimal employeeRatePercent) {
+        this.employeeRatePercent = employeeRatePercent;
+    }
+
+    public BigDecimal getEmployerRatePercent() {
+        return employerRatePercent;
+    }
+
+    public void setEmployerRatePercent(BigDecimal employerRatePercent) {
+        this.employerRatePercent = employerRatePercent;
+    }
+
+    public BigDecimal getTotalRatePercent() {
+        return totalRatePercent;
+    }
+
+    public void setTotalRatePercent(BigDecimal totalRatePercent) {
+        this.totalRatePercent = totalRatePercent;
+    }
+
+    public BigDecimal getEmployerAmount() {
+        return employerAmount;
+    }
+
+    public void setEmployerAmount(BigDecimal employerAmount) {
+        this.employerAmount = employerAmount;
     }
 }

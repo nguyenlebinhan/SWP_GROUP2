@@ -1,6 +1,9 @@
 -- Seed test data for payroll, contracts, attendance, and overtime.
 -- Assumes DBInitializer already created tables and base seed users/employees/departments/positions/form types.
 -- MySQL Workbench safe update mode friendly: no table-wide DELETE/UPDATE.
+-- Payroll.status hiện là quy trình 3 cấp: 0 = HREmployee vừa tạo (chờ duyệt),
+-- 1 = HRManager đã duyệt (nhân viên xem được lương, vẫn tạo lại được),
+-- 2 = Business Admin đã chốt (khoá cứng, không sửa được nữa).
 
 SET @payroll_year = 2026;
 SET @payroll_month = 6;
@@ -26,11 +29,11 @@ WHERE payrollId > 0
   AND periodEnd = @period_end
   AND employeeId IN (@emp_full, @emp_mid_start, @emp_mid_end, @emp_no_insurance, @emp_leave, @emp_no_attendance);
 
-UPDATE Employees SET dependentCount = 2, unionMember = 1 WHERE employeeCode = 'EMP001';
-UPDATE Employees SET dependentCount = 1, unionMember = 0 WHERE employeeCode = 'EMP002';
+UPDATE Employees SET dependentCount = 0, unionMember = 1 WHERE employeeCode = 'EMP001';
+UPDATE Employees SET dependentCount = 0, unionMember = 0 WHERE employeeCode = 'EMP002';
 UPDATE Employees SET dependentCount = 0, unionMember = 1 WHERE employeeCode = 'EMP003';
 UPDATE Employees SET dependentCount = 0, unionMember = 0 WHERE employeeCode = 'EMP005';
-UPDATE Employees SET dependentCount = 3, unionMember = 1 WHERE employeeCode = 'EMP006';
+UPDATE Employees SET dependentCount = 0, unionMember = 1 WHERE employeeCode = 'EMP006';
 UPDATE Employees SET dependentCount = 0, unionMember = 0 WHERE employeeCode = 'EMP007';
 
 INSERT INTO Employment_Contracts

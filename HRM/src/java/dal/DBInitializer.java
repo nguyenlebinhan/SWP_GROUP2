@@ -82,17 +82,7 @@ public class DBInitializer {
         execute(conn, SQL, "CREATE DEPARTMENT_ROLES TABLE SUCCESSFULLY");
     }
 
-    public void createTableEmailTemplates(Connection conn) {
-        String SQL = "CREATE TABLE Email_Templates("
-                + "templateId INT PRIMARY KEY AUTO_INCREMENT,"
-                + "templateCode VARCHAR(50) NOT NULL UNIQUE,"
-                + "subject NVARCHAR(200) NOT NULL,"
-                + "body NVARCHAR(2000) NOT NULL,"
-                + "createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,"
-                + "updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"
-                + ")";
-        execute(conn, SQL, "CREATE EMAIL_TEMPLATES TABLE SUCCESSFULLY");
-    }
+
 
     public void createTableUsers(Connection conn) {
         String SQL = "CREATE TABLE Users("
@@ -132,11 +122,7 @@ public class DBInitializer {
                 + "departmentName NVARCHAR(150) NOT NULL UNIQUE,"
                 + "description NVARCHAR(500),"
                 + "managerId INT,"
-                //                + "maxHeadCount INT,"
-                + "status TINYINT DEFAULT 1," // 0: Inactive, 1: Active
-                //                + "region NVARCHAR(100),"
-                //                + "budget DECIMAL(15,2),"
-                //                + "foundedDate DATE,"
+                + "status TINYINT DEFAULT 1," 
                 + "createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,"
                 + "updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,"
                 + "FOREIGN KEY (managerId) REFERENCES Employees(employeeId)"
@@ -253,57 +239,7 @@ public class DBInitializer {
         execute(conn, SQL, "CREATE CONTRACT_AMENDMENTS TABLE SUCCESSFULLY");
     }
 
-    public void createTableCandidates(Connection conn) {
-        String SQL = "CREATE TABLE Candidates("
-                + "candidateId INT PRIMARY KEY AUTO_INCREMENT,"
-                + "candidateCode VARCHAR(50) NOT NULL UNIQUE,"
-                + "fullName NVARCHAR(150) NOT NULL,"
-                + "email VARCHAR(100) NOT NULL,"
-                + "phoneNumber VARCHAR(20),"
-                + "dateOfBirth DATE,"
-                + "gender VARCHAR(20),"
-                + "address NVARCHAR(255),"
-                + "skills NVARCHAR(500),"
-                + "experience NVARCHAR(500),"
-                + "certificates NVARCHAR(255),"
-                + "degree NVARCHAR(100),"
-                + "cvFileUrl VARCHAR(500),"
-                + "departmentId INT NOT NULL,"
-                + "positionId INT NOT NULL,"
-                + "importFileId INT,"
-                + "status TINYINT DEFAULT 0," // 0: Đang xét, 1: Phỏng vấn, 2: Thử việc, 3: Đậu, 4: Trượt
-                + "createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,"
-                + "updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,"
-                + "FOREIGN KEY (departmentId) REFERENCES Departments(departmentId),"
-                + "FOREIGN KEY (positionId) REFERENCES Positions(positionId),"
-                + "FOREIGN KEY (importFileId) REFERENCES Uploaded_Files(fileId)"
-                + ")";
-        execute(conn, SQL, "CREATE CANDIDATES TABLE SUCCESSFULLY");
-    }
-
     // ==================== NGHỈ PHÉP ====================
-    public void createTableApplicationStageLogs(Connection conn) {
-        String SQL = "CREATE TABLE Application_Stage_Logs("
-                + "logId INT PRIMARY KEY AUTO_INCREMENT,"
-                + "candidateId INT NOT NULL,"
-                + "fromStage VARCHAR(20),"
-                + "toStage VARCHAR(20) NOT NULL,"
-                + "result VARCHAR(20) NOT NULL,"
-                + "reviewedBy INT NOT NULL,"
-                + "reviewedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,"
-                + "note NVARCHAR(500),"
-                + "toEmail VARCHAR(100) NOT NULL,"
-                + "emailSubject NVARCHAR(200),"
-                + "emailBody NVARCHAR(3000),"
-                + "emailType VARCHAR(30),"
-                + "emailStatus VARCHAR(20) DEFAULT 'PENDING',"
-                + "sentAt TIMESTAMP NULL,"
-                + "FOREIGN KEY (candidateId) REFERENCES Candidates(candidateId),"
-                + "FOREIGN KEY (reviewedBy) REFERENCES Employees(employeeId)"
-                + ")";
-        execute(conn, SQL, "CREATE APPLICATION_STAGE_LOGS TABLE SUCCESSFULLY");
-    }
-
     public void createTableFormTypes(Connection conn) {
         String SQL = "CREATE TABLE Form_Types("
                 + "formTypeId INT PRIMARY KEY AUTO_INCREMENT,"
@@ -345,13 +281,35 @@ public class DBInitializer {
         execute(conn, SQL, "CREATE FORM_REQUESTS TABLE SUCCESSFULLY");
     }
 
+    public void createTableDependents(Connection conn) {
+        String SQL = "CREATE TABLE Dependents("
+                + "dependentId INT PRIMARY KEY AUTO_INCREMENT,"
+                + "employeeId INT NOT NULL,"
+                + "formId INT NOT NULL UNIQUE,"
+                + "fullName NVARCHAR(150) NOT NULL,"
+                + "relationship NVARCHAR(100) NOT NULL,"
+                + "dateOfBirth DATE NULL,"
+                + "taxCode VARCHAR(50) NULL,"
+                + "note NVARCHAR(500) NULL,"
+                + "status TINYINT NOT NULL DEFAULT 0,"
+                + "pendingStatus TINYINT NULL,"
+                + "statusFormId INT NULL,"
+                + "createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,"
+                + "updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,"
+                + "approvedAt TIMESTAMP NULL,"
+                + "FOREIGN KEY (employeeId) REFERENCES Employees(employeeId),"
+                + "FOREIGN KEY (formId) REFERENCES Form_Requests(formId) ON DELETE CASCADE"
+                + ")";
+        execute(conn, SQL, "CREATE DEPENDENTS TABLE SUCCESSFULLY");
+    }
+
     public void createTableOvertimeDetails(Connection conn) {
         String SQL = "CREATE TABLE Overtime_Details("
                 + "formId INT PRIMARY KEY,"
                 + "otDate DATE NOT NULL,"
                 + "startTime TIME NOT NULL,"
                 + "endTime TIME NOT NULL,"
-                + "dayType TINYINT NOT NULL," // 1: Thường, 2: Cuối tuần, 3: Lễ
+                + "dayType TINYINT NOT NULL," // 1: Thường, 2: Cuối tuần
                 + "FOREIGN KEY (formId) REFERENCES Form_Requests(formId) ON DELETE CASCADE"
                 + ")";
         execute(conn, SQL, "CREATE OVERTIME_DETAILS TABLE SUCCESSFULLY");
@@ -481,18 +439,8 @@ public class DBInitializer {
         execute(conn, SQL, "CREATE ATTENDANCE_PERIOD_STATUS TABLE SUCCESSFULLY");
     }
 
-    public void createTableHoliday(Connection conn) {
-        String SQL = "CREATE TABLE Holiday("
-                + "holidayId INT PRIMARY KEY AUTO_INCREMENT,"
-                + "holidayName NVARCHAR(255) NOT NULL,"
-                + "startDate DATE NOT NULL,"
-                + "endDate DATE NOT NULL,"
-                + "isActive TINYINT(1) NOT NULL DEFAULT 1,"
-                + "INDEX idx_holiday_range (startDate, endDate)"
-                + ")";
-        execute(conn, SQL, "CREATE HOLIDAY TABLE SUCCESSFULLY");
-    }
 
+   
     public void createTablePayroll(Connection conn) {
         String SQL = "CREATE TABLE Payroll("
                 + "payrollId INT PRIMARY KEY AUTO_INCREMENT,"
@@ -512,6 +460,10 @@ public class DBInitializer {
                 + "insuranceDeduction DECIMAL(15,2) DEFAULT 0,"
                 + "personalIncomeTax DECIMAL(15,2) DEFAULT 0,"
                 + "netSalary DECIMAL(15,2) DEFAULT 0,"
+                + "insuranceSalaryBase DECIMAL(15,2) DEFAULT 0,"
+                + "postInsuranceIncome DECIMAL(15,2) DEFAULT 0,"
+                + "taxableIncome DECIMAL(15,2) DEFAULT 0,"
+                + "employerContribution DECIMAL(15,2) DEFAULT 0,"
                 + "note NVARCHAR(1000),"
                 + "approvedBy INT,"
                 + "approvedAt DATETIME,"
@@ -566,6 +518,21 @@ public class DBInitializer {
         execute(conn, SQL, "CREATE PAYROLL_TAX_BRACKETS TABLE SUCCESSFULLY");
     }
 
+    public void createTablePayrollAllowanceTypes(Connection conn) {
+        String SQL = "CREATE TABLE Payroll_Allowance_Types("
+                + "allowanceId INT PRIMARY KEY AUTO_INCREMENT,"
+                + "allowanceCode VARCHAR(50) NOT NULL UNIQUE,"
+                + "allowanceName NVARCHAR(255) NOT NULL,"
+                + "amount DECIMAL(15,2) NOT NULL DEFAULT 0,"
+                + "insuranceApplicable TINYINT(1) DEFAULT 0,"
+                + "isActive TINYINT(1) DEFAULT 1,"
+                + "description NVARCHAR(255),"
+                + "createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,"
+                + "updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"
+                + ")";
+        execute(conn, SQL, "CREATE PAYROLL_ALLOWANCE_TYPES TABLE SUCCESSFULLY");
+    }
+
     // ==================== THÔNG BÁO & AUDIT ====================
     public void createTablePayrollConfigChangeRequests(Connection conn) {
         String SQL = "CREATE TABLE Payroll_Config_Change_Requests("
@@ -590,6 +557,10 @@ public class DBInitializer {
                 + "taxableDeduction TINYINT(1) DEFAULT 1,"
                 + "isActive TINYINT(1) DEFAULT 1,"
                 + "taxPayload TEXT,"
+                + "allowanceCode VARCHAR(50),"
+                + "allowanceName NVARCHAR(255),"
+                + "allowanceAmount DECIMAL(15,2),"
+                + "allowanceInsuranceApplicable TINYINT(1),"
                 + "status TINYINT NOT NULL DEFAULT 0,"
                 + "requestedBy INT NOT NULL,"
                 + "requestedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,"
@@ -601,22 +572,6 @@ public class DBInitializer {
                 + "FOREIGN KEY (reviewedBy) REFERENCES Users(userId)"
                 + ")";
         execute(conn, SQL, "CREATE PAYROLL_CONFIG_CHANGE_REQUESTS TABLE SUCCESSFULLY");
-    }
-
-    public void createTableNotifications(Connection conn) {
-        String SQL = "CREATE TABLE Notifications("
-                + "notificationId INT PRIMARY KEY AUTO_INCREMENT,"
-                + "userId INT NOT NULL,"
-                + "title NVARCHAR(200),"
-                + "content NVARCHAR(500),"
-                + "type VARCHAR(50)," // 'LEAVE', 'SALARY', 'TASK', 'ATTENDANCE'
-                + "referenceId INT,"
-                + "referenceType VARCHAR(50),"
-                + "isRead BIT DEFAULT 0,"
-                + "createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,"
-                + "FOREIGN KEY (userId) REFERENCES Users(userId)"
-                + ")";
-        execute(conn, SQL, "CREATE NOTIFICATIONS TABLE SUCCESSFULLY");
     }
 
     public void createTableAuditLogs(Connection conn) {
@@ -647,23 +602,20 @@ public class DBInitializer {
 
             String[] dropOrder = {
                 "Audit_Logs",
-                "Notifications",
                 "Payroll_Tax_Brackets",
-                "Payroll_Config_Change_History",
                 "Payroll_Config_Change_Requests",
+                "Payroll_Allowance_Types",
                 "Payroll_Deduction_Rules",
                 "Payroll_Settings",
                 "Payroll",
                 "Attendance_Period_Status",
                 "Attendance_Adjustment_History",
                 "Attendance",
-                "Holiday",
-                "Application_Stage_Logs",
-                "Candidates",
                 "Uploaded_Files",
                 "Leave_Balances",
                 "Overtime_Assignees",
                 "Overtime_Details",
+                "Dependents",
                 "Form_Requests",
                 "Form_Types",
                 "Contract_Amendments",
@@ -674,7 +626,6 @@ public class DBInitializer {
                 "Department_Roles",
                 "Role_Permissions",
                 "Permissions",
-                "Email_Templates",
                 "Departments",
                 "Positions",
                 "Roles"
@@ -684,7 +635,6 @@ public class DBInitializer {
                 "Roles",
                 "Permissions",
                 "Role_Permissions",
-                "Email_Templates",
                 "Positions",
                 "Departments",
                 "Department_Roles",
@@ -694,23 +644,21 @@ public class DBInitializer {
                 "Contract_Audit_Log",
                 "Contract_Amendments",
                 "Uploaded_Files",
-                "Candidates",
-                "Application_Stage_Logs",
                 "Form_Types",
                 "Form_Requests",
+                "Dependents",
                 "Overtime_Details",
                 "Overtime_Assignees",
                 "Leave_Balances",
                 "Attendance",
                 "Attendance_Adjustment_History",
                 "Attendance_Period_Status",
-                "Holiday",
                 "Payroll",
                 "Payroll_Settings",
                 "Payroll_Deduction_Rules",
                 "Payroll_Tax_Brackets",
+                "Payroll_Allowance_Types",
                 "Payroll_Config_Change_Requests",
-                "Notifications",
                 "Audit_Logs"
             };
 
@@ -739,9 +687,6 @@ public class DBInitializer {
                         case "Role_Permissions":
                             createTableRolePermissions(conn);
                             break;
-                        case "Email_Templates":
-                            createTableEmailTemplates(conn);
-                            break;
                         case "Positions":
                             createTablePosition(conn);
                             break;
@@ -769,12 +714,6 @@ public class DBInitializer {
                         case "Uploaded_Files":
                             createTableUploadedFiles(conn);
                             break;
-                        case "Candidates":
-                            createTableCandidates(conn);
-                            break;
-                        case "Application_Stage_Logs":
-                            createTableApplicationStageLogs(conn);
-                            break;
                         case "Form_Types":
                             createTableFormTypes(conn);
                             break;
@@ -799,9 +738,6 @@ public class DBInitializer {
                         case "Attendance_Period_Status":
                             createTableAttendancePeriodStatus(conn);
                             break;
-                        case "Holiday":
-                            createTableHoliday(conn);
-                            break;
                         case "Payroll":
                             createTablePayroll(conn);
                             break;
@@ -816,9 +752,6 @@ public class DBInitializer {
                             break;
                         case "Payroll_Config_Change_Requests":
                             createTablePayrollConfigChangeRequests(conn);
-                            break;
-                        case "Notifications":
-                            createTableNotifications(conn);
                             break;
                         case "Audit_Logs":
                             createTableAuditLogs(conn);
@@ -835,10 +768,13 @@ public class DBInitializer {
 
             ensurePayrollApprovalColumns(conn);
             ensurePayrollUnpaidDeductionColumn(conn);
+            ensurePayrollIncomeBreakdownColumns(conn);
             ensureFormRequestColumns(conn);
+            ensureDependentsTable(conn);
             ensureEmployeeDependentCountColumn(conn);
             ensureEmployeeUnionMemberColumn(conn);
             ensurePayrollConfigChangeRequestColumns(conn);
+            ensurePayrollAllowanceRequestColumns(conn);
             insertInitialData(conn);
             LOGGER.log(Level.INFO, "Database initialized successfully!");
 
@@ -892,9 +828,7 @@ public class DBInitializer {
                 insertPermission(conn, "VIEW_DEPARTMENT_EMPLOYEES_DETAIL", "Xem danh sách nhân viên của phòng ban khác", "Quyền xem dữ liệu nhân viên của phòng ban khác");
                 insertPermission(conn, "VIEW_ALL_FORMS", "Xem tất cả đơn", "Quyền xem toàn bộ đơn yêu cầu của mọi phòng ban (chỉ HR)");
                 insertPermission(conn, "VIEW_ALL_DEPT_FORMS", "Xem tất cả đơn của phòng ban", "Quyền xem toàn bộ đơn yêu cầu của một phòng ban cụ thể");
-                insertPermission(conn, "PROCESS_RECRUITMENT", "Xử lý tuyển dụng", "Quyền import, duyệt và gửi thông báo kết quả tuyển dụng");
                 insertPermission(conn, "VIEW_ALL_SALARY", "Xem tất cả lương nhân viên", "Quyền xem lương của tất cả nhân viên");
-                insertPermission(conn, "VIEW_OWN_SALARY", "Xem lương cá nhân", "Quyền xem, gửi đơn khiếu nại về lương của cá nhân");
                 insertPermission(conn, "APPROVE_PAYROLL", "Duyệt bảng lương", "Quyền duyệt bảng lương trước khi thanh toán");
                 insertPermission(conn, "EXPORT_PAYROLL", "Xuất bảng lương", "Quyền xuất bảng lương ra Excel");
                 insertPermission(conn, "CONFIG_PAYROLL", "Cấu hình lương", "Quyền cấu hình lương và gửi yêu cầu duyệt");
@@ -984,6 +918,8 @@ public class DBInitializer {
                 insertFormTypeIfAbsent(conn, "PROMOTION_DEMOTION", "Thăng/Giáng chức");
             }
 
+            insertFormTypeIfAbsent(conn, "DEPENDENT", "Dang ky nguoi phu thuoc");
+
             ensureRolePermission(conn, "HRManager", "ADD_EMPLOYMENT_CONTRACT");
             ensureRolePermission(conn, "HRManager", "APPROVE_CONTRACT");
             ensureRolePermission(conn, "HRManager", "REJECT_CONTRACT");
@@ -1043,7 +979,6 @@ public class DBInitializer {
             insertPayrollSetting(conn, "PERSONAL_DEDUCTION", "11000000", "Giam tru ca nhan khi tinh thue TNCN");
             updatePayrollSettingValueIfCurrent(conn, "PERSONAL_DEDUCTION", "15500000", "11000000");
             insertPayrollSetting(conn, "DEPENDENT_ALLOWANCE", "4500000", "Giam tru cho moi nguoi phu thuoc khi tinh thue TNCN");
-            insertPayrollSetting(conn, "ALLOWANCE", "1500000", "Phu cap mac dinh moi ky luong");
             insertPayrollSetting(conn, "INSURANCE_SALARY_FLOOR", "40000000", "Muc floor/tran ap dung cho luong tinh bao hiem");
             insertPayrollSetting(conn, "INSURANCE_NOT_WORKED_DAYS_THRESHOLD", "14", "So ngay khong lam trong thang tu nguong nay tro len thi khong tinh bao hiem");
             insertPayrollSetting(conn, "LATE_DEDUCTION_BLOCK_MINUTES", "30", "So phut cua mot block khau tru di muon");
@@ -1053,8 +988,8 @@ public class DBInitializer {
             insertPayrollSetting(conn, "WORK_BREAK_MINUTES", "60", "Số phút nghỉ không tính vào giờ làm chuẩn");
             insertPayrollSetting(conn, "OVERTIME_BLOCK_MINUTES", "30", "Số phút của một block tính OT");
             insertPayrollSetting(conn, "OVERTIME_WORKDAY_MULTIPLIER", "1.5", "Hệ số OT ngày làm việc");
-            insertPayrollSetting(conn, "OVERTIME_WEEKEND_MULTIPLIER", "2.0", "Hệ số OT cuối tuần");
-            insertPayrollSetting(conn, "OVERTIME_HOLIDAY_MULTIPLIER", "3.0", "Hệ số OT ngày lễ");
+//            insertPayrollSetting(conn, "OVERTIME_WEEKEND_MULTIPLIER", "2.0", "Hệ số OT cuối tuần");
+//            insertPayrollSetting(conn, "OVERTIME_HOLIDAY_MULTIPLIER", "3.0", "Hệ số OT ngày lễ");
         }
 
         if (tableExists(conn, "Payroll_Deduction_Rules")) {
@@ -1084,6 +1019,45 @@ public class DBInitializer {
             insertPayrollTaxBracket(conn, "20000000", "30000000", "0.20");
             insertPayrollTaxBracket(conn, "30000000", "40000000", "0.30");
             insertPayrollTaxBracket(conn, "40000000", null, "0.35");
+        }
+
+        seedPayrollAllowanceTypes(conn);
+    }
+
+    private void seedPayrollAllowanceTypes(Connection conn) throws SQLException {
+        if (!tableExists(conn, "Payroll_Allowance_Types")) {
+            return;
+        }
+        if (countRows(conn, "Payroll_Allowance_Types") == 0) {
+            java.math.BigDecimal legacyAmount = new java.math.BigDecimal("1500000");
+            if (tableExists(conn, "Payroll_Settings")) {
+                String sql = "SELECT settingValue FROM Payroll_Settings WHERE settingKey = 'ALLOWANCE'";
+                try (PreparedStatement ps = conn.prepareStatement(sql); ResultSet rs = ps.executeQuery()) {
+                    if (rs.next()) {
+                        legacyAmount = rs.getBigDecimal("settingValue");
+                    }
+                }
+            }
+            insertPayrollAllowanceType(conn, "DEFAULT", "Phụ cấp mặc định", legacyAmount, false, true,
+                    "Phụ cấp cố định hàng tháng, không tính vào lương làm căn cứ đóng bảo hiểm.");
+        }
+        // "ALLOWANCE" duoc thay the boi bang Payroll_Allowance_Types, xoa key cu sau khi da migrate.
+        deletePayrollSetting(conn, "ALLOWANCE");
+    }
+
+    private void insertPayrollAllowanceType(Connection conn, String code, String name, java.math.BigDecimal amount,
+            boolean insuranceApplicable, boolean active, String description) throws SQLException {
+        String sql = "INSERT INTO Payroll_Allowance_Types "
+                + "(allowanceCode, allowanceName, amount, insuranceApplicable, isActive, description) "
+                + "VALUES (?, ?, ?, ?, ?, ?)";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, code);
+            ps.setNString(2, name);
+            ps.setBigDecimal(3, amount);
+            ps.setInt(4, insuranceApplicable ? 1 : 0);
+            ps.setInt(5, active ? 1 : 0);
+            ps.setNString(6, description);
+            ps.executeUpdate();
         }
     }
 
@@ -1172,6 +1146,28 @@ public class DBInitializer {
                 && columnExists(conn, "Payroll_Config_Change_Requests", "baseType")) {
             execute(conn, "ALTER TABLE Payroll_Config_Change_Requests DROP COLUMN baseType",
                     "DROP BASE TYPE FROM PAYROLL_CONFIG_CHANGE_REQUESTS");
+        }
+    }
+
+    private void ensurePayrollAllowanceRequestColumns(Connection conn) throws SQLException {
+        if (!tableExists(conn, "Payroll_Config_Change_Requests")) {
+            return;
+        }
+        if (!columnExists(conn, "Payroll_Config_Change_Requests", "allowanceCode")) {
+            execute(conn, "ALTER TABLE Payroll_Config_Change_Requests ADD COLUMN allowanceCode VARCHAR(50) AFTER taxPayload",
+                    "ADD ALLOWANCE CODE TO PAYROLL_CONFIG_CHANGE_REQUESTS");
+        }
+        if (!columnExists(conn, "Payroll_Config_Change_Requests", "allowanceName")) {
+            execute(conn, "ALTER TABLE Payroll_Config_Change_Requests ADD COLUMN allowanceName NVARCHAR(255) AFTER allowanceCode",
+                    "ADD ALLOWANCE NAME TO PAYROLL_CONFIG_CHANGE_REQUESTS");
+        }
+        if (!columnExists(conn, "Payroll_Config_Change_Requests", "allowanceAmount")) {
+            execute(conn, "ALTER TABLE Payroll_Config_Change_Requests ADD COLUMN allowanceAmount DECIMAL(15,2) AFTER allowanceName",
+                    "ADD ALLOWANCE AMOUNT TO PAYROLL_CONFIG_CHANGE_REQUESTS");
+        }
+        if (!columnExists(conn, "Payroll_Config_Change_Requests", "allowanceInsuranceApplicable")) {
+            execute(conn, "ALTER TABLE Payroll_Config_Change_Requests ADD COLUMN allowanceInsuranceApplicable TINYINT(1) AFTER allowanceAmount",
+                    "ADD ALLOWANCE INSURANCE FLAG TO PAYROLL_CONFIG_CHANGE_REQUESTS");
         }
     }
 
@@ -1369,6 +1365,24 @@ public class DBInitializer {
         if (!columnExists(conn, "Employees", "dependentCount")) {
             execute(conn, "ALTER TABLE Employees ADD COLUMN dependentCount INT NOT NULL DEFAULT 0", "ADD EMPLOYEES DEPENDENT COUNT COLUMN");
         }
+        if (tableExists(conn, "Dependents") && countRows(conn, "Dependents") == 0) {
+            execute(conn, "UPDATE Employees SET dependentCount = 0", "RESET EMPLOYEE DEPENDENT COUNT");
+        }
+    }
+
+    private void ensureDependentsTable(Connection conn) throws SQLException {
+        if (!tableExists(conn, "Dependents")) {
+            createTableDependents(conn);
+        }
+        if (!columnExists(conn, "Dependents", "pendingStatus")) {
+            execute(conn, "ALTER TABLE Dependents ADD COLUMN pendingStatus TINYINT NULL", "ADD DEPENDENTS PENDING STATUS COLUMN");
+        }
+        if (!columnExists(conn, "Dependents", "statusFormId")) {
+            execute(conn, "ALTER TABLE Dependents ADD COLUMN statusFormId INT NULL", "ADD DEPENDENTS STATUS FORM COLUMN");
+        }
+        if (!columnExists(conn, "Dependents", "dateOfBirth")) {
+            execute(conn, "ALTER TABLE Dependents ADD COLUMN dateOfBirth DATE NULL AFTER relationship", "ADD DEPENDENTS DATE OF BIRTH COLUMN");
+        }
     }
 
     private void ensureEmployeeUnionMemberColumn(Connection conn) throws SQLException {
@@ -1408,6 +1422,28 @@ public class DBInitializer {
         } else {
             execute(conn, "ALTER TABLE Payroll ADD COLUMN unpaidDeduction DECIMAL(15,2) DEFAULT 0 AFTER overtimePay",
                     "ADD PAYROLL UNPAID DEDUCTION COLUMN");
+        }
+    }
+
+    private void ensurePayrollIncomeBreakdownColumns(Connection conn) throws SQLException {
+        if (!tableExists(conn, "Payroll")) {
+            return;
+        }
+        if (!columnExists(conn, "Payroll", "insuranceSalaryBase")) {
+            execute(conn, "ALTER TABLE Payroll ADD COLUMN insuranceSalaryBase DECIMAL(15,2) DEFAULT 0 AFTER netSalary",
+                    "ADD PAYROLL INSURANCE SALARY BASE COLUMN");
+        }
+        if (!columnExists(conn, "Payroll", "postInsuranceIncome")) {
+            execute(conn, "ALTER TABLE Payroll ADD COLUMN postInsuranceIncome DECIMAL(15,2) DEFAULT 0 AFTER insuranceSalaryBase",
+                    "ADD PAYROLL POST INSURANCE INCOME COLUMN");
+        }
+        if (!columnExists(conn, "Payroll", "taxableIncome")) {
+            execute(conn, "ALTER TABLE Payroll ADD COLUMN taxableIncome DECIMAL(15,2) DEFAULT 0 AFTER postInsuranceIncome",
+                    "ADD PAYROLL TAXABLE INCOME COLUMN");
+        }
+        if (!columnExists(conn, "Payroll", "employerContribution")) {
+            execute(conn, "ALTER TABLE Payroll ADD COLUMN employerContribution DECIMAL(15,2) DEFAULT 0 AFTER taxableIncome",
+                    "ADD PAYROLL EMPLOYER CONTRIBUTION COLUMN");
         }
     }
 

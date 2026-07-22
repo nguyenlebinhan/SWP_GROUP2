@@ -1,8 +1,8 @@
 package controller;
 
 import dao.DepartmentDAO;
+import dao.DependentDAO;
 import dao.EmployeeDAO;
-import dao.HolidayDAO;
 import dao.PermissionDAO;
 import dao.RoleDAO;
 import dao.UserDAO;
@@ -13,8 +13,6 @@ import dao.FormRequestDAO;
 import dao.OvertimeDAO;
 import dto.OvertimeRequestDTO;
 import dao.PayrollConfigDAO;
-import java.sql.Date;
-import model.Holiday;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
@@ -40,23 +38,27 @@ import service.ContractAmendmentService;
 import dao.ContractAmendmentDAO;
 import dao.EmploymentContractDAO;
 import dal.DBContext;
+import dao.PayrollDAO;
+import dto.ClosingResult;
+import java.time.YearMonth;
+import java.util.LinkedHashMap;
 
 public class BusinessAdminController extends HttpServlet {
 
     private static final Logger LOGGER = Logger.getLogger(BusinessAdminController.class.getName());
     private static final UserDAO userDAO = new UserDAO();
-    private static final EmailService emailService = new EmailService();
     private static final RoleDAO roleDAO = new RoleDAO();
-    private static final PermissionDAO permissionDAO = new PermissionDAO();
     private static final EmployeeDAO employeeDAO = new EmployeeDAO();
     private static final DepartmentDAO departmentDAO = new DepartmentDAO();
-    private static final HolidayDAO holidayDAO = new HolidayDAO();
+    private static final DependentDAO dependentDAO = new DependentDAO();
     private static final FormRequestDAO formRequestDAO = new FormRequestDAO();
     private static final OvertimeDAO overtimeDAO = new OvertimeDAO();
+    private static final PayrollDAO payrollDAO = new PayrollDAO();
     private static final PayrollConfigDAO payrollConfigDAO = new PayrollConfigDAO();
     private static final PayrollConfigWorkflowService payrollConfigWorkflowService = new PayrollConfigWorkflowService();
     private static final service.AttendanceService attendanceService = new service.AttendanceService();
     private static final service.AttendanceClosingService attendanceClosingService = new service.AttendanceClosingService();
+    private static final service.PayrollService payrollService = new service.PayrollService();
     private static final ContractAmendmentService contractAmendmentService = new ContractAmendmentService(new ContractAmendmentDAO(), new EmploymentContractDAO(), new DBContext());
     private static final utils.AttendanceExcelExporter attendanceExporter = new utils.AttendanceExcelExporter();
 
@@ -103,17 +105,16 @@ public class BusinessAdminController extends HttpServlet {
             case "/update-department":
                 displayUpdateDepartmentForm(request, response);
                 break;
-            case "/holiday":
-                displayHolidayList(request, response);
+            case "/salary/all":
+                displayAllSalaryForBa(request, response, user);
                 break;
-            case "/holiday/add":
-                displayHolidayForm(request, response, false);
+            case "/salary/detail":
+                displaySalaryDetailForBa(request, response, user);
                 break;
-            case "/holiday/edit":
-                displayHolidayForm(request, response, true);
+            case "/salary/export":
+                exportSalaryForBa(request, response, user);
                 break;
             case "/payroll-config":
-            case "/payrol-config":
                 displayPayrollConfig(request, response);
                 break;
             case "/payroll-config/history":
@@ -177,15 +178,6 @@ public class BusinessAdminController extends HttpServlet {
             case "/update-department":
                 handleUpdateDepartment(request, response);
                 break;
-            case "/holiday/add":
-                handleAddHoliday(request, response);
-                break;
-            case "/holiday/edit":
-                handleUpdateHoliday(request, response);
-                break;
-            case "/holiday/delete":
-                handleDeleteHoliday(request, response);
-                break;
             case "/payroll-config/setting/save":
                 handleSavePayrollSetting(request, response);
                 break;
@@ -197,6 +189,12 @@ public class BusinessAdminController extends HttpServlet {
                 break;
             case "/payroll-config/tax/save":
                 handleSavePayrollTaxBracket(request, response);
+                break;
+            case "/payroll-config/allowance/save":
+                handleSavePayrollAllowance(request, response);
+                break;
+            case "/payroll-config/allowance/delete":
+                handleDeletePayrollAllowance(request, response);
                 break;
             case "/payroll-config/request/approve":
                 handleApprovePayrollConfigRequest(request, response, user);
@@ -212,6 +210,9 @@ public class BusinessAdminController extends HttpServlet {
                 break;
             case "/attendance/approve":
                 handleApproveAttendancePeriod(request, response, user);
+                break;
+            case "/salary/finalize":
+                handleFinalizePayroll(request, response, user);
                 break;
             default:
                 response.sendRedirect(request.getContextPath() + "/");
@@ -230,11 +231,126 @@ public class BusinessAdminController extends HttpServlet {
 
     private void displayDashboard(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-        int userSize = userDAO.countUsers("", "");
-        request.setAttribute("userSize", userSize);
 
-        int deptSize = departmentDAO.getAllActiveDepartments().size();
-        request.setAttribute("deptSize", deptSize);
+        // ── Thống kê cơ bản ──
+        request.setAttribute("deptSize", departmentDAO.getAllActiveDepartments().size());
+        request.setAttribute("employeeSize", employeeDAO.getAllEmployees().size());
+
+        // ── Năm được chọn ──
+        int currentYear = java.time.LocalDate.now().getYear();
+        int salaryYear = currentYear;
+        String yearParam = request.getParameter("salaryYear");
+        if (yearParam != null && !yearParam.isBlank()) {
+            try {
+                salaryYear = Integer.parseInt(yearParam.trim());
+            } catch (NumberFormatException ignored) {
+            }
+        }
+
+        // ── Lấy data qua DAO ──
+        long[] monthlyCosts = payrollDAO.getMonthlySalaryCosts(salaryYear);
+
+        // ── Build JSON cho Chart.js ──
+        java.time.YearMonth now = java.time.YearMonth.now();
+        String[] monthNames = {"", "Th1", "Th2", "Th3", "Th4", "Th5", "Th6",
+            "Th7", "Th8", "Th9", "Th10", "Th11", "Th12"};
+        StringBuilder labelsJson = new StringBuilder("[");
+        StringBuilder dataJson = new StringBuilder("[");
+        long yearTotal = 0L;
+
+        for (int m = 1; m <= 12; m++) {
+            labelsJson.append("\"").append(monthNames[m]).append("\"");
+
+            boolean isFuture = java.time.YearMonth.of(salaryYear, m).isAfter(now);
+            if (isFuture) {
+                dataJson.append("null");
+            } else {
+                long valMillion = Math.round(monthlyCosts[m] / 1_000_000.0);
+                dataJson.append(valMillion);
+                yearTotal += valMillion;
+            }
+
+            if (m < 12) {
+                labelsJson.append(",");
+                dataJson.append(",");
+            }
+        }
+        labelsJson.append("]");
+        dataJson.append("]");
+
+        // ── Tháng gần nhất ──
+        java.time.YearMonth latest = now.minusMonths(1);
+        long latestCount = payrollDAO.countPayrollsInMonth(
+                latest.getYear(), latest.getMonthValue());
+
+        //tất cả năm
+        List<Integer> availableYears = payrollDAO.getAvailableSalaryYears();
+
+        // ── Chi phí lương theo phòng ban (kỳ được chọn, mặc định tháng gần nhất) ──
+        YearMonth deptPeriod = latest;
+        String deptYearParam = request.getParameter("deptYear");
+        String deptMonthParam = request.getParameter("deptMonth");
+        if (deptYearParam != null && !deptYearParam.isBlank()
+                && deptMonthParam != null && !deptMonthParam.isBlank()) {
+            try {
+                deptPeriod = YearMonth.of(Integer.parseInt(deptYearParam.trim()), Integer.parseInt(deptMonthParam.trim()));
+            } catch (Exception ignored) {
+            }
+        }
+        LinkedHashMap<String, Long> deptCosts = payrollDAO.getDepartmentSalaryCosts(
+                deptPeriod.getYear(), deptPeriod.getMonthValue());
+        StringBuilder deptLabelsJson = new StringBuilder("[");
+        StringBuilder deptDataJson = new StringBuilder("[");
+        boolean firstDept = true;
+        for (Map.Entry<String, Long> entry : deptCosts.entrySet()) {
+            if (!firstDept) {
+                deptLabelsJson.append(",");
+                deptDataJson.append(",");
+            }
+            deptLabelsJson.append("\"").append(entry.getKey().replace("\"", "'")).append("\"");
+            deptDataJson.append(Math.round(entry.getValue() / 1_000_000.0));
+            firstDept = false;
+        }
+        deptLabelsJson.append("]");
+        deptDataJson.append("]");
+
+        // ── Bảng lương chờ duyệt (kỳ gần nhất) ──
+        java.sql.Date pendingPeriodStart = java.sql.Date.valueOf(latest.atDay(1));
+        java.sql.Date pendingPeriodEnd = java.sql.Date.valueOf(latest.atEndOfMonth());
+        long pendingPayrollCount = payrollDAO.countPendingApproval(pendingPeriodStart, pendingPeriodEnd, null, null);
+
+        // ── Đơn chờ duyệt (đơn từ + cấu hình lương) ──
+        List<FormRequestDTO> pendingForms = formRequestDAO.getAllFormRequests(null, null, null, null)
+                .stream()
+                .filter(f -> "OVERTIME".equals(f.getFormTypeCode())
+                        || "TRANSFER".equals(f.getFormTypeCode())
+                        || "PROMOTION_DEMOTION".equals(f.getFormTypeCode()))
+                .filter(f -> f.getStatus() == 0)
+                .collect(java.util.stream.Collectors.toList());
+        long pendingOtCount = pendingForms.stream()
+                .filter(f -> "OVERTIME".equals(f.getFormTypeCode())).count();
+        long pendingOtherFormsCount = pendingForms.size() - pendingOtCount;
+        long pendingPayrollConfigCount = payrollConfigWorkflowService.getPendingRequests().size();
+        long pendingTotalCount = pendingForms.size() + pendingPayrollConfigCount;
+
+        request.setAttribute("salaryLabelsJson", labelsJson.toString());
+        request.setAttribute("salaryDataJson", dataJson.toString());
+        request.setAttribute("salaryYear", salaryYear);
+        request.setAttribute("availableYears", availableYears);
+        request.setAttribute("currentYear", currentYear);
+        request.setAttribute("salaryYearTotal", yearTotal);
+        request.setAttribute("latestPaidCount", latestCount);
+        request.setAttribute("latestPayMonth",
+                String.format("%02d/%d", latest.getMonthValue(), latest.getYear()));
+        request.setAttribute("deptLabelsJson", deptLabelsJson.toString());
+        request.setAttribute("deptDataJson", deptDataJson.toString());
+        request.setAttribute("deptYear", deptPeriod.getYear());
+        request.setAttribute("deptMonth", deptPeriod.getMonthValue());
+        request.setAttribute("pendingTotalCount", pendingTotalCount);
+        request.setAttribute("pendingOtCount", pendingOtCount);
+        request.setAttribute("pendingOtherFormsCount", pendingOtherFormsCount);
+        request.setAttribute("pendingPayrollConfigCount", pendingPayrollConfigCount);
+        request.setAttribute("pendingPayrollCount", pendingPayrollCount);
 
         request.getRequestDispatcher("/public/businessadmin/dashboard.jsp")
                 .forward(request, response);
@@ -471,6 +587,7 @@ public class BusinessAdminController extends HttpServlet {
             return;
         }
         request.setAttribute("employee", employee);
+        request.setAttribute("dependents", dependentDAO.getActiveByEmployeeId(employee.getEmployeeId()));
         request.getRequestDispatcher("/public/businessadmin/employee/employee_detail.jsp").forward(request, response);
     }
 
@@ -733,9 +850,6 @@ public class BusinessAdminController extends HttpServlet {
         return ids;
     }
 
-    // =========================================================
-    // Quản lý ngày lễ (Holiday)
-    // =========================================================
     // ===================== Attendance Dashboard (Overview / Detail / Export) =====================
     /**
      * HR/Business Admin: 0 hoặc rỗng = toàn công ty; ngược lại lọc theo phòng
@@ -813,7 +927,7 @@ public class BusinessAdminController extends HttpServlet {
         java.time.LocalDate prev = java.time.LocalDate.now().minusMonths(1);
         int month = paramOr(request, "month", prev.getMonthValue());
         int year = paramOr(request, "year", prev.getYear());
-        service.AttendanceClosingService.ClosingResult result
+        ClosingResult result
                 = attendanceClosingService.approveByBa(year, month, user);
         request.getSession().setAttribute(result.isSuccess() ? "success" : "error", result.getMessage());
         response.sendRedirect(request.getContextPath()
@@ -882,141 +996,6 @@ public class BusinessAdminController extends HttpServlet {
         attendanceExporter.write(report, response.getOutputStream());
     }
 
-    private void displayHolidayList(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
-        request.setAttribute("holidays", holidayDAO.getAllHolidays());
-
-        HttpSession session = request.getSession(false);
-        if (session != null) {
-            String success = (String) session.getAttribute("holidaySuccess");
-            String error = (String) session.getAttribute("holidayError");
-            if (success != null) {
-                request.setAttribute("success", success);
-                session.removeAttribute("holidaySuccess");
-            }
-            if (error != null) {
-                request.setAttribute("error", error);
-                session.removeAttribute("holidayError");
-            }
-        }
-        request.getRequestDispatcher("/public/businessadmin/holiday/holiday_list.jsp").forward(request, response);
-    }
-
-    private void displayHolidayForm(HttpServletRequest request, HttpServletResponse response, boolean editMode)
-            throws ServletException, IOException {
-        if (editMode) {
-            Integer holidayId = parseIntParam(request.getParameter("id"));
-            Holiday holiday = (holidayId != null) ? holidayDAO.getHolidayById(holidayId) : null;
-            if (holiday == null) {
-                request.getSession().setAttribute("holidayError", "Không tìm thấy ngày lễ.");
-                response.sendRedirect(request.getContextPath() + "/v1/businessadmin/holiday");
-                return;
-            }
-            request.setAttribute("holiday", holiday);
-        }
-        request.setAttribute("editMode", editMode);
-        request.getRequestDispatcher("/public/businessadmin/holiday/holiday_form.jsp").forward(request, response);
-    }
-
-    private void handleAddHoliday(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
-        Holiday holiday = new Holiday();
-        String error = bindAndValidateHoliday(request, holiday);
-        if (error != null) {
-            request.setAttribute("error", error);
-            request.setAttribute("editMode", false);
-            request.setAttribute("holiday", holiday);
-            request.getRequestDispatcher("/public/businessadmin/holiday/holiday_form.jsp").forward(request, response);
-            return;
-        }
-
-        int newId = holidayDAO.addHoliday(holiday);
-        if (newId > 0) {
-            request.getSession().setAttribute("holidaySuccess",
-                    "Đã thêm ngày lễ \"" + holiday.getHolidayName() + "\".");
-        } else {
-            request.getSession().setAttribute("holidayError", "Thêm ngày lễ thất bại. Vui lòng thử lại.");
-        }
-        response.sendRedirect(request.getContextPath() + "/v1/businessadmin/holiday");
-    }
-
-    private void handleUpdateHoliday(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
-        Integer holidayId = parseIntParam(request.getParameter("holidayId"));
-        if (holidayId == null || holidayDAO.getHolidayById(holidayId) == null) {
-            request.getSession().setAttribute("holidayError", "Không tìm thấy ngày lễ.");
-            response.sendRedirect(request.getContextPath() + "/v1/businessadmin/holiday");
-            return;
-        }
-
-        Holiday holiday = new Holiday();
-        holiday.setHolidayId(holidayId);
-        String error = bindAndValidateHoliday(request, holiday);
-        if (error != null) {
-            request.setAttribute("error", error);
-            request.setAttribute("editMode", true);
-            request.setAttribute("holiday", holiday);
-            request.getRequestDispatcher("/public/businessadmin/holiday/holiday_form.jsp").forward(request, response);
-            return;
-        }
-
-        if (holidayDAO.updateHoliday(holiday)) {
-            request.getSession().setAttribute("holidaySuccess",
-                    "Đã cập nhật ngày lễ \"" + holiday.getHolidayName() + "\".");
-        } else {
-            request.getSession().setAttribute("holidayError", "Cập nhật ngày lễ thất bại. Vui lòng thử lại.");
-        }
-        response.sendRedirect(request.getContextPath() + "/v1/businessadmin/holiday");
-    }
-
-    private void handleDeleteHoliday(HttpServletRequest request, HttpServletResponse response)
-            throws IOException {
-        Integer holidayId = parseIntParam(request.getParameter("holidayId"));
-        if (holidayId == null) {
-            request.getSession().setAttribute("holidayError", "Dữ liệu không hợp lệ.");
-        } else if (holidayDAO.deleteHoliday(holidayId)) {
-            request.getSession().setAttribute("holidaySuccess", "Đã xóa ngày lễ.");
-        } else {
-            request.getSession().setAttribute("holidayError", "Xóa ngày lễ thất bại. Vui lòng thử lại.");
-        }
-        response.sendRedirect(request.getContextPath() + "/v1/businessadmin/holiday");
-    }
-
-    /**
-     * Đọc tham số form vào holiday và validate. Trả về null nếu hợp lệ, ngược
-     * lại trả về thông báo lỗi (đồng thời giữ lại giá trị đã nhập trong holiday
-     * để hiển thị lại form).
-     */
-    private String bindAndValidateHoliday(HttpServletRequest request, Holiday holiday) {
-        String name = request.getParameter("holidayName");
-        String startRaw = request.getParameter("startDate");
-        String endRaw = request.getParameter("endDate");
-        boolean active = request.getParameter("isActive") != null;
-
-        holiday.setHolidayName(name != null ? name.trim() : null);
-        holiday.setActive(active);
-
-        if (isBlank(name)) {
-            return "Vui lòng nhập tên ngày lễ.";
-        }
-        if (isBlank(startRaw) || isBlank(endRaw)) {
-            return "Vui lòng chọn ngày bắt đầu và ngày kết thúc.";
-        }
-        Date start, end;
-        try {
-            start = Date.valueOf(startRaw.trim());
-            end = Date.valueOf(endRaw.trim());
-        } catch (IllegalArgumentException e) {
-            return "Ngày không hợp lệ (yêu cầu yyyy-MM-dd).";
-        }
-        if (end.before(start)) {
-            return "Ngày kết thúc phải bằng hoặc sau ngày bắt đầu.";
-        }
-        holiday.setStartDate(start);
-        holiday.setEndDate(end);
-        return null;
-    }
-
     private Integer parseIntParam(String raw) {
         if (isBlank(raw)) {
             return null;
@@ -1037,6 +1016,7 @@ public class BusinessAdminController extends HttpServlet {
         request.setAttribute("settings", settings);
         request.setAttribute("deductionRules", payrollConfigDAO.getDeductionRules(false));
         request.setAttribute("taxBrackets", payrollConfigDAO.getTaxBrackets(false));
+        request.setAttribute("allowanceTypes", payrollConfigDAO.getAllowanceTypes(false));
         request.setAttribute("pendingRequests", payrollConfigWorkflowService.getPendingRequests());
         request.setAttribute("payrollConfigBaseUrl", request.getContextPath() + "/v1/businessadmin/payroll-config");
         request.setAttribute("canEditPayrollConfig", false);
@@ -1106,6 +1086,18 @@ public class BusinessAdminController extends HttpServlet {
         response.sendRedirect(request.getContextPath() + "/v1/businessadmin/payroll-config");
     }
 
+    private void handleSavePayrollAllowance(HttpServletRequest request, HttpServletResponse response)
+            throws IOException {
+        setPayrollConfigError(request, "Quản trị doanh nghiệp chỉ duyệt yêu cầu thay đổi cấu hình lương, không chỉnh trực tiếp.");
+        response.sendRedirect(request.getContextPath() + "/v1/businessadmin/payroll-config");
+    }
+
+    private void handleDeletePayrollAllowance(HttpServletRequest request, HttpServletResponse response)
+            throws IOException {
+        setPayrollConfigError(request, "Quản trị doanh nghiệp chỉ duyệt yêu cầu thay đổi cấu hình lương, không chỉnh trực tiếp.");
+        response.sendRedirect(request.getContextPath() + "/v1/businessadmin/payroll-config");
+    }
+
     private void handleApprovePayrollConfigRequest(HttpServletRequest request, HttpServletResponse response, User user)
             throws IOException {
         Integer requestId = parseIntParam(request.getParameter("requestId"));
@@ -1144,6 +1136,141 @@ public class BusinessAdminController extends HttpServlet {
         request.getSession().setAttribute("payrollConfigError", message);
     }
 
+    private void displayAllSalaryForBa(HttpServletRequest request, HttpServletResponse response,
+            User user) throws ServletException, IOException {
+
+        java.time.YearMonth latestClosed = java.time.YearMonth.now().minusMonths(1);
+        Integer month = parseIntParam(request.getParameter("month"));
+        Integer year = parseIntParam(request.getParameter("year"));
+        if (month == null || month < 1 || month > 12 || year == null || year < 2000) {
+            month = latestClosed.getMonthValue();
+            year = latestClosed.getYear();
+        }
+        // Không cho xem tháng tương lai
+        java.time.YearMonth selected = java.time.YearMonth.of(year, month);
+        if (selected.isAfter(latestClosed)) {
+            selected = latestClosed;
+            month = selected.getMonthValue();
+            year = selected.getYear();
+        }
+
+        Integer departmentId = parseIntParam(request.getParameter("departmentId"));
+
+        // Tái dụng PayrollService đã có
+        service.PayrollService payrollService = new service.PayrollService();
+        service.AttendanceClosingService closingService = new service.AttendanceClosingService();
+
+        boolean attendanceLocked = departmentId == null
+                ? closingService.isPeriodLocked(year, month)
+                : closingService.isDepartmentLocked(year, month, departmentId);
+
+        java.util.List<dto.PayrollPreviewDTO> previews
+                = payrollService.getAllPayrollForHr(user, year, month, departmentId);
+
+        if (previews.isEmpty()) {
+            request.setAttribute("salaryError",
+                    "Chưa có bảng lương cho tháng " + String.format("%02d/%d", month, year)
+                    + ". Có thể kỳ này chưa được tính lương.");
+        }
+
+        request.setAttribute("payrollPreviews", previews);
+        request.setAttribute("selectedYear", year);
+        request.setAttribute("selectedMonth", month);
+        request.setAttribute("selectedDepartmentId", departmentId);
+        request.setAttribute("departments", departmentDAO.getAllActiveDepartments());
+        request.setAttribute("attendanceLocked", attendanceLocked);
+        request.setAttribute("canGeneratePayroll", false);
+        request.setAttribute("canApprovePayroll", false);
+        request.setAttribute("canExportPayroll", attendanceLocked); // chỉ xuất khi đã chốt
+        request.setAttribute("canFinalizePayroll", true);
+        // Chốt luôn áp dụng cho toàn công ty, không bị giới hạn bởi bộ lọc phòng ban đang xem.
+        request.setAttribute("countAwaitingFinalization",
+                payrollService.countAwaitingFinalizationForPeriod(year, month, null));
+
+        request.getRequestDispatcher("/public/businessadmin/salary/salary_list.jsp")
+                .forward(request, response);
+    }
+
+    private void handleFinalizePayroll(HttpServletRequest request, HttpServletResponse response,
+            User user) throws IOException {
+        Integer month = parseIntParam(request.getParameter("month"));
+        Integer year = parseIntParam(request.getParameter("year"));
+        if (month == null || year == null) {
+            response.sendRedirect(request.getContextPath() + "/v1/businessadmin/salary/all");
+            return;
+        }
+
+        service.PayrollService payrollService = new service.PayrollService();
+        int finalizedCount = payrollService.finalizePayrollForPeriod(user, year, month, null);
+        if (finalizedCount > 0) {
+            request.getSession().setAttribute("success",
+                    "Đã chốt " + finalizedCount + " bảng lương cho kỳ lương "
+                    + String.format("%02d/%d", month, year) + ".");
+        } else {
+            request.getSession().setAttribute("error",
+                    "Không có bảng lương nào đang chờ chốt để xử lý.");
+        }
+
+        response.sendRedirect(request.getContextPath() + "/v1/businessadmin/salary/all?month=" + month
+                + "&year=" + year);
+    }
+
+    private void displaySalaryDetailForBa(HttpServletRequest request, HttpServletResponse response,
+            User user) throws ServletException, IOException {
+
+        service.PayrollService payrollService = new service.PayrollService();
+        Integer payrollId = parseIntParam(request.getParameter("id"));
+        dto.PayrollPreviewDTO preview = (payrollId != null)
+                ? payrollService.getPayrollDetail(user, payrollId)
+                : null;
+
+        if (preview == null) {
+            request.setAttribute("salaryError", "Không tìm thấy bảng lương cần xem chi tiết.");
+        }
+        request.setAttribute("payrollPreview", preview);
+        request.setAttribute("allowanceTypes", payrollConfigDAO.getAllowanceTypes(true));
+        request.getRequestDispatcher("/public/businessadmin/salary/salary_detail.jsp")
+                .forward(request, response);
+    }
+
+    private void exportSalaryForBa(HttpServletRequest request, HttpServletResponse response,
+            User user) throws IOException {
+
+        service.PayrollService payrollService = new service.PayrollService();
+        service.AttendanceClosingService closingService = new service.AttendanceClosingService();
+
+        java.time.YearMonth latestClosed = java.time.YearMonth.now().minusMonths(1);
+        Integer month = parseIntParam(request.getParameter("month"));
+        Integer year = parseIntParam(request.getParameter("year"));
+        if (month == null || month < 1 || month > 12 || year == null || year < 2000) {
+            month = latestClosed.getMonthValue();
+            year = latestClosed.getYear();
+        }
+        Integer departmentId = parseIntParam(request.getParameter("departmentId"));
+
+        boolean locked = departmentId == null
+                ? closingService.isPeriodLocked(year, month)
+                : closingService.isDepartmentLocked(year, month, departmentId);
+
+        if (!locked) {
+            request.getSession().setAttribute("error",
+                    "Bảng chấm công kỳ này chưa được chốt. Chưa thể xuất bảng lương.");
+            response.sendRedirect(request.getContextPath()
+                    + "/v1/businessadmin/salary/all?month=" + month + "&year=" + year
+                    + (departmentId == null ? "" : "&departmentId=" + departmentId));
+            return;
+        }
+
+        response.setContentType(
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+        response.setHeader("Content-Disposition",
+                "attachment; filename=payroll_" + String.format("%04d_%02d", year, month) + ".xlsx");
+
+        try (java.io.OutputStream out = response.getOutputStream()) {
+            payrollService.exportPayrollWorkbook(user, year, month, departmentId, out);
+        }
+    }
+
     // =========================================================
     // Quản lý Đơn từ (Form Requests)
     // =========================================================
@@ -1153,19 +1280,33 @@ public class BusinessAdminController extends HttpServlet {
         String monthStr = request.getParameter("month");
         String yearStr = request.getParameter("year");
         String keyword = request.getParameter("keyword");
+        String statusStr = request.getParameter("status");
 
         Integer day = parseIntParam(dayStr);
         Integer month = parseIntParam(monthStr);
         Integer year = parseIntParam(yearStr);
+        Integer statusFilter = parseIntParam(statusStr);
 
         List<FormRequestDTO> forms = formRequestDAO.getAllFormRequests(day, month, year, keyword)
                 .stream()
-                .filter(f -> "OVERTIME".equals(f.getFormTypeCode())
-                || "TRANSFER".equals(f.getFormTypeCode())
-                || "PROMOTION_DEMOTION".equals(f.getFormTypeCode()))
+                .filter(f -> {
+                    if (!"OVERTIME".equals(f.getFormTypeCode())
+                            && !"TRANSFER".equals(f.getFormTypeCode())
+                            && !"PROMOTION_DEMOTION".equals(f.getFormTypeCode())) {
+                        return false;
+                    }
+                    if (statusFilter != null && f.getStatus() != statusFilter) {
+                        return false;
+                    }
+                    return true;
+                })
                 .collect(java.util.stream.Collectors.toList());
 
-        request.setAttribute("forms", forms);
+        // Phân trang
+        List<FormRequestDTO> pagedForms = utils.Paging.page(request, forms);
+
+        request.setAttribute("forms", pagedForms);
+        request.setAttribute("statusFilter", statusStr);
         request.setAttribute("filterDay", day);
         request.setAttribute("filterMonth", month);
         request.setAttribute("filterYear", year);

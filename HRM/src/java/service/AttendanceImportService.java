@@ -7,7 +7,6 @@ package service;
 import dal.DBContext;
 import dao.AttendanceDAO;
 import dao.FormRequestDAO;
-import dao.HolidayDAO;
 import dao.UploadedFileDAO;
 import dto.AttendanceDataDTO;
 import dto.AttendanceImportResultDTO;
@@ -39,16 +38,13 @@ public class AttendanceImportService {
 
     private static final Time WORK_START = Time.valueOf("08:00:00");
 
-    /** Giờ kết thúc ca chuẩn. Khi không có đơn OT được duyệt, giờ ra bị giới hạn ở mốc này. */
     private static final Time WORK_END = Time.valueOf("17:00:00");
 
-    /** Số giờ làm chuẩn trong một ngày. Khi không có đơn OT được duyệt, giờ công bị giới hạn tối đa ở mức này. */
     private static final BigDecimal STANDARD_HOURS = new BigDecimal("8.00");
 
     private final DBContext dbContext;
     private final AttendanceDAO attendanceDAO;
     private final UploadedFileDAO uploadedFileDAO;
-    private final HolidayDAO holidayDAO;
     private final FormRequestDAO formRequestDAO;
     private final dao.OvertimeDAO overtimeDAO;
     private final ExcelAttendanceParser parser;
@@ -57,7 +53,6 @@ public class AttendanceImportService {
         this.dbContext = new DBContext();
         this.attendanceDAO = new AttendanceDAO();
         this.uploadedFileDAO = new UploadedFileDAO();
-        this.holidayDAO = new HolidayDAO();
         this.formRequestDAO = new FormRequestDAO();
         this.overtimeDAO = new dao.OvertimeDAO();
         this.parser = new ExcelAttendanceParser();
@@ -202,7 +197,7 @@ public class AttendanceImportService {
 
             Time maxTime = hasOT ? Time.valueOf("19:00:00") : Time.valueOf("17:00:00");
 
-            if (timeOut.after(maxTime)) {
+            if (!timeOut.before(maxTime)) {
                 boolean otRevived = overtimeDAO.reviveAndCompleteOTForm(conn, employeeId, workDate);
                 if (otRevived && !hasOT) {
                     hasOT = true;
@@ -305,7 +300,7 @@ public class AttendanceImportService {
 
     private AttendanceStatus deriveStatus(Time timeIn, Time timeOut) {
         // Thiếu cả hai: chưa chấm công ngày đó -> Vắng mặt (có thể được xét lại
-        // thành nghỉ phép/lễ/cuối tuần ở determineFinalStatus).
+        // thành nghỉ phép/cuối tuần ở determineFinalStatus).
         if (timeIn == null && timeOut == null) {
             return AttendanceStatus.ABSENT;
         }
@@ -324,9 +319,6 @@ public class AttendanceImportService {
         if (base == AttendanceStatus.PRESENT || base == AttendanceStatus.LATE
                 || base == AttendanceStatus.MISSING_CHECK) {
             return base;
-        }
-        if (holidayDAO.isHoliday(conn, workDate)) {
-            return AttendanceStatus.HOLIDAY;
         }
         if (isWeekend(workDate)) {
             return AttendanceStatus.WEEKEND;

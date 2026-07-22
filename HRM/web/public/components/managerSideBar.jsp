@@ -100,6 +100,11 @@
         Đơn của phòng ban
     </a>
 
+    <a href="${pageContext.request.contextPath}/v1/manager/forms/dependent/new"
+       class="${pageContext.request.servletPath == '/public/employee/forms/dependent_form.jsp' ? 'active' : ''}">
+        Đăng ký người phụ thuộc
+    </a>
+
     <c:if test="${sessionScope.userPermissions.contains('VIEW_ALL_FORMS')}">
         <a href="${pageContext.request.contextPath}/v1/manager/forms/all"
            class="${pageContext.request.servletPath == '/public/manager/forms/all_form_list.jsp' ? 'active' : ''}">
@@ -206,7 +211,7 @@
         <c:if test="${sessionScope.userPermissions.contains('CONFIG_PAYROLL')}">
             <a href="${pageContext.request.contextPath}/v1/manager/payroll-config"
                class="${pageContext.request.servletPath == '/public/manager/salary/payroll_config.jsp' ? 'active' : ''}">
-                Cấu hình payroll
+                Cấu hình lương
             </a>
         </c:if>
     </c:if>

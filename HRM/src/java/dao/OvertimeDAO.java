@@ -95,6 +95,9 @@ public class OvertimeDAO {
     }
 
     public boolean addOvertimeDetails(int formId, String otDate, String startTime, String endTime, int dayType) {
+        if (dayType != 1 && dayType != 2) {
+            return false;
+        }
         String SQL = "INSERT INTO Overtime_Details (formId, otDate, startTime, endTime, dayType) VALUES (?, ?, ?, ?, ?)";
         try (Connection conn = dbContext.getConnection(); PreparedStatement ps = conn.prepareStatement(SQL)) {
             ps.setInt(1, formId);
@@ -248,6 +251,7 @@ public class OvertimeDAO {
                 + "JOIN Overtime_Assignees oa ON fr.formId = oa.formId "
                 + "WHERE oa.employeeId = ? "
                 + "  AND fr.status IN (1, 4) "
+                + "  AND od.dayType IN (1, 2) "
                 + "  AND od.otDate = ? LIMIT 1";
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, employeeId);
@@ -279,6 +283,7 @@ public class OvertimeDAO {
                      "LEFT JOIN Attendance att ON att.employeeId = oa.employeeId AND att.workDate = od.otDate " +
                      "WHERE oa.employeeId = ? " +
                      "AND fr.status IN (1, 4) " + 
+                     "AND od.dayType IN (1, 2) " +
                      "AND MONTH(od.otDate) = ? " +
                      "AND YEAR(od.otDate) = ? " +
                      "AND (att.attendanceId IS NULL OR att.timeOut > '17:00:00')";
@@ -299,11 +304,11 @@ public class OvertimeDAO {
 
     public PayrollOvertimeSummaryDTO getPayrollOvertimeSummary(Connection conn, int employeeId, int year, int month,
             BigDecimal dailyRate, BigDecimal workingHoursPerDay, int overtimeBlockMinutes,
-            BigDecimal overtimeWorkdayMultiplier, BigDecimal overtimeWeekendMultiplier,
-            BigDecimal overtimeHolidayMultiplier) throws SQLException {
+            BigDecimal overtimeWorkdayMultiplier) throws SQLException {
         PayrollOvertimeSummaryDTO summary = new PayrollOvertimeSummaryDTO();
         BigDecimal hourlyRate = divide(dailyRate, workingHoursPerDay);
-        String sql = "SELECT od.startTime, od.endTime, od.dayType, a.timeIn, a.timeOut "
+        // Chỉ tính tăng ca ngày thường (dayType = 1); hệ thống hiện không hỗ trợ tạo đơn tăng ca cuối tuần/ngày lễ.
+        String sql = "SELECT od.startTime, od.endTime, a.timeIn, a.timeOut "
                 + "FROM Form_Requests fr "
                 + "JOIN Overtime_Details od ON od.formId = fr.formId "
                 + "LEFT JOIN Overtime_Assignees oa ON oa.formId = fr.formId "
@@ -311,6 +316,7 @@ public class OvertimeDAO {
                 + "WHERE fr.status IN (1, 4) "
                 + "AND fr.formTypeId = (SELECT formTypeId FROM Form_Types WHERE formTypeCode = 'OVERTIME') "
                 + "AND (fr.employeeId = ? OR oa.employeeId = ?) "
+                + "AND od.dayType = 1 "
                 + "AND YEAR(od.otDate) = ? "
                 + "AND MONTH(od.otDate) = ?";
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -346,8 +352,7 @@ public class OvertimeDAO {
                     BigDecimal hours = new BigDecimal(String.valueOf(validHours)).setScale(2, RoundingMode.HALF_UP);
                     BigDecimal pay = hourlyRate
                             .multiply(hours)
-                            .multiply(overtimeMultiplier(rs.getInt("dayType"), overtimeWorkdayMultiplier,
-                                    overtimeWeekendMultiplier, overtimeHolidayMultiplier));
+                            .multiply(overtimeWorkdayMultiplier);
                     summary.addOvertimeBlocks((int) validBlocks);
                     summary.addOvertimeHours(hours);
                     summary.addOvertimePay(pay);
@@ -364,24 +369,12 @@ public class OvertimeDAO {
         return amount.divide(divisor, 6, RoundingMode.HALF_UP);
     }
 
-    private BigDecimal overtimeMultiplier(int dayType, BigDecimal workday, BigDecimal weekend, BigDecimal holiday) {
-        switch (dayType) {
-            case 2:
-                return weekend;
-            case 3:
-                return holiday;
-            case 1:
-            default:
-                return workday;
-        }
-    }
-
     public void completeOTForm(Connection conn, int employeeId, java.sql.Date workDate) throws SQLException {
         String sql = "UPDATE Form_Requests fr " +
                      "JOIN Overtime_Details od ON fr.formId = od.formId " +
                      "JOIN Overtime_Assignees oa ON fr.formId = oa.formId " +
                      "SET fr.status = 4 " +
-                     "WHERE oa.employeeId = ? AND od.otDate = ? AND fr.status = 1";
+                     "WHERE oa.employeeId = ? AND od.otDate = ? AND od.dayType IN (1, 2) AND fr.status = 1";
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, employeeId);
             ps.setDate(2, workDate);
@@ -403,7 +396,7 @@ public class OvertimeDAO {
                      "JOIN Overtime_Details od ON fr.formId = od.formId " +
                      "JOIN Overtime_Assignees oa ON fr.formId = oa.formId " +
                      "SET fr.status = 4 " +
-                     "WHERE oa.employeeId = ? AND od.otDate = ? AND fr.status IN (1, 3)";
+                     "WHERE oa.employeeId = ? AND od.otDate = ? AND od.dayType IN (1, 2) AND (fr.status = 1 OR (fr.status = 3 AND fr.approverNote = 'Auto-cancelled by System'))";
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, employeeId);
             ps.setDate(2, workDate);
@@ -415,11 +408,46 @@ public class OvertimeDAO {
     public void cancelUnfulfilledOTForms(Connection conn, java.sql.Date workDate) throws SQLException {
         String sql = "UPDATE Form_Requests fr " +
                      "JOIN Overtime_Details od ON fr.formId = od.formId " +
-                     "SET fr.status = 3 " +
-                     "WHERE od.otDate = ? AND fr.status = 1";
+                     "SET fr.status = 3, fr.approverNote = 'Auto-cancelled by System' " +
+                     "WHERE od.otDate = ? AND od.dayType IN (1, 2) AND fr.status = 1";
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setDate(1, workDate);
             ps.executeUpdate();
         }
+    }
+
+    public List<String> getBusyEmployeeNamesForOT(String[] employeeIds, String otDate) {
+        List<String> busyNames = new ArrayList<>();
+        if (employeeIds == null || employeeIds.length == 0) return busyNames;
+        
+        StringBuilder placeholders = new StringBuilder();
+        for (int i = 0; i < employeeIds.length; i++) {
+            placeholders.append("?");
+            if (i < employeeIds.length - 1) placeholders.append(",");
+        }
+        
+        String sql = "SELECT DISTINCT u.fullName, e.employeeCode " +
+                     "FROM Form_Requests fr " +
+                     "JOIN Overtime_Details od ON fr.formId = od.formId " +
+                     "JOIN Overtime_Assignees oa ON fr.formId = oa.formId " +
+                     "JOIN Employees e ON oa.employeeId = e.employeeId " +
+                     "JOIN Users u ON e.userId = u.userId " +
+                     "WHERE od.otDate = ? AND fr.status IN (0, 1, 4) " +
+                     "AND oa.employeeId IN (" + placeholders.toString() + ")";
+                     
+        try (Connection conn = dbContext.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, otDate);
+            for (int i = 0; i < employeeIds.length; i++) {
+                ps.setInt(i + 2, Integer.parseInt(employeeIds[i]));
+            }
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    busyNames.add(rs.getString("fullName") + " (" + rs.getString("employeeCode") + ")");
+                }
+            }
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Cannot check active OT for employees", e);
+        }
+        return busyNames;
     }
 }

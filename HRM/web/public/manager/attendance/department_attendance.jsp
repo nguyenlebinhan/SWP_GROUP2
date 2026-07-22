@@ -21,7 +21,6 @@
         .badge-s1 { background:#fef3c7; color:#92400e; }
         .badge-s2 { background:#fee2e2; color:#991b1b; }
         .badge-s4 { background:#dbeafe; color:#1e40af; }
-        .badge-s5 { background:#ede9fe; color:#5b21b6; }
         .badge-s6 { background:#f3f4f6; color:#4b5563; }
         .cnt { display:inline-block; min-width:26px; text-align:center; padding:3px 7px; border-radius:8px; font-size:12px; font-weight:600; }
         .progress { height:8px; border-radius:6px; }
@@ -167,7 +166,6 @@
                         <th class="text-center" title="Đi muộn">L</th>
                         <th class="text-center" title="Nghỉ phép">Lv</th>
                         <th class="text-center" title="Vắng mặt">Ab</th>
-                        <th class="text-center" title="Nghỉ lễ">Ho</th>
                         <th class="text-center" title="Cuối tuần">We</th>
                         <th class="text-center" style="min-width:130px">Tỷ lệ</th>
                         <th class="text-center"></th>
@@ -184,7 +182,6 @@
                             <td class="text-center"><span class="cnt badge-s1">${s.lateDays}</span></td>
                             <td class="text-center"><span class="cnt badge-s4">${s.leaveDays}</span></td>
                             <td class="text-center"><span class="cnt badge-s2">${s.absentDays}</span></td>
-                            <td class="text-center"><span class="cnt badge-s5">${s.holidayDays}</span></td>
                             <td class="text-center"><span class="cnt badge-s6">${s.weekendDays}</span></td>
                             <td>
                                 <div class="d-flex justify-content-between">
@@ -204,7 +201,7 @@
                         </tr>
                     </c:forEach>
                     <c:if test="${empty pagedSummaries}">
-                        <tr><td colspan="12" class="text-center text-muted py-4">Không có dữ liệu nhân viên.</td></tr>
+                        <tr><td colspan="11" class="text-center text-muted py-4">Không có dữ liệu nhân viên.</td></tr>
                     </c:if>
                 </tbody>
             </table>

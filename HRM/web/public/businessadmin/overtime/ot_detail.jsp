@@ -4,7 +4,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Chi tiết đơn Overtime - HRM</title>
+    <title>Chi tiết đơn tăng ca - HRM</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
     <style>
@@ -33,6 +33,7 @@
         .status-1 { background: #d1fae5; color: #065f46; border: 1px solid #6ee7b7; }
         .status-2 { background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
         .status-3 { background: #e5e7eb; color: #374151; border: 1px solid #d1d5db; }
+        .status-4 { background: #dbeafe; color: #1e40af; border: 1px solid #93c5fd; }
         .info-label {
             font-size: 0.85rem;
             color: #6c757d;
@@ -67,12 +68,12 @@
 
     <div class="main">
         <jsp:include page="/public/components/businessAdminTopBar.jsp">
-            <jsp:param name="title" value="Chi tiết Đơn Overtime" />
+            <jsp:param name="title" value="Chi tiết đơn tăng ca" />
             <jsp:param name="backUrl" value="/v1/businessadmin/forms"/>
         </jsp:include>
 
         <div class="d-flex justify-content-between align-items-center mb-4">
-            <h4 class="mb-0"><i class="fa-solid fa-file-invoice me-2 text-primary"></i>Chi tiết đơn OT: <span class="fw-bold">${otRequest.formCode}</span></h4>
+            <h4 class="mb-0"><i class="fa-solid fa-file-invoice me-2 text-primary"></i>Chi tiết đơn tăng ca: <span class="fw-bold">${otRequest.formCode}</span></h4>
         </div>
 
         <div class="row">
@@ -107,7 +108,6 @@
                                 <c:choose>
                                     <c:when test="${otRequest.dayType == 1}"><span class="badge bg-secondary">Ngày thường</span></c:when>
                                     <c:when test="${otRequest.dayType == 2}"><span class="badge bg-info text-dark">Cuối tuần</span></c:when>
-                                    <c:when test="${otRequest.dayType == 3}"><span class="badge bg-danger">Ngày lễ</span></c:when>
                                     <c:otherwise><span class="badge bg-secondary">Không xác định</span></c:otherwise>
                                 </c:choose>
                             </div>

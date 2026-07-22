@@ -26,7 +26,8 @@
         .status-0 { background: #fef3c7; color: #92400e; }
         .status-1 { background: #d1fae5; color: #065f46; }
         .status-2 { background: #fee2e2; color: #991b1b; }
-        .status-3 { background: #e5e7eb; color: #374151; }
+        .status-3 { background: #d1fae5; color: #065f46; }
+        .status-4 { background: #d1fae5; color: #065f46; }
         .info-label {
             font-size: 0.85rem;
             color: #6c757d;
@@ -202,6 +203,26 @@
                             <c:otherwise><span class="text-muted">Không có lời nhắn</span></c:otherwise>
                         </c:choose>
                     </div>
+                </c:if>
+                <c:if test="${form.status == 0 and form.formTypeCode eq 'DEPENDENT' and isHrStaff}">
+                    <hr class="my-4">
+                    <h5 class="mb-3 text-primary"><i class="fa-solid fa-user-tie me-2"></i>Duyệt (HR)</h5>
+                    <form method="post">
+                        <input type="hidden" name="formId" value="${form.formId}">
+                        <div class="mb-3 mt-3">
+                            <label for="hrNote" class="form-label">Ghi chú của HR (tùy chọn)</label>
+                            <textarea id="hrNote" name="note" class="form-control" rows="3"
+                                      placeholder="Nhập lý do duyệt hoặc từ chối..."></textarea>
+                        </div>
+                        <div class="d-flex justify-content-end gap-2">
+                            <button type="submit" formaction="${pageContext.request.contextPath}/v1/employee/forms/dependent/reject" class="btn btn-danger px-4">
+                                <i class="fa-solid fa-xmark me-1"></i> Từ chối
+                            </button>
+                            <button type="submit" formaction="${pageContext.request.contextPath}/v1/employee/forms/dependent/approve" class="btn btn-primary px-4">
+                                <i class="fa-solid fa-check-double me-1"></i> Duyệt
+                            </button>
+                        </div>
+                    </form>
                 </c:if>
             </div>
         </div>

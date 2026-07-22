@@ -423,7 +423,7 @@ public class FormRequestDAO {
     }
 
     /**
-     * Duyệt đơn với kiểm tra trạng thái hiện tại (dùng cho bước 2 - HR duyệt từ status 1 → 3).
+     * Duyệt đơn với kiểm tra trạng thái hiện tại (dùng cho bước HR duyệt sang status 4).
      * Khác với approveFormRequest() chỉ chấp nhận status = 0.
      */
     public boolean approveFormRequestFromStatus(int formId, int fromStatus, int toStatus, int approverId, String note) {

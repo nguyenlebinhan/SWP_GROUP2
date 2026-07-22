@@ -219,6 +219,46 @@ public class SystemAdminController extends HttpServlet {
         
         int userSize = userDAO.countUsers("", "");
         request.setAttribute("userSize", userSize);
+        
+        // --- NEW DASHBOARD LOGIC (Appended without deleting base code) ---
+        dao.DepartmentDAO departmentDAO = new dao.DepartmentDAO();
+        int deptSize = departmentDAO.getAllActiveDepartments().size();
+        request.setAttribute("deptSize", deptSize);
+        
+        dao.EmployeeDAO employeeDAO = new dao.EmployeeDAO();
+        int totalEmployees = employeeDAO.countTotal();
+        request.setAttribute("totalEmployees", totalEmployees);
+        
+        List<User> recentUsers = userDAO.getUsersFiltered("", "", 0, 5);
+        request.setAttribute("recentUsers", recentUsers);
+
+        List<dto.EmployeeDetailDTO> allEmps = employeeDAO.getAllEmployees();
+        java.util.Map<String, Integer> deptCounts = new java.util.HashMap<>();
+        if (allEmps != null) {
+            for (dto.EmployeeDetailDTO e : allEmps) {
+                String deptName = (e.getDepartmentName() != null) ? e.getDepartmentName() : "Chưa xếp phòng";
+                deptCounts.put(deptName, deptCounts.getOrDefault(deptName, 0) + 1);
+            }
+        }
+        StringBuilder chartLabels = new StringBuilder("[");
+        StringBuilder chartData = new StringBuilder("[");
+        boolean first = true;
+        for (java.util.Map.Entry<String, Integer> entry : deptCounts.entrySet()) {
+            if (!first) {
+                chartLabels.append(",");
+                chartData.append(",");
+            }
+            chartLabels.append("\"").append(entry.getKey().replace("\"", "\\\"")).append("\"");
+            chartData.append(entry.getValue());
+            first = false;
+        }
+        chartLabels.append("]");
+        chartData.append("]");
+        
+        request.setAttribute("chartLabels", chartLabels.toString());
+        request.setAttribute("chartData", chartData.toString());
+        request.setAttribute("todayDate", java.time.LocalDate.now().format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy")));
+        // -----------------------------------------------------------------
         request.getRequestDispatcher("/public/systemadmin/dashboard.jsp")
                 .forward(request, response);
     }
@@ -249,23 +289,7 @@ public class SystemAdminController extends HttpServlet {
         String gender = request.getParameter("gender");
         String address = request.getParameter("address");
         int roleId = Integer.parseInt(request.getParameter("role_selection"));
-        int dependentCount;
-        try {
-            String dependentCountParam = request.getParameter("dependentCount");
-            dependentCount = dependentCountParam == null || dependentCountParam.trim().isEmpty()
-                    ? 0 : Integer.parseInt(dependentCountParam.trim());
-        } catch (NumberFormatException e) {
-            request.setAttribute("roles", roleDAO.getAllActiveRoles());
-            request.setAttribute("error", "So nguoi phu thuoc khong hop le.");
-            request.getRequestDispatcher("/public/systemadmin/user/add_user.jsp").forward(request, response);
-            return;
-        }
-        if (dependentCount < 0) {
-            request.setAttribute("roles", roleDAO.getAllActiveRoles());
-            request.setAttribute("error", "So nguoi phu thuoc khong duoc am.");
-            request.getRequestDispatcher("/public/systemadmin/user/add_user.jsp").forward(request, response);
-            return;
-        }
+        int dependentCount = 0;
         boolean unionMember = request.getParameter("unionMember") != null;
 
         boolean isSuccess = userDAO.addUserAndEmpployee(username, email, password, fullName, dob, gender, address,
