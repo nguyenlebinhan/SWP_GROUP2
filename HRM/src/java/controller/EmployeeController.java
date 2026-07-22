@@ -2973,6 +2973,8 @@ public class EmployeeController extends HttpServlet {
     }
 
     private void setPermissionFlags(HttpServletRequest request, Set<String> perms) {
+        User sessionUser = (User) request.getSession().getAttribute("user");
+        boolean isHrMgr = "HRManager".equals(roleDAO.getRoleByUserId(sessionUser.getUserId()));
         request.setAttribute("canViewEmployees", perms.contains("VIEW_EMPLOYEES"));
         request.setAttribute("canAddEmployee", perms.contains("ADD_EMPLOYEE"));
         request.setAttribute("canAddEmploymentContract", perms.contains("ADD_EMPLOYMENT_CONTRACT"));
@@ -2989,9 +2991,9 @@ public class EmployeeController extends HttpServlet {
         request.setAttribute("canViewOwnContract", perms.contains("VIEW_OWN_CONTRACT"));
         request.setAttribute("canViewAllContracts", perms.contains("VIEW_ALL_CONTRACTS"));
         request.setAttribute("canViewPendingContracts", perms.contains("VIEW_PENDING_CONTRACTS"));
-        request.setAttribute("canApproveContract", perms.contains("APPROVE_CONTRACT"));
-        request.setAttribute("canRejectContract", perms.contains("REJECT_CONTRACT"));
-        request.setAttribute("canTerminateContract", perms.contains("TERMINATE_CONTRACT"));
+        request.setAttribute("canApproveContract", isHrMgr);
+        request.setAttribute("canRejectContract", isHrMgr);
+        request.setAttribute("canTerminateContract", isHrMgr);
     }
 
     private boolean isBlank(String v) {

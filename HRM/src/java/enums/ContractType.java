@@ -1,10 +1,10 @@
 package enums;
 
 public enum ContractType {
-    PROBATION("Probation Contract"),
-    INTERNSHIP("Internship Contract"),
-    FIXED_TERM("Fixed-term Contract"),
-    INDEFINITE("Indefinite Contract");
+    PROBATION("Thử việc"),
+    INTERNSHIP("Thực tập"),
+    FIXED_TERM("Có thời hạn"),
+    INDEFINITE("Không xác định thời hạn");
 
     private final String displayName;
 
@@ -32,4 +32,3 @@ public enum ContractType {
         return null;
     }
 }
-

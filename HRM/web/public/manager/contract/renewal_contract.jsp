@@ -83,13 +83,13 @@
                     <div class="col-md-4">
                         <div class="detail-item">
                             <span class="detail-label">Loại hợp đồng</span>
-                            <div class="detail-value">${oldContract.contractType}</div>
+                            <div class="detail-value">${oldContract.contractType.displayName}</div>
                         </div>
                     </div>
                     <div class="col-md-4">
                         <div class="detail-item">
                             <span class="detail-label">Lương hiện tại</span>
-                            <div class="detail-value"><fmt:formatNumber value="${oldContract.salary}" type="number" groupingUsed="true"/> VND</div>
+                            <div class="detail-value"><fmt:formatNumber value="${oldContract.salary}" type="number" groupingUsed="true" maxFractionDigits="0"/> VND</div>
                         </div>
                     </div>
                     <div class="col-md-4">

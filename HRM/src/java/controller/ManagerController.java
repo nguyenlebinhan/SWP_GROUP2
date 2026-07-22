@@ -1306,7 +1306,7 @@ public class ManagerController extends HttpServlet {
 
     private void displayTerminateContractList(HttpServletRequest request, HttpServletResponse response,
             User user) throws ServletException, IOException {
-        if (!isHrManager(user) || !hasPermission(user, "TERMINATE_CONTRACT")) {
+        if (!isHrManager(user)) {
             request.getSession().setAttribute("error", "Bạn không có quyền chấm dứt hợp đồng.");
             response.sendRedirect(request.getContextPath() + "/v1/manager/dashboard");
             return;
@@ -2035,7 +2035,7 @@ public class ManagerController extends HttpServlet {
 
     private void handleApproveContract(HttpServletRequest request, HttpServletResponse response,
             User user) throws IOException {
-        if (!isHrManager(user) || !hasPermission(user, "APPROVE_CONTRACT")) {
+        if (!isHrManager(user)) {
             request.getSession().setAttribute("error", "Bạn không có quyền duyệt hợp đồng.");
             response.sendRedirect(request.getContextPath() + "/v1/manager/dashboard");
             return;
@@ -2053,7 +2053,7 @@ public class ManagerController extends HttpServlet {
 
     private void handleRejectContract(HttpServletRequest request, HttpServletResponse response,
             User user) throws IOException {
-        if (!isHrManager(user) || !hasPermission(user, "REJECT_CONTRACT")) {
+        if (!isHrManager(user)) {
             request.getSession().setAttribute("error", "Bạn không có quyền từ chối hợp đồng.");
             response.sendRedirect(request.getContextPath() + "/v1/manager/dashboard");
             return;
@@ -2094,7 +2094,7 @@ public class ManagerController extends HttpServlet {
 
     private void handleTerminateContract(HttpServletRequest request, HttpServletResponse response,
             User user) throws ServletException, IOException {
-        if (!isHrManager(user) || !hasPermission(user, "TERMINATE_CONTRACT")) {
+        if (!isHrManager(user)) {
             request.getSession().setAttribute("error", "Bạn không có quyền chấm dứt hợp đồng.");
             response.sendRedirect(request.getContextPath() + "/v1/manager/dashboard");
             return;
@@ -3532,6 +3532,8 @@ public class ManagerController extends HttpServlet {
     }
 
     private void setPermissionFlags(HttpServletRequest request, Set<String> perms) {
+        User sessionUser = (User) request.getSession().getAttribute("user");
+        boolean isHrMgr = isHrManager(sessionUser);
         request.setAttribute("canViewEmployees", perms.contains("VIEW_EMPLOYEES"));
         request.setAttribute("canAddEmployee", perms.contains("ADD_EMPLOYEE"));
         request.setAttribute("canAddEmploymentContract", perms.contains("ADD_EMPLOYMENT_CONTRACT"));
@@ -3547,9 +3549,9 @@ public class ManagerController extends HttpServlet {
         request.setAttribute("canViewOwnContract", perms.contains("VIEW_OWN_CONTRACT"));
         request.setAttribute("canViewAllContracts", perms.contains("VIEW_ALL_CONTRACTS"));
         request.setAttribute("canViewPendingContracts", perms.contains("VIEW_PENDING_CONTRACTS"));
-        request.setAttribute("canApproveContract", perms.contains("APPROVE_CONTRACT"));
-        request.setAttribute("canRejectContract", perms.contains("REJECT_CONTRACT"));
-        request.setAttribute("canTerminateContract", perms.contains("TERMINATE_CONTRACT"));
+        request.setAttribute("canApproveContract", isHrMgr);
+        request.setAttribute("canRejectContract", isHrMgr);
+        request.setAttribute("canTerminateContract", isHrMgr);
     }
 
     private void sendJsonResponse(HttpServletResponse response, boolean success, String message) throws IOException {

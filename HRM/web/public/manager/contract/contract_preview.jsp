@@ -172,11 +172,11 @@
                 <div class="detail-grid">
                     <div class="detail-item">
                         <span class="detail-label">Loại hợp đồng</span>
-                        <div class="detail-value">${contract.contractType}</div>
+                        <div class="detail-value">${contract.contractType.displayName}</div>
                     </div>
                     <div class="detail-item">
                         <span class="detail-label">Lương</span>
-                        <div class="detail-value"><fmt:formatNumber value="${contract.salary}" type="number" groupingUsed="true"/> VND</div>
+                        <div class="detail-value"><fmt:formatNumber value="${contract.salary}" type="number" groupingUsed="true" maxFractionDigits="0"/> VND</div>
                     </div>
                     <div class="detail-item">
                         <span class="detail-label">Ngày ký</span>

@@ -63,7 +63,6 @@
             </jsp:include>
 
             <div class="page-card">
-                <!-- Hàng 1: Tiêu đề (Trái) và Nút Run Now (Sát lề Phải) -->
                 <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-3">
                     <div>
                         <h5 class="fw-bold mb-1">
@@ -78,7 +77,7 @@
                     <!-- Nút này sẽ được đẩy sát lề phải nhờ justify-content-between -->
                     <c:if test="${isHrStaffRole and param.scope != 'own'}">
                         <button type="button" class="btn btn-outline-warning" onclick="runSchedulerNow()" id="btnRunScheduler">
-                            <i class="fa-solid fa-play me-1"></i>Run Scheduler Now
+                            <i class="fa-solid fa-play me-1"></i>Chạy Scheduler
                         </button>
                     </c:if>
                 </div>
@@ -88,10 +87,10 @@
                     <input type="text" id="historySearchInput" class="form-control" style="width:280px;" placeholder="Tìm theo mã hợp đồng hoặc nhân viên">
                     <select id="historyTypeFilter" class="form-select" style="width:220px;">
                         <option value="">Tất cả loại hợp đồng</option>
-                        <option value="INTERNSHIP">Internship</option>
-                        <option value="PROBATION">Probation</option>
-                        <option value="FIXED_TERM">Fixed-term</option>
-                        <option value="INDEFINITE">Indefinite</option>
+                        <option value="INTERNSHIP">Thực tập</option>
+                        <option value="PROBATION">Thử việc</option>
+                        <option value="FIXED_TERM">Có thời hạn</option>
+                        <option value="INDEFINITE">Không xác định thời hạn</option>
                     </select>
                 </div>
 
@@ -118,7 +117,7 @@
                                             <h6 class="mb-1">${empty contract.contractCode ? contract.contractId : contract.contractCode}</h6>
                                             <div class="text-muted mb-2">${employeeInfo.fullName} (${employeeInfo.employeeCode})</div>
                                             <div class="d-flex flex-wrap gap-2">
-                                                <span class="meta-chip"><i class="fa-regular fa-id-badge"></i>${contract.contractType}</span>
+                                                <span class="meta-chip"><i class="fa-regular fa-file-lines"></i>${contract.contractType.displayName}</span>
                                                 <span class="meta-chip"><i class="fa-regular fa-calendar"></i><fmt:formatDate value="${contract.effectiveDate}" pattern="dd/MM/yyyy"/></span>
                                                 <span class="meta-chip">
                                                     <i class="fa-regular fa-calendar-check"></i>
@@ -161,45 +160,45 @@
 
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
         <script>
-            (function () {
-                const input = document.getElementById("historySearchInput");
-                const typeFilter = document.getElementById("historyTypeFilter");
-                const items = Array.from(document.querySelectorAll(".history-contract-item"));
-                const emptyState = document.getElementById("historyNoMatch");
-                const countNode = document.getElementById("historyVisibleCount");
-                if (!input || !typeFilter || !items.length || !emptyState || !countNode) {
-                    return;
-                }
+                            (function () {
+                                const input = document.getElementById("historySearchInput");
+                                const typeFilter = document.getElementById("historyTypeFilter");
+                                const items = Array.from(document.querySelectorAll(".history-contract-item"));
+                                const emptyState = document.getElementById("historyNoMatch");
+                                const countNode = document.getElementById("historyVisibleCount");
+                                if (!input || !typeFilter || !items.length || !emptyState || !countNode) {
+                                    return;
+                                }
 
-                const normalize = (value) => (value || "").toLowerCase().trim();
-                const applyFilter = () => {
-                    const keyword = normalize(input.value);
-                    const typeValue = normalize(typeFilter.value);
-                    let visible = 0;
+                                const normalize = (value) => (value || "").toLowerCase().trim();
+                                const applyFilter = () => {
+                                    const keyword = normalize(input.value);
+                                    const typeValue = normalize(typeFilter.value);
+                                    let visible = 0;
 
-                    items.forEach((item) => {
-                        const matchesKeyword = !keyword || normalize(item.dataset.search).includes(keyword);
-                        const matchesType = !typeValue || normalize(item.dataset.type) === typeValue;
-                        const show = matchesKeyword && matchesType;
-                        item.classList.toggle("hidden-item", !show);
-                        if (show) {
-                            visible++;
-                        }
-                    });
+                                    items.forEach((item) => {
+                                        const matchesKeyword = !keyword || normalize(item.dataset.search).includes(keyword);
+                                        const matchesType = !typeValue || normalize(item.dataset.type) === typeValue;
+                                        const show = matchesKeyword && matchesType;
+                                        item.classList.toggle("hidden-item", !show);
+                                        if (show) {
+                                            visible++;
+                                        }
+                                    });
 
-                    countNode.textContent = visible;
-                    emptyState.classList.toggle("hidden-item", visible !== 0);
-                };
+                                    countNode.textContent = visible;
+                                    emptyState.classList.toggle("hidden-item", visible !== 0);
+                                };
 
-                input.addEventListener("input", applyFilter);
-                typeFilter.addEventListener("change", applyFilter);
-            })();
+                                input.addEventListener("input", applyFilter);
+                                typeFilter.addEventListener("change", applyFilter);
+                            })();
         </script>
         <script>
             async function runSchedulerNow() {
                 const btn = document.getElementById('btnRunScheduler');
                 btn.disabled = true;
-                btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-1"></i>Running...';
+                btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-1"></i>Đang chạy...';
 
                 try {
                     const response = await fetch('${pageContext.request.contextPath}/v1/manager/scheduler/run-now', {
@@ -222,7 +221,7 @@
                     setTimeout(() => {
                         btn.disabled = false;
                         btn.className = 'btn btn-outline-warning';
-                        btn.innerHTML = '<i class="fa-solid fa-play me-1"></i>Run Scheduler Now';
+                        btn.innerHTML = '<i class="fa-solid fa-play me-1"></i>Chạy Scheduler';
                     }, 5000);
                 }
             }
