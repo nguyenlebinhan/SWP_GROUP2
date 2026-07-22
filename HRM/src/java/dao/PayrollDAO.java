@@ -41,21 +41,6 @@ public class PayrollDAO {
         return -1;
     }
 
-    public Payroll getPayrollById(int payrollId) {
-        String SQL = basePayrollSelect() + " WHERE payrollId = ?";
-        try (Connection conn = dbContext.getConnection(); PreparedStatement ps = conn.prepareStatement(SQL)) {
-            ps.setInt(1, payrollId);
-            try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) {
-                    return mapPayroll(rs);
-                }
-            }
-        } catch (SQLException e) {
-            LOGGER.log(Level.SEVERE, "Cannot get payroll by id: " + payrollId, e);
-        }
-        return null;
-    }
-
     public PayrollPreviewDTO getPayrollPreviewById(int payrollId) {
         String SQL = "SELECT p.*, e.employeeCode, e.unionMember, u.fullName, d.departmentName, pos.positionName, "
                 + "ec.salary AS contractSalary "
@@ -227,21 +212,6 @@ public class PayrollDAO {
         return 0;
     }
 
-    // ── Generic status update (giữ lại, không gây hại) ────────────────────────
-    public int countApprovedForPeriod(Date periodStart, Date periodEnd) {
-        String sql = "SELECT COUNT(*) FROM Payroll WHERE periodStart = ? AND periodEnd = ? AND status = 1";
-        try (Connection conn = dbContext.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setDate(1, periodStart);
-            ps.setDate(2, periodEnd);
-            try (ResultSet rs = ps.executeQuery()) {
-                return rs.next() ? rs.getInt(1) : 0;
-            }
-        } catch (SQLException e) {
-            LOGGER.log(Level.SEVERE, "Cannot count approved payroll for period", e);
-        }
-        return 0;
-    }
-
     // ── Duyệt chốt cuối (1 → 2, Business Admin) ────────────────────────────────
     public int finalizeApprovedPayroll(Date periodStart, Date periodEnd, Integer departmentId,
             Integer approvedByUserId) {
@@ -318,18 +288,6 @@ public class PayrollDAO {
             LOGGER.log(Level.SEVERE, "Cannot auto-finalize overdue payroll", e);
         }
         return 0;
-    }
-
-    public boolean updatePayrollStatus(int payrollId, int status) {
-        String SQL = "UPDATE Payroll SET status = ? WHERE payrollId = ?";
-        try (Connection conn = dbContext.getConnection(); PreparedStatement ps = conn.prepareStatement(SQL)) {
-            ps.setInt(1, status);
-            ps.setInt(2, payrollId);
-            return ps.executeUpdate() > 0;
-        } catch (SQLException e) {
-            LOGGER.log(Level.SEVERE, "Cannot update payroll status for payrollId: " + payrollId, e);
-        }
-        return false;
     }
 
     // ── Private helpers ────────────────────────────────────────────────────────

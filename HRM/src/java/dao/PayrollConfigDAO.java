@@ -93,18 +93,6 @@ public class PayrollConfigDAO {
         return false;
     }
 
-    public boolean deleteSetting(String settingKey) {
-        String sql = "DELETE FROM Payroll_Settings WHERE settingKey = ?";
-        try (Connection conn = dbContext.getConnection();
-                PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setString(1, settingKey);
-            return ps.executeUpdate() > 0;
-        } catch (SQLException e) {
-            LOGGER.log(Level.SEVERE, "Cannot delete payroll setting", e);
-        }
-        return false;
-    }
-
     public List<PayrollDeductionRule> getDeductionRules(boolean activeOnly) {
         List<PayrollDeductionRule> list = new ArrayList<>();
         String sql = "SELECT ruleId, ruleCode, ruleName, ruleType, calculationType, rate, employerRate, fixedAmount, "
@@ -196,35 +184,6 @@ public class PayrollConfigDAO {
             LOGGER.log(Level.SEVERE, "Cannot get payroll tax brackets", e);
         }
         return list;
-    }
-
-    public PayrollTaxBracket getTaxBracketById(int bracketId) {
-        String sql = "SELECT bracketId, minIncome, maxIncome, taxRate "
-                + "FROM Payroll_Tax_Brackets WHERE bracketId = ?";
-        try (Connection conn = dbContext.getConnection();
-                PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setInt(1, bracketId);
-            try (ResultSet rs = ps.executeQuery()) {
-                return rs.next() ? mapTaxBracket(rs) : null;
-            }
-        } catch (SQLException e) {
-            LOGGER.log(Level.SEVERE, "Cannot get payroll tax bracket", e);
-        }
-        return null;
-    }
-
-    public boolean updateTaxBracket(PayrollTaxBracket bracket) {
-        String sql = "UPDATE Payroll_Tax_Brackets SET minIncome = ?, maxIncome = ?, taxRate = ? "
-                + "WHERE bracketId = ?";
-        try (Connection conn = dbContext.getConnection();
-                PreparedStatement ps = conn.prepareStatement(sql)) {
-            bindTaxBracket(ps, bracket);
-            ps.setInt(4, bracket.getBracketId());
-            return ps.executeUpdate() > 0;
-        } catch (SQLException e) {
-            LOGGER.log(Level.SEVERE, "Cannot update payroll tax bracket", e);
-        }
-        return false;
     }
 
     public boolean updateTaxBrackets(List<PayrollTaxBracket> brackets) {
