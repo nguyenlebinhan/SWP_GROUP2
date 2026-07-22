@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="vi">
+    <head>
+        <meta charset="UTF-8">
+        <title>HỢP ĐỒNG LAO ĐỘNG</title>
+        <style>
+            @page {
+                size: A4;
+                margin: 2cm;
+            }
+            body {
+                font-family: 'Times New Roman', Times, serif;
+                font-size: 13pt;
+                line-height: 1.5;
+            }
+            .center {
+                text-align: center;
+            }
+            .bold {
+                font-weight: bold;
+            }
+            .underline {
+                text-decoration: underline;
+            }
+            .signature-line {
+                display: inline-block;
+                width: 200px;
+                border-bottom: 1px solid black;
+                margin: 0 5px;
+            }
+            .field-value {
+                display: inline-block;
+                border-bottom: 1px solid black;
+                min-width: 150px;
+                padding: 0 5px;
+            }
+            table {
+                width: 100%;
+                border-collapse: collapse;
+            }
+            td {
+                padding: 4px 8px;
+            }
+        </style>
+    </head>
+    <body>
+
+        <div class="center">
+            <p class="bold" style="font-size: 14pt;">CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM</p>
+            <p class="bold" style="font-size: 12pt;">Độc lập - Tự do - Hạnh phúc</p>
+            <p style="font-size: 11pt;">---------------o0o---------------</p>
+        </div>
+
+        <br>
+
+        <h2 class="center bold underline">HỢP ĐỒNG LAO ĐỘNG</h2>
+        <br>
+
+        <div>
+            <p><span class="bold">BÊN A (Người sử dụng lao động):</span> {{companyName}}</p>
+            <p style="margin-left: 2cm;">Địa chỉ: {{companyAddress}}</p>
+            <p style="margin-left: 2cm;">Điện thoại: {{companyPhone}} &nbsp;&nbsp; Email: {{companyEmail}}</p>
+            <p style="margin-left: 2cm;">Mã số thuế: {{taxCode}}</p>
+            <p style="margin-left: 2cm;">Đại diện: <span class="field-value">{{representative}}</span> &nbsp;&nbsp; Chức vụ: <span class="field-value">{{representativeTitle}}</span></p>
+        </div>
+
+        <br>
+
+        <div>
+            <p><span class="bold">BÊN B (Người lao động):</span> {{employeeFullName}}</p>
+            <p style="margin-left: 2cm;">Mã nhân viên: {{employeeCode}}</p>
+            <p style="margin-left: 2cm;">Ngày sinh: {{dateOfBirth}} &nbsp;&nbsp; Giới tính: {{gender}}</p>
+            <p style="margin-left: 2cm;">Địa chỉ: {{address}}</p>
+        </div>
+
+        <br>
+
+        <p class="center bold underline">HAI BÊN THỎA THUẬN KÝ KẾT HỢP ĐỒNG LAO ĐỘNG VỚI CÁC ĐIỀU KHOẢN SAU:</p>
+
+        <br>
+
+        <p><span class="bold">Điều 1: Loại hợp đồng lao động và thời hạn</span></p>
+        <p style="margin-left: 1cm;">1. Loại hợp đồng: <span class="field-value">{{contractType}}</span></p>
+        <p style="margin-left: 1cm;">2. Thời hạn hợp đồng:</p>
+        <p style="margin-left: 2cm;">- Kể từ ngày: <span class="field-value">{{effectiveDate}}</span></p>
+        <p style="margin-left: 2cm;">- Đến ngày: <span class="field-value">{{endDate}}</span></p>
+
+        <br>
+
+        <p><span class="bold">Điều 2: Công việc và địa điểm làm việc</span></p>
+        <p style="margin-left: 1cm;">1. Bộ phận công tác: <span class="field-value">{{departmentName}}</span></p>
+        <p style="margin-left: 1cm;">2. Chức danh chuyên môn: <span class="field-value">{{positionName}}</span></p>
+        <p style="margin-left: 1cm;">3. Địa điểm làm việc: Tại trụ sở Công ty {{companyName}}</p>
+
+        <br>
+
+        <p><span class="bold">Điều 3: Tiền lương và hình thức trả lương</span></p>
+        <p style="margin-left: 1cm;">1. Mức lương chính: <span class="field-value">{{salary}}</span> đồng/tháng</p>
+        <p style="margin-left: 1cm;">2. Hình thức trả lương: Tiền mặt hoặc chuyển khoản</p>
+        <p style="margin-left: 1cm;">3. Thời hạn trả lương: Ngày 05 hằng tháng</p>
+
+        <br>
+
+        <p><span class="bold">Điều 4: Thời giờ làm việc, thời giờ nghỉ ngơi</span></p>
+        <p style="margin-left: 1cm;">1. Thời giờ làm việc: 08 giờ/ngày, 40 giờ/tuần</p>
+        <p style="margin-left: 1cm;">2. Làm việc từ Thứ Hai đến Thứ Sáu hàng tuần</p>
+        <p style="margin-left: 1cm;">&nbsp;&nbsp;&nbsp;- Buổi sáng: 08 giờ 00 phút đến 12 giờ 00 phút</p>
+        <p style="margin-left: 1cm;">&nbsp;&nbsp;&nbsp;- Buổi chiều: 13 giờ 00 phút đến 17 giờ 00 phút</p>
+        <p style="margin-left: 1cm;">3. Nghỉ hàng tuần: Thứ Bảy, Chủ Nhật</p>
+
+        <br>
+
+        <p><span class="bold">Điều 5: Bảo hiểm xã hội, bảo hiểm y tế</span></p>
+        <p style="margin-left: 1cm;">Người sử dụng lao động và Người lao động thực hiện đóng bảo hiểm xã hội, bảo hiểm y tế, bảo hiểm thất nghiệp theo quy định của pháp luật hiện hành.</p>
+
+        <br>
+
+        <p><span class="bold">Điều 6: Quyền và nghĩa vụ các bên</span></p>
+        <p style="margin-left: 1cm;">1. Người lao động có quyền và nghĩa vụ theo đúng quy định của Bộ luật Lao động và Nội quy lao động của Công ty.</p>
+        <p style="margin-left: 1cm;">2. Người sử dụng lao động có trách nhiệm bố trí công việc, bảo đảm an toàn lao động và thanh toán đầy đủ tiền lương cho Người lao động.</p>
+
+        <br>
+
+        <p><span class="bold">Điều 7: Điều khoản chung</span></p>
+        <p style="margin-left: 1cm;">1. Hợp đồng được ký kết tại: {{companyAddress}}, ngày {{signedDate}}.</p>
+        <p style="margin-left: 1cm;">2. Hai bên cam kết thực hiện đúng các điều khoản đã thỏa thuận trong hợp đồng này.</p>
+        <p style="margin-left: 1cm;">3. Hợp đồng này được lập thành 02 (hai) bản, mỗi bên giữ 01 (một) bản có giá trị pháp lý như nhau.</p>
+
+        <br><br>
+
+        <table>
+            <tr>
+                <td class="center bold" style="width: 50%;">ĐẠI DIỆN BÊN A</td>
+                <td class="center bold" style="width: 50%;">NGƯỜI LAO ĐỘNG</td>
+            </tr>
+            <tr>
+                <td class="center" style="height: 60px;"></td>
+                <td class="center" style="height: 60px;"></td>
+            </tr>
+            <tr>
+                <td class="center">{{representative}}</td>
+                <td class="center">{{employeeFullName}}</td>
+            </tr>
+        </table>
+
+    </body>
+</html>

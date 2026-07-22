@@ -126,6 +126,14 @@
                         <div class="detail-value">${empty contract.note ? 'Không có ghi chú.' : contract.note}</div>
                     </div>
                 </div>
+                <div class="d-flex gap-2 mt-3">
+                    <a class="btn btn-outline-primary" href="${pageContext.request.contextPath}/v1/employee/contract/preview-pdf?id=${contract.contractId}">
+                        <i class="fa-solid fa-eye me-1"></i> Xem PDF
+                    </a>
+                    <a class="btn btn-primary" href="${pageContext.request.contextPath}/v1/employee/contract/export-pdf?id=${contract.contractId}">
+                        <i class="fa-solid fa-download me-1"></i> Xuất PDF
+                    </a>
+                </div>
             </div>
         </div>
 

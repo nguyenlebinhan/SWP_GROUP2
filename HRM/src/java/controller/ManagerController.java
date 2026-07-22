@@ -1,5 +1,6 @@
 package controller;
 
+import com.lowagie.text.DocumentException;
 import config.ContractSchedulerInitializerListener;
 import dao.*;
 import dto.AttendanceImportResultDTO;
@@ -62,6 +63,7 @@ import service.AttendanceClosingService;
 import service.PayrollService;
 import service.PayrollConfigWorkflowService;
 import service.EmploymentContractService;
+import service.ContractPdfService;
 import dal.DBContext;
 import java.time.LocalTime;
 import java.sql.Time;
@@ -157,6 +159,12 @@ public class ManagerController extends HttpServlet {
                 break;
             case "/contract/amendments":
                 displayContractAmendments(request, response, user);
+                break;
+            case "/contract/preview-pdf":
+                previewContractPdf(request, response);
+                break;
+            case "/contract/export-pdf":
+                exportContractPdf(request, response);
                 break;
             case "/department/employee-detail":
                 displayEmployeeDepartmentDetail(request, response, user);
@@ -3498,6 +3506,62 @@ public class ManagerController extends HttpServlet {
         }
         return "Chưa có bảng lương cho tháng " + String.format("%02d/%d", month, year)
                 + ". Có thể tháng này chưa được chốt lương hoặc nhân sự chưa làm việc trong thời gian này.";
+    }
+
+    private void previewContractPdf(HttpServletRequest request, HttpServletResponse response) throws IOException {
+        String idParam = request.getParameter("id");
+        if (idParam == null || idParam.isEmpty()) {
+            try {
+                response.sendError(400, "Missing contract id");
+            } catch (IOException e) {
+            }
+            return;
+        }
+        int contractId = Integer.parseInt(idParam);
+        EmploymentContract contract = contractDAO.getContractById(contractId);
+        if (contract == null) {
+            try {
+                response.sendError(404, "Contract not found");
+            } catch (IOException e) {
+            }
+            return;
+        }
+        String templateName = (contract.getContractType() == ContractType.INDEFINITE)
+                ? "contract_indefinite.html" : "contract_fixed_term.html";
+        String templatePath = getServletContext().getRealPath("/templates/" + templateName);
+        try {
+            new ContractPdfService().generatePdf(contractId, templatePath, response, true);
+        } catch (DocumentException e) {
+            throw new IOException("PDF generation failed", e);
+        }
+    }
+
+    private void exportContractPdf(HttpServletRequest request, HttpServletResponse response) throws IOException {
+        String idParam = request.getParameter("id");
+        if (idParam == null || idParam.isEmpty()) {
+            try {
+                response.sendError(400, "Missing contract id");
+            } catch (IOException e) {
+            }
+            return;
+        }
+        int contractId = Integer.parseInt(idParam);
+        EmploymentContract contract = contractDAO.getContractById(contractId);
+        if (contract == null) {
+            try {
+                response.sendError(404, "Contract not found");
+            } catch (IOException e) {
+            }
+            return;
+        }
+        String templateName = (contract.getContractType() == ContractType.INDEFINITE)
+                ? "contract_indefinite.html" : "contract_fixed_term.html";
+        String templatePath = getServletContext().getRealPath("/templates/" + templateName);
+        try {
+            new ContractPdfService().generatePdf(contractId, templatePath, response, false);
+        } catch (DocumentException e) {
+            throw new IOException("PDF generation failed", e);
+        }
     }
 
     @SuppressWarnings("unchecked")

@@ -1,7 +1,5 @@
 package controller;
 
-import enums.ContractType;
-import enums.ContractStatus;
 import dao.AttendanceDAO;
 import dao.CandidateDAO;
 import dao.DepartmentDAO;
@@ -24,6 +22,8 @@ import dto.EmployeeDetailDTO;
 import dto.FormRequestDTO;
 import dto.PayrollPreviewDTO;
 import enums.FileStatus;
+import enums.ContractType;
+import enums.ContractStatus;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.MultipartConfig;
 import jakarta.servlet.http.HttpServlet;
@@ -54,10 +54,13 @@ import service.CandidateImportService;
 import service.EmailService;
 import service.PayrollService;
 import service.PayrollConfigWorkflowService;
+import service.ContractPdfService;
+import service.EmploymentContractService;
 import utils.AttendanceExcelExporter;
 import utils.Paging;
 import utils.ConfigManager;
-import service.EmploymentContractService;
+
+import com.lowagie.text.DocumentException;
 
 @MultipartConfig(fileSizeThreshold = 1024 * 1024, // 1MB ghi ra đĩa
         maxFileSize = 10L * 1024 * 1024, // 10MB / file
@@ -131,6 +134,12 @@ public class EmployeeController extends HttpServlet {
                 break;
             case "/contract/history":
                 displayContractHistory(request, response, user);
+                break;
+            case "/contract/preview-pdf":
+                previewContractPdf(request, response);
+                break;
+            case "/contract/export-pdf":
+                exportContractPdf(request, response);
                 break;
             case "/department/detail":
                 displayEmployeeDepartmentDetail(request, response, user);
@@ -2839,6 +2848,62 @@ public class EmployeeController extends HttpServlet {
 
         request.setAttribute("importResult", result);
         request.getRequestDispatcher("/public/employee/recruitment/recruitment_import.jsp").forward(request, response);
+    }
+
+    private void previewContractPdf(HttpServletRequest request, HttpServletResponse response) throws IOException {
+        String idParam = request.getParameter("id");
+        if (idParam == null || idParam.isEmpty()) {
+            try {
+                response.sendError(400, "Missing contract id");
+            } catch (IOException e) {
+            }
+            return;
+        }
+        int contractId = Integer.parseInt(idParam);
+        EmploymentContract contract = contractDAO.getContractById(contractId);
+        if (contract == null) {
+            try {
+                response.sendError(404, "Contract not found");
+            } catch (IOException e) {
+            }
+            return;
+        }
+        String templateName = (contract.getContractType() == ContractType.INDEFINITE)
+                ? "contract_indefinite.html" : "contract_fixed_term.html";
+        String templatePath = getServletContext().getRealPath("/templates/" + templateName);
+        try {
+            new ContractPdfService().generatePdf(contractId, templatePath, response, true);
+        } catch (DocumentException e) {
+            throw new IOException("PDF generation failed", e);
+        }
+    }
+
+    private void exportContractPdf(HttpServletRequest request, HttpServletResponse response) throws IOException {
+        String idParam = request.getParameter("id");
+        if (idParam == null || idParam.isEmpty()) {
+            try {
+                response.sendError(400, "Missing contract id");
+            } catch (IOException e) {
+            }
+            return;
+        }
+        int contractId = Integer.parseInt(idParam);
+        EmploymentContract contract = contractDAO.getContractById(contractId);
+        if (contract == null) {
+            try {
+                response.sendError(404, "Contract not found");
+            } catch (IOException e) {
+            }
+            return;
+        }
+        String templateName = (contract.getContractType() == ContractType.INDEFINITE)
+                ? "contract_indefinite.html" : "contract_fixed_term.html";
+        String templatePath = getServletContext().getRealPath("/templates/" + templateName);
+        try {
+            new ContractPdfService().generatePdf(contractId, templatePath, response, false);
+        } catch (DocumentException e) {
+            throw new IOException("PDF generation failed", e);
+        }
     }
 
     private boolean isAcceptableXlsxContentType(String contentType) {

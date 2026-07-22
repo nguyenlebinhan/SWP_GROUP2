@@ -157,7 +157,7 @@ public class DBInitializer {
                 + "degree NVARCHAR(100),"
                 + "dependentCount INT NOT NULL DEFAULT 0,"
                 + "unionMember TINYINT(1) NOT NULL DEFAULT 0,"
-                + "status TINYINT DEFAULT 1,"        // 0: Inactive, 1: Active, 2: On Leave
+                + "status TINYINT DEFAULT 1," // 0: Inactive, 1: Active, 2: On Leave
                 + "managerId INT,"
                 + "startDate DATE,"
                 + "createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,"
@@ -182,6 +182,8 @@ public class DBInitializer {
                 + "endDate DATE NULL,"
                 + "actualEndDate DATE NULL,"
                 + "salary DECIMAL(15,2) NOT NULL DEFAULT 0,"
+                + "departmentName NVARCHAR(150) NULL,"
+                + "positionName NVARCHAR(150) NULL,"
                 + "status VARCHAR(50) DEFAULT 'PENDING_APPROVAL',"
                 + "note NVARCHAR(500),"
                 + "previousContractId INT,"
@@ -558,7 +560,6 @@ public class DBInitializer {
     }
 
     // ==================== THÔNG BÁO & AUDIT ====================
-
     public void createTablePayrollConfigChangeRequests(Connection conn) {
         String SQL = "CREATE TABLE Payroll_Config_Change_Requests("
                 + "requestId INT PRIMARY KEY AUTO_INCREMENT,"
@@ -722,38 +723,102 @@ public class DBInitializer {
             for (String table : createOrder) {
                 if (enforceReset || !tableExists(conn, table)) {
                     switch (table) {
-                        case "Roles":             createTableRoles(conn);             break;
-                        case "Permissions":       createTablePermissions(conn);       break;
-                        case "Role_Permissions":  createTableRolePermissions(conn);   break;
-                        case "Email_Templates":   createTableEmailTemplates(conn);    break;
-                        case "Positions":         createTablePosition(conn);          break;
-                        case "Departments":       createTableDepartments(conn);       break;
-                        case "Department_Roles":  createTableDepartmentRoles(conn);   break;
-                        case "Users":             createTableUsers(conn);             break;
-                        case "Employees":         createTableEmployees(conn);         break;
-                        case "Employment_Contracts": createTableEmploymentContracts(conn); break;
-                        case "Contract_Audit_Log": createTableContractAuditLog(conn); break;
-                        case "Contract_Amendments": createTableContractAmendments(conn); break;
-                        case "Uploaded_Files":    createTableUploadedFiles(conn);     break;
-                        case "Candidates":        createTableCandidates(conn);        break;
-                        case "Application_Stage_Logs": createTableApplicationStageLogs(conn); break;
-                        case "Form_Types":       createTableFormTypes(conn);         break;
-                        case "Form_Requests":    createTableFormRequests(conn);     break;
-                        case "Overtime_Details": createTableOvertimeDetails(conn);  break;
-                        case "Overtime_Assignees": createTableOvertimeAssignees(conn); break;
-                        case "Leave_Balances":     createTableLeaveBalances(conn);      break;
-                        case "Attendance":        createTableAttendance(conn);        break;
-                        case "Attendance_Adjustment_History": createTableAttendanceAdjustmentHistory(conn); break;
-                        case "Attendance_Period_Status": createTableAttendancePeriodStatus(conn); break;
-                        case "Holiday":           createTableHoliday(conn);           break;
-                        case "Payroll":           createTablePayroll(conn);           break;
-                        case "Payroll_Settings":  createTablePayrollSettings(conn);   break;
-                        case "Payroll_Deduction_Rules": createTablePayrollDeductionRules(conn); break;
-                        case "Payroll_Tax_Brackets": createTablePayrollTaxBrackets(conn); break;
-                        case "Payroll_Config_Change_Requests": createTablePayrollConfigChangeRequests(conn); break;
-                        case "Notifications":     createTableNotifications(conn);     break;
-                        case "Audit_Logs":        createTableAuditLogs(conn);         break;
-                        default: LOGGER.log(Level.WARNING,"Unknown table: {0}", table);     break;
+                        case "Roles":
+                            createTableRoles(conn);
+                            break;
+                        case "Permissions":
+                            createTablePermissions(conn);
+                            break;
+                        case "Role_Permissions":
+                            createTableRolePermissions(conn);
+                            break;
+                        case "Email_Templates":
+                            createTableEmailTemplates(conn);
+                            break;
+                        case "Positions":
+                            createTablePosition(conn);
+                            break;
+                        case "Departments":
+                            createTableDepartments(conn);
+                            break;
+                        case "Department_Roles":
+                            createTableDepartmentRoles(conn);
+                            break;
+                        case "Users":
+                            createTableUsers(conn);
+                            break;
+                        case "Employees":
+                            createTableEmployees(conn);
+                            break;
+                        case "Employment_Contracts":
+                            createTableEmploymentContracts(conn);
+                            break;
+                        case "Contract_Audit_Log":
+                            createTableContractAuditLog(conn);
+                            break;
+                        case "Contract_Amendments":
+                            createTableContractAmendments(conn);
+                            break;
+                        case "Uploaded_Files":
+                            createTableUploadedFiles(conn);
+                            break;
+                        case "Candidates":
+                            createTableCandidates(conn);
+                            break;
+                        case "Application_Stage_Logs":
+                            createTableApplicationStageLogs(conn);
+                            break;
+                        case "Form_Types":
+                            createTableFormTypes(conn);
+                            break;
+                        case "Form_Requests":
+                            createTableFormRequests(conn);
+                            break;
+                        case "Overtime_Details":
+                            createTableOvertimeDetails(conn);
+                            break;
+                        case "Overtime_Assignees":
+                            createTableOvertimeAssignees(conn);
+                            break;
+                        case "Leave_Balances":
+                            createTableLeaveBalances(conn);
+                            break;
+                        case "Attendance":
+                            createTableAttendance(conn);
+                            break;
+                        case "Attendance_Adjustment_History":
+                            createTableAttendanceAdjustmentHistory(conn);
+                            break;
+                        case "Attendance_Period_Status":
+                            createTableAttendancePeriodStatus(conn);
+                            break;
+                        case "Holiday":
+                            createTableHoliday(conn);
+                            break;
+                        case "Payroll":
+                            createTablePayroll(conn);
+                            break;
+                        case "Payroll_Settings":
+                            createTablePayrollSettings(conn);
+                            break;
+                        case "Payroll_Deduction_Rules":
+                            createTablePayrollDeductionRules(conn);
+                            break;
+                        case "Payroll_Tax_Brackets":
+                            createTablePayrollTaxBrackets(conn);
+                            break;
+                        case "Payroll_Config_Change_Requests":
+                            createTablePayrollConfigChangeRequests(conn);
+                            break;
+                        case "Notifications":
+                            createTableNotifications(conn);
+                            break;
+                        case "Audit_Logs":
+                            createTableAuditLogs(conn);
+                            break;
+                        default:
+                            LOGGER.log(Level.WARNING, "Unknown table: {0}", table);
+                            break;
                     }
                 }
             }
@@ -825,10 +890,10 @@ public class DBInitializer {
                 insertPermission(conn, "VIEW_OWN_SALARY", "Xem lương cá nhân", "Quyền xem, gửi đơn khiếu nại về lương của cá nhân");
                 insertPermission(conn, "APPROVE_PAYROLL", "Duyệt bảng lương", "Quyền duyệt bảng lương trước khi thanh toán");
                 insertPermission(conn, "EXPORT_PAYROLL", "Xuất bảng lương", "Quyền xuất bảng lương ra Excel");
-                insertPermission(conn,"CONFIG_PAYROLL","Cấu hình lương","Quyền cấu hình lương và gửi yêu cầu duyệt");
+                insertPermission(conn, "CONFIG_PAYROLL", "Cấu hình lương", "Quyền cấu hình lương và gửi yêu cầu duyệt");
 
             }
-            insertPermission(conn,"CONFIG_PAYROLL","Cấu hình lương","Quyền cấu hình lương và gửi yêu cầu duyệt");
+            insertPermission(conn, "CONFIG_PAYROLL", "Cấu hình lương", "Quyền cấu hình lương và gửi yêu cầu duyệt");
 
             if (countRows(conn, "Positions") == 0) {
                 insertPosition(conn, "Thực tập sinh", 1, "Sinh viên thực tập tại công ty");

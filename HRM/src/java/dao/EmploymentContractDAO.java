@@ -23,7 +23,7 @@ public class EmploymentContractDAO {
     private static final Logger LOGGER = Logger.getLogger(EmploymentContractDAO.class.getName());
     private static final String BASE_COLUMNS
             = "contractId, contractCode, employeeId, contractType, signedDate, "
-            + "effectiveDate, endDate, actualEndDate, salary, status, note, "
+            + "effectiveDate, endDate, actualEndDate, salary, departmentName, positionName, status, note, "
             + "previousContractId, terminationReason, rejectionReason, "
             + "createdBy, createdAt, updatedAt";
     private final DBContext dbContext;
@@ -43,8 +43,8 @@ public class EmploymentContractDAO {
     public int addContract(Connection conn, EmploymentContract contract) throws SQLException {
         String SQL = "INSERT INTO Employment_Contracts "
                 + "(contractCode, employeeId, contractType, signedDate, effectiveDate, endDate, "
-                + "salary, status, note, previousContractId, terminationReason, createdBy) "
-                + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                + "salary, departmentName, positionName, status, note, previousContractId, terminationReason, createdBy) "
+                + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         try (PreparedStatement ps = conn.prepareStatement(SQL, Statement.RETURN_GENERATED_KEYS)) {
             ps.setString(1, contract.getContractCode());
             ps.setInt(2, contract.getEmployeeId());
@@ -57,15 +57,17 @@ public class EmploymentContractDAO {
                 ps.setDate(6, contract.getEndDate());
             }
             ps.setBigDecimal(7, contract.getSalary());
-            ps.setString(8, contract.getStatus() != null ? contract.getStatus().name() : null);
-            ps.setString(9, contract.getNote());
+            ps.setString(8, contract.getDepartmentName());
+            ps.setString(9, contract.getPositionName());
+            ps.setString(10, contract.getStatus() != null ? contract.getStatus().name() : null);
+            ps.setString(11, contract.getNote());
             if (contract.getPreviousContractId() != null) {
-                ps.setInt(10, contract.getPreviousContractId());
+                ps.setInt(12, contract.getPreviousContractId());
             } else {
-                ps.setNull(10, Types.INTEGER);
+                ps.setNull(12, Types.INTEGER);
             }
-            ps.setString(11, contract.getTerminationReason());
-            ps.setInt(12, contract.getCreatedBy());
+            ps.setString(13, contract.getTerminationReason());
+            ps.setInt(14, contract.getCreatedBy());
 
             int affectedRows = ps.executeUpdate();
             if (affectedRows > 0) {
@@ -89,11 +91,10 @@ public class EmploymentContractDAO {
     }
 
     public EmploymentContract getContractById(Connection conn, int contractId) {
-        String SQL = "SELECT ec.*, e.employeeCode, u.fullName, creatorUser.fullName AS createdByName "
+        String SQL = "SELECT ec.*, e.employeeCode, u.fullName "
                 + "FROM Employment_Contracts ec "
                 + "LEFT JOIN Employees e ON ec.employeeId = e.employeeId "
                 + "LEFT JOIN Users u ON e.userId = u.userId "
-                + "LEFT JOIN Users creatorUser ON ec.createdBy = creatorUser.userId "
                 + "WHERE ec.contractId = ?";
         try (PreparedStatement ps = conn.prepareStatement(SQL)) {
             ps.setInt(1, contractId);

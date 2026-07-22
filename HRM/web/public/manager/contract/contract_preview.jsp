@@ -229,11 +229,11 @@
                     </div>
                     <div class="detail-item">
                         <span class="detail-label">Phòng ban</span>
-                        <div class="detail-value">${empty employee.departmentName ? 'Chưa cập nhật' : employee.departmentName}</div>
+                        <div class="detail-value">${empty contract.departmentName ? 'Chưa cập nhật' : contract.departmentName}</div>
                     </div>
                     <div class="detail-item">
                         <span class="detail-label">Chức danh</span>
-                        <div class="detail-value">${empty employee.positionName ? 'Chưa cập nhật' : employee.positionName}</div>
+                        <div class="detail-value">${empty contract.positionName ? 'Chưa cập nhật' : contract.positionName}</div>
                     </div>
                 </div>
 
@@ -285,6 +285,15 @@
                         </div>
                     </c:otherwise>
                 </c:choose>
+
+                <div class="d-flex gap-2 mt-3">
+                    <a class="btn btn-outline-primary" href="${pageContext.request.contextPath}/v1/manager/contract/preview-pdf?id=${contract.contractId}">
+                        <i class="fa-solid fa-eye me-1"></i> Xem PDF
+                    </a>
+                    <a class="btn btn-primary" href="${pageContext.request.contextPath}/v1/manager/contract/export-pdf?id=${contract.contractId}">
+                        <i class="fa-solid fa-download me-1"></i> Xuất PDF
+                    </a>
+                </div>
             </div>
         </div>
 

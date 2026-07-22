@@ -190,6 +190,12 @@ public class EmploymentContractService {
                         overlapResult.getMessage());
             }
 
+            EmployeeDetailDTO emp = employeeDAO.getEmployeeById(contract.getEmployeeId());
+            if (emp != null) {
+                contract.setDepartmentName(emp.getDepartmentName());
+                contract.setPositionName(emp.getPositionName());
+            }
+
             int contractId = contractDAO.addContract(conn, contract);
 
             if (contractId > 0) {
