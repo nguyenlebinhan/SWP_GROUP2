@@ -4,7 +4,6 @@ import dao.EmployeeDAO;
 import dao.PayrollDAO;
 import dao.PayrollConfigDAO;
 import dao.PermissionDAO;
-import dao.RoleDAO;
 import dao.OvertimeDAO;
 import dal.DBContext;
 import dto.EmployeeDetailDTO;
@@ -38,6 +37,11 @@ import model.PayrollAllowanceType;
 import model.PayrollDeductionRule;
 import model.PayrollTaxBracket;
 import model.User;
+import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.CellStyle;
+import org.apache.poi.ss.usermodel.FillPatternType;
+import org.apache.poi.ss.usermodel.Font;
+import org.apache.poi.ss.usermodel.IndexedColors;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
@@ -61,7 +65,6 @@ public class PayrollService {
     private final PayrollConfigDAO payrollConfigDAO;
     private final EmployeeDAO employeeDAO;
     private final PermissionDAO permissionDAO;
-    private final RoleDAO roleDAO;
     private final OvertimeDAO overtimeDAO;
     private final AuditLogService auditLogService;
     private final AttendanceClosingService attendanceClosingService;
@@ -73,7 +76,6 @@ public class PayrollService {
         this.payrollConfigDAO = new PayrollConfigDAO();
         this.employeeDAO = new EmployeeDAO();
         this.permissionDAO = new PermissionDAO();
-        this.roleDAO = new RoleDAO();
         this.overtimeDAO = new OvertimeDAO();
         this.auditLogService = new AuditLogService();
         this.attendanceClosingService = new AttendanceClosingService();
@@ -249,7 +251,9 @@ public class PayrollService {
         return finalizedCount;
     }
 
-    // Xuất bảng lương
+    // Xuất bảng lương — nội dung đồng bộ với bảng lương hiển thị trên giao diện
+    // (danh sách + chi tiết): gồm cả trạng thái duyệt/chốt dạng văn bản, tổng khấu
+    // trừ, bảo hiểm doanh nghiệp đóng, và các dòng nhân sự chưa đủ điều kiện tính lương.
     public void exportPayrollWorkbook(User user, int year, int month, Integer departmentId, OutputStream out)
             throws IOException {
         boolean allowed = canExportPayroll(user);
@@ -258,36 +262,54 @@ public class PayrollService {
                 : new ArrayList<>();
         int exportedRows = 0;
         try (Workbook workbook = new XSSFWorkbook()) {
-            Sheet sheet = workbook.createSheet("Bảng lương " + month + "-" + year);
+            Sheet sheet = workbook.createSheet("Bang luong " + String.format("%02d-%04d", month, year));
+            CellStyle headerStyle = createPayrollHeaderStyle(workbook);
+            CellStyle moneyStyle = createPayrollMoneyStyle(workbook);
+
             String[] headers = payrollHeaders();
             Row header = sheet.createRow(0);
             for (int i = 0; i < headers.length; i++) {
-                header.createCell(i).setCellValue(headers[i]);
+                Cell cell = header.createCell(i);
+                cell.setCellValue(headers[i]);
+                cell.setCellStyle(headerStyle);
             }
+            sheet.createFreezePane(0, 1);
+
+            String periodLabel = "Tháng " + month + "/" + year;
             int rowIndex = 1;
+            int stt = 1;
             for (PayrollPreviewDTO preview : payrolls) {
+                Row row = sheet.createRow(rowIndex++);
+                row.createCell(0).setCellValue(stt++);
+                row.createCell(1).setCellValue(nullToEmpty(preview.getEmployeeCode()));
+                row.createCell(2).setCellValue(nullToEmpty(preview.getFullName()));
+                row.createCell(3).setCellValue(nullToEmpty(preview.getDepartmentName()));
+                row.createCell(4).setCellValue(nullToEmpty(preview.getPositionName()));
+                row.createCell(5).setCellValue(periodLabel);
+
                 if (preview.isGenerationBlocked() || preview.getPayroll() == null) {
+                    row.createCell(20).setCellValue("Chưa đủ thông tin");
+                    row.createCell(21).setCellValue(nullToEmpty(preview.getGenerationError()));
                     continue;
                 }
+
                 Payroll p = preview.getPayroll();
-                Row row = sheet.createRow(rowIndex++);
-                row.createCell(0).setCellValue(preview.getEmployeeCode());
-                row.createCell(1).setCellValue(preview.getFullName());
-                row.createCell(2).setCellValue(preview.getDepartmentName());
-                row.createCell(3).setCellValue(preview.getPositionName());
-                row.createCell(4).setCellValue(p.getWorkingDays());
-                setNumeric(row, 5, p.getHoursWorked());
-                setNumeric(row, 6, p.getBaseSalary());
-                setNumeric(row, 7, p.getAllowance());
-                setNumeric(row, 8, p.getBonus());
-                setNumeric(row, 9, p.getOvertimePay());
-                setNumeric(row, 10, p.getUnpaidDeduction());
-                setNumeric(row, 11, p.getGrossSalary());
-                setNumeric(row, 12, p.getInsuranceDeduction());
-                setNumeric(row, 13, p.getPersonalIncomeTax());
-                setNumeric(row, 14, p.getNetSalary());
-                row.createCell(15).setCellValue(p.getStatus());
-                row.createCell(16).setCellValue(p.getNote() == null ? "" : p.getNote());
+                row.createCell(6).setCellValue(preview.getStandardWorkingDays());
+                row.createCell(7).setCellValue(p.getWorkingDays());
+                setNumeric(row, 8, p.getHoursWorked(), moneyStyle);
+                setNumeric(row, 9, p.getBaseSalary(), moneyStyle);
+                setNumeric(row, 10, p.getAllowance(), moneyStyle);
+                setNumeric(row, 11, p.getBonus(), moneyStyle);
+                setNumeric(row, 12, p.getOvertimePay(), moneyStyle);
+                setNumeric(row, 13, p.getGrossSalary(), moneyStyle);
+                setNumeric(row, 14, p.getUnpaidDeduction(), moneyStyle);
+                setNumeric(row, 15, p.getInsuranceDeduction(), moneyStyle);
+                setNumeric(row, 16, p.getPersonalIncomeTax(), moneyStyle);
+                setNumeric(row, 17, preview.getTotalDeduction(), moneyStyle);
+                setNumeric(row, 18, p.getNetSalary(), moneyStyle);
+                setNumeric(row, 19, p.getEmployerContribution(), moneyStyle);
+                row.createCell(20).setCellValue(payrollStatusText(p.getStatus()));
+                row.createCell(21).setCellValue("");
                 exportedRows++;
             }
             for (int i = 0; i < headers.length; i++) {
@@ -299,6 +321,37 @@ public class PayrollService {
                 "period=" + String.format("%04d-%02d", year, month)
                 + "; departmentId=" + departmentId
                 + "; rows=" + exportedRows, allowed ? "SUCCESS" : "DENIED");
+    }
+
+    private String payrollStatusText(int status) {
+        switch (status) {
+            case STATUS_FINALIZED:
+                return "Đã chốt";
+            case STATUS_APPROVED:
+                return "HR đã duyệt - chờ chốt";
+            default:
+                return "Chờ duyệt";
+        }
+    }
+
+    private String nullToEmpty(String value) {
+        return value == null ? "" : value;
+    }
+
+    private CellStyle createPayrollHeaderStyle(Workbook workbook) {
+        Font font = workbook.createFont();
+        font.setBold(true);
+        CellStyle style = workbook.createCellStyle();
+        style.setFont(font);
+        style.setFillForegroundColor(IndexedColors.GREY_25_PERCENT.getIndex());
+        style.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+        return style;
+    }
+
+    private CellStyle createPayrollMoneyStyle(Workbook workbook) {
+        CellStyle style = workbook.createCellStyle();
+        style.setDataFormat(workbook.createDataFormat().getFormat("#,##0"));
+        return style;
     }
 
     // Tạo bảng lương
@@ -413,7 +466,7 @@ public class PayrollService {
 
         PayrollOvertimeSummaryDTO overtime = overtimeDAO.getPayrollOvertimeSummary(conn, employee.employeeId,
                 year, month, dailyRate, config.workingHoursPerDay, config.overtimeBlockMinutes,
-                config.overtimeWorkdayMultiplier, config.overtimeWeekendMultiplier);
+                config.overtimeWorkdayMultiplier);
 
         int unpaidWorkingDays = Math.max(0, standardWorkingDays - attendance.getPaidWorkingDays());
         attendance.setUnauthorizedAbsentDays(unpaidWorkingDays);
@@ -1014,10 +1067,12 @@ public class PayrollService {
 
     private String[] payrollHeaders() {
         return new String[]{
-            "Mã nhân viên", "Họ tên", "Phòng ban", "Chức vụ",
-            "Ngày công", "Giờ làm", "Lương cơ bản", "Phụ cấp", "Thưởng",
-            "Tiền tăng ca", "Khấu trừ ngày không làm", "Tổng thu nhập", "Bảo hiểm",
-            "Thuế thu nhập cá nhân", "Lương thực nhận", "Trạng thái", "Ghi chú"
+            "STT", "Mã nhân viên", "Họ tên", "Phòng ban", "Chức vụ", "Kỳ lương",
+            "Ngày công chuẩn", "Ngày công thực tế", "Giờ làm",
+            "Lương cơ bản", "Phụ cấp", "Thưởng chuyên cần", "Tiền tăng ca", "Tổng thu nhập",
+            "Khấu trừ ngày không làm", "Bảo hiểm/phí công đoàn (NV đóng)", "Thuế thu nhập cá nhân",
+            "Tổng khấu trừ", "Lương thực nhận", "Bảo hiểm/phí công đoàn (DN đóng)",
+            "Trạng thái", "Ghi chú"
         };
     }
 
@@ -1069,8 +1124,6 @@ public class PayrollService {
         config.workingHoursPerDay = calculateWorkingHoursPerDay(workStartMinutes, workEndMinutes, workBreakMinutes);
         config.overtimeBlockMinutes = requiredPositiveSetting(settings, "OVERTIME_BLOCK_MINUTES").intValue();
         config.overtimeWorkdayMultiplier = requiredPositiveSetting(settings, "OVERTIME_WORKDAY_MULTIPLIER");
-//        config.overtimeWeekendMultiplier = requiredPositiveSetting(settings, "OVERTIME_WEEKEND_MULTIPLIER");
-//        config.overtimeHolidayMultiplier = requiredPositiveSetting(settings, "OVERTIME_HOLIDAY_MULTIPLIER");
 
         config.deductionRules = payrollConfigDAO.getDeductionRules(true);
         config.taxBrackets = payrollConfigDAO.getTaxBrackets(true);
@@ -1289,14 +1342,6 @@ public class PayrollService {
         return new DecimalFormat("#,##0.##", DecimalFormatSymbols.getInstance(Locale.US)).format(moneyOrZero(value));
     }
 
-    private BigDecimal lateDeductionBlockAmount(PayrollPreviewDTO preview) {
-        if (preview == null || preview.getLateDeductionBlocks() <= 0) {
-            return ZERO;
-        }
-        return moneyOrZero(preview.getLateDeduction())
-                .divide(new BigDecimal(preview.getLateDeductionBlocks()), 6, RoundingMode.HALF_UP);
-    }
-
     private BigDecimal blockAmount(BigDecimal total, int blocks) {
         if (blocks <= 0) {
             return ZERO;
@@ -1336,8 +1381,10 @@ public class PayrollService {
         return ((lateMinutes + blockMinutes - 1) / blockMinutes) * blockMinutes;
     }
 
-    private void setNumeric(Row row, int column, BigDecimal value) {
-        row.createCell(column).setCellValue(moneyOrZero(value).doubleValue());
+    private void setNumeric(Row row, int column, BigDecimal value, CellStyle style) {
+        Cell cell = row.createCell(column);
+        cell.setCellValue(moneyOrZero(value).doubleValue());
+        cell.setCellStyle(style);
     }
 
     private BigDecimal calculateFamilyAllowance(BigDecimal personalAllowance, int dependentCount, BigDecimal dependentAllowance) {
@@ -1404,11 +1451,6 @@ public class PayrollService {
         return permissionDAO.getPermissionCodeByUserId(user.getUserId());
     }
 
-    private boolean isHrStaff(User user) {
-        String role = roleDAO.getRoleByUserId(user.getUserId());
-        return role != null && role.contains("HR");
-    }
-
     // Inner classes
     private static class EmployeePayrollBase {
 
@@ -1440,7 +1482,6 @@ public class PayrollService {
         BigDecimal attendanceBonusRate;
         int overtimeBlockMinutes;
         BigDecimal overtimeWorkdayMultiplier;
-        BigDecimal overtimeWeekendMultiplier;
         List<PayrollDeductionRule> deductionRules = new ArrayList<>();
         List<PayrollTaxBracket> taxBrackets = new ArrayList<>();
     }

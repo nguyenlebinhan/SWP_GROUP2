@@ -322,24 +322,6 @@ public class PayrollConfigWorkflowService {
                 .format(setting.getSettingValue());
     }
 
-    public String buildStandardWorkSchedule(Map<String, BigDecimal> settings) {
-        BigDecimal start = settingValue(settings, "WORK_START", "WORK_START_MINUTES");
-        BigDecimal end = settingValue(settings, "WORK_END", "WORK_END_MINUTES");
-        BigDecimal breakMinutes = settings == null ? null : settings.get("WORK_BREAK_MINUTES");
-        if (start == null || end == null || breakMinutes == null) {
-            return null;
-        }
-        BigDecimal workingMinutes = end.subtract(start).subtract(breakMinutes);
-        if (workingMinutes.signum() <= 0) {
-            return "Cấu hình giờ làm chuẩn không hợp lệ.";
-        }
-        BigDecimal hours = workingMinutes.divide(new BigDecimal("60"), 2, java.math.RoundingMode.HALF_UP)
-                .stripTrailingZeros();
-        return minutesToClock(start) + " - " + minutesToClock(end)
-                + "; nghỉ " + breakMinutes.stripTrailingZeros().toPlainString()
-                + " phút; số giờ làm/ngày = " + hours.toPlainString() + "h";
-    }
-
     private BigDecimal parsePayrollSettingValue(String key, String rawValue) {
         if (isWorkTimeSetting(key)) {
             Integer minutes = parseClockToMinutes(rawValue);

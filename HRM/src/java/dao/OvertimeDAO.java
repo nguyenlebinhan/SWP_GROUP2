@@ -304,10 +304,11 @@ public class OvertimeDAO {
 
     public PayrollOvertimeSummaryDTO getPayrollOvertimeSummary(Connection conn, int employeeId, int year, int month,
             BigDecimal dailyRate, BigDecimal workingHoursPerDay, int overtimeBlockMinutes,
-            BigDecimal overtimeWorkdayMultiplier, BigDecimal overtimeWeekendMultiplier) throws SQLException {
+            BigDecimal overtimeWorkdayMultiplier) throws SQLException {
         PayrollOvertimeSummaryDTO summary = new PayrollOvertimeSummaryDTO();
         BigDecimal hourlyRate = divide(dailyRate, workingHoursPerDay);
-        String sql = "SELECT od.startTime, od.endTime, od.dayType, a.timeIn, a.timeOut "
+        // Chỉ tính tăng ca ngày thường (dayType = 1); hệ thống hiện không hỗ trợ tạo đơn tăng ca cuối tuần/ngày lễ.
+        String sql = "SELECT od.startTime, od.endTime, a.timeIn, a.timeOut "
                 + "FROM Form_Requests fr "
                 + "JOIN Overtime_Details od ON od.formId = fr.formId "
                 + "LEFT JOIN Overtime_Assignees oa ON oa.formId = fr.formId "
@@ -315,7 +316,7 @@ public class OvertimeDAO {
                 + "WHERE fr.status IN (1, 4) "
                 + "AND fr.formTypeId = (SELECT formTypeId FROM Form_Types WHERE formTypeCode = 'OVERTIME') "
                 + "AND (fr.employeeId = ? OR oa.employeeId = ?) "
-                + "AND od.dayType IN (1, 2) "
+                + "AND od.dayType = 1 "
                 + "AND YEAR(od.otDate) = ? "
                 + "AND MONTH(od.otDate) = ?";
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -351,8 +352,7 @@ public class OvertimeDAO {
                     BigDecimal hours = new BigDecimal(String.valueOf(validHours)).setScale(2, RoundingMode.HALF_UP);
                     BigDecimal pay = hourlyRate
                             .multiply(hours)
-                            .multiply(overtimeMultiplier(rs.getInt("dayType"), overtimeWorkdayMultiplier,
-                                    overtimeWeekendMultiplier));
+                            .multiply(overtimeWorkdayMultiplier);
                     summary.addOvertimeBlocks((int) validBlocks);
                     summary.addOvertimeHours(hours);
                     summary.addOvertimePay(pay);
@@ -367,17 +367,6 @@ public class OvertimeDAO {
             return BigDecimal.ZERO;
         }
         return amount.divide(divisor, 6, RoundingMode.HALF_UP);
-    }
-
-    private BigDecimal overtimeMultiplier(int dayType, BigDecimal workday, BigDecimal weekend) {
-        switch (dayType) {
-            case 2:
-                return weekend;
-            case 1:
-                return workday;
-            default:
-                throw new IllegalArgumentException("Unsupported overtime day type: " + dayType);
-        }
     }
 
     public void completeOTForm(Connection conn, int employeeId, java.sql.Date workDate) throws SQLException {
