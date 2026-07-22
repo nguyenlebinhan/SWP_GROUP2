@@ -1,4 +1,3 @@
-Sao chép
 -- Migration: Add snapshot columns to Employment_Contracts
 -- Purpose: Store departmentName and positionName at signing time
 

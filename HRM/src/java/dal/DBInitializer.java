@@ -184,6 +184,12 @@ public class DBInitializer {
                 + "salary DECIMAL(15,2) NOT NULL DEFAULT 0,"
                 + "departmentName NVARCHAR(150) NULL,"
                 + "positionName NVARCHAR(150) NULL,"
+                + "contractFilePath VARCHAR(255) NULL,"
+                + "contractFileName VARCHAR(255) NULL,"
+                + "uploadedAt TIMESTAMP NULL,"
+                + "uploadedBy INT NULL,"
+                + "durationValue INT NULL,"
+                + "durationUnit VARCHAR(10) NULL,"
                 + "status VARCHAR(50) DEFAULT 'PENDING_APPROVAL',"
                 + "note NVARCHAR(500),"
                 + "previousContractId INT,"
@@ -194,7 +200,8 @@ public class DBInitializer {
                 + "updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,"
                 + "FOREIGN KEY (employeeId) REFERENCES Employees(employeeId),"
                 + "FOREIGN KEY (previousContractId) REFERENCES Employment_Contracts(contractId),"
-                + "FOREIGN KEY (createdBy) REFERENCES Users(userId)"
+                + "FOREIGN KEY (createdBy) REFERENCES Users(userId),"
+                + "FOREIGN KEY (uploadedBy) REFERENCES Users(userId)"
                 + ")";
         execute(conn, SQL, "CREATE EMPLOYMENT_CONTRACTS TABLE SUCCESSFULLY");
     }

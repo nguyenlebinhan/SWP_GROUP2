@@ -123,4 +123,31 @@ public class ContractPdfService {
         template = template.replace("{{salary}}", data.getSalary());
         return template;
     }
+
+    public void generateBlankPdf(String templatePath, HttpServletResponse response) throws IOException, DocumentException {
+        String template = java.nio.file.Files.readString(java.nio.file.Paths.get(templatePath));
+        String html = replaceBlankPlaceholders(template);
+
+        response.setContentType("application/pdf");
+        response.setHeader("Content-Disposition", "inline; filename=\"contract_template.pdf\"");
+        renderHtmlToPdf(html, response.getOutputStream());
+    }
+
+    private String replaceBlankPlaceholders(String template) {
+        String blank = "........................";
+        template = template.replace("{{employeeCode}}", blank);
+        template = template.replace("{{employeeFullName}}", blank);
+        template = template.replace("{{dateOfBirth}}", blank);
+        template = template.replace("{{gender}}", blank);
+        template = template.replace("{{address}}", blank);
+        template = template.replace("{{contractCode}}", blank);
+        template = template.replace("{{contractType}}", blank);
+        template = template.replace("{{departmentName}}", blank);
+        template = template.replace("{{positionName}}", blank);
+        template = template.replace("{{signedDate}}", blank);
+        template = template.replace("{{effectiveDate}}", blank);
+        template = template.replace("{{endDate}}", blank);
+        template = template.replace("{{salary}}", blank);
+        return template;
+    }
 }

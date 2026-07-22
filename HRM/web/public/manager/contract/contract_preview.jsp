@@ -139,12 +139,6 @@
                             </button>
                         </form>
                     </c:if>
-                    <c:if test="${contract.status == 'ACTIVE' and not empty contract.endDate}">
-                        <a href="${pageContext.request.contextPath}/v1/manager/contract/renewal?contractId=${contract.contractId}"
-                           class="btn btn-outline-primary">
-                            <i class="fa-solid fa-rotate-right me-1"></i>Gia hạn
-                        </a>
-                    </c:if>
                 </div>
             </div>
 
@@ -287,12 +281,21 @@
                 </c:choose>
 
                 <div class="d-flex gap-2 mt-3">
-                    <a class="btn btn-outline-primary" href="${pageContext.request.contextPath}/v1/manager/contract/preview-pdf?id=${contract.contractId}">
-                        <i class="fa-solid fa-eye me-1"></i> Xem PDF
-                    </a>
-                    <a class="btn btn-primary" href="${pageContext.request.contextPath}/v1/manager/contract/export-pdf?id=${contract.contractId}">
-                        <i class="fa-solid fa-download me-1"></i> Xuất PDF
-                    </a>
+                    <c:choose>
+                        <c:when test="${not empty contract.contractFilePath}">
+                            <a class="btn btn-outline-primary" href="${pageContext.request.contextPath}/v1/manager/contract/download-signed?id=${contract.contractId}">
+                                <i class="fa-solid fa-file-pdf me-1"></i> Xem hợp đồng đã ký
+                            </a>
+                        </c:when>
+                        <c:otherwise>
+                            <a class="btn btn-outline-primary" href="${pageContext.request.contextPath}/v1/manager/contract/preview-pdf?id=${contract.contractId}">
+                                <i class="fa-solid fa-eye me-1"></i> Xem hợp đồng nháp
+                            </a>
+                            <a class="btn btn-primary" href="${pageContext.request.contextPath}/v1/manager/contract/export-pdf?id=${contract.contractId}">
+                                <i class="fa-solid fa-download me-1"></i> Xuất PDF
+                            </a>
+                        </c:otherwise>
+                    </c:choose>
                 </div>
             </div>
         </div>
