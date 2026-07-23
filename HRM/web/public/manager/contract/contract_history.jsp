@@ -160,39 +160,39 @@
 
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
         <script>
-                            (function () {
-                                const input = document.getElementById("historySearchInput");
-                                const typeFilter = document.getElementById("historyTypeFilter");
-                                const items = Array.from(document.querySelectorAll(".history-contract-item"));
-                                const emptyState = document.getElementById("historyNoMatch");
-                                const countNode = document.getElementById("historyVisibleCount");
-                                if (!input || !typeFilter || !items.length || !emptyState || !countNode) {
-                                    return;
-                                }
+            (function () {
+                const input = document.getElementById("historySearchInput");
+                const typeFilter = document.getElementById("historyTypeFilter");
+                const items = Array.from(document.querySelectorAll(".history-contract-item"));
+                const emptyState = document.getElementById("historyNoMatch");
+                const countNode = document.getElementById("historyVisibleCount");
+                if (!input || !typeFilter || !items.length || !emptyState || !countNode) {
+                    return;
+                }
 
-                                const normalize = (value) => (value || "").toLowerCase().trim();
-                                const applyFilter = () => {
-                                    const keyword = normalize(input.value);
-                                    const typeValue = normalize(typeFilter.value);
-                                    let visible = 0;
+                const normalize = (value) => (value || "").toLowerCase().trim();
+                const applyFilter = () => {
+                    const keyword = normalize(input.value);
+                    const typeValue = normalize(typeFilter.value);
+                    let visible = 0;
 
-                                    items.forEach((item) => {
-                                        const matchesKeyword = !keyword || normalize(item.dataset.search).includes(keyword);
-                                        const matchesType = !typeValue || normalize(item.dataset.type) === typeValue;
-                                        const show = matchesKeyword && matchesType;
-                                        item.classList.toggle("hidden-item", !show);
-                                        if (show) {
-                                            visible++;
-                                        }
-                                    });
+                    items.forEach((item) => {
+                        const matchesKeyword = !keyword || normalize(item.dataset.search).includes(keyword);
+                        const matchesType = !typeValue || normalize(item.dataset.type) === typeValue;
+                        const show = matchesKeyword && matchesType;
+                        item.classList.toggle("hidden-item", !show);
+                        if (show) {
+                            visible++;
+                        }
+                    });
 
-                                    countNode.textContent = visible;
-                                    emptyState.classList.toggle("hidden-item", visible !== 0);
-                                };
+                    countNode.textContent = visible;
+                    emptyState.classList.toggle("hidden-item", visible !== 0);
+                };
 
-                                input.addEventListener("input", applyFilter);
-                                typeFilter.addEventListener("change", applyFilter);
-                            })();
+                input.addEventListener("input", applyFilter);
+                typeFilter.addEventListener("change", applyFilter);
+            })();
         </script>
         <script>
             async function runSchedulerNow() {
