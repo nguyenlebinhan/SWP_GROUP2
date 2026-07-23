@@ -295,8 +295,8 @@ public class EmployeeController extends HttpServlet {
             case "/attendance/close-period":
                 handleCloseAttendancePeriod(request, response, user);
                 break;
-            case "/attendance/submit-ba":
-                handleSubmitAttendanceToBa(request, response, user);
+            case "/attendance/finalize":
+                handleLastSubmitAttendance(request, response, user);
                 break;
             case "/salary/generate":
                 handleGeneratePayroll(request, response, user);
@@ -761,7 +761,7 @@ public class EmployeeController extends HttpServlet {
                 : attendanceClosingService.isDepartmentLocked(period[0], period[1], departmentId);
         if (!attendanceLocked) {
             request.getSession().setAttribute("error",
-                    "Bảng chấm công kỳ này chưa được BA chốt. Chưa thể xuất bảng lương.");
+                    "Bảng chấm công kỳ này chưa được HR chốt cuối. Chưa thể xuất bảng lương.");
             response.sendRedirect(request.getContextPath() + "/v1/employee/salary/all?month=" + period[1]
                     + "&year=" + period[0]
                     + (departmentId == null ? "" : "&departmentId=" + departmentId));
@@ -828,7 +828,7 @@ public class EmployeeController extends HttpServlet {
                 : attendanceClosingService.isDepartmentLocked(period[0], period[1], departmentId);
         if (!locked) {
             request.getSession().setAttribute("error",
-                    "Bảng chấm công kỳ này chưa được BA chốt. Chưa thể tính lương.");
+                    "Bảng chấm công kỳ này chưa được HR chốt cuối. Chưa thể tính lương.");
             response.sendRedirect(request.getContextPath() + "/v1/employee/salary/all?month=" + period[1]
                     + "&year=" + period[0]
                     + (departmentId == null ? "" : "&departmentId=" + departmentId));
@@ -1003,13 +1003,13 @@ public class EmployeeController extends HttpServlet {
                 + "/v1/employee/attendance/overview?month=" + month + "&year=" + year);
     }
 
-    private void handleSubmitAttendanceToBa(HttpServletRequest request, HttpServletResponse response,
+    private void handleLastSubmitAttendance(HttpServletRequest request, HttpServletResponse response,
             User user) throws IOException {
         LocalDate prev = LocalDate.now().minusMonths(1);
         int month = attParam(request, "month", prev.getMonthValue());
         int year = attParam(request, "year", prev.getYear());
         ClosingResult result
-                = attendanceClosingService.submitToBa(year, month, user);
+                = attendanceClosingService.approveByHr(year, month, user);
         request.getSession().setAttribute(result.isSuccess() ? "success" : "error", result.getMessage());
         response.sendRedirect(request.getContextPath()
                 + "/v1/employee/attendance/overview?month=" + month + "&year=" + year);
@@ -1065,19 +1065,15 @@ public class EmployeeController extends HttpServlet {
                 = attendanceClosingService.getClosingOverview(year, month);
         boolean hasData = !closingPeriods.isEmpty();
         boolean anyOpen = false;
-        boolean allManagerConfirmed = hasData;
-        boolean allSubmitted = hasData;
+        boolean allReadyForHrFinalization = hasData;
         boolean allLocked = hasData;
         for (model.AttendancePeriod p : closingPeriods) {
             int st = p.getStatus();
             if (st == 0) {
                 anyOpen = true;
             }
-            if (st != 2) {
-                allManagerConfirmed = false;
-            }
-            if (st != 3) {
-                allSubmitted = false;
+            if (st != 2 && st != 3) {
+                allReadyForHrFinalization = false;
             }
             if (st != 4) {
                 allLocked = false;
@@ -1086,8 +1082,7 @@ public class EmployeeController extends HttpServlet {
         request.setAttribute("closingPeriods", closingPeriods);
         request.setAttribute("closingHasData", hasData);
         request.setAttribute("closingCanOpen", anyOpen);
-        request.setAttribute("closingCanSubmitBa", allManagerConfirmed);
-        request.setAttribute("closingSubmittedToBa", allSubmitted);
+        request.setAttribute("closingCanFinalize", allReadyForHrFinalization);
         request.setAttribute("closingLocked", allLocked);
     }
 

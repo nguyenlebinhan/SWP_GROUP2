@@ -39,7 +39,6 @@ import dao.ContractAmendmentDAO;
 import dao.EmploymentContractDAO;
 import dal.DBContext;
 import dao.PayrollDAO;
-import dto.ClosingResult;
 import java.time.YearMonth;
 import java.util.LinkedHashMap;
 
@@ -208,9 +207,6 @@ public class BusinessAdminController extends HttpServlet {
             case "/forms/reject":
                 handleRejectForm(request, response, user);
                 break;
-            case "/attendance/approve":
-                handleApproveAttendancePeriod(request, response, user);
-                break;
             case "/salary/finalize":
                 handleFinalizePayroll(request, response, user);
                 break;
@@ -220,9 +216,7 @@ public class BusinessAdminController extends HttpServlet {
         }
     }
 
-    // =========================================================
-    // Existing methods (unchanged)
-    // =========================================================
+
     private void preventBackCache(HttpServletResponse response) {
         response.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
         response.setHeader("Pragma", "no-cache");
@@ -904,35 +898,19 @@ public class BusinessAdminController extends HttpServlet {
         java.util.List<model.AttendancePeriod> closingPeriods
                 = attendanceClosingService.getClosingOverview(year, month);
         boolean hasData = !closingPeriods.isEmpty();
-        boolean allSubmitted = hasData;
         boolean allLocked = hasData;
         for (model.AttendancePeriod p : closingPeriods) {
-            if (p.getStatus() != 3) {
-                allSubmitted = false;
-            }
             if (p.getStatus() != 4) {
                 allLocked = false;
             }
         }
         request.setAttribute("closingPeriods", closingPeriods);
         request.setAttribute("closingHasData", hasData);
-        request.setAttribute("closingCanApprove", allSubmitted);
         request.setAttribute("closingLocked", allLocked);
         setBusinessAdminAttendanceLayout(request);
         request.getRequestDispatcher("/public/businessadmin/attendance/attendance_closing.jsp").forward(request, response);
     }
 
-    private void handleApproveAttendancePeriod(HttpServletRequest request, HttpServletResponse response,
-            User user) throws IOException {
-        java.time.LocalDate prev = java.time.LocalDate.now().minusMonths(1);
-        int month = paramOr(request, "month", prev.getMonthValue());
-        int year = paramOr(request, "year", prev.getYear());
-        ClosingResult result
-                = attendanceClosingService.approveByBa(year, month, user);
-        request.getSession().setAttribute(result.isSuccess() ? "success" : "error", result.getMessage());
-        response.sendRedirect(request.getContextPath()
-                + "/v1/businessadmin/attendance/closing?month=" + month + "&year=" + year);
-    }
 
     private void setBusinessAdminAttendanceLayout(HttpServletRequest request) {
         request.setAttribute("sidebarPath", "/public/components/businessAdminSideBar.jsp");

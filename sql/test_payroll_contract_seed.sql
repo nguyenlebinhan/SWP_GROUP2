@@ -78,18 +78,16 @@ WHERE ec.contractCode LIKE 'TEST_CONTRACT_%'
 
 INSERT INTO Attendance_Period_Status
     (periodYear, periodMonth, departmentId, status, managerConfirmedBy, managerConfirmedAt,
-     submittedToBaBy, submittedToBaAt, baApprovedBy, baApprovedAt, note)
+     lastCheckByHR, lastCheckedAt, note)
 SELECT @payroll_year, @payroll_month, d.departmentId, 4, @hr_user, NOW(),
-       @hr_user, NOW(), @hr_user, NOW(), 'TEST_PAYROLL_SEED'
+       @hr_user, NOW(), 'TEST_PAYROLL_SEED'
 FROM Departments d
 ON DUPLICATE KEY UPDATE
     status = VALUES(status),
     managerConfirmedBy = VALUES(managerConfirmedBy),
     managerConfirmedAt = VALUES(managerConfirmedAt),
-    submittedToBaBy = VALUES(submittedToBaBy),
-    submittedToBaAt = VALUES(submittedToBaAt),
-    baApprovedBy = VALUES(baApprovedBy),
-    baApprovedAt = VALUES(baApprovedAt),
+    lastCheckByHR = VALUES(lastCheckByHR),
+    lastCheckedAt = VALUES(lastCheckedAt),
     note = VALUES(note);
 
 INSERT INTO Attendance

@@ -41,7 +41,7 @@
         <div class="alert alert-danger w-100 mb-3 d-flex align-items-center" role="alert">
             <i class="fa-solid fa-lock me-2 fs-5"></i>
             <div>
-                <strong>Kỳ chấm công đã đóng!</strong> Tháng ${allowedMonth}/${allowedYear} đã được BA/Nhân sự chốt công và khóa dữ liệu. Không thể import thêm.
+                <strong>Kỳ chấm công đã đóng!</strong> Tháng ${allowedMonth}/${allowedYear} đã được HR chốt công và khóa dữ liệu. Không thể import thêm.
             </div>
         </div>
     </c:if>

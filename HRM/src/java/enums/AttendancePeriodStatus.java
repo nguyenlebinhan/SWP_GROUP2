@@ -8,7 +8,7 @@ public enum AttendancePeriodStatus {
     OPEN(0),
     WAITING_MANAGER(1),
     MANAGER_CONFIRMED(2),
-    SUBMITTED_TO_BA(3),
+    WAITING_HR_FINAL_CHECK(3),
     LOCKED(4);
 
     private final int relatedNum;
@@ -35,7 +35,7 @@ public enum AttendancePeriodStatus {
             case OPEN: return "Đang mở (được sửa)";
             case WAITING_MANAGER: return "Chờ trưởng phòng chốt";
             case MANAGER_CONFIRMED: return "Trưởng phòng đã chốt";
-            case SUBMITTED_TO_BA: return "Đã gửi BA duyệt";
+            case WAITING_HR_FINAL_CHECK: return "Chờ HR chốt cuối";
             case LOCKED: return "Đã chốt (khoá)";
             default: return "Không xác định";
         }

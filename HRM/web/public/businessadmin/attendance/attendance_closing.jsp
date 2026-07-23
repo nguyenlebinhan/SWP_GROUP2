@@ -107,16 +107,8 @@
                 <i class="fa-solid fa-lock me-2"></i>Quy trình chốt bảng chấm công — Tháng ${selectedMonth}/${selectedYear}
             </h5>
             <div class="d-flex gap-2 flex-wrap">
-                <c:if test="${closingCanApprove}">
-                    <form method="post" action="${pageContext.request.contextPath}/v1/businessadmin/attendance/approve"
-                          onsubmit="return confirm('Chốt cuối cùng toàn bộ bảng chấm công kỳ này? Sau khi chốt HR sẽ được tính lương và không thể sửa chấm công.');">
-                        <input type="hidden" name="month" value="${selectedMonth}">
-                        <input type="hidden" name="year" value="${selectedYear}">
-                        <button class="btn btn-success"><i class="fa-solid fa-circle-check me-1"></i>Chốt cuối cùng</button>
-                    </form>
-                </c:if>
                 <c:if test="${closingLocked}">
-                    <span class="badge bg-success align-self-center p-2"><i class="fa-solid fa-check me-1"></i>Đã chốt</span>
+                    <span class="badge bg-success align-self-center p-2"><i class="fa-solid fa-check me-1"></i>Đã chốt.Có thể tính tiền lương</span>
                 </c:if>
             </div>
         </div>
@@ -141,9 +133,9 @@
                 </tbody>
             </table>
         </div>
-        <c:if test="${not closingCanApprove and not closingLocked}">
+        <c:if test="${not closingLocked}">
             <p class="text-muted mt-3 mb-0"><i class="fa-solid fa-circle-info me-1"></i>
-                Chỉ có thể chốt cuối khi HR đã gửi lên và tất cả phòng ban ở trạng thái "Đã gửi BA duyệt".</p>
+                HR sẽ chốt cuối sau khi tất cả trưởng phòng đã chốt bảng chấm công.</p>
         </c:if>
     </div>
     </c:if>
