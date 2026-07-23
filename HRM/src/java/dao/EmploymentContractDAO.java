@@ -201,6 +201,14 @@ public class EmploymentContractDAO {
         }
     }
 
+    public boolean deleteContract(Connection conn, int contractId) throws SQLException {
+        String SQL = "DELETE FROM Employment_Contracts WHERE contractId = ?";
+        try (PreparedStatement ps = conn.prepareStatement(SQL)) {
+            ps.setInt(1, contractId);
+            return ps.executeUpdate() > 0;
+        }
+    }
+
     public List<EmploymentContract> getContractHistory(int employeeId) {
         List<EmploymentContract> contracts = new ArrayList<>();
         String SQL = "SELECT " + BASE_COLUMNS + " FROM Employment_Contracts WHERE employeeId = ? "
@@ -612,6 +620,60 @@ public class EmploymentContractDAO {
         return contracts;
     }
 
+    public boolean updateContract(Connection conn, EmploymentContract contract) throws SQLException {
+        String SQL = "UPDATE Employment_Contracts SET "
+                + "contractCode = ?, "
+                + "employeeId = ?, "
+                + "contractType = ?, "
+                + "signedDate = ?, "
+                + "effectiveDate = ?, "
+                + "endDate = ?, "
+                + "salary = ?, "
+                + "departmentName = ?, "
+                + "positionName = ?, "
+                + "contractFilePath = ?, "
+                + "contractFileName = ?, "
+                + "uploadedAt = ?, "
+                + "uploadedBy = ?, "
+                + "durationValue = ?, "
+                + "durationUnit = ?, "
+                + "status = ?, "
+                + "note = ?, "
+                + "previousContractId = ?, "
+                + "terminationReason = ?, "
+                + "updatedAt = CURRENT_TIMESTAMP "
+                + "WHERE contractId = ?";
+
+        try (PreparedStatement ps = conn.prepareStatement(SQL)) {
+            ps.setString(1, contract.getContractCode());
+            ps.setInt(2, contract.getEmployeeId());
+            ps.setString(3, contract.getContractType() != null ? contract.getContractType().name() : null);
+            ps.setDate(4, contract.getSignedDate());
+            ps.setDate(5, contract.getEffectiveDate());
+            ps.setDate(6, contract.getEndDate());
+            ps.setBigDecimal(7, contract.getSalary());
+            ps.setString(8, contract.getDepartmentName());
+            ps.setString(9, contract.getPositionName());
+            ps.setString(10, contract.getContractFilePath());
+            ps.setString(11, contract.getContractFileName());
+            ps.setObject(12, contract.getUploadedAt() != null ? new java.sql.Timestamp(contract.getUploadedAt().getTime()) : null);
+            ps.setObject(13, contract.getUploadedBy());
+            ps.setObject(14, contract.getDurationValue());
+            ps.setString(15, contract.getDurationUnit());
+            ps.setString(16, contract.getStatus() != null ? contract.getStatus().name() : null);
+            ps.setString(17, contract.getNote());
+            if (contract.getPreviousContractId() != null) {
+                ps.setInt(18, contract.getPreviousContractId());
+            } else {
+                ps.setNull(18, Types.INTEGER);
+            }
+            ps.setString(19, contract.getTerminationReason());
+            ps.setInt(20, contract.getContractId());
+
+            return ps.executeUpdate() > 0;
+        }
+    }
+
     public boolean updateRejectionReason(Connection conn, int contractId, String reason) throws SQLException {
         String SQL = "UPDATE Employment_Contracts SET rejectionReason = ?, updatedAt = CURRENT_TIMESTAMP WHERE contractId = ?";
         try (PreparedStatement ps = conn.prepareStatement(SQL)) {
@@ -622,7 +684,7 @@ public class EmploymentContractDAO {
     }
 
     public boolean existsByContractCode(String contractCode, Integer excludeContractId) {
-        String SQL = "SELECT 1 FROM Employment_Contracts WHERE contractCode = ?";
+        String SQL = "SELECT 1 FROM Employment_Contracts WHERE contractCode = ? AND status != 'DRAFT'";
         if (excludeContractId != null) {
             SQL += " AND contractId != ?";
         }

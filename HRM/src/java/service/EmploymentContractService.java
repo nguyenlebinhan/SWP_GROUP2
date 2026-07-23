@@ -234,6 +234,65 @@ public class EmploymentContractService {
         }
     }
 
+    public ContractOperationResult submitFromDraft(EmploymentContract contract, int draftId) {
+        Connection conn = null;
+        try {
+            ValidationResult validation = validateForCreate(contract);
+            if (!validation.isSuccess()) {
+                return new ContractOperationResult(false, validation.getError().name(), validation.getMessage());
+            }
+
+            conn = dbContext.getConnection();
+            conn.setAutoCommit(false);
+
+            ValidationResult overlapResult = validateOverlap(conn, contract.getEmployeeId(),
+                    contract.getEffectiveDate(), contract.getEndDate(), draftId);
+            if (!overlapResult.isSuccess()) {
+                conn.rollback();
+                return new ContractOperationResult(false,
+                        ContractErrorCode.OVERLAP_DETECTED.name(), overlapResult.getMessage());
+            }
+
+            EmployeeDetailDTO emp = employeeDAO.getEmployeeById(contract.getEmployeeId());
+            if (emp != null) {
+                contract.setDepartmentName(emp.getDepartmentName());
+                contract.setPositionName(emp.getPositionName());
+            }
+
+            contract.setContractId(draftId);
+            contract.setStatus(ContractStatus.PENDING_APPROVAL);
+
+            boolean updated = contractDAO.updateContract(conn, contract);
+            if (!updated) {
+                conn.rollback();
+                return new ContractOperationResult(false,
+                        ContractErrorCode.DATABASE_ERROR.name(), "Không thể cập nhật nháp thành hợp đồng.");
+            }
+
+            contractDAO.insertAuditLog(conn, draftId,
+                    ContractStatus.DRAFT.name(), ContractStatus.PENDING_APPROVAL.name(),
+                    contract.getCreatedBy(), "Tạo hợp đồng từ nháp");
+
+            conn.commit();
+            LOGGER.log(Level.INFO, "Submit from draft success (UPDATE): contractId={0}", draftId);
+            return new ContractOperationResult(true, null, "Gửi duyệt thành công.");
+
+        } catch (SQLException e) {
+            if (conn != null) try {
+                conn.rollback();
+            } catch (SQLException ex) {
+            }
+            LOGGER.log(Level.SEVERE, "Database error during submit from draft", e);
+            return new ContractOperationResult(false,
+                    ContractErrorCode.DATABASE_ERROR.name(), "Lỗi hệ thống: " + e.getMessage());
+        } finally {
+            if (conn != null) try {
+                conn.close();
+            } catch (SQLException ex) {
+            }
+        }
+    }
+
     public ContractOperationResult activateContract(int contractId, int userId) {
         Connection conn = null;
         try {

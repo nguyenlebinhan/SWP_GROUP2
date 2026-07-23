@@ -141,7 +141,6 @@
                            onclick="return confirm('Bạn có chắc muốn hủy? Thông tin chưa lưu sẽ mất.');">
                             <i class="fa-solid fa-ban me-1"></i>Hủy
                         </a>
-                        <<<<<<< HEAD
                         <a class="btn btn-outline-info" href="${pageContext.request.contextPath}/v1/manager/contract/blank-template?type=fixed_term">
                             <i class="fa-solid fa-file-export me-1"></i> Tải mẫu hợp đồng trống
                         </a>
@@ -157,7 +156,6 @@
         </div>
 
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-        <<<<<<< HEAD
         <script>
                                document.addEventListener('DOMContentLoaded', function () {
                                    const contractType = document.getElementById('contractType');

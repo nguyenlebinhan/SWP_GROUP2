@@ -134,12 +134,6 @@ public class EmployeeController extends HttpServlet {
             case "/contract/history":
                 displayContractHistory(request, response, user);
                 break;
-            case "/contract/preview-pdf":
-                previewContractPdf(request, response);
-                break;
-            case "/contract/export-pdf":
-                exportContractPdf(request, response);
-                break;
             case "/department/detail":
                 displayEmployeeDepartmentDetail(request, response, user);
                 break;
@@ -249,6 +243,12 @@ public class EmployeeController extends HttpServlet {
                 break;
             case "/contract/detail":
                 handleContractDetailAction(request, response, user);
+                break;
+            case "/contract/preview-pdf":
+                previewContractPdf(request, response);
+                break;
+            case "/contract/export-pdf":
+                exportContractPdf(request, response);
                 break;
             case "/department/unassign":
                 handleUnassignDepartment(request, response, user);
@@ -484,6 +484,62 @@ public class EmployeeController extends HttpServlet {
         java.util.List<EmploymentContract> history = contractDAO.getContractHistory(employee.getEmployeeId());
         request.setAttribute("contractHistory", history);
         request.getRequestDispatcher("/public/employee/contract/contract_history.jsp").forward(request, response);
+    }
+
+    private void previewContractPdf(HttpServletRequest request, HttpServletResponse response) throws IOException {
+        String idParam = request.getParameter("id");
+        if (idParam == null || idParam.isEmpty()) {
+            try {
+                response.sendError(400, "Missing contract id");
+            } catch (IOException e) {
+            }
+            return;
+        }
+        int contractId = Integer.parseInt(idParam);
+        EmploymentContract contract = contractDAO.getContractById(contractId);
+        if (contract == null) {
+            try {
+                response.sendError(404, "Contract not found");
+            } catch (IOException e) {
+            }
+            return;
+        }
+        String templateName = (contract.getContractType() == ContractType.INDEFINITE)
+                ? "contract_indefinite.html" : "contract_fixed_term.html";
+        String templatePath = getServletContext().getRealPath("/templates/" + templateName);
+        try {
+            new ContractPdfService().generatePdf(contractId, templatePath, response, true);
+        } catch (DocumentException e) {
+            throw new IOException("PDF generation failed", e);
+        }
+    }
+
+    private void exportContractPdf(HttpServletRequest request, HttpServletResponse response) throws IOException {
+        String idParam = request.getParameter("id");
+        if (idParam == null || idParam.isEmpty()) {
+            try {
+                response.sendError(400, "Missing contract id");
+            } catch (IOException e) {
+            }
+            return;
+        }
+        int contractId = Integer.parseInt(idParam);
+        EmploymentContract contract = contractDAO.getContractById(contractId);
+        if (contract == null) {
+            try {
+                response.sendError(404, "Contract not found");
+            } catch (IOException e) {
+            }
+            return;
+        }
+        String templateName = (contract.getContractType() == ContractType.INDEFINITE)
+                ? "contract_indefinite.html" : "contract_fixed_term.html";
+        String templatePath = getServletContext().getRealPath("/templates/" + templateName);
+        try {
+            new ContractPdfService().generatePdf(contractId, templatePath, response, false);
+        } catch (DocumentException e) {
+            throw new IOException("PDF generation failed", e);
+        }
     }
 
     private void handleContractDetailAction(HttpServletRequest request, HttpServletResponse response,
@@ -1255,7 +1311,7 @@ public class EmployeeController extends HttpServlet {
             response.sendRedirect(request.getContextPath() + "/v1/employee/dashboard");
             return;
         }
-        
+
         Set<String> perms = getPermissions(user);
         request.getSession().setAttribute("userPermissions", perms);
         setImportWindowAttributes(request);
@@ -1465,7 +1521,6 @@ public class EmployeeController extends HttpServlet {
         Set<String> perms = getPermissions(user);
         request.getSession().setAttribute("userPermissions", perms);
 
-        
         int month, year;
         int departmentId = 0;
         try {
@@ -1480,16 +1535,16 @@ public class EmployeeController extends HttpServlet {
             response.sendRedirect(request.getContextPath() + "/v1/employee/attendance/import");
             return;
         }
-        
-        boolean locked = (departmentId  == 0)
-            ? attendanceClosingService.isPeriodLocked(year, month)
-            : attendanceClosingService.isDepartmentLocked(year, month, departmentId);
+
+        boolean locked = (departmentId == 0)
+                ? attendanceClosingService.isPeriodLocked(year, month)
+                : attendanceClosingService.isDepartmentLocked(year, month, departmentId);
 
         if (locked) {
-        request.getSession().setAttribute("error", 
-            "Kỳ chấm công tháng " + month + "/" + year + " đã được đóng/khóa. Không thể import dữ liệu mới!");
-        response.sendRedirect(request.getContextPath() + "/v1/employee/attendance/import?month=" + month + "&year=" + year);
-        return; 
+            request.getSession().setAttribute("error",
+                    "Kỳ chấm công tháng " + month + "/" + year + " đã được đóng/khóa. Không thể import dữ liệu mới!");
+            response.sendRedirect(request.getContextPath() + "/v1/employee/attendance/import?month=" + month + "&year=" + year);
+            return;
         }
         setImportWindowAttributes(request);
 

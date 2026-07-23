@@ -9,6 +9,7 @@ import model.*;
 import dao.*;
 import org.xhtmlrenderer.pdf.ITextRenderer;
 import com.lowagie.text.DocumentException;
+import com.lowagie.text.pdf.BaseFont;
 import enums.ContractType;
 import jakarta.servlet.http.HttpServletResponse;
 
@@ -49,7 +50,7 @@ public class ContractPdfService {
             User user = userDAO.getUserById(emp.getUserId());
             if (user != null) {
                 data.setEmployeeFullName(user.getFullName() != null ? user.getFullName() : "");
-                data.setDateOfBirth(user.getDob() != null ? new SimpleDateFormat("dd/MM/yyyy").format(user.getDob()) : "");
+                data.setDateOfBirth(user.getDob() != null ? user.getDob() : "");
                 data.setGender(user.getGender() != null ? user.getGender() : "");
                 data.setAddress(user.getAddress() != null ? user.getAddress() : "");
             }
@@ -95,9 +96,27 @@ public class ContractPdfService {
 
     private void renderHtmlToPdf(String html, OutputStream outputStream) throws IOException, DocumentException {
         ITextRenderer renderer = new ITextRenderer();
+
+        renderer.getFontResolver().addFont(
+                "C:/Windows/Fonts/times.ttf",
+                BaseFont.IDENTITY_H,
+                BaseFont.EMBEDDED
+        );  
+        renderer.getFontResolver().addFont(
+                "C:/Windows/Fonts/timesbd.ttf",
+                BaseFont.IDENTITY_H,
+                BaseFont.EMBEDDED
+        );
+        renderer.getFontResolver().addFont(
+                "C:/Windows/Fonts/timesi.ttf",
+                BaseFont.IDENTITY_H,
+                BaseFont.EMBEDDED
+        );
+
         renderer.setDocumentFromString(html);
         renderer.layout();
         renderer.createPDF(outputStream);
+
     }
 
     private String replacePlaceholders(String template, ContractTemplateData data) {
