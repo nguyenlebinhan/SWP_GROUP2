@@ -23,7 +23,10 @@ public class EmploymentContractDAO {
     private static final Logger LOGGER = Logger.getLogger(EmploymentContractDAO.class.getName());
     private static final String BASE_COLUMNS
             = "contractId, contractCode, employeeId, contractType, signedDate, "
-            + "effectiveDate, endDate, actualEndDate, salary, status, note, "
+            + "effectiveDate, endDate, actualEndDate, salary, departmentName, positionName, "
+            + "contractFilePath, contractFileName, uploadedAt, uploadedBy, "
+            + "durationValue, durationUnit, "
+            + "status, note, "
             + "previousContractId, terminationReason, rejectionReason, "
             + "createdBy, createdAt, updatedAt";
     private final DBContext dbContext;
@@ -43,8 +46,11 @@ public class EmploymentContractDAO {
     public int addContract(Connection conn, EmploymentContract contract) throws SQLException {
         String SQL = "INSERT INTO Employment_Contracts "
                 + "(contractCode, employeeId, contractType, signedDate, effectiveDate, endDate, "
-                + "salary, status, note, previousContractId, terminationReason, createdBy) "
-                + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                + "salary, departmentName, positionName, "
+                + "contractFilePath, contractFileName, uploadedAt, uploadedBy, "
+                + "durationValue, durationUnit, "
+                + "status, note, previousContractId, terminationReason, createdBy) "
+                + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         try (PreparedStatement ps = conn.prepareStatement(SQL, Statement.RETURN_GENERATED_KEYS)) {
             ps.setString(1, contract.getContractCode());
             ps.setInt(2, contract.getEmployeeId());
@@ -57,15 +63,23 @@ public class EmploymentContractDAO {
                 ps.setDate(6, contract.getEndDate());
             }
             ps.setBigDecimal(7, contract.getSalary());
-            ps.setString(8, contract.getStatus() != null ? contract.getStatus().name() : null);
-            ps.setString(9, contract.getNote());
+            ps.setString(8, contract.getDepartmentName());
+            ps.setString(9, contract.getPositionName());
+            ps.setString(10, contract.getContractFilePath());
+            ps.setString(11, contract.getContractFileName());
+            ps.setObject(12, contract.getUploadedAt() != null ? new java.sql.Timestamp(contract.getUploadedAt().getTime()) : null);
+            ps.setObject(13, contract.getUploadedBy());
+            ps.setObject(14, contract.getDurationValue());
+            ps.setString(15, contract.getDurationUnit());
+            ps.setString(16, contract.getStatus() != null ? contract.getStatus().name() : null);
+            ps.setString(17, contract.getNote());
             if (contract.getPreviousContractId() != null) {
-                ps.setInt(10, contract.getPreviousContractId());
+                ps.setInt(18, contract.getPreviousContractId());
             } else {
-                ps.setNull(10, Types.INTEGER);
+                ps.setNull(18, Types.INTEGER);
             }
-            ps.setString(11, contract.getTerminationReason());
-            ps.setInt(12, contract.getCreatedBy());
+            ps.setString(19, contract.getTerminationReason());
+            ps.setInt(20, contract.getCreatedBy());
 
             int affectedRows = ps.executeUpdate();
             if (affectedRows > 0) {
@@ -89,11 +103,10 @@ public class EmploymentContractDAO {
     }
 
     public EmploymentContract getContractById(Connection conn, int contractId) {
-        String SQL = "SELECT ec.*, e.employeeCode, u.fullName, creatorUser.fullName AS createdByName "
+        String SQL = "SELECT ec.*, e.employeeCode, u.fullName "
                 + "FROM Employment_Contracts ec "
                 + "LEFT JOIN Employees e ON ec.employeeId = e.employeeId "
                 + "LEFT JOIN Users u ON e.userId = u.userId "
-                + "LEFT JOIN Users creatorUser ON ec.createdBy = creatorUser.userId "
                 + "WHERE ec.contractId = ?";
         try (PreparedStatement ps = conn.prepareStatement(SQL)) {
             ps.setInt(1, contractId);
@@ -177,9 +190,29 @@ public class EmploymentContractDAO {
         return null;
     }
 
+    public boolean deleteContract(int contractId) {
+        String SQL = "DELETE FROM Employment_Contracts WHERE contractId = ?";
+        try (Connection conn = dbContext.getConnection(); PreparedStatement ps = conn.prepareStatement(SQL)) {
+            ps.setInt(1, contractId);
+            return ps.executeUpdate() > 0;
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    public boolean deleteContract(Connection conn, int contractId) throws SQLException {
+        String SQL = "DELETE FROM Employment_Contracts WHERE contractId = ?";
+        try (PreparedStatement ps = conn.prepareStatement(SQL)) {
+            ps.setInt(1, contractId);
+            return ps.executeUpdate() > 0;
+        }
+    }
+
     public List<EmploymentContract> getContractHistory(int employeeId) {
         List<EmploymentContract> contracts = new ArrayList<>();
         String SQL = "SELECT " + BASE_COLUMNS + " FROM Employment_Contracts WHERE employeeId = ? "
+                + "AND status != 'DRAFT' "
                 + "ORDER BY effectiveDate ASC, contractId ASC";
         try (Connection conn = getInternalConnection(); PreparedStatement ps = conn.prepareStatement(SQL)) {
             ps.setInt(1, employeeId);
@@ -538,6 +571,12 @@ public class EmploymentContractDAO {
             contract.setPositionName(rs.getString("positionName"));
         } catch (SQLException ignored) {
         }
+        contract.setContractFilePath(rs.getString("contractFilePath"));
+        contract.setContractFileName(rs.getString("contractFileName"));
+        contract.setUploadedAt(rs.getDate("uploadedAt"));
+        contract.setUploadedBy(rs.getObject("uploadedBy", Integer.class));
+        contract.setDurationValue(rs.getObject("durationValue", Integer.class));
+        contract.setDurationUnit(rs.getString("durationUnit"));
         contract.setCreatedBy(rs.getInt("createdBy"));
         try {
             contract.setCreatedByName(rs.getString("createdByName"));
@@ -581,6 +620,60 @@ public class EmploymentContractDAO {
         return contracts;
     }
 
+    public boolean updateContract(Connection conn, EmploymentContract contract) throws SQLException {
+        String SQL = "UPDATE Employment_Contracts SET "
+                + "contractCode = ?, "
+                + "employeeId = ?, "
+                + "contractType = ?, "
+                + "signedDate = ?, "
+                + "effectiveDate = ?, "
+                + "endDate = ?, "
+                + "salary = ?, "
+                + "departmentName = ?, "
+                + "positionName = ?, "
+                + "contractFilePath = ?, "
+                + "contractFileName = ?, "
+                + "uploadedAt = ?, "
+                + "uploadedBy = ?, "
+                + "durationValue = ?, "
+                + "durationUnit = ?, "
+                + "status = ?, "
+                + "note = ?, "
+                + "previousContractId = ?, "
+                + "terminationReason = ?, "
+                + "updatedAt = CURRENT_TIMESTAMP "
+                + "WHERE contractId = ?";
+
+        try (PreparedStatement ps = conn.prepareStatement(SQL)) {
+            ps.setString(1, contract.getContractCode());
+            ps.setInt(2, contract.getEmployeeId());
+            ps.setString(3, contract.getContractType() != null ? contract.getContractType().name() : null);
+            ps.setDate(4, contract.getSignedDate());
+            ps.setDate(5, contract.getEffectiveDate());
+            ps.setDate(6, contract.getEndDate());
+            ps.setBigDecimal(7, contract.getSalary());
+            ps.setString(8, contract.getDepartmentName());
+            ps.setString(9, contract.getPositionName());
+            ps.setString(10, contract.getContractFilePath());
+            ps.setString(11, contract.getContractFileName());
+            ps.setObject(12, contract.getUploadedAt() != null ? new java.sql.Timestamp(contract.getUploadedAt().getTime()) : null);
+            ps.setObject(13, contract.getUploadedBy());
+            ps.setObject(14, contract.getDurationValue());
+            ps.setString(15, contract.getDurationUnit());
+            ps.setString(16, contract.getStatus() != null ? contract.getStatus().name() : null);
+            ps.setString(17, contract.getNote());
+            if (contract.getPreviousContractId() != null) {
+                ps.setInt(18, contract.getPreviousContractId());
+            } else {
+                ps.setNull(18, Types.INTEGER);
+            }
+            ps.setString(19, contract.getTerminationReason());
+            ps.setInt(20, contract.getContractId());
+
+            return ps.executeUpdate() > 0;
+        }
+    }
+
     public boolean updateRejectionReason(Connection conn, int contractId, String reason) throws SQLException {
         String SQL = "UPDATE Employment_Contracts SET rejectionReason = ?, updatedAt = CURRENT_TIMESTAMP WHERE contractId = ?";
         try (PreparedStatement ps = conn.prepareStatement(SQL)) {
@@ -591,7 +684,7 @@ public class EmploymentContractDAO {
     }
 
     public boolean existsByContractCode(String contractCode, Integer excludeContractId) {
-        String SQL = "SELECT 1 FROM Employment_Contracts WHERE contractCode = ?";
+        String SQL = "SELECT 1 FROM Employment_Contracts WHERE contractCode = ? AND status != 'DRAFT'";
         if (excludeContractId != null) {
             SQL += " AND contractId != ?";
         }
@@ -626,5 +719,24 @@ public class EmploymentContractDAO {
             }
         }
         return contracts;
+    }
+
+    public List<EmploymentContract> getDraftContractsByCreatedBy(int createdBy) {
+        String SQL = "SELECT ec.*, u.fullName, e.employeeCode "
+                + "FROM Employment_Contracts ec "
+                + "JOIN Users u ON ec.createdBy = u.userId "
+                + "JOIN Employees e ON ec.employeeId = e.employeeId "
+                + "WHERE ec.createdBy = ? AND ec.status = 'DRAFT' ORDER BY ec.updatedAt DESC";
+        List<EmploymentContract> list = new ArrayList<>();
+        try (Connection conn = dbContext.getConnection(); PreparedStatement ps = conn.prepareStatement(SQL)) {
+            ps.setInt(1, createdBy);
+            ResultSet rs = ps.executeQuery();
+            while (rs.next()) {
+                list.add(mapContract(rs));
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return list;
     }
 }

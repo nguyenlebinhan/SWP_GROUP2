@@ -115,7 +115,7 @@
                                         <tr>
                                             <td>${amd.amendmentCode}</td>
                                             <td>
-                                                <span class="badge bg-info">${amd.amendmentType}</span>
+                                                <span class="badge bg-info">${amd.amendmentType.displayName}</span>
                                             </td>
                                             <td><fmt:formatDate value="${amd.effectiveDate}" pattern="dd/MM/yyyy"/></td>
                                             <td>

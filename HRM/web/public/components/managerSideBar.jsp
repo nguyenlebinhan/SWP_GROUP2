@@ -131,12 +131,6 @@
 
     <div class="nav-section">Hợp đồng</div>
 
-    <c:if test="${sessionScope.userPermissions.contains('ADD_EMPLOYMENT_CONTRACT')}">
-        <a href="${pageContext.request.contextPath}/v1/manager/contract/add">
-            Tạo hợp đồng
-        </a>
-    </c:if>
-
     <c:if test="${sessionScope.userPermissions.contains('VIEW_PENDING_CONTRACTS')}">
         <a href="${pageContext.request.contextPath}/v1/manager/contract/pending">
             Hợp đồng chờ duyệt

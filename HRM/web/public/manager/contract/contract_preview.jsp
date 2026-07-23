@@ -139,12 +139,6 @@
                             </button>
                         </form>
                     </c:if>
-                    <c:if test="${contract.status == 'ACTIVE' and not empty contract.endDate}">
-                        <a href="${pageContext.request.contextPath}/v1/manager/contract/renewal?contractId=${contract.contractId}"
-                           class="btn btn-outline-primary">
-                            <i class="fa-solid fa-rotate-right me-1"></i>Gia hạn
-                        </a>
-                    </c:if>
                 </div>
             </div>
 
@@ -172,11 +166,11 @@
                 <div class="detail-grid">
                     <div class="detail-item">
                         <span class="detail-label">Loại hợp đồng</span>
-                        <div class="detail-value">${contract.contractType}</div>
+                        <div class="detail-value">${contract.contractType.displayName}</div>
                     </div>
                     <div class="detail-item">
                         <span class="detail-label">Lương</span>
-                        <div class="detail-value"><fmt:formatNumber value="${contract.salary}" type="number" groupingUsed="true"/> VND</div>
+                        <div class="detail-value"><fmt:formatNumber value="${contract.salary}" type="number" groupingUsed="true" maxFractionDigits="0"/> VND</div>
                     </div>
                     <div class="detail-item">
                         <span class="detail-label">Ngày ký</span>
@@ -229,11 +223,11 @@
                     </div>
                     <div class="detail-item">
                         <span class="detail-label">Phòng ban</span>
-                        <div class="detail-value">${empty employee.departmentName ? 'Chưa cập nhật' : employee.departmentName}</div>
+                        <div class="detail-value">${empty contract.departmentName ? 'Chưa cập nhật' : contract.departmentName}</div>
                     </div>
                     <div class="detail-item">
                         <span class="detail-label">Chức danh</span>
-                        <div class="detail-value">${empty employee.positionName ? 'Chưa cập nhật' : employee.positionName}</div>
+                        <div class="detail-value">${empty contract.positionName ? 'Chưa cập nhật' : contract.positionName}</div>
                     </div>
                 </div>
 
@@ -285,6 +279,24 @@
                         </div>
                     </c:otherwise>
                 </c:choose>
+
+                <div class="d-flex gap-2 mt-3">
+                    <c:choose>
+                        <c:when test="${not empty contract.contractFilePath}">
+                            <a class="btn btn-outline-primary" href="${pageContext.request.contextPath}/v1/manager/contract/download-signed?id=${contract.contractId}">
+                                <i class="fa-solid fa-file-pdf me-1"></i> Xem hợp đồng đã ký
+                            </a>
+                        </c:when>
+                        <c:otherwise>
+                            <a class="btn btn-outline-primary" href="${pageContext.request.contextPath}/v1/manager/contract/preview-pdf?id=${contract.contractId}">
+                                <i class="fa-solid fa-eye me-1"></i> Xem hợp đồng nháp
+                            </a>
+                            <a class="btn btn-primary" href="${pageContext.request.contextPath}/v1/manager/contract/export-pdf?id=${contract.contractId}">
+                                <i class="fa-solid fa-download me-1"></i> Xuất PDF
+                            </a>
+                        </c:otherwise>
+                    </c:choose>
+                </div>
             </div>
         </div>
 
