@@ -132,12 +132,6 @@ public class EmploymentContractService {
                     "Mức lương không hợp lệ.");
         }
 
-        java.sql.Date today = java.sql.Date.valueOf(java.time.LocalDate.now());
-        if (contract.getEffectiveDate() != null && contract.getEffectiveDate().before(today)) {
-            return ValidationResult.failure(ValidationError.EFFECTIVE_DATE_IN_PAST,
-                    "Ngày hiệu lực không được trong quá khứ.");
-        }
-
         return ValidationResult.success();
     }
 
@@ -198,6 +192,20 @@ public class EmploymentContractService {
                 conn.close();
             } catch (SQLException ex) {
             }
+        }
+    }
+
+    public String generateNextContractCode() {
+        String maxCode = contractDAO.getMaxContractCode();
+        if (maxCode == null || !maxCode.startsWith("HD")) {
+            return "HD000001";
+        }
+        try {
+            int seq = Integer.parseInt(maxCode.substring(2)); // bỏ "HD"
+            seq++;
+            return String.format("HD%06d", seq);
+        } catch (NumberFormatException e) {
+            return "HD000001";
         }
     }
 

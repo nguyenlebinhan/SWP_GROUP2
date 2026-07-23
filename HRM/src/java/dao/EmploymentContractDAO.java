@@ -694,6 +694,21 @@ public class EmploymentContractDAO {
         return false;
     }
 
+    public String getMaxContractCode() {
+        String SQL = "SELECT MAX(CAST(SUBSTRING(contractCode, 3, 6) AS UNSIGNED)) FROM Employment_Contracts WHERE contractCode LIKE 'HD%'";
+        try (Connection conn = dbContext.getConnection(); PreparedStatement ps = conn.prepareStatement(SQL); ResultSet rs = ps.executeQuery()) {
+            if (rs.next()) {
+                int maxSeq = rs.getInt(1);
+                if (maxSeq > 0) {
+                    return String.format("HD%06d", maxSeq);
+                }
+            }
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Cannot get max contract code", e);
+        }
+        return null;
+    }
+
     public List<EmploymentContract> getPendingContracts() throws SQLException {
         List<EmploymentContract> contracts = new ArrayList<>();
         String SQL = "SELECT ec.*, u.fullName, e.employeeCode "

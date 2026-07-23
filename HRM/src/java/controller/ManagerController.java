@@ -5,6 +5,7 @@ import config.ContractSchedulerInitializerListener;
 import dao.*;
 import dto.AttendanceImportResultDTO;
 import dto.CandidateImportResultDTO;
+import dto.ContractImportDTO;
 import dto.EmployeeDTO;
 import dto.EmployeeDetailDTO;
 import dto.PayrollPreviewDTO;
@@ -67,6 +68,8 @@ import service.AttendanceClosingService;
 import service.PayrollService;
 import service.PayrollConfigWorkflowService;
 import service.EmploymentContractService;
+import service.ContractPdfService;
+import service.PdfParsingService;
 import dal.DBContext;
 import java.time.LocalTime;
 import java.sql.Time;
@@ -75,7 +78,11 @@ import utils.AttendanceExcelExporter;
 import dao.ContractAmendmentDAO;
 import dto.ClosingResult;
 import java.util.stream.Collectors;
-import service.ContractPdfService;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonPrimitive;
+import com.google.gson.JsonSerializer;
+import java.time.LocalDate;
 
 @MultipartConfig(
         fileSizeThreshold = 1024 * 1024, // 1MB ghi ra đĩa
@@ -113,6 +120,11 @@ public class ManagerController extends HttpServlet {
     private static final PayrollConfigWorkflowService payrollConfigWorkflowService = new PayrollConfigWorkflowService();
     private static final String UPLOAD_DIR = "uploads";
     private static final String ATTENDANCE_FILE_PART = "attendanceFile";
+    
+    private static final Gson GSON = new GsonBuilder()
+            .registerTypeAdapter(LocalDate.class,
+                    (JsonSerializer<LocalDate>) (src, type, context) -> new JsonPrimitive(src.toString()))
+            .create();
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
@@ -288,6 +300,9 @@ public class ManagerController extends HttpServlet {
                 break;
             case "/contract/terminate":
                 handleTerminateContract(request, response, user);
+                break;
+            case "/contract/parse-pdf":
+                handleParsePdf(request, response);
                 break;
             case "/scheduler/run-now":
                 handleRunSchedulerNow(request, response, user);
@@ -1273,6 +1288,8 @@ public class ManagerController extends HttpServlet {
         request.getSession().setAttribute("userPermissions", perms);
         request.setAttribute("employees", employeeDAO.getAllEmployees());
 
+        String generatedCode = contractService.generateNextContractCode();
+        request.setAttribute("generatedCode", generatedCode);
         setPermissionFlags(request, perms);
         request.getRequestDispatcher("/public/manager/contract/add_contract.jsp").forward(request, response);
     }
@@ -2298,6 +2315,31 @@ public class ManagerController extends HttpServlet {
             request.setAttribute("terminationReason", terminationReason);
             setPermissionFlags(request, perms);
             request.getRequestDispatcher("/public/manager/contract/terminate_contract.jsp").forward(request, response);
+        }
+    }
+
+    private void handleParsePdf(HttpServletRequest request, HttpServletResponse response) throws IOException {
+        try {
+            jakarta.servlet.http.Part filePart = request.getPart("file");
+            if (filePart == null || filePart.getSize() <= 0) {
+                response.setStatus(400);
+                response.setContentType("application/json; charset=UTF-8");
+                response.getWriter().write("{\"error\":\"Không tìm thấy file PDF.\"}");
+                return;
+            }
+
+            PdfParsingService parsingService = new PdfParsingService();
+            ContractImportDTO dto = parsingService.parsePdf(filePart.getInputStream());
+
+            response.setContentType("application/json; charset=UTF-8");
+            response.getWriter().write(GSON.toJson(dto));
+
+        } catch (Exception e) {
+            response.setStatus(500);
+            response.setContentType("application/json; charset=UTF-8");
+            Map<String, String> errorMap = new HashMap<>();
+            errorMap.put("error", "Lỗi xử lý PDF: " + e.getMessage());
+            response.getWriter().write(GSON.toJson(errorMap));
         }
     }
 
