@@ -173,6 +173,10 @@ public class AttendanceImportService {
             throw new RowValidationException("workDate " + ad.getWorkDate().trim()
                     + " không thuộc tháng " + month + "/" + year + " đã chọn.");
         }
+        if (isWeekend(workDate)) {
+            throw new RowValidationException("workDate " + workDate
+                    + " rơi vào ngày cuối tuần (Thứ Bảy/Chủ nhật), không được phép import.");
+        }
 
         Time timeIn = parseTime(ad.getTimeIn(), "timeIn");
         Time timeOut = parseTime(ad.getTimeOut(), "timeOut");

@@ -411,21 +411,18 @@ public class DBInitializer {
                 + "periodYear INT NOT NULL,"
                 + "periodMonth INT NOT NULL,"
                 + "departmentId INT NOT NULL,"
-                + "status TINYINT NOT NULL DEFAULT 0," // 0 OPEN,1 WAITING_MANAGER,2 MANAGER_CONFIRMED,3 SUBMITTED_TO_BA,4 LOCKED
+                + "status TINYINT NOT NULL DEFAULT 0," // 0 OPEN,1 WAITING_MANAGER,2 MANAGER_CONFIRMED,3 WAITING_HR_FINAL_CHECK,4 LOCKED
                 + "managerConfirmedBy INT NULL,"
                 + "managerConfirmedAt DATETIME NULL,"
-                + "submittedToBaBy INT NULL,"
-                + "submittedToBaAt DATETIME NULL,"
-                + "baApprovedBy INT NULL,"
-                + "baApprovedAt DATETIME NULL,"
+                + "lastCheckByHR INT NULL,"
+                + "lastCheckedAt DATETIME NULL,"
                 + "note NVARCHAR(500),"
                 + "createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,"
                 + "updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,"
                 + "UNIQUE KEY uq_att_period_dept (periodYear, periodMonth, departmentId),"
                 + "FOREIGN KEY (departmentId) REFERENCES Departments(departmentId),"
                 + "FOREIGN KEY (managerConfirmedBy) REFERENCES Users(userId),"
-                + "FOREIGN KEY (submittedToBaBy) REFERENCES Users(userId),"
-                + "FOREIGN KEY (baApprovedBy) REFERENCES Users(userId)"
+                + "FOREIGN KEY (lastCheckByHR) REFERENCES Users(userId)"
                 + ")";
         execute(conn, SQL, "CREATE ATTENDANCE_PERIOD_STATUS TABLE SUCCESSFULLY");
     }
@@ -1297,6 +1294,8 @@ public class DBInitializer {
             return rs.next();
         }
     }
+
+
 
     private void ensureEmployeeDependentCountColumn(Connection conn) throws SQLException {
         if (!tableExists(conn, "Employees")) {
