@@ -1,7 +1,6 @@
 package enums;
 
 public enum ContractStatus {
-    DRAFT("Nháp"),
     PENDING_APPROVAL("Chờ duyệt"),
     PENDING_ACTIVATION("Chờ hiệu lực"),
     ACTIVE("Đang hiệu lực"),

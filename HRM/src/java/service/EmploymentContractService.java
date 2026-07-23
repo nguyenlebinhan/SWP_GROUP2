@@ -141,39 +141,6 @@ public class EmploymentContractService {
         return ValidationResult.success();
     }
 
-    public ValidationResult validateForDraft(EmploymentContract contract) {
-        ValidationResult empResult = validateEmployee(contract.getEmployeeId());
-        if (!empResult.isSuccess()) {
-            return empResult;
-        }
-
-        ValidationResult codeResult = validateDuplicateCode(contract.getContractCode(),
-                contract.getContractId() > 0 ? contract.getContractId() : null);
-        if (!codeResult.isSuccess()) {
-            return codeResult;
-        }
-
-        if (contract.getContractType() == null) {
-            return ValidationResult.failure(ValidationError.INVALID_CONTRACT_TYPE,
-                    "Loại hợp đồng không hợp lệ.");
-        }
-
-        if (contract.getSalary() != null && contract.getSalary().compareTo(java.math.BigDecimal.ZERO) < 0) {
-            return ValidationResult.failure(ValidationError.INVALID_SALARY,
-                    "Mức lương không hợp lệ.");
-        }
-
-        if (contract.getEffectiveDate() != null && contract.getEndDate() != null) {
-            ValidationResult dateResult = validateDates(contract.getContractType(),
-                    contract.getEffectiveDate(), contract.getEndDate());
-            if (!dateResult.isSuccess()) {
-                return dateResult;
-            }
-        }
-
-        return ValidationResult.success();
-    }
-
     public ContractOperationResult createContract(EmploymentContract contract) {
         Connection conn = null;
         try {
@@ -226,65 +193,6 @@ public class EmploymentContractService {
             LOGGER.log(Level.SEVERE, "Database error during contract creation", e);
             return new ContractOperationResult(false,
                     ContractErrorCode.DATABASE_ERROR.name(), "Loi he thong khi tao hop dong: " + e.getMessage());
-        } finally {
-            if (conn != null) try {
-                conn.close();
-            } catch (SQLException ex) {
-            }
-        }
-    }
-
-    public ContractOperationResult submitFromDraft(EmploymentContract contract, int draftId) {
-        Connection conn = null;
-        try {
-            ValidationResult validation = validateForCreate(contract);
-            if (!validation.isSuccess()) {
-                return new ContractOperationResult(false, validation.getError().name(), validation.getMessage());
-            }
-
-            conn = dbContext.getConnection();
-            conn.setAutoCommit(false);
-
-            ValidationResult overlapResult = validateOverlap(conn, contract.getEmployeeId(),
-                    contract.getEffectiveDate(), contract.getEndDate(), draftId);
-            if (!overlapResult.isSuccess()) {
-                conn.rollback();
-                return new ContractOperationResult(false,
-                        ContractErrorCode.OVERLAP_DETECTED.name(), overlapResult.getMessage());
-            }
-
-            EmployeeDetailDTO emp = employeeDAO.getEmployeeById(contract.getEmployeeId());
-            if (emp != null) {
-                contract.setDepartmentName(emp.getDepartmentName());
-                contract.setPositionName(emp.getPositionName());
-            }
-
-            contract.setContractId(draftId);
-            contract.setStatus(ContractStatus.PENDING_APPROVAL);
-
-            boolean updated = contractDAO.updateContract(conn, contract);
-            if (!updated) {
-                conn.rollback();
-                return new ContractOperationResult(false,
-                        ContractErrorCode.DATABASE_ERROR.name(), "Không thể cập nhật nháp thành hợp đồng.");
-            }
-
-            contractDAO.insertAuditLog(conn, draftId,
-                    ContractStatus.DRAFT.name(), ContractStatus.PENDING_APPROVAL.name(),
-                    contract.getCreatedBy(), "Tạo hợp đồng từ nháp");
-
-            conn.commit();
-            LOGGER.log(Level.INFO, "Submit from draft success (UPDATE): contractId={0}", draftId);
-            return new ContractOperationResult(true, null, "Gửi duyệt thành công.");
-
-        } catch (SQLException e) {
-            if (conn != null) try {
-                conn.rollback();
-            } catch (SQLException ex) {
-            }
-            LOGGER.log(Level.SEVERE, "Database error during submit from draft", e);
-            return new ContractOperationResult(false,
-                    ContractErrorCode.DATABASE_ERROR.name(), "Lỗi hệ thống: " + e.getMessage());
         } finally {
             if (conn != null) try {
                 conn.close();
@@ -379,7 +287,6 @@ public class EmploymentContractService {
             }
 
             java.sql.Date today = java.sql.Date.valueOf(java.time.LocalDate.now());
-            java.sql.Date signedDate = today;
 
             ContractStatus targetStatus = ContractStatus.PENDING_ACTIVATION;
 
@@ -387,7 +294,7 @@ public class EmploymentContractService {
             String newStatus = targetStatus.name();
             String auditNote = "Phe duyet";
 
-            boolean updated = contractDAO.updateContractStatus(conn, contractId, targetStatus, null, null, signedDate);
+            boolean updated = contractDAO.updateContractStatus(conn, contractId, targetStatus, null, null);
             if (!updated) {
                 conn.rollback();
                 return new ContractOperationResult(false, ContractErrorCode.DATABASE_ERROR.name(), "Khong the cap nhat trang thai hop dong.");
@@ -704,38 +611,6 @@ public class EmploymentContractService {
             return new ContractOperationResult(false,
                     ContractErrorCode.DATABASE_ERROR.name(), "Failed to execute auto-activation update.");
         }
-    }
-
-    public ContractOperationResult saveDraft(EmploymentContract contract) {
-        ValidationResult validation = validateForDraft(contract);
-        if (!validation.isSuccess()) {
-            return new ContractOperationResult(false,
-                    validation.getError().name(),
-                    validation.getMessage());
-        }
-
-        EmployeeDetailDTO emp = employeeDAO.getEmployeeById(contract.getEmployeeId());
-        contract.setStatus(ContractStatus.DRAFT);
-        contract.setCreatedAt(new java.sql.Date(System.currentTimeMillis()));
-        contract.setUpdatedAt(new java.sql.Date(System.currentTimeMillis()));
-
-        contract.setDepartmentName(emp.getDepartmentName());
-        contract.setPositionName(emp.getPositionName());
-
-        if (contract.getDurationValue() != null && contract.getDurationUnit() != null) {
-            contract.setEndDate(calculateEndDate(contract.getEffectiveDate(), contract.getDurationValue(), contract.getDurationUnit()));
-        }
-
-        try (Connection conn = dbContext.getConnection()) {
-            int contractId = contractDAO.addContract(conn, contract);
-            if (contractId > 0) {
-                return new ContractOperationResult(true, "SUCCESS", "Lưu nháp thành công.");
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
-            return new ContractOperationResult(false, "SAVE_FAILED", "Lưu nháp thất bại: " + e.getMessage());
-        }
-        return new ContractOperationResult(false, "SAVE_FAILED", "Lưu nháp thất bại.");
     }
 
     public void processDailyContractUpdates() {

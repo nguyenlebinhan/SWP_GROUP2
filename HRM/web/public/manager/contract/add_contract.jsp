@@ -2,7 +2,6 @@
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
 <%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
 <jsp:useBean id="contractDAO" class="dao.EmploymentContractDAO" scope="page" />
-<c:set var="draft" value="${empty param.draftId ? null : contractDAO.getContractById(param.draftId)}" />
 <!DOCTYPE html>
 <html lang="vi">
     <head>
@@ -58,19 +57,18 @@
 
             <div class="page-card">
                 <form id="contractForm" method="post" action="${pageContext.request.contextPath}/v1/manager/contract/add" enctype="multipart/form-data">
-                    <input type="hidden" name="draftId" value="${param.draftId}" />
                     <div class="row g-3">
                         <div class="col-md-6">
                             <label class="form-label">Mã hợp đồng</label>
                             <input type="text" name="contractCode" id="contractCode" class="form-control"
-                                   value="${draft != null ? draft.contractCode : param.contractCode}" required>
+                                   value="${param.contractCode}" required>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Nhân viên</label>
                             <select name="employeeId" id="employeeId" class="form-select" required>
                                 <option value="">-- Chọn nhân viên --</option>
                                 <c:forEach var="emp" items="${employees}">
-                                    <option value="${emp.employeeId}" ${(draft != null ? draft.employeeId : param.employeeId) == emp.employeeId ? 'selected' : ''}>
+                                    <option value="${emp.employeeId}" ${param.employeeId == emp.employeeId ? 'selected' : ''}>
                                         ${emp.fullName} (${emp.employeeCode})
                                     </option>
                                 </c:forEach>
@@ -80,27 +78,27 @@
                             <label class="form-label">Loại hợp đồng</label>
                             <select name="contractType" id="contractType" class="form-select" required>
                                 <option value="">-- Chọn loại hợp đồng --</option>
-                                <option value="PROBATION" ${(draft != null ? draft.contractType.name() : param.contractType) == 'PROBATION' ? 'selected' : ''}>Thử việc</option>
-                                <option value="INTERNSHIP" ${(draft != null ? draft.contractType.name() : param.contractType) == 'INTERNSHIP' ? 'selected' : ''}>Thực tập</option>
-                                <option value="FIXED_TERM" ${(draft != null ? draft.contractType.name() : param.contractType) == 'FIXED_TERM' ? 'selected' : ''}>Có thời hạn</option>
-                                <option value="INDEFINITE" ${(draft != null ? draft.contractType.name() : param.contractType) == 'INDEFINITE' ? 'selected' : ''}>Không xác định thời hạn</option>
+                                <option value="PROBATION" ${param.contractType == 'PROBATION' ? 'selected' : ''}>Thử việc</option>
+                                <option value="INTERNSHIP" ${param.contractType == 'INTERNSHIP' ? 'selected' : ''}>Thực tập</option>
+                                <option value="FIXED_TERM" ${param.contractType == 'FIXED_TERM' ? 'selected' : ''}>Có thời hạn</option>
+                                <option value="INDEFINITE" ${param.contractType == 'INDEFINITE' ? 'selected' : ''}>Không xác định thời hạn</option>
                             </select>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Lương</label>
                             <input type="number" name="salary" id="salary" class="form-control" min="0" step="1000"
-                                   value="${draft != null ? draft.salary.intValue() : param.salary}" required>
+                                   value="${param.salary}" required>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Ngày hiệu lực</label>
                             <input type="date" name="effectiveDate" id="effectiveDate" class="form-control"
-                                   value="${draft != null ? draft.effectiveDate.toString() : param.effectiveDate}" required>
+                                   value="${param.effectiveDate}" required>
                         </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Ngày ký <small class="text-muted">(không bắt buộc)</small></label>
-                            <input type="date" name="signedDate" id="signedDate" class="form-control"
-                                   value="${draft != null ? draft.signedDate.toString() : param.signedDate}">
-                        </div>
+                                   <div class="col-md-6">
+                                       <label class="form-label">Ngày ký</label>
+                                       <input type="date" name="signedDate" id="signedDate" class="form-control"
+                                              value="${param.signedDate}">
+                                   </div>
                         <div class="col-md-6" id="durationGroup">
                             <label class="form-label">Thời hạn</label>
                             <select name="durationValue" id="durationValue" class="form-select">
@@ -110,7 +108,7 @@
                         </div>
                         <div class="col-12">
                             <label class="form-label">Ghi chú</label>
-                            <textarea name="note" id="note" class="form-control" rows="3">${draft != null ? draft.note : param.note}</textarea>
+                            <textarea name="note" id="note" class="form-control" rows="3">${param.note}</textarea>
                         </div>
                         <div class="col-12">
                             <div class="form-check mt-2">
@@ -143,12 +141,6 @@
                         </a>
                         <a class="btn btn-outline-info" href="${pageContext.request.contextPath}/v1/manager/contract/blank-template?type=fixed_term">
                             <i class="fa-solid fa-file-export me-1"></i> Tải mẫu hợp đồng trống
-                        </a>
-                        <button type="submit" class="btn btn-outline-warning" name="action" value="save-draft" formaction="${pageContext.request.contextPath}/v1/manager/contract/save-draft">
-                            <i class="fa-solid fa-floppy-disk me-1"></i> Lưu nháp
-                        </button>
-                        <a class="btn btn-outline-secondary" href="${pageContext.request.contextPath}/v1/manager/contract/draft-list">
-                            <i class="fa-solid fa-list me-1"></i> Danh sách nháp
                         </a>
                     </div>
                 </form>
@@ -241,7 +233,23 @@
                                    }
                                });
         </script>
-        =======
-        >>>>>>> 184a1144a1fd9114ced214d47b5fe1628bf7886b
+        <script>
+            document.addEventListener('DOMContentLoaded', function () {
+                const effectiveDateInput = document.getElementById('effectiveDate');
+                const signedDateInput = document.getElementById('signedDate');
+
+                if (effectiveDateInput && signedDateInput) {
+                    effectiveDateInput.addEventListener('change', function () {
+                        if (!signedDateInput.value) {
+                            signedDateInput.value = this.value;
+                        }
+                    });
+
+                    if (effectiveDateInput.value && !signedDateInput.value) {
+                        signedDateInput.value = effectiveDateInput.value;
+                    }
+                }
+            });
+        </script>
     </body>
 </html>
