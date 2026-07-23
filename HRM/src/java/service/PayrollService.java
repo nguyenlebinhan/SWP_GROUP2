@@ -4,7 +4,6 @@ import dao.EmployeeDAO;
 import dao.PayrollDAO;
 import dao.PayrollConfigDAO;
 import dao.PermissionDAO;
-import dao.RoleDAO;
 import dao.OvertimeDAO;
 import dal.DBContext;
 import dto.EmployeeDetailDTO;
@@ -34,9 +33,15 @@ import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import model.Payroll;
+import model.PayrollAllowanceType;
 import model.PayrollDeductionRule;
 import model.PayrollTaxBracket;
 import model.User;
+import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.CellStyle;
+import org.apache.poi.ss.usermodel.FillPatternType;
+import org.apache.poi.ss.usermodel.Font;
+import org.apache.poi.ss.usermodel.IndexedColors;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
@@ -46,9 +51,9 @@ public class PayrollService {
 
     public static final int STATUS_PENDING_APPROVAL = 0;
     public static final int STATUS_APPROVED = 1;
+    public static final int STATUS_FINALIZED = 2;
 
     public static final String PERMISSION_VIEW_ALL_SALARY = "VIEW_ALL_SALARY";
-    public static final String PERMISSION_VIEW_OWN_SALARY = "VIEW_OWN_SALARY";
     public static final String PERMISSION_APPROVE_PAYROLL = "APPROVE_PAYROLL";
     public static final String PERMISSION_EXPORT_PAYROLL = "EXPORT_PAYROLL";
 
@@ -60,7 +65,6 @@ public class PayrollService {
     private final PayrollConfigDAO payrollConfigDAO;
     private final EmployeeDAO employeeDAO;
     private final PermissionDAO permissionDAO;
-    private final RoleDAO roleDAO;
     private final OvertimeDAO overtimeDAO;
     private final AuditLogService auditLogService;
     private final AttendanceClosingService attendanceClosingService;
@@ -72,7 +76,6 @@ public class PayrollService {
         this.payrollConfigDAO = new PayrollConfigDAO();
         this.employeeDAO = new EmployeeDAO();
         this.permissionDAO = new PermissionDAO();
-        this.roleDAO = new RoleDAO();
         this.overtimeDAO = new OvertimeDAO();
         this.auditLogService = new AuditLogService();
         this.attendanceClosingService = new AttendanceClosingService();
@@ -81,7 +84,7 @@ public class PayrollService {
 
     // Permissions
     public boolean canViewOwnSalary(User user) {
-        return user != null && getPermissions(user).contains(PERMISSION_VIEW_OWN_SALARY);
+        return user != null;
     }
 
     public boolean canViewAllSalary(User user) {
@@ -109,7 +112,12 @@ public class PayrollService {
         if (me == null) {
             return null;
         }
-        return getSavedPayrollPreviewForEmployee(me.getEmployeeId(), year, month);
+        PayrollPreviewDTO preview = getSavedPayrollPreviewForEmployee(me.getEmployeeId(), year, month);
+        if (preview == null || preview.getPayroll() == null
+                || preview.getPayroll().getStatus() == STATUS_PENDING_APPROVAL) {
+            return null;
+        }
+        return preview;
     }
 
     public List<PayrollPreviewDTO> getAllPayrollForHr(User user, int year, int month, Integer departmentId) {
@@ -163,7 +171,8 @@ public class PayrollService {
         }
         EmployeeDetailDTO employee = employeeDAO.getEmployeeByUserId(user.getUserId());
         PayrollPreviewDTO preview = payrollDAO.getPayrollPreviewById(payrollId);
-        if (employee == null || preview == null || preview.getEmployeeId() != employee.getEmployeeId()) {
+        if (employee == null || preview == null || preview.getEmployeeId() != employee.getEmployeeId()
+                || preview.getPayroll() == null || preview.getPayroll().getStatus() == STATUS_PENDING_APPROVAL) {
             return null;
         }
         enrichSavedPayrollPreview(preview);
@@ -189,6 +198,12 @@ public class PayrollService {
         return approvedCount;
     }
 
+    public boolean isPeriodFinalized(int year, int month) {
+        Date start = toPeriodStart(year, month);
+        Date end = toPeriodEnd(year, month);
+        return payrollDAO.countFinalizedForPeriod(start, end) > 0;
+    }
+
     public int countPendingApprovalForPeriod(User user, int year, int month, Integer departmentId) {
         if (!canApprovePayroll(user)) {
             return 0;
@@ -198,7 +213,47 @@ public class PayrollService {
         return payrollDAO.countPendingApproval(start, end, departmentId, null);
     }
 
-    // Xuất bảng lương
+    // Duyệt chốt cuối (Business Admin) — chuyển status 1 (HR đã duyệt) -> 2 (đã chốt, khoá cứng)
+    public int finalizePayrollForPeriod(User user, int year, int month, Integer departmentId) {
+        Date start = toPeriodStart(year, month);
+        Date end = toPeriodEnd(year, month);
+
+        int finalizedCount = payrollDAO.finalizeApprovedPayroll(start, end, departmentId,
+                user != null ? user.getUserId() : null);
+
+        auditPayroll(user, "FINALIZE_PAYROLL", null, "status=1",
+                "status=2; approvedBy=" + (user != null ? user.getUserId() : null)
+                + "; period=" + String.format("%04d-%02d", year, month)
+                + "; departmentId=" + departmentId
+                + "; finalizedCount=" + finalizedCount, "SUCCESS");
+        return finalizedCount;
+    }
+
+    public int countAwaitingFinalizationForPeriod(int year, int month, Integer departmentId) {
+        Date start = toPeriodStart(year, month);
+        Date end = toPeriodEnd(year, month);
+        return payrollDAO.countAwaitingFinalization(start, end, departmentId);
+    }
+
+    // Hạn chốt tự động: kỳ lương phải được chốt (status=2) trước ngày 10 của tháng kế tiếp,
+    // nếu không thì tự động chốt (bỏ qua cả 2 cấp duyệt) để nhân viên luôn nhận lương đúng hạn.
+    public int autoFinalizeOverduePeriods() {
+        java.time.LocalDate today = java.time.LocalDate.now();
+        YearMonth cutoffPeriod = today.getDayOfMonth() > 10
+                ? YearMonth.from(today).minusMonths(1)
+                : YearMonth.from(today).minusMonths(2);
+        Date cutoffPeriodStart = Date.valueOf(cutoffPeriod.atDay(1));
+        int finalizedCount = payrollDAO.autoFinalizeOverdue(cutoffPeriodStart);
+        if (finalizedCount > 0) {
+            LOGGER.log(Level.INFO, "Auto-finalized {0} overdue payroll rows (cutoff period start <= {1})",
+                    new Object[]{finalizedCount, cutoffPeriodStart});
+        }
+        return finalizedCount;
+    }
+
+    // Xuất bảng lương — nội dung đồng bộ với bảng lương hiển thị trên giao diện
+    // (danh sách + chi tiết): gồm cả trạng thái duyệt/chốt dạng văn bản, tổng khấu
+    // trừ, bảo hiểm doanh nghiệp đóng, và các dòng nhân sự chưa đủ điều kiện tính lương.
     public void exportPayrollWorkbook(User user, int year, int month, Integer departmentId, OutputStream out)
             throws IOException {
         boolean allowed = canExportPayroll(user);
@@ -207,36 +262,54 @@ public class PayrollService {
                 : new ArrayList<>();
         int exportedRows = 0;
         try (Workbook workbook = new XSSFWorkbook()) {
-            Sheet sheet = workbook.createSheet("Bảng lương " + month + "-" + year);
+            Sheet sheet = workbook.createSheet("Bang luong " + String.format("%02d-%04d", month, year));
+            CellStyle headerStyle = createPayrollHeaderStyle(workbook);
+            CellStyle moneyStyle = createPayrollMoneyStyle(workbook);
+
             String[] headers = payrollHeaders();
             Row header = sheet.createRow(0);
             for (int i = 0; i < headers.length; i++) {
-                header.createCell(i).setCellValue(headers[i]);
+                Cell cell = header.createCell(i);
+                cell.setCellValue(headers[i]);
+                cell.setCellStyle(headerStyle);
             }
+            sheet.createFreezePane(0, 1);
+
+            String periodLabel = "Tháng " + month + "/" + year;
             int rowIndex = 1;
+            int stt = 1;
             for (PayrollPreviewDTO preview : payrolls) {
+                Row row = sheet.createRow(rowIndex++);
+                row.createCell(0).setCellValue(stt++);
+                row.createCell(1).setCellValue(nullToEmpty(preview.getEmployeeCode()));
+                row.createCell(2).setCellValue(nullToEmpty(preview.getFullName()));
+                row.createCell(3).setCellValue(nullToEmpty(preview.getDepartmentName()));
+                row.createCell(4).setCellValue(nullToEmpty(preview.getPositionName()));
+                row.createCell(5).setCellValue(periodLabel);
+
                 if (preview.isGenerationBlocked() || preview.getPayroll() == null) {
+                    row.createCell(20).setCellValue("Chưa đủ thông tin");
+                    row.createCell(21).setCellValue(nullToEmpty(preview.getGenerationError()));
                     continue;
                 }
+
                 Payroll p = preview.getPayroll();
-                Row row = sheet.createRow(rowIndex++);
-                row.createCell(0).setCellValue(preview.getEmployeeCode());
-                row.createCell(1).setCellValue(preview.getFullName());
-                row.createCell(2).setCellValue(preview.getDepartmentName());
-                row.createCell(3).setCellValue(preview.getPositionName());
-                row.createCell(4).setCellValue(p.getWorkingDays());
-                setNumeric(row, 5, p.getHoursWorked());
-                setNumeric(row, 6, p.getBaseSalary());
-                setNumeric(row, 7, p.getAllowance());
-                setNumeric(row, 8, p.getBonus());
-                setNumeric(row, 9, p.getOvertimePay());
-                setNumeric(row, 10, p.getUnpaidDeduction());
-                setNumeric(row, 11, p.getGrossSalary());
-                setNumeric(row, 12, p.getInsuranceDeduction());
-                setNumeric(row, 13, p.getPersonalIncomeTax());
-                setNumeric(row, 14, p.getNetSalary());
-                row.createCell(15).setCellValue(p.getStatus());
-                row.createCell(16).setCellValue(p.getNote() == null ? "" : p.getNote());
+                row.createCell(6).setCellValue(preview.getStandardWorkingDays());
+                row.createCell(7).setCellValue(p.getWorkingDays());
+                setNumeric(row, 8, p.getHoursWorked(), moneyStyle);
+                setNumeric(row, 9, p.getBaseSalary(), moneyStyle);
+                setNumeric(row, 10, p.getAllowance(), moneyStyle);
+                setNumeric(row, 11, p.getBonus(), moneyStyle);
+                setNumeric(row, 12, p.getOvertimePay(), moneyStyle);
+                setNumeric(row, 13, p.getGrossSalary(), moneyStyle);
+                setNumeric(row, 14, p.getUnpaidDeduction(), moneyStyle);
+                setNumeric(row, 15, p.getInsuranceDeduction(), moneyStyle);
+                setNumeric(row, 16, p.getPersonalIncomeTax(), moneyStyle);
+                setNumeric(row, 17, preview.getTotalDeduction(), moneyStyle);
+                setNumeric(row, 18, p.getNetSalary(), moneyStyle);
+                setNumeric(row, 19, p.getEmployerContribution(), moneyStyle);
+                row.createCell(20).setCellValue(payrollStatusText(p.getStatus()));
+                row.createCell(21).setCellValue("");
                 exportedRows++;
             }
             for (int i = 0; i < headers.length; i++) {
@@ -248,6 +321,37 @@ public class PayrollService {
                 "period=" + String.format("%04d-%02d", year, month)
                 + "; departmentId=" + departmentId
                 + "; rows=" + exportedRows, allowed ? "SUCCESS" : "DENIED");
+    }
+
+    private String payrollStatusText(int status) {
+        switch (status) {
+            case STATUS_FINALIZED:
+                return "Đã chốt";
+            case STATUS_APPROVED:
+                return "HR đã duyệt - chờ chốt";
+            default:
+                return "Chờ duyệt";
+        }
+    }
+
+    private String nullToEmpty(String value) {
+        return value == null ? "" : value;
+    }
+
+    private CellStyle createPayrollHeaderStyle(Workbook workbook) {
+        Font font = workbook.createFont();
+        font.setBold(true);
+        CellStyle style = workbook.createCellStyle();
+        style.setFont(font);
+        style.setFillForegroundColor(IndexedColors.GREY_25_PERCENT.getIndex());
+        style.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+        return style;
+    }
+
+    private CellStyle createPayrollMoneyStyle(Workbook workbook) {
+        CellStyle style = workbook.createCellStyle();
+        style.setDataFormat(workbook.createDataFormat().getFormat("#,##0"));
+        return style;
     }
 
     // Tạo bảng lương
@@ -288,6 +392,12 @@ public class PayrollService {
     }
 
     public int saveGeneratedPayrollForPeriod(int year, int month, Integer departmentId) {
+        // Chặn cứng: kỳ lương đã được Business Admin chốt (toàn công ty) thì không được tạo/tính lại nữa.
+        if (isPeriodFinalized(year, month)) {
+            LOGGER.log(Level.WARNING, "Refuse to generate payroll: period {0}-{1} is already finalized.",
+                    new Object[]{year, month});
+            return 0;
+        }
         // Chặn cứng: chỉ lưu bảng lương khi bảng chấm công đã được Quản trị doanh nghiệp chốt (LOCKED).
         boolean locked = departmentId == null
                 ? attendanceClosingService.isPeriodLocked(year, month)
@@ -309,7 +419,7 @@ public class PayrollService {
     private int saveGeneratedPayrollIfEditable(Payroll payroll) {
         Payroll existing = payrollDAO.getPayrollByEmployeeAndPeriod(
                 payroll.getEmployeeId(), payroll.getPeriodStart(), payroll.getPeriodEnd());
-        if (existing != null && existing.getStatus() != STATUS_PENDING_APPROVAL) {
+        if (existing != null && existing.getStatus() == STATUS_FINALIZED) {
             return existing.getPayrollId();
         }
         return payrollDAO.saveOrUpdatePayroll(payroll);
@@ -356,11 +466,16 @@ public class PayrollService {
 
         PayrollOvertimeSummaryDTO overtime = overtimeDAO.getPayrollOvertimeSummary(conn, employee.employeeId,
                 year, month, dailyRate, config.workingHoursPerDay, config.overtimeBlockMinutes,
-                config.overtimeWorkdayMultiplier, config.overtimeWeekendMultiplier);
+                config.overtimeWorkdayMultiplier);
 
         int unpaidWorkingDays = Math.max(0, standardWorkingDays - attendance.getPaidWorkingDays());
         attendance.setUnauthorizedAbsentDays(unpaidWorkingDays);
-        boolean insuranceCalculated = unpaidWorkingDays < config.insuranceNotWorkedDaysThreshold;
+        // Ngưỡng cấu hình không tự đổi trong DB, nhưng khi tính lương của một tháng cụ thể
+        // thì không được vượt quá số ngày thực có của chính tháng đó (vd cấu hình 31 từ
+        // tháng có 31 ngày, sang tháng 2 chỉ 28/29 ngày thì hiệu lực tối đa là 28/29).
+        int effectiveInsuranceThreshold = Math.min(config.insuranceNotWorkedDaysThreshold,
+                java.time.YearMonth.of(year, month).lengthOfMonth());
+        boolean insuranceCalculated = unpaidWorkingDays < effectiveInsuranceThreshold;
         BigDecimal baseSalary = employee.contractSalary;
         BigDecimal attendanceBonus = attendance.getLateMinutes() == 0
                 && unpaidWorkingDays == 0
@@ -408,6 +523,15 @@ public class PayrollService {
             return buildGenerationErrorPreview(employee, "Dữ liệu chưa thể tạo ra. Cần kiểm tra lại dữ liệu nguồn...");
         }
 
+        BigDecimal insuranceSalaryBaseValue = insuranceCalculated
+                ? insuranceSalaryBase(employee.contractSalary, config.insuranceSalaryCap, config.insuranceApplicableAllowance)
+                : ZERO;
+        BigDecimal insuranceOnlyDeduction = calculateInsuranceOnlyEmployeeDeduction(
+                employee.contractSalary, grossSalary, taxableIncome, config, insuranceCalculated);
+        BigDecimal postInsuranceIncome = grossSalary.subtract(insuranceOnlyDeduction);
+        BigDecimal employerContribution = calculateEmployerContributionTotal(
+                employee.contractSalary, grossSalary, taxableIncome, config, employee.unionMember, insuranceCalculated);
+
         Payroll payroll = new Payroll();
         payroll.setPeriodStart(periodStart);
         payroll.setPeriodEnd(periodEnd);
@@ -425,6 +549,10 @@ public class PayrollService {
         payroll.setInsuranceDeduction(scale(configuredDeductions));
         payroll.setPersonalIncomeTax(scale(personalIncomeTax));
         payroll.setNetSalary(scale(netSalary));
+        payroll.setInsuranceSalaryBase(scale(insuranceSalaryBaseValue));
+        payroll.setPostInsuranceIncome(scale(postInsuranceIncome));
+        payroll.setTaxableIncome(scale(taxableIncome));
+        payroll.setEmployerContribution(scale(employerContribution));
         payroll.setStatus(STATUS_PENDING_APPROVAL);
         payroll.setNote(buildPayrollNote(attendance, overtime, employee.dependentCount, familyAllowance,
                 employee.unionMember, insuranceCalculated));
@@ -436,6 +564,9 @@ public class PayrollService {
         preview.setDepartmentName(employee.departmentName);
         preview.setPositionName(employee.positionName);
         preview.setContractSalary(employee.contractSalary);
+        preview.setInsuranceApplicableAllowance(scale(config.insuranceApplicableAllowance));
+        preview.setInsuranceSalaryCap(scale(config.insuranceSalaryCap));
+        preview.setPersonalIncomeTaxFormula(buildPersonalIncomeTaxFormula(taxableIncome, config.taxBrackets));
         preview.setDailyRate(scale(dailyRate));
         preview.setHourlyRate(scale(divideMoney(dailyRate, config.workingHoursPerDay)));
         preview.setMinuteRate(scale(minuteRate));
@@ -452,8 +583,11 @@ public class PayrollService {
         preview.setOvertimeBlockMinutes(config.overtimeBlockMinutes);
         preview.setOvertimeBlockAmount(scale(overtimeWorkdayBlockAmount(
                 divideMoney(dailyRate, config.workingHoursPerDay), config)));
+        preview.setOvertimeBaseBlockAmount(scale(overtimeBaseBlockAmount(
+                divideMoney(dailyRate, config.workingHoursPerDay), config)));
         preview.setOvertimeWorkdayMultiplier(scale(config.overtimeWorkdayMultiplier));
         preview.setAttendanceBonus(scale(attendanceBonus));
+        preview.setAttendanceBonusRatePercent(percentValue(config.attendanceBonusRate));
         preview.setLateDeduction(scale(attendance.getLateDeduction()));
         preview.setLateDeductionBlockAmount(scale(blockAmount(attendance.getLateDeduction(), attendance.getLateDeductionBlocks())));
         preview.setUnauthorizedAbsentDeduction(scale(dailyRate.multiply(new BigDecimal(unpaidWorkingDays))));
@@ -461,7 +595,7 @@ public class PayrollService {
         preview.setDependentCount(employee.dependentCount);
         preview.setUnionMember(employee.unionMember);
         preview.setInsuranceCalculated(insuranceCalculated);
-        preview.setInsuranceNotWorkedDaysThreshold(config.insuranceNotWorkedDaysThreshold);
+        preview.setInsuranceNotWorkedDaysThreshold(effectiveInsuranceThreshold);
         preview.setFamilyAllowance(scale(familyAllowance));
         preview.setDependentAllowance(scale(config.dependentAllowance));
         preview.setTaxableIncome(scale(taxableIncome));
@@ -606,19 +740,27 @@ public class PayrollService {
             if (!appliesToEmployee(rule, preview.isUnionMember(), preview.isInsuranceCalculated())) {
                 continue;
             }
+            BigDecimal ruleBase = deductionBase(rule, preview.getContractSalary(), payroll.getGrossSalary(), config);
             BigDecimal amount = calculateDeductionRuleAmount(rule,
-                    deductionBase(rule, preview.getContractSalary(), payroll.getGrossSalary(), config),
-                    payroll.getGrossSalary(), preview.getTaxableIncome());
+                    ruleBase, payroll.getGrossSalary(), preview.getTaxableIncome());
             String ruleDisplayName = deductionRuleDisplayName(rule);
-            details.add(new PayrollDetailDTO(rule.getRuleCode(), ruleDisplayName,
-                    PayrollDetailDTO.TYPE_DEDUCTION, scale(amount), buildDeductionBaseNote(rule, config)));
+            PayrollDetailDTO deductionDetail = new PayrollDetailDTO(rule.getRuleCode(), ruleDisplayName,
+                    PayrollDetailDTO.TYPE_DEDUCTION, scale(amount), buildDeductionBaseNote(rule, config));
+            deductionDetail.setBase(scale(ruleBase));
+            deductionDetail.setEmployeeRatePercent(percentValue(rule.getEmployeeRate()));
+            deductionDetail.setEmployerRatePercent(percentValue(rule.getEmployerRate()));
+            deductionDetail.setTotalRatePercent(percentValue(rule.getRate()));
             BigDecimal employerAmount = calculateEmployerContributionAmount(rule,
-                    deductionBase(rule, preview.getContractSalary(), payroll.getGrossSalary(), config),
-                    payroll.getGrossSalary(), preview.getTaxableIncome());
+                    ruleBase, payroll.getGrossSalary(), preview.getTaxableIncome());
+            deductionDetail.setEmployerAmount(scale(employerAmount));
+            details.add(deductionDetail);
             if (employerAmount.signum() > 0) {
-                details.add(new PayrollDetailDTO(rule.getRuleCode() + "_EMPLOYER",
+                PayrollDetailDTO employerDetail = new PayrollDetailDTO(rule.getRuleCode() + "_EMPLOYER",
                         "Doanh nghiệp đóng - " + ruleDisplayName, PayrollDetailDTO.TYPE_COMPANY_COST,
-                        scale(employerAmount), buildEmployerBaseNote(rule, config)));
+                        scale(employerAmount), buildEmployerBaseNote(rule, config));
+                employerDetail.setBase(scale(ruleBase));
+                employerDetail.setEmployerRatePercent(percentValue(rule.getEmployerRate()));
+                details.add(employerDetail);
             }
         }
         details.add(new PayrollDetailDTO("UNPAID_DEDUCTION", "Khấu trừ ngày không làm", PayrollDetailDTO.TYPE_DEDUCTION,
@@ -651,7 +793,7 @@ public class PayrollService {
                 moneyOrZero(payroll.getOvertimePay()), null));
         details.add(new PayrollDetailDTO("BONUS", "Thưởng", PayrollDetailDTO.TYPE_EARNING,
                 moneyOrZero(payroll.getBonus()), null));
-        details.add(new PayrollDetailDTO("CONFIGURED_DEDUCTIONS", "Bảo hiểm xã hội / y tế / thất nghiệp", PayrollDetailDTO.TYPE_DEDUCTION,
+        details.add(new PayrollDetailDTO("CONFIGURED_DEDUCTIONS", "Bảo hiểm / phí công đoàn", PayrollDetailDTO.TYPE_DEDUCTION,
                 moneyOrZero(payroll.getInsuranceDeduction()), null));
         details.add(new PayrollDetailDTO("UNPAID_DEDUCTION", "Khấu trừ ngày không làm", PayrollDetailDTO.TYPE_DEDUCTION,
                 moneyOrZero(payroll.getUnpaidDeduction()), null));
@@ -744,20 +886,28 @@ public class PayrollService {
         preview.setOvertimeBlocks(overtimeBlocks);
         preview.setOvertimeBlockMinutes(config.overtimeBlockMinutes);
         preview.setOvertimeBlockAmount(scale(overtimeBlockAmount));
+        preview.setOvertimeBaseBlockAmount(scale(overtimeBaseBlockAmount(hourlyRate, config)));
         preview.setOvertimeWorkdayMultiplier(scale(config.overtimeWorkdayMultiplier));
         preview.setAttendanceBonus(moneyOrZero(payroll.getBonus()));
+        preview.setAttendanceBonusRatePercent(percentValue(config.attendanceBonusRate));
         preview.setLateDeduction(scale(lateDeduction));
         preview.setLateDeductionBlockAmount(scale(blockAmount(lateDeduction, lateDeductionBlocks)));
         preview.setUnauthorizedAbsentDeduction(scale(absentUnpaidDeduction));
         preview.setPersonalAllowance(scale(config.personalAllowance));
         preview.setDependentCount(dependentCount);
+        int effectiveInsuranceThreshold = Math.min(config.insuranceNotWorkedDaysThreshold,
+                java.time.YearMonth.of(payroll.getPeriodStart().toLocalDate().getYear(),
+                        payroll.getPeriodStart().toLocalDate().getMonthValue()).lengthOfMonth());
         preview.setInsuranceCalculated(hasNoteKey(payroll.getNote(), "insuranceCalculated")
                 ? extractIntNoteValue(payroll.getNote(), "insuranceCalculated") == 1
-                : notWorkedDays < config.insuranceNotWorkedDaysThreshold);
-        preview.setInsuranceNotWorkedDaysThreshold(config.insuranceNotWorkedDaysThreshold);
+                : notWorkedDays < effectiveInsuranceThreshold);
+        preview.setInsuranceNotWorkedDaysThreshold(effectiveInsuranceThreshold);
         preview.setFamilyAllowance(scale(familyAllowance));
         preview.setDependentAllowance(scale(config.dependentAllowance));
         preview.setTaxableIncome(scale(taxableIncome));
+        preview.setInsuranceApplicableAllowance(scale(config.insuranceApplicableAllowance));
+        preview.setInsuranceSalaryCap(scale(config.insuranceSalaryCap));
+        preview.setPersonalIncomeTaxFormula(buildPersonalIncomeTaxFormula(taxableIncome, config.taxBrackets));
         preview.setTotalDeduction(scale(moneyOrZero(payroll.getUnpaidDeduction())
                 .add(moneyOrZero(payroll.getInsuranceDeduction()))
                 .add(moneyOrZero(payroll.getPersonalIncomeTax()))));
@@ -808,6 +958,29 @@ public class PayrollService {
             }
         }
         return scale(tax);
+    }
+
+    private String buildPersonalIncomeTaxFormula(BigDecimal taxableIncome, List<PayrollTaxBracket> brackets) {
+        if (brackets == null || brackets.isEmpty() || moneyOrZero(taxableIncome).signum() <= 0) {
+            return "Thu nhập tính thuế không đủ để chịu thuế";
+        }
+        StringBuilder sb = new StringBuilder();
+        for (PayrollTaxBracket bracket : brackets) {
+            BigDecimal min = moneyOrZero(bracket.getMinIncome());
+            BigDecimal max = bracket.getMaxIncome();
+            if (taxableIncome.compareTo(min) <= 0) {
+                continue;
+            }
+            BigDecimal upper = max == null ? taxableIncome : taxableIncome.min(max);
+            BigDecimal amount = upper.subtract(min);
+            if (amount.signum() > 0) {
+                if (sb.length() > 0) {
+                    sb.append(" + ");
+                }
+                sb.append(formatMoney(amount)).append(" x ").append(percent(bracket.getTaxRate()));
+            }
+        }
+        return sb.length() > 0 ? sb.toString() : "Thu nhập tính thuế không đủ để chịu thuế";
     }
 
     private List<EmployeePayrollBase> getActiveEmployeesWithContracts(Connection conn, int year, int month,
@@ -894,10 +1067,12 @@ public class PayrollService {
 
     private String[] payrollHeaders() {
         return new String[]{
-            "Mã nhân viên", "Họ tên", "Phòng ban", "Chức vụ",
-            "Ngày công", "Giờ làm", "Lương cơ bản", "Phụ cấp", "Thưởng",
-            "Tiền tăng ca", "Khấu trừ ngày không làm", "Tổng thu nhập", "Bảo hiểm",
-            "Thuế thu nhập cá nhân", "Lương thực nhận", "Trạng thái", "Ghi chú"
+            "STT", "Mã nhân viên", "Họ tên", "Phòng ban", "Chức vụ", "Kỳ lương",
+            "Ngày công chuẩn", "Ngày công thực tế", "Giờ làm",
+            "Lương cơ bản", "Phụ cấp", "Thưởng chuyên cần", "Tiền tăng ca", "Tổng thu nhập",
+            "Khấu trừ ngày không làm", "Bảo hiểm/phí công đoàn (NV đóng)", "Thuế thu nhập cá nhân",
+            "Tổng khấu trừ", "Lương thực nhận", "Bảo hiểm/phí công đoàn (DN đóng)",
+            "Trạng thái", "Ghi chú"
         };
     }
 
@@ -927,7 +1102,17 @@ public class PayrollService {
         PayrollRuntimeConfig config = new PayrollRuntimeConfig();
         config.personalAllowance = requiredNonNegativeSetting(settings, "PERSONAL_DEDUCTION");
         config.dependentAllowance = requiredNonNegativeSetting(settings, "DEPENDENT_ALLOWANCE");
-        config.allowance = requiredNonNegativeSetting(settings, "ALLOWANCE");
+        BigDecimal totalAllowance = ZERO;
+        BigDecimal insuranceApplicableAllowance = ZERO;
+        for (PayrollAllowanceType allowanceType : payrollConfigDAO.getAllowanceTypes(true)) {
+            BigDecimal amount = moneyOrZero(allowanceType.getAmount());
+            totalAllowance = totalAllowance.add(amount);
+            if (allowanceType.isInsuranceApplicable()) {
+                insuranceApplicableAllowance = insuranceApplicableAllowance.add(amount);
+            }
+        }
+        config.allowance = totalAllowance;
+        config.insuranceApplicableAllowance = insuranceApplicableAllowance;
         config.insuranceSalaryCap = requiredPositiveSetting(settings, "INSURANCE_SALARY_FLOOR");
         config.insuranceNotWorkedDaysThreshold = requiredPositiveSetting(settings, "INSURANCE_NOT_WORKED_DAYS_THRESHOLD").intValue();
         config.lateDeductionBlockMinutes = requiredPositiveSetting(settings, "LATE_DEDUCTION_BLOCK_MINUTES").intValue();
@@ -939,8 +1124,6 @@ public class PayrollService {
         config.workingHoursPerDay = calculateWorkingHoursPerDay(workStartMinutes, workEndMinutes, workBreakMinutes);
         config.overtimeBlockMinutes = requiredPositiveSetting(settings, "OVERTIME_BLOCK_MINUTES").intValue();
         config.overtimeWorkdayMultiplier = requiredPositiveSetting(settings, "OVERTIME_WORKDAY_MULTIPLIER");
-//        config.overtimeWeekendMultiplier = requiredPositiveSetting(settings, "OVERTIME_WEEKEND_MULTIPLIER");
-//        config.overtimeHolidayMultiplier = requiredPositiveSetting(settings, "OVERTIME_HOLIDAY_MULTIPLIER");
 
         config.deductionRules = payrollConfigDAO.getDeductionRules(true);
         config.taxBrackets = payrollConfigDAO.getTaxBrackets(true);
@@ -1029,6 +1212,38 @@ public class PayrollService {
         return total;
     }
 
+    private BigDecimal calculateInsuranceOnlyEmployeeDeduction(BigDecimal contractSalary, BigDecimal grossSalary,
+            BigDecimal taxableIncome, PayrollRuntimeConfig config, boolean insuranceCalculated) {
+        BigDecimal total = ZERO;
+        if (config == null || config.deductionRules == null || !insuranceCalculated) {
+            return total;
+        }
+        for (PayrollDeductionRule rule : config.deductionRules) {
+            if (!isInsuranceRule(rule)) {
+                continue;
+            }
+            total = total.add(calculateDeductionRuleAmount(rule,
+                    deductionBase(rule, contractSalary, grossSalary, config), grossSalary, taxableIncome));
+        }
+        return total;
+    }
+
+    private BigDecimal calculateEmployerContributionTotal(BigDecimal contractSalary, BigDecimal grossSalary,
+            BigDecimal taxableIncome, PayrollRuntimeConfig config, boolean unionMember, boolean insuranceCalculated) {
+        BigDecimal total = ZERO;
+        if (config == null || config.deductionRules == null) {
+            return total;
+        }
+        for (PayrollDeductionRule rule : config.deductionRules) {
+            if (!appliesToEmployee(rule, unionMember, insuranceCalculated)) {
+                continue;
+            }
+            total = total.add(calculateEmployerContributionAmount(rule,
+                    deductionBase(rule, contractSalary, grossSalary, config), grossSalary, taxableIncome));
+        }
+        return total;
+    }
+
     private boolean appliesToEmployee(PayrollDeductionRule rule, boolean unionMember, boolean insuranceCalculated) {
         if (rule == null) {
             return true;
@@ -1059,20 +1274,24 @@ public class PayrollService {
         return moneyOrZero(contractSalary).multiply(moneyOrZero(rule.getEmployerRate()));
     }
 
-    private BigDecimal insuranceSalaryBase(BigDecimal contractSalary, BigDecimal cap) {
-        BigDecimal salary = moneyOrZero(contractSalary);
+    private BigDecimal insuranceSalaryBase(BigDecimal contractSalary, BigDecimal cap,
+            BigDecimal insuranceApplicableAllowance) {
+        BigDecimal salary = moneyOrZero(contractSalary).add(moneyOrZero(insuranceApplicableAllowance));
         BigDecimal insuranceCap = moneyOrZero(cap);
         return insuranceCap.signum() > 0 && salary.compareTo(insuranceCap) > 0 ? insuranceCap : salary;
     }
 
     private BigDecimal deductionBase(PayrollDeductionRule rule, BigDecimal contractSalary,
             BigDecimal grossSalary, PayrollRuntimeConfig config) {
-        return insuranceSalaryBase(contractSalary, config.insuranceSalaryCap);
+        return insuranceSalaryBase(contractSalary, config.insuranceSalaryCap, config.insuranceApplicableAllowance);
     }
 
     private String baseNote(PayrollDeductionRule rule, PayrollRuntimeConfig config) {
-        return "nền tính: lương làm căn cứ đóng bảo hiểm, mức trần " + moneyDisplay(config.insuranceSalaryCap) + ".";
-
+        String note = "nền tính: lương làm căn cứ đóng bảo hiểm, mức trần " + moneyDisplay(config.insuranceSalaryCap) + ".";
+        if (config.insuranceApplicableAllowance != null && config.insuranceApplicableAllowance.signum() > 0) {
+            note += " (đã gồm phụ cấp tính BHXH " + moneyDisplay(config.insuranceApplicableAllowance) + ")";
+        }
+        return note;
     }
 
     private String buildDeductionBaseNote(PayrollDeductionRule rule, PayrollRuntimeConfig config) {
@@ -1110,16 +1329,17 @@ public class PayrollService {
         return moneyOrZero(rate).multiply(new BigDecimal("100")).stripTrailingZeros().toPlainString() + "%";
     }
 
-    private String moneyDisplay(BigDecimal value) {
-        return new DecimalFormat("#,##0.##", DecimalFormatSymbols.getInstance(Locale.US)).format(moneyOrZero(value));
+    private BigDecimal percentValue(BigDecimal rate) {
+        return moneyOrZero(rate).multiply(new BigDecimal("100"));
     }
 
-    private BigDecimal lateDeductionBlockAmount(PayrollPreviewDTO preview) {
-        if (preview == null || preview.getLateDeductionBlocks() <= 0) {
-            return ZERO;
-        }
-        return moneyOrZero(preview.getLateDeduction())
-                .divide(new BigDecimal(preview.getLateDeductionBlocks()), 6, RoundingMode.HALF_UP);
+    private String formatMoney(BigDecimal value) {
+        BigDecimal rounded = moneyOrZero(value).setScale(0, RoundingMode.HALF_UP);
+        return new java.text.DecimalFormat("#,##0").format(rounded);
+    }
+
+    private String moneyDisplay(BigDecimal value) {
+        return new DecimalFormat("#,##0.##", DecimalFormatSymbols.getInstance(Locale.US)).format(moneyOrZero(value));
     }
 
     private BigDecimal blockAmount(BigDecimal total, int blocks) {
@@ -1133,11 +1353,17 @@ public class PayrollService {
         if (config == null || config.overtimeBlockMinutes <= 0) {
             return ZERO;
         }
+        return overtimeBaseBlockAmount(hourlyRate, config)
+                .multiply(moneyOrZero(config.overtimeWorkdayMultiplier));
+    }
+
+    private BigDecimal overtimeBaseBlockAmount(BigDecimal hourlyRate, PayrollRuntimeConfig config) {
+        if (config == null || config.overtimeBlockMinutes <= 0) {
+            return ZERO;
+        }
         BigDecimal blockHours = new BigDecimal(config.overtimeBlockMinutes)
                 .divide(MINUTES_PER_HOUR, 6, RoundingMode.HALF_UP);
-        return moneyOrZero(hourlyRate)
-                .multiply(blockHours)
-                .multiply(moneyOrZero(config.overtimeWorkdayMultiplier));
+        return moneyOrZero(hourlyRate).multiply(blockHours);
     }
 
     private String overtimeMultiplierText(PayrollPreviewDTO preview) {
@@ -1155,8 +1381,10 @@ public class PayrollService {
         return ((lateMinutes + blockMinutes - 1) / blockMinutes) * blockMinutes;
     }
 
-    private void setNumeric(Row row, int column, BigDecimal value) {
-        row.createCell(column).setCellValue(moneyOrZero(value).doubleValue());
+    private void setNumeric(Row row, int column, BigDecimal value, CellStyle style) {
+        Cell cell = row.createCell(column);
+        cell.setCellValue(moneyOrZero(value).doubleValue());
+        cell.setCellStyle(style);
     }
 
     private BigDecimal calculateFamilyAllowance(BigDecimal personalAllowance, int dependentCount, BigDecimal dependentAllowance) {
@@ -1223,11 +1451,6 @@ public class PayrollService {
         return permissionDAO.getPermissionCodeByUserId(user.getUserId());
     }
 
-    private boolean isHrStaff(User user) {
-        String role = roleDAO.getRoleByUserId(user.getUserId());
-        return role != null && role.contains("HR");
-    }
-
     // Inner classes
     private static class EmployeePayrollBase {
 
@@ -1251,6 +1474,7 @@ public class PayrollService {
         BigDecimal personalAllowance;
         BigDecimal dependentAllowance;
         BigDecimal allowance;
+        BigDecimal insuranceApplicableAllowance;
         BigDecimal insuranceSalaryCap;
         int insuranceNotWorkedDaysThreshold;
         LocalTime standardStartTime;
@@ -1258,7 +1482,6 @@ public class PayrollService {
         BigDecimal attendanceBonusRate;
         int overtimeBlockMinutes;
         BigDecimal overtimeWorkdayMultiplier;
-        BigDecimal overtimeWeekendMultiplier;
         List<PayrollDeductionRule> deductionRules = new ArrayList<>();
         List<PayrollTaxBracket> taxBrackets = new ArrayList<>();
     }

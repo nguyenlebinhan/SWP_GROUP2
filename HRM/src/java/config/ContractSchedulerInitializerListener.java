@@ -109,6 +109,8 @@ public class ContractSchedulerInitializerListener implements ServletContextListe
 
             processExpirationReminder(contractDAO);
 
+            new service.PayrollService().autoFinalizeOverduePeriods();
+
             LOGGER.log(Level.INFO, "=== Daily Contract Batch Job COMPLETED Successfully ===");
 
         } catch (Exception e) {

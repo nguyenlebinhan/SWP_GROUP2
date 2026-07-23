@@ -34,6 +34,7 @@
         .money-green { color:#16a34a; } .money-red { color:#dc2626; } .money-net { color:#111827; font-weight:800; }
         .status-badge { display:inline-flex; align-items:center; min-width:92px; justify-content:center; padding:5px 10px; border-radius:999px; font-size:12px; font-weight:700; }
         .status-paid { background:#dcfce7; color:#166534; }
+        .status-approved { background:#dbeafe; color:#1e40af; }
         .status-pending { background:#fef3c7; color:#92400e; }
         .empty-state { text-align:center; color:#6b7280; padding:42px 12px; }
         .table-footer { display:flex; justify-content:space-between; align-items:center; gap:12px; padding:15px 20px; border-top:1px solid #eef2f7; color:#6b7280; font-size:13px; }
@@ -70,13 +71,8 @@
             <c:set var="totalEmployees" value="${totalEmployees + 1}" />
             <c:set var="totalEmployeeInsurance" value="${totalEmployeeInsurance + row.payroll.insuranceDeduction}" />
             <c:set var="totalNetSalary" value="${totalNetSalary + row.payroll.netSalary}" />
-            <c:set var="totalCompanyCost" value="${totalCompanyCost + row.payroll.netSalary + row.payroll.insuranceDeduction + row.payroll.personalIncomeTax}" />
-            <c:forEach var="detail" items="${row.details}">
-                <c:if test="${detail.companyCost}">
-                    <c:set var="totalCompanyInsurance" value="${totalCompanyInsurance + detail.amount}" />
-                    <c:set var="totalCompanyCost" value="${totalCompanyCost + detail.amount}" />
-                </c:if>
-            </c:forEach>
+            <c:set var="totalCompanyInsurance" value="${totalCompanyInsurance + row.payroll.employerContribution}" />
+            <c:set var="totalCompanyCost" value="${totalCompanyCost + row.payroll.netSalary + row.payroll.insuranceDeduction + row.payroll.personalIncomeTax + row.payroll.employerContribution}" />
         </c:if>
     </c:forEach>
 
@@ -86,9 +82,9 @@
             Tháng lương: Tháng ${selectedMonth}/${selectedYear}
         </div>
         <div class="d-flex align-items-center gap-3 flex-wrap">
-            <%-- Badge chỉ-xem (Business Admin không thao tác) --%>
+            <%-- Badge chỉ-xem (Business Admin chỉ có quyền chốt cuối, không tạo/duyệt) --%>
             <span class="read-only-badge">
-                <i class="fa-solid fa-eye"></i> Chỉ xem
+                <i class="fa-solid fa-eye"></i> Chỉ xem &amp; chốt cuối
             </span>
             <%-- Nút xuất Excel — chỉ hiển thị khi bảng chấm công đã chốt --%>
             <c:if test="${canExportPayroll}">
@@ -96,6 +92,19 @@
                    href="${pageContext.request.contextPath}/v1/businessadmin/salary/export?month=${selectedMonth}&year=${selectedYear}<c:if test='${selectedDepartmentId != null}'>&departmentId=${selectedDepartmentId}</c:if>">
                     <i class="fa-solid fa-file-export"></i> Xuất Excel
                 </a>
+            </c:if>
+            <%-- Nút chốt bảng lương cuối cùng (Business Admin) --%>
+            <c:if test="${canFinalizePayroll && countAwaitingFinalization > 0}">
+                <form method="post"
+                      action="${pageContext.request.contextPath}/v1/businessadmin/salary/finalize"
+                      class="m-0">
+                    <input type="hidden" name="month" value="${selectedMonth}">
+                    <input type="hidden" name="year" value="${selectedYear}">
+                    <button type="submit" class="btn-blue border-0" style="background:#16a34a;"
+                            onclick="return confirm('Chốt sẽ áp dụng cho TOÀN CÔNG TY trong kỳ lương Tháng ${selectedMonth}/${selectedYear}, không chỉ riêng phòng ban đang lọc, và không thể sửa lại sau khi chốt. Xác nhận chốt?');">
+                        <i class="fa-solid fa-lock"></i> Chốt bảng lương (${countAwaitingFinalization})
+                    </button>
+                </form>
             </c:if>
         </div>
     </div>
@@ -266,8 +275,11 @@
                                             </td>
                                             <td>
                                                 <c:choose>
+                                                    <c:when test="${row.payroll.status == 2}">
+                                                        <span class="status-badge status-paid">Đã chốt</span>
+                                                    </c:when>
                                                     <c:when test="${row.payroll.status == 1}">
-                                                        <span class="status-badge status-paid">Nhân sự đã duyệt</span>
+                                                        <span class="status-badge status-approved">HR đã duyệt - chờ chốt</span>
                                                     </c:when>
                                                     <c:otherwise>
                                                         <span class="status-badge status-pending">Chờ duyệt</span>

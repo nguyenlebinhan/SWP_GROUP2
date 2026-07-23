@@ -1,6 +1,9 @@
 -- Seed test data for payroll, contracts, attendance, and overtime.
 -- Assumes DBInitializer already created tables and base seed users/employees/departments/positions/form types.
 -- MySQL Workbench safe update mode friendly: no table-wide DELETE/UPDATE.
+-- Payroll.status hiện là quy trình 3 cấp: 0 = HREmployee vừa tạo (chờ duyệt),
+-- 1 = HRManager đã duyệt (nhân viên xem được lương, vẫn tạo lại được),
+-- 2 = Business Admin đã chốt (khoá cứng, không sửa được nữa).
 
 SET @payroll_year = 2026;
 SET @payroll_month = 6;

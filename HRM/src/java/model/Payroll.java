@@ -22,6 +22,10 @@ public class Payroll {
     private BigDecimal insuranceDeduction;
     private BigDecimal personalIncomeTax;
     private BigDecimal netSalary;
+    private BigDecimal insuranceSalaryBase;
+    private BigDecimal postInsuranceIncome;
+    private BigDecimal taxableIncome;
+    private BigDecimal employerContribution;
     private String note;
     private int status;//0 va 1
     private Integer approvedBy;
@@ -168,6 +172,38 @@ public class Payroll {
         this.netSalary = netSalary;
     }
 
+    public BigDecimal getInsuranceSalaryBase() {
+        return insuranceSalaryBase;
+    }
+
+    public void setInsuranceSalaryBase(BigDecimal insuranceSalaryBase) {
+        this.insuranceSalaryBase = insuranceSalaryBase;
+    }
+
+    public BigDecimal getPostInsuranceIncome() {
+        return postInsuranceIncome;
+    }
+
+    public void setPostInsuranceIncome(BigDecimal postInsuranceIncome) {
+        this.postInsuranceIncome = postInsuranceIncome;
+    }
+
+    public BigDecimal getTaxableIncome() {
+        return taxableIncome;
+    }
+
+    public void setTaxableIncome(BigDecimal taxableIncome) {
+        this.taxableIncome = taxableIncome;
+    }
+
+    public BigDecimal getEmployerContribution() {
+        return employerContribution;
+    }
+
+    public void setEmployerContribution(BigDecimal employerContribution) {
+        this.employerContribution = employerContribution;
+    }
+
     public String getNote() {
         return note;
     }
@@ -216,21 +252,5 @@ public class Payroll {
         this.updatedAt = updatedAt;
     }
 
-    public String getStatusLabel() {
-        switch (status) {
-            case 0:
-                return "Pending employee confirmation";
-            case 1:
-                return "Pending HR approval";
-            case 2:
-                return "Employee reported wrong info";
-            case 3:
-                return "HR approved";
-            case 4:
-                return "HR rejected";
-            default:
-                return "Unknown";
-        }
-    }
 }
 

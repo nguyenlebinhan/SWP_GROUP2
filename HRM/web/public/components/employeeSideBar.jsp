@@ -142,7 +142,7 @@
         <c:if test="${sessionScope.userPermissions.contains('CONFIG_PAYROLL')}">
             <a href="${pageContext.request.contextPath}/v1/employee/payroll-config"
                class="${pageContext.request.servletPath == '/public/employee/salary/payroll_config.jsp' ? 'active' : ''}">
-                Cấu hình payroll
+                Cấu hình lương
             </a>
         </c:if>
     </c:if>

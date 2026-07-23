@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import model.PayrollAllowanceType;
 import model.PayrollConfigChangeRequest;
 import model.PayrollDeductionRule;
 import model.PayrollSetting;
@@ -90,6 +91,78 @@ public class PayrollConfigWorkflowService {
         return requestDAO.createRequest(request);
     }
 
+    public List<PayrollAllowanceType> getAllowanceTypes(boolean activeOnly) {
+        return payrollConfigDAO.getAllowanceTypes(activeOnly);
+    }
+
+    public int requestAllowanceSave(PayrollAllowanceType type, User requestedBy) {
+        PayrollConfigChangeRequest request = new PayrollConfigChangeRequest();
+        request.setRequestType(PayrollConfigChangeRequest.TYPE_ALLOWANCE_SAVE);
+        request.setActionLabel(type.getAllowanceId() > 0 ? "Cập nhật loại phụ cấp" : "Thêm loại phụ cấp");
+        request.setTargetId(type.getAllowanceId() > 0 ? type.getAllowanceId() : null);
+        request.setAllowanceCode(type.getAllowanceCode());
+        request.setAllowanceName(type.getAllowanceName());
+        request.setAllowanceAmount(type.getAmount());
+        request.setAllowanceInsuranceApplicable(type.isInsuranceApplicable());
+        request.setActive(type.isActive());
+        request.setOldValue(type.getAllowanceId() > 0 ? allowanceOldValue(type.getAllowanceId()) : "Thêm mới");
+        request.setNewValue(allowanceValue(type));
+        request.setRequestedBy(requestedBy.getUserId());
+        return requestDAO.createRequest(request);
+    }
+
+    public int requestAllowanceDelete(int allowanceId, User requestedBy) {
+        PayrollConfigChangeRequest request = new PayrollConfigChangeRequest();
+        request.setRequestType(PayrollConfigChangeRequest.TYPE_ALLOWANCE_DELETE);
+        request.setActionLabel("Xóa loại phụ cấp");
+        request.setTargetId(allowanceId);
+        request.setOldValue(allowanceOldValue(allowanceId));
+        request.setNewValue("Xóa loại phụ cấp allowanceId=" + allowanceId);
+        request.setRequestedBy(requestedBy.getUserId());
+        return requestDAO.createRequest(request);
+    }
+
+    public PayrollAllowanceType buildAllowanceType(String allowanceIdRaw, String code, String name,
+            String amountRaw, String insuranceApplicableRaw, String activeRaw) {
+        PayrollAllowanceType type = new PayrollAllowanceType();
+        Integer allowanceId = parseInt(allowanceIdRaw);
+        type.setAllowanceId(allowanceId == null ? 0 : allowanceId);
+        type.setAllowanceCode(trim(code).toUpperCase());
+        type.setAllowanceName(trim(name));
+        type.setAmount(parseDecimal(amountRaw));
+        type.setInsuranceApplicable(parseCheckbox(insuranceApplicableRaw));
+        type.setActive(parseCheckbox(activeRaw));
+        return type;
+    }
+
+    public String validateAllowanceType(PayrollAllowanceType type) {
+        if (type == null || isBlank(type.getAllowanceCode()) || isBlank(type.getAllowanceName())
+                || type.getAmount() == null) {
+            return "Dữ liệu loại phụ cấp không hợp lệ.";
+        }
+        if (type.getAmount().signum() < 0) {
+            return "Số tiền phụ cấp không được âm.";
+        }
+        return null;
+    }
+
+    private boolean parseCheckbox(String raw) {
+        return raw != null && ("true".equalsIgnoreCase(raw) || "1".equals(raw) || "on".equalsIgnoreCase(raw));
+    }
+
+    private String allowanceOldValue(int allowanceId) {
+        PayrollAllowanceType type = payrollConfigDAO.getAllowanceTypeById(allowanceId);
+        return type == null ? "Không tìm thấy loại phụ cấp hiện tại." : allowanceValue(type);
+    }
+
+    private String allowanceValue(PayrollAllowanceType type) {
+        return "mã=" + type.getAllowanceCode()
+                + "; tên=" + type.getAllowanceName()
+                + "; số tiền=" + numberDisplay(type.getAmount())
+                + "; tính BHXH=" + (type.isInsuranceApplicable() ? "Có" : "Không")
+                + "; trạng thái=" + (type.isActive() ? "Hoạt động" : "Ngừng");
+    }
+
     public PayrollSetting buildSetting(String key, String rawValue, String description) {
         PayrollSetting setting = new PayrollSetting();
         setting.setSettingKey(trim(key).toUpperCase());
@@ -110,9 +183,15 @@ public class PayrollConfigWorkflowService {
         if ("INSURANCE_SALARY_FLOOR".equals(key) && value.signum() <= 0) {
             return "Muc tran bao hiem phai lon hon 0.";
         }
-        if ("INSURANCE_NOT_WORKED_DAYS_THRESHOLD".equals(key)
-                && (value.signum() <= 0 || value.stripTrailingZeros().scale() > 0)) {
-            return "Nguong ngay khong lam de tinh bao hiem phai la so nguyen lon hon 0.";
+        if ("INSURANCE_NOT_WORKED_DAYS_THRESHOLD".equals(key)) {
+            if (value.signum() <= 0 || value.stripTrailingZeros().scale() > 0) {
+                return "Ngưỡng ngày không làm để tính bảo hiểm phải là số nguyên lớn hơn 0.";
+            }
+            int daysInCurrentMonth = java.time.YearMonth.now().lengthOfMonth();
+            if (value.compareTo(new BigDecimal(daysInCurrentMonth)) > 0) {
+                return "Ngưỡng ngày không làm để tính bảo hiểm không được vượt quá số ngày của tháng hiện tại ("
+                        + daysInCurrentMonth + " ngày).";
+            }
         }
         if (isWorkScheduleSetting(key)) {
             return "Cấu hình giờ làm việc thuộc module chấm công, không chỉnh trong payroll.";
@@ -123,6 +202,13 @@ public class PayrollConfigWorkflowService {
         }
         if ("WORK_BREAK_MINUTES".equals(key) && value.signum() < 0) {
             return "Số phút nghỉ không được âm.";
+        }
+        if (("OVERTIME_BLOCK_MINUTES".equals(key) || "LATE_DEDUCTION_BLOCK_MINUTES".equals(key))
+                && (value.stripTrailingZeros().scale() > 0
+                    || value.signum() <= 0
+                    || value.compareTo(new BigDecimal("120")) > 0
+                    || value.remainder(new BigDecimal("15")).signum() != 0)) {
+            return "Block phút phải là bội số của 15, trong khoảng 15 - 120.";
         }
         if (isWorkTimeSetting(key) || "WORK_BREAK_MINUTES".equals(key)) {
             Map<String, BigDecimal> settings = payrollConfigDAO.getSettingsMap();
@@ -234,24 +320,6 @@ public class PayrollConfigWorkflowService {
         }
         return new DecimalFormat("#,##0.######", DecimalFormatSymbols.getInstance(Locale.US))
                 .format(setting.getSettingValue());
-    }
-
-    public String buildStandardWorkSchedule(Map<String, BigDecimal> settings) {
-        BigDecimal start = settingValue(settings, "WORK_START", "WORK_START_MINUTES");
-        BigDecimal end = settingValue(settings, "WORK_END", "WORK_END_MINUTES");
-        BigDecimal breakMinutes = settings == null ? null : settings.get("WORK_BREAK_MINUTES");
-        if (start == null || end == null || breakMinutes == null) {
-            return null;
-        }
-        BigDecimal workingMinutes = end.subtract(start).subtract(breakMinutes);
-        if (workingMinutes.signum() <= 0) {
-            return "Cấu hình giờ làm chuẩn không hợp lệ.";
-        }
-        BigDecimal hours = workingMinutes.divide(new BigDecimal("60"), 2, java.math.RoundingMode.HALF_UP)
-                .stripTrailingZeros();
-        return minutesToClock(start) + " - " + minutesToClock(end)
-                + "; nghỉ " + breakMinutes.stripTrailingZeros().toPlainString()
-                + " phút; số giờ làm/ngày = " + hours.toPlainString() + "h";
     }
 
     private BigDecimal parsePayrollSettingValue(String key, String rawValue) {

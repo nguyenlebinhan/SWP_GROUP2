@@ -131,7 +131,20 @@
                         <c:choose>
                             <c:when test="${canEditPayrollConfig}">
                                 <td><input form="settingForm${st.index}" name="settingKey" class="form-control wide-input" value="${s.settingKey}" readonly></td>
-                                <td><input form="settingForm${st.index}" name="settingValue" class="form-control mini-input" value="${s.displayValue}" required></td>
+                                <td>
+                                    <c:choose>
+                                        <c:when test="${s.settingKey == 'OVERTIME_BLOCK_MINUTES' || s.settingKey == 'LATE_DEDUCTION_BLOCK_MINUTES'}">
+                                            <select form="settingForm${st.index}" name="settingValue" class="form-control mini-input" required>
+                                                <c:forEach begin="15" end="120" step="15" var="opt">
+                                                    <option value="${opt}" ${s.displayValue == opt ? 'selected' : ''}>${opt}</option>
+                                                </c:forEach>
+                                            </select>
+                                        </c:when>
+                                        <c:otherwise>
+                                            <input form="settingForm${st.index}" name="settingValue" class="form-control mini-input" value="${s.displayValue}" required>
+                                        </c:otherwise>
+                                    </c:choose>
+                                </td>
                                 <td><input form="settingForm${st.index}" name="description" class="form-control" value="${fn:escapeXml(s.description)}"></td>
                             </c:when>
                             <c:otherwise>
@@ -152,6 +165,105 @@
                 </tbody>
             </table>
         </div>
+    </div>
+
+    <div class="panel">
+        <h5 class="fw-bold mb-2">Cấu hình phụ cấp</h5>
+        <p class="hint mb-3">
+            <c:choose>
+                <c:when test="${canEditPayrollConfig}">Thêm/sửa/xóa loại phụ cấp và gửi yêu cầu cho Quản trị doanh nghiệp duyệt. Phụ cấp đánh dấu "Tính BHXH" sẽ được cộng vào lương làm căn cứ đóng bảo hiểm; loại còn lại chỉ cộng vào tổng thu nhập.</c:when>
+                <c:otherwise>Quản trị doanh nghiệp chỉ xem và duyệt yêu cầu thay đổi phụ cấp từ nhân sự.</c:otherwise>
+            </c:choose>
+        </p>
+        <div class="table-responsive">
+            <table class="table align-middle">
+                <thead>
+                    <tr>
+                        <th>Mã</th><th>Tên phụ cấp</th><th>Số tiền/tháng</th>
+                        <th class="text-center">Tính BHXH</th><th class="text-center">Trạng thái hoạt động</th>
+                        <c:if test="${canEditPayrollConfig}"><th class="text-end">Thao tác</th></c:if>
+                    </tr>
+                </thead>
+                <tbody>
+                <c:choose>
+                    <c:when test="${empty allowanceTypes}">
+                        <tr><td colspan="6" class="hint">Chưa có loại phụ cấp nào.</td></tr>
+                    </c:when>
+                    <c:otherwise>
+                        <c:forEach var="a" items="${allowanceTypes}" varStatus="st">
+                            <fmt:formatNumber var="allowanceAmountValue" value="${a.amount}" type="number" maxFractionDigits="2" groupingUsed="false" />
+                            <tr>
+                                <c:choose>
+                                    <c:when test="${canEditPayrollConfig}">
+                                        <td>
+                                            <input form="allowanceForm${st.index}" type="hidden" name="allowanceId" value="${a.allowanceId}">
+                                            <input form="allowanceForm${st.index}" name="allowanceCode" class="form-control wide-input" value="${a.allowanceCode}" required>
+                                        </td>
+                                        <td><input form="allowanceForm${st.index}" name="allowanceName" class="form-control" value="${fn:escapeXml(a.allowanceName)}" required></td>
+                                        <td><input form="allowanceForm${st.index}" name="amount" class="form-control mini-input" value="${allowanceAmountValue}" required></td>
+                                        <td class="text-center">
+                                            <input form="allowanceForm${st.index}" type="checkbox" name="insuranceApplicable" value="true" ${a.insuranceApplicable ? 'checked' : ''}>
+                                        </td>
+                                        <td class="text-center">
+                                            <input form="allowanceForm${st.index}" type="checkbox" name="active" value="true" ${a.active ? 'checked' : ''}>
+                                        </td>
+                                    </c:when>
+                                    <c:otherwise>
+                                        <td><span class="readonly-value fw-semibold"><c:out value="${a.allowanceCode}" /></span></td>
+                                        <td><span class="readonly-value"><c:out value="${a.allowanceName}" /></span></td>
+                                        <td><span class="readonly-value">${allowanceAmountValue}</span></td>
+                                        <td class="text-center"><span class="badge ${a.insuranceApplicable ? 'text-bg-success' : 'text-bg-secondary'}">${a.insuranceApplicable ? 'Có' : 'Không'}</span></td>
+                                        <td class="text-center"><span class="badge ${a.active ? 'text-bg-success' : 'text-bg-secondary'}">${a.active ? 'Hoạt động' : 'Ngừng'}</span></td>
+                                    </c:otherwise>
+                                </c:choose>
+                                <c:if test="${canEditPayrollConfig}">
+                                    <td class="text-end">
+                                        <form id="allowanceForm${st.index}" method="post" action="${payrollConfigBaseUrl}/allowance/save" class="d-inline">
+                                            <button class="btn btn-sm btn-outline-primary">Gửi duyệt</button>
+                                        </form>
+                                        <form method="post" action="${payrollConfigBaseUrl}/allowance/delete" class="d-inline"
+                                              onsubmit="return confirm('Gửi yêu cầu xóa loại phụ cấp này?');">
+                                            <input type="hidden" name="allowanceId" value="${a.allowanceId}">
+                                            <button class="btn btn-sm btn-outline-danger">Xóa</button>
+                                        </form>
+                                    </td>
+                                </c:if>
+                            </tr>
+                        </c:forEach>
+                    </c:otherwise>
+                </c:choose>
+                </tbody>
+            </table>
+        </div>
+        <c:if test="${canEditPayrollConfig}">
+            <hr>
+            <h6 class="fw-bold mb-2">Thêm loại phụ cấp mới</h6>
+            <form method="post" action="${payrollConfigBaseUrl}/allowance/save" class="row g-2 align-items-end">
+                <div class="col-md-2">
+                    <label class="form-label small text-muted">Mã</label>
+                    <input name="allowanceCode" class="form-control" required placeholder="VD: TRANSPORT">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small text-muted">Tên phụ cấp</label>
+                    <input name="allowanceName" class="form-control" required placeholder="VD: Phụ cấp đi lại">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label small text-muted">Số tiền/tháng</label>
+                    <input name="amount" class="form-control" required placeholder="VD: 500000">
+                </div>
+                <div class="col-md-2 form-check">
+                    <input type="checkbox" class="form-check-input" name="insuranceApplicable" value="true" id="newAllowanceInsurance">
+                    <label class="form-check-label small" for="newAllowanceInsurance">Tính BHXH</label>
+                </div>
+                <div class="col-md-1 form-check">
+                    <input type="checkbox" class="form-check-input" name="active" value="true" id="newAllowanceActive" checked>
+                    <label class="form-check-label small" for="newAllowanceActive">Hoạt động</label>
+                </div>
+                <div class="col-md-2 text-end">
+                    <button class="btn btn-primary">Gửi duyệt</button>
+                </div>
+            </form>
+        </c:if>
     </div>
 
     <div class="panel">

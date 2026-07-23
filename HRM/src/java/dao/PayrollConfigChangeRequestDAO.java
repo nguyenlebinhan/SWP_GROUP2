@@ -13,6 +13,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import model.PayrollAllowanceType;
 import model.PayrollConfigChangeRequest;
 import model.PayrollDeductionRule;
 import model.PayrollSetting;
@@ -29,8 +30,10 @@ public class PayrollConfigChangeRequestDAO {
                 + "(requestType, actionLabel, oldValue, newValue, targetKey, targetId, "
                 + "settingKey, settingValue, settingDescription, "
                 + "ruleId, ruleCode, ruleName, ruleType, calculationType, rate, employerRate, fixedAmount, "
-                + "taxableDeduction, isActive, taxPayload, status, requestedBy) "
-                + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                + "taxableDeduction, isActive, taxPayload, "
+                + "allowanceCode, allowanceName, allowanceAmount, allowanceInsuranceApplicable, "
+                + "status, requestedBy) "
+                + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         try (Connection conn = dbContext.getConnection();
                 PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             bindRequest(ps, request);
@@ -184,6 +187,13 @@ public class PayrollConfigChangeRequestDAO {
                 return request.getTargetId() != null && payrollConfigDAO.deleteDeductionRule(request.getTargetId());
             case PayrollConfigChangeRequest.TYPE_TAX_SAVE:
                 return payrollConfigDAO.updateTaxBrackets(parseTaxPayload(request.getTaxPayload()));
+            case PayrollConfigChangeRequest.TYPE_ALLOWANCE_SAVE:
+                PayrollAllowanceType allowanceType = toAllowanceType(request);
+                return allowanceType.getAllowanceId() > 0
+                        ? payrollConfigDAO.updateAllowanceType(allowanceType)
+                        : payrollConfigDAO.addAllowanceType(allowanceType) > 0;
+            case PayrollConfigChangeRequest.TYPE_ALLOWANCE_DELETE:
+                return request.getTargetId() != null && payrollConfigDAO.deleteAllowanceType(request.getTargetId());
             default:
                 return false;
         }
@@ -276,8 +286,12 @@ public class PayrollConfigChangeRequestDAO {
         ps.setInt(18, r.isTaxableDeduction() ? 1 : 0);
         ps.setInt(19, r.isActive() ? 1 : 0);
         ps.setString(20, r.getTaxPayload());
-        ps.setInt(21, PayrollConfigChangeRequest.STATUS_PENDING);
-        ps.setInt(22, r.getRequestedBy());
+        ps.setString(21, r.getAllowanceCode());
+        ps.setNString(22, r.getAllowanceName());
+        setBigDecimal(ps, 23, r.getAllowanceAmount());
+        ps.setInt(24, r.isAllowanceInsuranceApplicable() ? 1 : 0);
+        ps.setInt(25, PayrollConfigChangeRequest.STATUS_PENDING);
+        ps.setInt(26, r.getRequestedBy());
     }
 
     private String baseSelect() {
@@ -312,6 +326,10 @@ public class PayrollConfigChangeRequestDAO {
         r.setTaxableDeduction(rs.getInt("taxableDeduction") == 1);
         r.setActive(rs.getInt("isActive") == 1);
         r.setTaxPayload(rs.getString("taxPayload"));
+        r.setAllowanceCode(rs.getString("allowanceCode"));
+        r.setAllowanceName(rs.getNString("allowanceName"));
+        r.setAllowanceAmount(rs.getBigDecimal("allowanceAmount"));
+        r.setAllowanceInsuranceApplicable(rs.getInt("allowanceInsuranceApplicable") == 1);
         r.setStatus(rs.getInt("status"));
         r.setRequestedBy(rs.getInt("requestedBy"));
         r.setRequestedByName(rs.getNString("requestedByName"));
@@ -337,6 +355,17 @@ public class PayrollConfigChangeRequestDAO {
         rule.setTaxableDeduction(request.isTaxableDeduction());
         rule.setActive(request.isActive());
         return rule;
+    }
+
+    private PayrollAllowanceType toAllowanceType(PayrollConfigChangeRequest request) {
+        PayrollAllowanceType type = new PayrollAllowanceType();
+        type.setAllowanceId(request.getTargetId() == null ? 0 : request.getTargetId());
+        type.setAllowanceCode(request.getAllowanceCode());
+        type.setAllowanceName(request.getAllowanceName());
+        type.setAmount(request.getAllowanceAmount());
+        type.setInsuranceApplicable(request.isAllowanceInsuranceApplicable());
+        type.setActive(request.isActive());
+        return type;
     }
 
     private void setInteger(PreparedStatement ps, int index, Integer value) throws SQLException {

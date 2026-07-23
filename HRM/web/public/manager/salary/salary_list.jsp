@@ -291,13 +291,8 @@
                     <c:set var="totalEmployees" value="${totalEmployees + 1}" />
                     <c:set var="totalEmployeeInsurance" value="${totalEmployeeInsurance + row.payroll.insuranceDeduction}" />
                     <c:set var="totalNetSalary" value="${totalNetSalary + row.payroll.netSalary}" />
-                    <c:set var="totalCompanyCost" value="${totalCompanyCost + row.payroll.netSalary + row.payroll.insuranceDeduction + row.payroll.personalIncomeTax}" />
-                    <c:forEach var="detail" items="${row.details}">
-                        <c:if test="${detail.companyCost}">
-                            <c:set var="totalCompanyInsurance" value="${totalCompanyInsurance + detail.amount}" />
-                            <c:set var="totalCompanyCost" value="${totalCompanyCost + detail.amount}" />
-                        </c:if>
-                    </c:forEach>
+                    <c:set var="totalCompanyInsurance" value="${totalCompanyInsurance + row.payroll.employerContribution}" />
+                    <c:set var="totalCompanyCost" value="${totalCompanyCost + row.payroll.netSalary + row.payroll.insuranceDeduction + row.payroll.personalIncomeTax + row.payroll.employerContribution}" />
                 </c:if>
             </c:forEach>
 
@@ -308,7 +303,7 @@
                     Tháng lương: Tháng <span id="pillMonth">${selectedMonth}</span>/<span id="pillYear">${selectedYear}</span>
                 </div>
                 <div class="action-group">
-                    <c:if test="${canViewAllSalary && attendanceLocked}">
+                    <c:if test="${canViewAllSalary && attendanceLocked && !periodFinalized}">
                         <form id="generateForm" method="post"
                               action="${pageContext.request.contextPath}/v1/manager/salary/generate"
                               class="m-0">
@@ -335,7 +330,7 @@
                             <input type="hidden" name="year"  id="appYear"  value="${selectedYear}">
                             <input type="hidden" name="departmentId" id="appDept" value="${selectedDepartmentId}">
                             <button type="submit" class="btn-blue border-0" style="background:#16a34a;"
-                                    onclick="return confirm('Xác nhận duyệt toàn bộ bảng lương đang chờ duyệt trong kỳ lương Tháng ${selectedMonth}/${selectedYear}?');">
+                                    onclick="return confirm('Duyệt tất cả sẽ áp dụng cho TOÀN CÔNG TY trong kỳ lương Tháng ${selectedMonth}/${selectedYear}, không chỉ riêng phòng ban đang lọc. Xác nhận duyệt?');">
                                 <i class="fa-solid fa-check-double me-1"></i>
                                 Duyệt tất cả (${pendingApprovalCount})
                             </button>
@@ -348,6 +343,12 @@
                 <div class="alert alert-warning">
                     <i class="fa-solid fa-circle-info me-2"></i>
                     Bảng chấm công kỳ này chưa được Quản trị doanh nghiệp chốt nên chưa thể tạo hoặc xuất bảng lương.
+                </div>
+            </c:if>
+            <c:if test="${canViewAllSalary && periodFinalized}">
+                <div class="alert alert-info">
+                    <i class="fa-solid fa-circle-info me-2"></i>
+                    Kỳ lương này đã được Business Admin chốt nên không thể tạo lại bảng lương.
                 </div>
             </c:if>
 
@@ -517,8 +518,11 @@
                                                     </td>
                                                     <td>
                                                         <c:choose>
+                                                            <c:when test="${row.payroll.status == 2}">
+                                                                <span class="status-badge status-paid">Đã chốt</span>
+                                                            </c:when>
                                                             <c:when test="${row.payroll.status == 1}">
-                                                                <span class="status-badge status-paid">Nhân sự đã duyệt</span>
+                                                                <span class="status-badge status-approved">HR đã duyệt - chờ chốt</span>
                                                             </c:when>
                                                             <c:otherwise>
                                                                 <span class="status-badge status-pending">Chờ duyệt</span>

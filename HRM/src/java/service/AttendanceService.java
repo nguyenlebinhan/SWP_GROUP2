@@ -138,7 +138,9 @@ public class AttendanceService {
                     } else if (status == 4) {
                         summary.incrementPaidLeaveDays();
                         summary.incrementPaidWorkingDays();
-                    } else if (status == 2 || status == 3) {
+                    } else if (status == 2 || status == 3 || status == 7) {
+                        // status 7 (quên chấm công): coi như vắng không phép cho tới khi
+                        // khiếu nại được duyệt và cập nhật lại thành status 0 (PRESENT).
                         summary.incrementUnauthorizedAbsentDays();
                     }
                 }

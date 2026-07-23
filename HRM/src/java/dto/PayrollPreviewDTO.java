@@ -28,8 +28,10 @@ public class PayrollPreviewDTO {
     private int overtimeBlocks;
     private int overtimeBlockMinutes;
     private BigDecimal overtimeBlockAmount;
+    private BigDecimal overtimeBaseBlockAmount;
     private BigDecimal overtimeWorkdayMultiplier;
     private BigDecimal attendanceBonus;
+    private BigDecimal attendanceBonusRatePercent;
     private BigDecimal lateDeduction;
     private BigDecimal lateDeductionBlockAmount;
     private BigDecimal unauthorizedAbsentDeduction;
@@ -42,6 +44,9 @@ public class PayrollPreviewDTO {
     private BigDecimal familyAllowance;
     private BigDecimal taxableIncome;
     private BigDecimal totalDeduction;
+    private BigDecimal insuranceApplicableAllowance;
+    private BigDecimal insuranceSalaryCap;
+    private String personalIncomeTaxFormula;
     private String generationError;
     private List<PayrollDetailDTO> details = new ArrayList<>();
 
@@ -236,6 +241,14 @@ public class PayrollPreviewDTO {
         this.overtimeBlockAmount = overtimeBlockAmount;
     }
 
+    public BigDecimal getOvertimeBaseBlockAmount() {
+        return overtimeBaseBlockAmount;
+    }
+
+    public void setOvertimeBaseBlockAmount(BigDecimal overtimeBaseBlockAmount) {
+        this.overtimeBaseBlockAmount = overtimeBaseBlockAmount;
+    }
+
     public BigDecimal getOvertimeWorkdayMultiplier() {
         return overtimeWorkdayMultiplier;
     }
@@ -250,6 +263,14 @@ public class PayrollPreviewDTO {
 
     public void setAttendanceBonus(BigDecimal attendanceBonus) {
         this.attendanceBonus = attendanceBonus;
+    }
+
+    public BigDecimal getAttendanceBonusRatePercent() {
+        return attendanceBonusRatePercent;
+    }
+
+    public void setAttendanceBonusRatePercent(BigDecimal attendanceBonusRatePercent) {
+        this.attendanceBonusRatePercent = attendanceBonusRatePercent;
     }
 
     public BigDecimal getLateDeduction() {
@@ -346,6 +367,30 @@ public class PayrollPreviewDTO {
 
     public void setTotalDeduction(BigDecimal totalDeduction) {
         this.totalDeduction = totalDeduction;
+    }
+
+    public BigDecimal getInsuranceApplicableAllowance() {
+        return insuranceApplicableAllowance;
+    }
+
+    public void setInsuranceApplicableAllowance(BigDecimal insuranceApplicableAllowance) {
+        this.insuranceApplicableAllowance = insuranceApplicableAllowance;
+    }
+
+    public BigDecimal getInsuranceSalaryCap() {
+        return insuranceSalaryCap;
+    }
+
+    public void setInsuranceSalaryCap(BigDecimal insuranceSalaryCap) {
+        this.insuranceSalaryCap = insuranceSalaryCap;
+    }
+
+    public String getPersonalIncomeTaxFormula() {
+        return personalIncomeTaxFormula;
+    }
+
+    public void setPersonalIncomeTaxFormula(String personalIncomeTaxFormula) {
+        this.personalIncomeTaxFormula = personalIncomeTaxFormula;
     }
 
     public String getGenerationError() {
