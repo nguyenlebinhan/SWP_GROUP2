@@ -327,6 +327,50 @@ public class EmployeeController extends HttpServlet {
         EmployeeDetailDTO myEmployee = employeeDAO.getEmployeeByUserId(user.getUserId());
         request.setAttribute("myEmployee", myEmployee);
 
+        if (myEmployee != null) {
+            java.time.LocalDate lastMonth = java.time.LocalDate.now().minusMonths(1);
+            int month = lastMonth.getMonthValue();
+            int year = lastMonth.getYear();
+
+            List<Attendance> monthRows = attendanceDAO.getDailyAttendance(myEmployee.getEmployeeId(), month, year);
+            dto.AttendanceSummaryDTO attendanceSummary = new dto.AttendanceSummaryDTO();
+            for (Attendance a : monthRows) {
+                switch (a.getAttendanceStatus()) {
+                    case 0:
+                        attendanceSummary.setPresentDays(attendanceSummary.getPresentDays() + 1);
+                        break;
+                    case 1:
+                        attendanceSummary.setLateDays(attendanceSummary.getLateDays() + 1);
+                        break;
+                    case 4:
+                        attendanceSummary.setLeaveDays(attendanceSummary.getLeaveDays() + 1);
+                        break;
+                    case 2:
+                    case 3:
+                        attendanceSummary.setAbsentDays(attendanceSummary.getAbsentDays() + 1);
+                        break;
+                    default:
+                        break;
+                }
+            }
+            attendanceSummary.setStandardDays(attendanceService.standardWorkingDays(month, year));
+            request.setAttribute("attendanceSummary", attendanceSummary);
+
+            List<FormRequestDTO> myForms = formRequestDAO.getAllFormRequestsByEmployeeId(
+                    myEmployee.getEmployeeId(), null, null, null);
+            int pendingForms = 0;
+            for (FormRequestDTO f : myForms) {
+                if (f.getStatus() == 0) {
+                    pendingForms++;
+                }
+            }
+            request.setAttribute("pendingFormsCount", pendingForms);
+            request.setAttribute("recentForms", myForms.size() > 5 ? myForms.subList(0, 5) : myForms);
+
+            request.setAttribute("activeContract",
+                    contractDAO.getActiveOrPendingContract(myEmployee.getEmployeeId()));
+        }
+
         request.getRequestDispatcher("/public/employee/dashboard.jsp").forward(request, response);
     }
 
@@ -2341,6 +2385,7 @@ public class EmployeeController extends HttpServlet {
             request.setAttribute("backUrl", backUrl);
 
             request.setAttribute("isHrStaff", isHrStaff(user));
+            request.setAttribute("isMyForm", isMyForm);
             request.setAttribute("form", form);
             request.getRequestDispatcher("/public/employee/forms/form_detail.jsp").forward(request, response);
         } catch (NumberFormatException e) {
@@ -2496,6 +2541,12 @@ public class EmployeeController extends HttpServlet {
             response.sendRedirect(request.getContextPath() + "/v1/employee/forms/all");
             return;
         }
+        if (form.getEmployeeId() == me.getEmployeeId()) {
+            request.getSession().setAttribute("error",
+                    "Bạn không thể tự duyệt đơn người phụ thuộc của chính mình. Cần một nhân viên HR khác duyệt.");
+            response.sendRedirect(request.getContextPath() + "/v1/employee/forms/all");
+            return;
+        }
         String note = trimToNull(request.getParameter("note"));
         boolean formOk = formRequestDAO.approveFormRequestFromStatus(formId, 0, 4, me.getEmployeeId(), note);
         boolean added = formOk && dependentDAO.approveByFormId(formId);
@@ -2521,6 +2572,12 @@ public class EmployeeController extends HttpServlet {
         FormRequestDTO form = formId == null ? null : formRequestDAO.getFormRequestById(formId);
         if (formId == null || me == null || form == null || !"DEPENDENT".equals(form.getFormTypeCode())) {
             request.getSession().setAttribute("error", "Không tìm thấy đơn người phụ thuộc.");
+            response.sendRedirect(request.getContextPath() + "/v1/employee/forms/all");
+            return;
+        }
+        if (form.getEmployeeId() == me.getEmployeeId()) {
+            request.getSession().setAttribute("error",
+                    "Bạn không thể tự từ chối đơn người phụ thuộc của chính mình. Cần một nhân viên HR khác xử lý.");
             response.sendRedirect(request.getContextPath() + "/v1/employee/forms/all");
             return;
         }
@@ -2907,17 +2964,13 @@ public class EmployeeController extends HttpServlet {
     }
 
     private int[] parseSalaryPeriod(HttpServletRequest request) {
-        YearMonth latestClosedPeriod = YearMonth.now().minusMonths(1);
+        YearMonth defaultPeriod = YearMonth.now().minusMonths(1);
         Integer year = parseIntOrNull(request.getParameter("year"));
         Integer month = parseIntOrNull(request.getParameter("month"));
         if (year == null || year < 2000 || month == null || month < 1 || month > 12) {
-            return new int[]{latestClosedPeriod.getYear(), latestClosedPeriod.getMonthValue()};
+            return new int[]{defaultPeriod.getYear(), defaultPeriod.getMonthValue()};
         }
-        java.time.YearMonth selected = java.time.YearMonth.of(year, month);
-        if (selected.isAfter(latestClosedPeriod)) {
-            selected = latestClosedPeriod;
-        }
-        return new int[]{selected.getYear(), selected.getMonthValue()};
+        return new int[]{year, month};
     }
 
     private String buildSalaryPeriodMessage(int year, int month) {

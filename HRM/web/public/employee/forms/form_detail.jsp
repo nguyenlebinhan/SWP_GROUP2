@@ -204,7 +204,7 @@
                         </c:choose>
                     </div>
                 </c:if>
-                <c:if test="${form.status == 0 and form.formTypeCode eq 'DEPENDENT' and isHrStaff}">
+                <c:if test="${form.status == 0 and form.formTypeCode eq 'DEPENDENT' and isHrStaff and not isMyForm}">
                     <hr class="my-4">
                     <h5 class="mb-3 text-primary"><i class="fa-solid fa-user-tie me-2"></i>Duyệt (HR)</h5>
                     <form method="post">
@@ -223,6 +223,13 @@
                             </button>
                         </div>
                     </form>
+                </c:if>
+                <c:if test="${form.status == 0 and form.formTypeCode eq 'DEPENDENT' and isHrStaff and isMyForm}">
+                    <hr class="my-4">
+                    <div class="alert alert-warning mb-0">
+                        <i class="fa-solid fa-circle-info me-2"></i>
+                        Đây là đơn của chính bạn nên bạn không thể tự duyệt. Cần một nhân viên HR khác xử lý đơn này.
+                    </div>
                 </c:if>
             </div>
         </div>

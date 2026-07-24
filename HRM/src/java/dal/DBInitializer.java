@@ -453,6 +453,7 @@ public class DBInitializer {
                 + "taxableIncome DECIMAL(15,2) DEFAULT 0,"
                 + "employerContribution DECIMAL(15,2) DEFAULT 0,"
                 + "note NVARCHAR(1000),"
+                + "configSnapshot LONGTEXT,"
                 + "approvedBy INT,"
                 + "approvedAt DATETIME,"
                 + "status TINYINT DEFAULT 0," // 0: Chờ nhân viên xác nhận, 1: HR duyệt
@@ -706,6 +707,7 @@ public class DBInitializer {
             ensurePayrollApprovalColumns(conn);
             ensurePayrollUnpaidDeductionColumn(conn);
             ensurePayrollIncomeBreakdownColumns(conn);
+            ensurePayrollConfigSnapshotColumn(conn);
             ensureFormRequestColumns(conn);
             ensureDependentsTable(conn);
             ensureEmployeeDependentCountColumn(conn);
@@ -1383,6 +1385,19 @@ public class DBInitializer {
         if (!columnExists(conn, "Payroll", "employerContribution")) {
             execute(conn, "ALTER TABLE Payroll ADD COLUMN employerContribution DECIMAL(15,2) DEFAULT 0 AFTER taxableIncome",
                     "ADD PAYROLL EMPLOYER CONTRIBUTION COLUMN");
+        }
+    }
+
+    // Lưu lại toàn bộ cấu hình lương (mức giảm trừ, bậc thuế, quy tắc khấu trừ...) đã dùng để
+    // tính ra bảng lương này, để sau này cấu hình sống thay đổi thì bảng lương đã lưu vẫn hiển
+    // thị đúng con số/công thức tại thời điểm tính, không bị lệch theo cấu hình hiện tại.
+    private void ensurePayrollConfigSnapshotColumn(Connection conn) throws SQLException {
+        if (!tableExists(conn, "Payroll")) {
+            return;
+        }
+        if (!columnExists(conn, "Payroll", "configSnapshot")) {
+            execute(conn, "ALTER TABLE Payroll ADD COLUMN configSnapshot LONGTEXT AFTER note",
+                    "ADD PAYROLL CONFIG SNAPSHOT COLUMN");
         }
     }
 

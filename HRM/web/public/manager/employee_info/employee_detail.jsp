@@ -115,7 +115,7 @@
                 <div class="info-value"><c:out value="${empty employee.phoneNumber ? '-' : employee.phoneNumber}"/></div>
             </div>
             <div class="col-md-4">
-                <span class="info-label">So nguoi phu thuoc</span>
+                <span class="info-label">Số người phụ thuộc</span>
                 <div class="info-value"><c:out value="${employee.dependentCount}"/></div>
             </div>
             <div class="col-md-4">

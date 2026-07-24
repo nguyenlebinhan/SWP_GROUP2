@@ -11,6 +11,8 @@ import dto.PayrollAttendanceSummaryDTO;
 import dto.PayrollDetailDTO;
 import dto.PayrollOvertimeSummaryDTO;
 import dto.PayrollPreviewDTO;
+import com.google.gson.Gson;
+import com.google.gson.JsonSyntaxException;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.math.BigDecimal;
@@ -60,6 +62,7 @@ public class PayrollService {
     private static final Logger LOGGER = Logger.getLogger(PayrollService.class.getName());
     private static final BigDecimal ZERO = BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
     private static final BigDecimal MINUTES_PER_HOUR = new BigDecimal("60");
+    private static final Gson GSON = new Gson();
     private final DBContext dbContext;
     private final PayrollDAO payrollDAO;
     private final PayrollConfigDAO payrollConfigDAO;
@@ -419,6 +422,9 @@ public class PayrollService {
     private int saveGeneratedPayrollIfEditable(Payroll payroll) {
         Payroll existing = payrollDAO.getPayrollByEmployeeAndPeriod(
                 payroll.getEmployeeId(), payroll.getPeriodStart(), payroll.getPeriodEnd());
+        // Duyệt (status 1) chỉ là bước cho nhân viên xem trước lương, chưa khoá cứng - vẫn được
+        // tính lại và sẽ tự quay về "chờ duyệt" (status 0) để duyệt lại từ đầu. Chỉ khi Business
+        // Admin đã chốt (status 2) thì mới thật sự không được ghi đè nữa.
         if (existing != null && existing.getStatus() == STATUS_FINALIZED) {
             return existing.getPayrollId();
         }
@@ -556,6 +562,7 @@ public class PayrollService {
         payroll.setStatus(STATUS_PENDING_APPROVAL);
         payroll.setNote(buildPayrollNote(attendance, overtime, employee.dependentCount, familyAllowance,
                 employee.unionMember, insuranceCalculated));
+        payroll.setConfigSnapshot(serializeConfigSnapshot(config));
 
         PayrollPreviewDTO preview = new PayrollPreviewDTO();
         preview.setPayroll(payroll);
@@ -736,7 +743,7 @@ public class PayrollService {
         details.add(new PayrollDetailDTO("BONUS", "Thưởng", PayrollDetailDTO.TYPE_EARNING,
                 moneyOrZero(payroll.getBonus()), "Thưởng chuyên cần."));
 
-        for (PayrollDeductionRule rule : payrollConfigDAO.getDeductionRules(true)) {
+        for (PayrollDeductionRule rule : config.deductionRules) {
             if (!appliesToEmployee(rule, preview.isUnionMember(), preview.isInsuranceCalculated())) {
                 continue;
             }
@@ -808,12 +815,15 @@ public class PayrollService {
         }
 
         Payroll payroll = preview.getPayroll();
-        PayrollRuntimeConfig config;
-        try {
-            config = loadPayrollRuntimeConfig();
-        } catch (IllegalStateException e) {
-            preview.setDetails(buildSavedDetails(payroll));
-            return;
+        PayrollRuntimeConfig config = deserializeConfigSnapshot(payroll.getConfigSnapshot());
+        if (config == null) {
+            // Bảng lương cũ lưu trước khi có snapshot cấu hình: đành tạm dùng cấu hình hiện tại.
+            try {
+                config = loadPayrollRuntimeConfig();
+            } catch (IllegalStateException e) {
+                preview.setDetails(buildSavedDetails(payroll));
+                return;
+            }
         }
         int standardWorkingDays = attendanceService.standardWorkingDays(
                 payroll.getPeriodStart().toLocalDate().getMonthValue(),
@@ -1130,6 +1140,60 @@ public class PayrollService {
         if (config.taxBrackets == null || config.taxBrackets.isEmpty()) {
             throw new IllegalStateException("Thiếu cấu hình bậc thuế lương.");
         }
+        return config;
+    }
+
+    // Lưu lại đúng cấu hình lương đã dùng để tính ra bảng lương này, để sau khi cấu hình
+    // sống (Payroll_Settings, thuế, bảo hiểm...) bị chỉnh sửa thì bảng lương cũ vẫn hiển thị
+    // lại đúng con số/công thức đã áp dụng tại thời điểm tính, không đổi theo cấu hình mới.
+    private String serializeConfigSnapshot(PayrollRuntimeConfig config) {
+        ConfigSnapshot snapshot = new ConfigSnapshot();
+        snapshot.workingHoursPerDay = config.workingHoursPerDay;
+        snapshot.personalAllowance = config.personalAllowance;
+        snapshot.dependentAllowance = config.dependentAllowance;
+        snapshot.allowance = config.allowance;
+        snapshot.insuranceApplicableAllowance = config.insuranceApplicableAllowance;
+        snapshot.insuranceSalaryCap = config.insuranceSalaryCap;
+        snapshot.insuranceNotWorkedDaysThreshold = config.insuranceNotWorkedDaysThreshold;
+        snapshot.standardStartTime = config.standardStartTime.toString();
+        snapshot.lateDeductionBlockMinutes = config.lateDeductionBlockMinutes;
+        snapshot.attendanceBonusRate = config.attendanceBonusRate;
+        snapshot.overtimeBlockMinutes = config.overtimeBlockMinutes;
+        snapshot.overtimeWorkdayMultiplier = config.overtimeWorkdayMultiplier;
+        snapshot.deductionRules = config.deductionRules;
+        snapshot.taxBrackets = config.taxBrackets;
+        return GSON.toJson(snapshot);
+    }
+
+    private PayrollRuntimeConfig deserializeConfigSnapshot(String json) {
+        if (json == null || json.trim().isEmpty()) {
+            return null;
+        }
+        ConfigSnapshot snapshot;
+        try {
+            snapshot = GSON.fromJson(json, ConfigSnapshot.class);
+        } catch (JsonSyntaxException e) {
+            LOGGER.log(Level.WARNING, "Cannot parse payroll config snapshot, falling back to live config.", e);
+            return null;
+        }
+        if (snapshot == null) {
+            return null;
+        }
+        PayrollRuntimeConfig config = new PayrollRuntimeConfig();
+        config.workingHoursPerDay = snapshot.workingHoursPerDay;
+        config.personalAllowance = snapshot.personalAllowance;
+        config.dependentAllowance = snapshot.dependentAllowance;
+        config.allowance = snapshot.allowance;
+        config.insuranceApplicableAllowance = snapshot.insuranceApplicableAllowance;
+        config.insuranceSalaryCap = snapshot.insuranceSalaryCap;
+        config.insuranceNotWorkedDaysThreshold = snapshot.insuranceNotWorkedDaysThreshold;
+        config.standardStartTime = LocalTime.parse(snapshot.standardStartTime);
+        config.lateDeductionBlockMinutes = snapshot.lateDeductionBlockMinutes;
+        config.attendanceBonusRate = snapshot.attendanceBonusRate;
+        config.overtimeBlockMinutes = snapshot.overtimeBlockMinutes;
+        config.overtimeWorkdayMultiplier = snapshot.overtimeWorkdayMultiplier;
+        config.deductionRules = snapshot.deductionRules != null ? snapshot.deductionRules : new ArrayList<>();
+        config.taxBrackets = snapshot.taxBrackets != null ? snapshot.taxBrackets : new ArrayList<>();
         return config;
     }
 
@@ -1478,6 +1542,25 @@ public class PayrollService {
         BigDecimal insuranceSalaryCap;
         int insuranceNotWorkedDaysThreshold;
         LocalTime standardStartTime;
+        int lateDeductionBlockMinutes;
+        BigDecimal attendanceBonusRate;
+        int overtimeBlockMinutes;
+        BigDecimal overtimeWorkdayMultiplier;
+        List<PayrollDeductionRule> deductionRules = new ArrayList<>();
+        List<PayrollTaxBracket> taxBrackets = new ArrayList<>();
+    }
+
+    // Dạng phẳng, chỉ chứa kiểu dữ liệu JSON-hoá được, dùng để lưu/đọc configSnapshot của Payroll.
+    private static class ConfigSnapshot {
+
+        BigDecimal workingHoursPerDay;
+        BigDecimal personalAllowance;
+        BigDecimal dependentAllowance;
+        BigDecimal allowance;
+        BigDecimal insuranceApplicableAllowance;
+        BigDecimal insuranceSalaryCap;
+        int insuranceNotWorkedDaysThreshold;
+        String standardStartTime;
         int lateDeductionBlockMinutes;
         BigDecimal attendanceBonusRate;
         int overtimeBlockMinutes;
