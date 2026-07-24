@@ -163,6 +163,7 @@ public class EmploymentContractService {
                 contract.setPositionName(emp.getPositionName());
             }
 
+            contract.setSignedDate(contract.getEffectiveDate());
             int contractId = contractDAO.addContract(conn, contract);
 
             if (contractId > 0) {
@@ -310,7 +311,7 @@ public class EmploymentContractService {
 
             contractDAO.insertAuditLog(conn, contractId, oldStatus, newStatus, userId, auditNote);
             conn.commit();
-            return new ContractOperationResult(true, null, "Phe duyet thanh cong.");
+            return new ContractOperationResult(true, null, "Phê duyệt thành công.");
         } catch (SQLException e) {
             if (conn != null) try {
                 conn.rollback();
@@ -690,6 +691,98 @@ public class EmploymentContractService {
         }
 
         LOGGER.log(Level.INFO, "Automated Daily Contract Updates Batch Process Completed.");
+    }
+
+    private ValidationResult validateForUpdate(EmploymentContract newContract, EmploymentContract oldContract) {
+        ValidationResult dateResult = validateDates(newContract.getContractType(),
+                newContract.getEffectiveDate(), newContract.getEndDate());
+        if (!dateResult.isSuccess()) {
+            return dateResult;
+        }
+
+        if (newContract.getSalary() == null || newContract.getSalary().compareTo(BigDecimal.ZERO) < 0) {
+            return ValidationResult.failure(ValidationError.INVALID_SALARY,
+                    "Mức lương không hợp lệ.");
+        }
+
+        if (newContract.getContractType() == null) {
+            return ValidationResult.failure(ValidationError.INVALID_CONTRACT_TYPE,
+                    "Loại hợp đồng không hợp lệ.");
+        }
+
+        return ValidationResult.success();
+    }
+
+    public ContractOperationResult updateContract(EmploymentContract newContract, int userId, String reason) {
+        Connection conn = null;
+        try {
+            // 1. Lấy contract cũ từ DB
+            EmploymentContract oldContract = contractDAO.getContractById(newContract.getContractId());
+            if (oldContract == null) {
+                return new ContractOperationResult(false,
+                        ContractErrorCode.CONTRACT_NOT_FOUND.name(), "Hợp đồng không tồn tại.");
+            }
+
+            // 2. Validate trạng thái có thể sửa (final status không sửa được)
+            if (oldContract.getStatus().isFinalStatus()) {
+                return new ContractOperationResult(false,
+                        ContractErrorCode.INVALID_CONTRACT_STATUS.name(),
+                        "Không thể sửa hợp đồng đã ở trạng thái kết thúc: " + oldContract.getStatusLabel());
+            }
+
+            // 3. Enforce signedDate = effectiveDate
+            newContract.setSignedDate(newContract.getEffectiveDate());
+
+            // 4. Validate các field
+            ValidationResult validation = validateForUpdate(newContract, oldContract);
+            if (!validation.isSuccess()) {
+                return new ContractOperationResult(false,
+                        ContractErrorCode.VALIDATION_ERROR.name(), validation.getMessage());
+            }
+
+            // 5. Kiểm tra overlap (exclude chính nó)
+            conn = dbContext.getConnection();
+            conn.setAutoCommit(false);
+
+            ValidationResult overlapResult = validateOverlap(conn, newContract.getEmployeeId(),
+                    newContract.getEffectiveDate(), newContract.getEndDate(), newContract.getContractId());
+            if (!overlapResult.isSuccess()) {
+                conn.rollback();
+                return new ContractOperationResult(false,
+                        ContractErrorCode.OVERLAP_DETECTED.name(), overlapResult.getMessage());
+            }
+
+            // 6. Execute update with audit
+            boolean success = contractDAO.updateContractWithAudit(conn, oldContract, newContract, userId, reason);
+            if (!success) {
+                conn.rollback();
+                return new ContractOperationResult(false,
+                        ContractErrorCode.DATABASE_ERROR.name(), "Không thể cập nhật hợp đồng.");
+            }
+
+            conn.commit();
+            LOGGER.log(Level.INFO, "Contract {0} updated successfully by user {1}",
+                    new Object[]{newContract.getContractId(), userId});
+            return new ContractOperationResult(true, null, "Cập nhật hợp đồng thành công.");
+
+        } catch (SQLException e) {
+            if (conn != null) try {
+                conn.rollback();
+            } catch (SQLException ex) {
+            }
+            LOGGER.log(Level.SEVERE, "Error updating contract", e);
+            return new ContractOperationResult(false,
+                    ContractErrorCode.DATABASE_ERROR.name(), "Lỗi hệ thống khi cập nhật hợp đồng: " + e.getMessage());
+        } finally {
+            if (conn != null) try {
+                conn.close();
+            } catch (SQLException ex) {
+            }
+        }
+    }
+
+    public EmploymentContract getContractById(int contractId) {
+        return contractDAO.getContractById(contractId);
     }
 
     public Date calculateEndDate(Date effectiveDate, int durationValue, String durationUnit) {

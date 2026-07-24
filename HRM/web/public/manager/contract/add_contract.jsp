@@ -94,11 +94,6 @@
                             <input type="date" name="effectiveDate" id="effectiveDate" class="form-control"
                                    value="${param.effectiveDate}" required>
                         </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Ngày ký</label>
-                            <input type="date" name="signedDate" id="signedDate" class="form-control"
-                                   value="${param.signedDate}">
-                        </div>
                         <div class="col-md-6" id="durationGroup">
                             <label class="form-label">Thời hạn</label>
                             <select name="durationValue" id="durationValue" class="form-select">

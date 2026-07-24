@@ -105,9 +105,6 @@
             </c:if>
 
             <div class="toolbar">
-                <a href="${pageContext.request.contextPath}${backUrl}" class="btn btn-outline-secondary">
-                    <i class="fa-solid fa-arrow-left me-1"></i>Quay lại
-                </a>
                 <div class="d-flex flex-wrap gap-2">
                     <c:if test="${canApproveContract and contract.status == 'PENDING_APPROVAL'}">
                         <form method="post" action="${pageContext.request.contextPath}/v1/manager/contract/approve">
@@ -138,6 +135,11 @@
                                 <a href="${pageContext.request.contextPath}/v1/manager/contract/terminate?id=${contract.contractId} class="btn btn-outliner-dark"></a><i class="fa-solid fa-stop me-1"></i>Chấm dứt
                             </button>
                         </form>
+                    </c:if>
+                    <c:if test="${not contract.status.isFinalStatus()}">
+                        <button type="button" class="btn btn-outline-primary" onclick="toggleEditForm()">
+                            <i class="fa-solid fa-pen me-1"></i>Sửa hợp đồng
+                        </button>
                     </c:if>
                 </div>
             </div>
@@ -236,50 +238,6 @@
                     <c:out value="${empty contract.note ? 'Không có ghi chú.' : contract.note}"/>
                 </div>
 
-                <div class="section-title">Lịch sử phụ lục</div>
-                <c:choose>
-                    <c:when test="${empty amendments}">
-                        <p class="text-muted">Chưa có phụ lục nào cho hợp đồng này.</p>
-                    </c:when>
-                    <c:otherwise>
-                        <div class="table-responsive">
-                            <table class="table table-bordered table-hover">
-                                <thead class="table-light">
-                                    <tr>
-                                        <th>Mã phụ lục</th>
-                                        <th>Loại</th>
-                                        <th>Ngày hiệu lực</th>
-                                        <th>Phòng ban cũ → mới</th>
-                                        <th>Lý do</th>
-                                        <th>Người tạo</th>
-                                        <th>Ngày tạo</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <c:forEach var="amd" items="${amendments}">
-                                        <tr>
-                                            <td>${amd.amendmentCode}</td>
-                                            <td>${amd.amendmentType}</td>
-                                            <td><fmt:formatDate value="${amd.effectiveDate}" pattern="dd/MM/yyyy"/></td>
-                                            <td>
-                                                <c:choose>
-                                                    <c:when test="${not empty amd.oldDepartmentId && not empty amd.newDepartmentId}">
-                                                        ${amd.oldDepartmentId} → ${amd.newDepartmentId}
-                                                    </c:when>
-                                                    <c:otherwise>—</c:otherwise>
-                                                </c:choose>
-                                            </td>
-                                            <td>${amd.reason}</td>
-                                            <td>${amd.createdBy}</td>
-                                            <td><fmt:formatDate value="${amd.createdAt}" pattern="dd/MM/yyyy HH:mm"/></td>
-                                        </tr>
-                                    </c:forEach>
-                                </tbody>
-                            </table>
-                        </div>
-                    </c:otherwise>
-                </c:choose>
-
                 <div class="d-flex gap-2 mt-3">
                     <c:choose>
                         <c:when test="${not empty contract.contractFilePath}">
@@ -288,6 +246,76 @@
                             </a>
                         </c:when>
                     </c:choose>
+                </div>
+                <div id="editFormSection" style="display:none;">
+                    <div class="section-title">Chỉnh sửa hợp đồng</div>
+                    <form method="post" action="${pageContext.request.contextPath}/v1/manager/contract/detail">
+                        <input type="hidden" name="contractId" value="${contract.contractId}" />
+
+                        <div class="detail-grid">
+                            <div class="detail-item">
+                                <span class="detail-label">Mã hợp đồng</span>
+                                <input type="text" class="form-control" name="contractCode" value="${contract.contractCode}" />
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">Loại hợp đồng</span>
+                                <select class="form-select" name="contractType">
+                                    <option value="">-- Chọn --</option>
+                                    <option value="INTERNSHIP" ${contract.contractType == 'INTERNSHIP' ? 'selected' : ''}>Thực tập</option>
+                                    <option value="PROBATION" ${contract.contractType == 'PROBATION' ? 'selected' : ''}>Thử việc</option>
+                                    <option value="FIXED_TERM" ${contract.contractType == 'FIXED_TERM' ? 'selected' : ''}>Có thời hạn</option>
+                                    <option value="INDEFINITE" ${contract.contractType == 'INDEFINITE' ? 'selected' : ''}>Không xác định thời hạn</option>
+                                </select>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">Lương</span>
+                                <input type="number" class="form-control" name="salary" value="${contract.salary}" />
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">Ngày hiệu lực</span>
+                                <input type="date" class="form-control" name="effectiveDate" value="${contract.effectiveDate}" />
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">Ngày kết thúc</span>
+                                <input type="date" class="form-control" name="endDate" value="${contract.endDate}" />
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">Thời hạn</span>
+                                <div class="d-flex gap-2">
+                                    <input type="number" class="form-control" name="durationValue" value="${contract.durationValue}" placeholder="Số" style="width:50%;" />
+                                    <select class="form-select" name="durationUnit" style="width:50%;">
+                                        <option value="">--</option>
+                                        <option value="MONTH" ${contract.durationUnit == 'MONTH' ? 'selected' : ''}>Tháng</option>
+                                        <option value="YEAR" ${contract.durationUnit == 'YEAR' ? 'selected' : ''}>Năm</option>
+                                        <option value="DAY" ${contract.durationUnit == 'DAY' ? 'selected' : ''}>Ngày</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">Phòng ban</span>
+                                <input type="text" class="form-control" name="departmentName" value="${contract.departmentName}" />
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">Chức danh</span>
+                                <input type="text" class="form-control" name="positionName" value="${contract.positionName}" />
+                            </div>
+                        </div>
+
+                        <div class="detail-item mt-3">
+                            <span class="detail-label">Ghi chú</span>
+                            <textarea class="form-control" name="note" rows="3">${contract.note}</textarea>
+                        </div>
+
+                        <div class="detail-item mt-3">
+                            <span class="detail-label">Lý do chỉnh sửa <span class="text-danger">*</span></span>
+                            <input type="text" class="form-control" name="reason" required placeholder="Nhập lý do chỉnh sửa..." />
+                        </div>
+
+                        <div class="d-flex gap-2 mt-3">
+                            <button type="submit" class="btn btn-primary"><i class="fa-solid fa-save me-1"></i>Lưu thay đổi</button>
+                            <button type="button" class="btn btn-secondary" onclick="toggleEditForm()">Hủy</button>
+                        </div>
+                    </form>
                 </div>
             </div>
         </div>
@@ -306,7 +334,7 @@
                             <textarea class="form-control" name="rejectReason" rows="4" required></textarea>
                         </div>
                         <div class="modal-footer">
-                            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Đóng</button>
+                             <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Đóng</button>
                             <button type="submit" class="btn btn-danger">Xác nhận từ chối</button>
                         </div>
                     </form>
@@ -315,5 +343,20 @@
         </div>
 
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+        <script>
+                                function toggleEditForm() {
+                                    const form = document.getElementById("editFormSection");
+                                    const btn = document.querySelector('[onclick="toggleEditForm()"]');
+                                    if (form.style.display === "none") {
+                                        form.style.display = "block";
+                                        if (btn)
+                                            btn.textContent = "Hủy sửa";
+                                    } else {
+                                        form.style.display = "none";
+                                        if (btn)
+                                            btn.innerHTML = '<i class="fa-solid fa-pen me-1"></i>Sửa hợp đồng';
+                                    }
+                                }
+        </script>
     </body>
 </html>

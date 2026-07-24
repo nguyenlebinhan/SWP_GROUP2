@@ -113,36 +113,28 @@
                 </div>
 
                 <c:choose>
-                    <c:when test="${empty contractHistory}">
+                    <c:when test="${empty auditLogs}">
                         <div class="alert alert-info shadow-sm" role="alert">
                             <i class="fa-solid fa-circle-info me-2"></i>
-                            Không tìm thấy dữ liệu lịch sử hợp đồng.
+                            Không tìm thấy dữ liệu lịch sử thay đổi hợp đồng.
                         </div>
                     </c:when>
-
                     <c:otherwise>
                         <div class="timeline">
-                            <c:forEach var="contract" items="${contractHistory}" varStatus="loop">
+                            <c:forEach var="log" items="${auditLogs}" varStatus="loop">
                                 <div class="timeline-item">
-                                    <%-- Status-based Marker Color --%>
                                     <c:choose>
-                                        <c:when test="${contract.status == 'ACTIVE'}">
+                                        <c:when test="${log.fieldName == 'status' or (log.newStatus == 'ACTIVE')}">
                                             <span class="timeline-marker" style="background: #22c55e;"></span>
                                         </c:when>
-                                        <c:when test="${contract.status == 'PENDING_ACTIVATION'}">
+                                        <c:when test="${log.newStatus == 'PENDING_APPROVAL' or log.newStatus == 'PENDING_ACTIVATION'}">
                                             <span class="timeline-marker" style="background: #facc15;"></span>
                                         </c:when>
-                                        <c:when test="${contract.status == 'EXPIRED'}">
+                                        <c:when test="${log.newStatus == 'EXPIRED'}">
                                             <span class="timeline-marker" style="background: #9ca3af;"></span>
                                         </c:when>
-                                        <c:when test="${contract.status == 'TERMINATED'}">
+                                        <c:when test="${log.newStatus == 'TERMINATED'}">
                                             <span class="timeline-marker" style="background: #ef4444;"></span>
-                                        </c:when>
-                                        <c:when test="${contract.status == 'CANCELLED'}">
-                                            <span class="timeline-marker" style="background: #1f2937;"></span>
-                                        </c:when>
-                                        <c:when test="${contract.status == 'REJECTED'}">
-                                            <span class="timeline-marker" style="background: #dc2626;"></span>
                                         </c:when>
                                         <c:otherwise>
                                             <span class="timeline-marker" style="background: #6b7280;"></span>
@@ -153,68 +145,48 @@
                                         <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
                                             <div>
                                                 <h5 class="mb-1">
-                                                    <span class="fw-bold">${contract.contractCode}</span>
-                                                    <c:if test="${not empty contract.contractType}">
-                                                        <span class="meta-chip"><i class="fa-regular fa-file-lines"></i>${contract.contractType.displayName}</span>
-                                                        </c:if>
+                                                    <span class="fw-bold">#${log.contractId}</span>
+                                                    <span class="text-muted small ms-2">
+                                                        <fmt:formatDate value="${log.changeDate}" pattern="dd/MM/yyyy HH:mm"/>
+                                                    </span>
                                                 </h5>
-                                                <div class="meta-row">
-                                                    <span class="meta-item"><i class="fa-solid fa-calendar-day"></i> Hiệu lực: <fmt:formatDate value="${contract.effectiveDate}" pattern="dd/MM/yyyy" /></span>
-                                                    <c:if test="${not empty contract.signedDate}">
-                                                        <span class="meta-item"><i class="fa-solid fa-pen"></i> Ngày ký: <fmt:formatDate value="${contract.signedDate}" pattern="dd/MM/yyyy" /></span>
-                                                    </c:if>
-                                                    <c:if test="${not empty contract.endDate}">
-                                                        <span class="meta-item"><i class="fa-solid fa-calendar-xmark"></i> Hết hạn: <fmt:formatDate value="${contract.endDate}" pattern="dd/MM/yyyy" /></span>
-                                                    </c:if>
-                                                    <c:if test="${empty contract.endDate and contract.contractType != 'INDEFINITE'}">
-                                                        <span class="meta-item"><i class="fa-solid fa-infinity"></i> Vô thời hạn</span>
-                                                    </c:if>
-                                                    <c:if test="${contract.contractType == 'INDEFINITE'}">
-                                                        <span class="meta-item"><i class="fa-solid fa-infinity"></i> Vô thời hạn</span>
-                                                    </c:if>
-                                                </div>
-                                            </div>
-
-                                            <c:choose>
-                                                <c:when test="${contract.status == 'ACTIVE'}">
-                                                    <span class="badge bg-success badge-custom">Đang hiệu lực</span>
-                                                </c:when>
-                                                <c:when test="${contract.status == 'PENDING_ACTIVATION'}">
-                                                    <span class="badge bg-warning text-dark badge-custom">Chờ kích hoạt</span>
-                                                </c:when>
-                                                <c:when test="${contract.status == 'EXPIRED'}">
-                                                    <span class="badge bg-secondary badge-custom">Đã hết hạn</span>
-                                                </c:when>
-                                                <c:when test="${contract.status == 'TERMINATED'}">
-                                                    <span class="badge bg-danger badge-custom">Đã chấm dứt</span>
-                                                </c:when>
-                                                <c:when test="${contract.status == 'CANCELLED'}">
-                                                    <span class="badge bg-dark badge-custom">Đã hủy</span>
-                                                </c:when>
-                                                <c:when test="${contract.status == 'REJECTED'}">
-                                                    <span class="badge bg-danger badge-custom">Bị từ chối</span>
-                                                </c:when>
-                                                <c:otherwise>
-                                                    <span class="badge bg-info badge-custom">${contract.status}</span>
-                                                </c:otherwise>
-                                            </c:choose>
-                                        </div>
-
-                                        <div class="d-flex justify-content-between align-items-center">
-                                            <div class="text-muted small">
-                                                <i class="fa-solid fa-money-bill-wave me-1"></i>
-                                                Lương: <fmt:formatNumber value="${contract.salary}" type="number" groupingUsed="true" maxFractionDigits="0"/> VND
-                                            </div>
-                                            <div class="text-muted small">
-                                                <i class="fa-solid fa-pen-to-square me-1"></i>
-                                                Cập nhật: <fmt:formatDate value="${contract.updatedAt}" pattern="dd/MM/yyyy HH:mm" />
+                                                <div class="text-muted small">Người thực hiện: ${log.changedByName}</div>
                                             </div>
                                         </div>
 
-                                        <c:if test="${contract.status == 'TERMINATED' or not empty contract.terminationReason}">
-                                            <div class="termination-alert">
-                                                <i class="fa-solid fa-triangle-exclamation me-1"></i>
-                                                <strong>Lý do chấm dứt:</strong> ${contract.terminationReason}
+                                        <c:if test="${log.oldStatus == null and log.fieldName == null}">
+                                            <div class="mb-2">
+                                                <i class="fa-solid fa-plus-circle text-success me-1"></i>
+                                                <strong>Tạo hợp đồng</strong> (trạng thái: ${log.newStatus})
+                                            </div>
+                                        </c:if>
+
+
+                                        <c:if test="${log.fieldName == 'status' or (log.fieldName == null and log.oldStatus != null)}">
+                                            <div class="mb-2">
+                                                <i class="fa-solid fa-arrow-right-arrow-left text-primary me-1"></i>
+                                                <strong>Thay đổi trạng thái:</strong>
+                                                <c:if test="${not empty log.oldStatus}">
+                                                    <span class="badge bg-secondary badge-custom">${log.oldStatus}</span>
+                                                </c:if>
+                                                <i class="fa-solid fa-arrow-right mx-1 text-muted"></i>
+                                                <span class="badge bg-primary badge-custom">${log.newStatus}</span>
+                                                <c:if test="${not empty log.actionReason}">
+                                                    <div class="text-muted small mt-1">Lý do: ${log.actionReason}</div>
+                                                </c:if>
+                                            </div>
+                                        </c:if>
+
+                                        <c:if test="${log.fieldName != null and log.fieldName != 'status'}">
+                                            <div class="mb-2">
+                                                <i class="fa-solid fa-pen text-warning me-1"></i>
+                                                <strong>Sửa ${log.fieldName}:</strong>
+                                                <span class="text-danger text-decoration-line-through">${log.oldValue}</span>
+                                                <i class="fa-solid fa-arrow-right mx-1 text-muted"></i>
+                                                <span class="text-success fw-bold">${log.newValue}</span>
+                                                <c:if test="${not empty log.actionReason}">
+                                                    <div class="text-muted small mt-1">Lý do: ${log.actionReason}</div>
+                                                </c:if>
                                             </div>
                                         </c:if>
                                     </div>

@@ -97,7 +97,7 @@
         </a>
     </c:if>
 
-    <div class="nav-section">Hợp đồng</div>
+    <div class="nav-section">Hợp đồng lao động</div>
     <c:if test="${sessionScope.userPermissions.contains('ADD_EMPLOYMENT_CONTRACT')}">
         <a href="${pageContext.request.contextPath}/v1/employee/contract/add">
             Tạo hợp đồng
@@ -114,6 +114,12 @@
     <c:if test="${sessionScope.userPermissions.contains('VIEW_OWN_CONTRACT')}">
         <a href="${pageContext.request.contextPath}/v1/employee/contract/history?scope=own">
             Lịch sử hợp đồng của bản thân
+        </a>
+    </c:if>
+    
+    <c:if test="${sessionScope.userPermissions.contains('ADD_EMPLOYMENT_CONTRACT')}">
+        <a href="${pageContext.request.contextPath}/v1/employee/contract/status">
+            Tổng quan hợp đồng
         </a>
     </c:if>
 

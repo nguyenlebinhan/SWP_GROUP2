@@ -427,14 +427,23 @@ public class EmploymentContractDAO {
 
     public void insertAuditLog(Connection conn, int contractId, String oldStatus,
             String newStatus, int changedBy, String actionReason) throws SQLException {
-        String SQL = "INSERT INTO Contract_Audit_Log (ContractId, OldStatus, NewStatus, ChangedBy, ChangeDate, ActionReason) "
-                + "VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP, ?)";
+        insertAuditLog(conn, contractId, oldStatus, newStatus, changedBy, actionReason, null, null, null);
+    }
+
+    public void insertAuditLog(Connection conn, int contractId, String oldStatus,
+            String newStatus, int changedBy, String actionReason,
+            String fieldName, String oldValue, String newValue) throws SQLException {
+        String SQL = "INSERT INTO Contract_Audit_Log (ContractId, OldStatus, NewStatus, ChangedBy, ChangeDate, ActionReason, FieldName, OldValue, NewValue) "
+                + "VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP, ?, ?, ?, ?)";
         try (PreparedStatement ps = conn.prepareStatement(SQL)) {
             ps.setInt(1, contractId);
             ps.setString(2, oldStatus);
             ps.setString(3, newStatus);
             ps.setInt(4, changedBy);
             ps.setString(5, actionReason);
+            ps.setString(6, fieldName);
+            ps.setString(7, oldValue);
+            ps.setString(8, newValue);
             ps.executeUpdate();
         }
     }
@@ -445,6 +454,7 @@ public class EmploymentContractDAO {
         StringBuilder sql = new StringBuilder(
                 "SELECT la.LogId, la.ContractId, la.OldStatus, la.NewStatus, "
                 + "la.ChangedBy, la.ChangeDate, la.ActionReason, "
+                + "la.FieldName, la.OldValue, la.NewValue, " // ← THÊM 3 DÒNG NÀY
                 + "u.userName AS changedByName, ec.employeeId, e.fullName AS employeeName "
                 + "FROM Contract_Audit_Log la "
                 + "JOIN Employment_Contracts ec ON la.ContractId = ec.contractId "
@@ -496,6 +506,10 @@ public class EmploymentContractDAO {
                     log.setChangedByName(rs.getString("changedByName"));
                     log.setChangeDate(rs.getTimestamp("ChangeDate"));
                     log.setActionReason(rs.getString("ActionReason"));
+                    // THÊM 3 DÒNG NÀY:
+                    log.setFieldName(rs.getString("FieldName"));
+                    log.setOldValue(rs.getString("OldValue"));
+                    log.setNewValue(rs.getString("NewValue"));
                     log.setEmployeeId(rs.getInt("employeeId"));
                     log.setEmployeeName(rs.getString("employeeName"));
                     logs.add(log);
@@ -663,6 +677,187 @@ public class EmploymentContractDAO {
 
             return ps.executeUpdate() > 0;
         }
+    }
+
+    public boolean updateContractWithAudit(Connection conn, EmploymentContract oldContract,
+            EmploymentContract newContract, int userId, String reason) throws SQLException {
+
+        String SQL = "UPDATE Employment_Contracts SET "
+                + "contractCode = ?, "
+                + "contractType = ?, "
+                + "signedDate = ?, "
+                + "effectiveDate = ?, "
+                + "endDate = ?, "
+                + "salary = ?, "
+                + "departmentName = ?, "
+                + "positionName = ?, "
+                + "contractFilePath = ?, "
+                + "contractFileName = ?, "
+                + "uploadedAt = ?, "
+                + "uploadedBy = ?, "
+                + "durationValue = ?, "
+                + "durationUnit = ?, "
+                + "status = ?, "
+                + "note = ?, "
+                + "previousContractId = ?, "
+                + "terminationReason = ?, "
+                + "updatedAt = CURRENT_TIMESTAMP "
+                + "WHERE contractId = ?";
+
+        try (PreparedStatement ps = conn.prepareStatement(SQL)) {
+            ps.setString(1, newContract.getContractCode());
+            ps.setString(2, newContract.getContractType() != null ? newContract.getContractType().name() : null);
+            ps.setDate(3, newContract.getSignedDate());  // signedDate = effectiveDate (service sẽ enforce)
+            ps.setDate(4, newContract.getEffectiveDate());
+            ps.setDate(5, newContract.getEndDate());
+            ps.setBigDecimal(6, newContract.getSalary());
+            ps.setString(7, newContract.getDepartmentName());
+            ps.setString(8, newContract.getPositionName());
+            ps.setString(9, newContract.getContractFilePath());
+            ps.setString(10, newContract.getContractFileName());
+            ps.setObject(11, newContract.getUploadedAt() != null ? new java.sql.Timestamp(newContract.getUploadedAt().getTime()) : null);
+            ps.setObject(12, newContract.getUploadedBy());
+            ps.setObject(13, newContract.getDurationValue());
+            ps.setString(14, newContract.getDurationUnit());
+            ps.setString(15, newContract.getStatus() != null ? newContract.getStatus().name() : null);
+            ps.setString(16, newContract.getNote());
+            if (newContract.getPreviousContractId() != null) {
+                ps.setInt(17, newContract.getPreviousContractId());
+            } else {
+                ps.setNull(17, Types.INTEGER);
+            }
+            ps.setString(18, newContract.getTerminationReason());
+            ps.setInt(19, newContract.getContractId());
+
+            int updated = ps.executeUpdate();
+            if (updated == 0) {
+                return false;
+            }
+
+            java.util.function.BiConsumer<String, String[]> logField = (fieldName, values) -> {
+                String oldVal = values[0];
+                String newVal = values[1];
+                if (oldVal == null && newVal == null) {
+                    return;
+                }
+                if (oldVal != null && oldVal.equals(newVal)) {
+                    return;
+                }
+                try {
+                    insertAuditLog(conn, newContract.getContractId(),
+                            oldContract.getStatus().name(), newContract.getStatus().name(),
+                            userId, reason, fieldName, oldVal, newVal);
+                } catch (SQLException ex) {
+                    LOGGER.log(Level.SEVERE, "Failed to log field change: " + fieldName, ex);
+                }
+            };
+
+            if (oldContract.getStatus() != newContract.getStatus()) {
+                logField.accept("status", new String[]{
+                    oldContract.getStatus() != null ? oldContract.getStatus().name() : null,
+                    newContract.getStatus() != null ? newContract.getStatus().name() : null
+                });
+            }
+
+            logField.accept("salary", new String[]{
+                oldContract.getSalary() != null ? oldContract.getSalary().toString() : null,
+                newContract.getSalary() != null ? newContract.getSalary().toString() : null
+            });
+            logField.accept("contractType", new String[]{
+                oldContract.getContractType() != null ? oldContract.getContractType().name() : null,
+                newContract.getContractType() != null ? newContract.getContractType().name() : null
+            });
+            logField.accept("effectiveDate", new String[]{
+                oldContract.getEffectiveDate() != null ? oldContract.getEffectiveDate().toString() : null,
+                newContract.getEffectiveDate() != null ? newContract.getEffectiveDate().toString() : null
+            });
+            logField.accept("endDate", new String[]{
+                oldContract.getEndDate() != null ? oldContract.getEndDate().toString() : null,
+                newContract.getEndDate() != null ? newContract.getEndDate().toString() : null
+            });
+            logField.accept("departmentName", new String[]{
+                oldContract.getDepartmentName(), newContract.getDepartmentName()
+            });
+            logField.accept("positionName", new String[]{
+                oldContract.getPositionName(), newContract.getPositionName()
+            });
+            logField.accept("durationValue", new String[]{
+                oldContract.getDurationValue() != null ? oldContract.getDurationValue().toString() : null,
+                newContract.getDurationValue() != null ? newContract.getDurationValue().toString() : null
+            });
+            logField.accept("durationUnit", new String[]{
+                oldContract.getDurationUnit(), newContract.getDurationUnit()
+            });
+            logField.accept("note", new String[]{
+                oldContract.getNote(), newContract.getNote()
+            });
+            logField.accept("contractFilePath", new String[]{
+                oldContract.getContractFilePath(), newContract.getContractFilePath()
+            });
+            logField.accept("terminationReason", new String[]{
+                oldContract.getTerminationReason(), newContract.getTerminationReason()
+            });
+
+            return true;
+        }
+    }
+
+    public List<EmploymentContract> getAllContractsForOverview(
+            String keyword, String contractType, String status,
+            Integer departmentId, Integer loggedInEmpId, boolean isHrStaff)
+            throws SQLException {
+
+        List<EmploymentContract> contracts = new ArrayList<>();
+        String sql = "SELECT c.* FROM Employment_Contracts c "
+                + "JOIN Employees e ON c.employee_id = e.employee_id "
+                + "WHERE 1=1";
+
+        List<Object> params = new ArrayList<>();
+
+        if (!isHrStaff) {
+            sql += " AND e.department_id = (SELECT department_id FROM Employees WHERE employee_id = ?)";
+            params.add(loggedInEmpId);
+        }
+
+        if (keyword != null && !keyword.trim().isEmpty()) {
+            sql += " AND (c.contract_code LIKE ? OR e.full_name LIKE ? OR e.employee_code LIKE ?)";
+            String kw = "%" + keyword.trim() + "%";
+            params.add(kw);
+            params.add(kw);
+            params.add(kw);
+        }
+
+        if (contractType != null && !contractType.trim().isEmpty()) {
+            sql += " AND c.contract_type = ?";
+            params.add(contractType);
+        }
+
+        if (status != null && !status.trim().isEmpty()) {
+            sql += " AND c.status = ?";
+            params.add(status);
+        }
+
+        if (departmentId != null) {
+            sql += " AND e.department_id = ?";
+            params.add(departmentId);
+        }
+
+        sql += " ORDER BY c.created_at DESC";
+
+        try (Connection conn = new DBContext().getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            for (int i = 0; i < params.size(); i++) {
+                ps.setObject(i + 1, params.get(i));
+            }
+
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    contracts.add(mapContract(rs));
+                }
+            }
+        }
+
+        return contracts;
     }
 
     public boolean updateRejectionReason(Connection conn, int contractId, String reason) throws SQLException {

@@ -71,10 +71,9 @@
                                 <c:otherwise>Lịch sử hợp đồng nhân viên</c:otherwise>
                             </c:choose>
                         </h5>
-                        <div class="text-muted small"><span id="historyVisibleCount">${contracts.size()}</span> / ${contracts.size()} hợp đồng</div>
+                        <div class="text-muted small"><span id="historyVisibleCount">${auditLogs.size()}</span> / ${auditLogs.size()} thay đổi</div>
                     </div>
 
-                    <!-- Nút này sẽ được đẩy sát lề phải nhờ justify-content-between -->
                     <c:if test="${isHrStaffRole and param.scope != 'own'}">
                         <button type="button" class="btn btn-outline-warning" onclick="runSchedulerNow()" id="btnRunScheduler">
                             <i class="fa-solid fa-play me-1"></i>Chạy Scheduler
@@ -82,16 +81,9 @@
                     </c:if>
                 </div>
 
-                <!-- Hàng 2: Search và Phân loại hợp đồng (Nằm dưới hàng trên) -->
                 <div class="d-flex gap-2 flex-wrap mb-4">
-                    <input type="text" id="historySearchInput" class="form-control" style="width:280px;" placeholder="Tìm theo mã hợp đồng hoặc nhân viên">
-                    <select id="historyTypeFilter" class="form-select" style="width:220px;">
-                        <option value="">Tất cả loại hợp đồng</option>
-                        <option value="INTERNSHIP">Thực tập</option>
-                        <option value="PROBATION">Thử việc</option>
-                        <option value="FIXED_TERM">Có thời hạn</option>
-                        <option value="INDEFINITE">Không xác định thời hạn</option>
-                    </select>
+                    <input type="text" id="historySearchInput" class="form-control" style="width:280px;" placeholder="Tìm theo nội dung hoặc người thay đổi...">
+
                 </div>
 
 
@@ -102,56 +94,71 @@
                 </c:if>
 
                 <c:choose>
-                    <c:when test="${empty contracts}">
-                        <div class="alert alert-info mb-0">Chưa có dữ liệu hợp đồng để hiển thị.</div>
+                    <c:when test="${empty auditLogs}">
+                        <div class="alert alert-info mb-0">Chưa có dữ liệu lịch sử thay đổi hợp đồng.</div>
                     </c:when>
                     <c:otherwise>
                         <div id="historyContractList">
-                            <c:forEach var="contract" items="${contracts}">
-                                <c:set var="employeeInfo" value="${employeeMap[contract.employeeId]}" />
-                                <div class="contract-item history-contract-item"
-                                     data-type="${contract.contractType}"
-                                     data-search="${contract.contractCode} ${employeeInfo.employeeCode} ${employeeInfo.fullName}">
+                            <c:forEach var="log" items="${auditLogs}">
+                                <div class="contract-item history-contract-item" data-search="${log.actionReason} ${log.changedByName} ${log.fieldName} ${log.newStatus} ${log.oldStatus}">
                                     <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
-                                        <div>
-                                            <h6 class="mb-1">${empty contract.contractCode ? contract.contractId : contract.contractCode}</h6>
-                                            <div class="text-muted mb-2">${employeeInfo.fullName} (${employeeInfo.employeeCode})</div>
-                                            <div class="d-flex flex-wrap gap-2">
-                                                <span class="meta-chip"><i class="fa-regular fa-file-lines"></i>${contract.contractType.displayName}</span>
-                                                <span class="meta-chip"><i class="fa-regular fa-calendar"></i><fmt:formatDate value="${contract.effectiveDate}" pattern="dd/MM/yyyy"/></span>
-                                                <span class="meta-chip">
-                                                    <i class="fa-regular fa-calendar-check"></i>
-                                                    <c:choose>
-                                                        <c:when test="${empty contract.endDate}">Không xác định thời hạn</c:when>
-                                                        <c:otherwise><fmt:formatDate value="${contract.endDate}" pattern="dd/MM/yyyy"/></c:otherwise>
-                                                    </c:choose>
-                                                </span>
-                                                <span class="meta-chip"><i class="fa-regular fa-clock"></i>
-                                                    <c:choose>
-                                                        <c:when test="${contract.status == 'PENDING_APPROVAL'}"><span style="background:#fef3c7;color:#92400e;border:1px solid #fbbf24;padding:2px 10px;border-radius:999px;font-size:12px;">Chờ duyệt</span></c:when>
-                                                        <c:when test="${contract.status == 'PENDING_ACTIVATION'}"><span style="background:#ede9fe;color:#5b21b6;border:1px solid #a78bfa;padding:2px 10px;border-radius:999px;font-size:12px;">Chờ hiệu lực</span></c:when>
-                                                        <c:when test="${contract.status == 'ACTIVE'}"><span style="background:#d1fae5;color:#065f46;border:1px solid #34d399;padding:2px 10px;border-radius:999px;font-size:12px;">Đang hiệu lực</span></c:when>
-                                                        <c:when test="${contract.status == 'EXPIRED'}"><span style="background:#f1f5f9;color:#475569;border:1px solid #94a3b8;padding:2px 10px;border-radius:999px;font-size:12px;">Đã hết hạn</span></c:when>
-                                                        <c:when test="${contract.status == 'TERMINATED'}"><span style="background:#ffe4e6;color:#9f1239;border:1px solid #fb7185;padding:2px 10px;border-radius:999px;font-size:12px;">Đã chấm dứt</span></c:when>
-                                                        <c:when test="${contract.status == 'CANCELLED'}"><span style="background:#f8fafc;color:#334155;border:1px solid #cbd5e1;padding:2px 10px;border-radius:999px;font-size:12px;">Đã hủy</span></c:when>
-                                                        <c:when test="${contract.status == 'REJECTED'}"><span style="background:#fef2f2;color:#991b1b;border:1px solid #fca5a5;padding:2px 10px;border-radius:999px;font-size:12px;">Bị từ chối</span></c:when>
-                                                        <c:otherwise>${contract.status}</c:otherwise>
-                                                    </c:choose>
-                                                </span>
+                                        <div class="flex-grow-1">
+                                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                                <div>
+                                                    <span class="badge bg-secondary me-2">#${log.contractId}</span>
+                                                    <span class="text-muted small"><fmt:formatDate value="${log.changeDate}" pattern="dd/MM/yyyy HH:mm"/></span>
+                                                </div>
+                                                <span class="badge bg-info">${log.changedByName}</span>
                                             </div>
+
+                                            <c:if test="${log.oldStatus == null and log.fieldName == null}">
+                                                <div class="mb-2">
+                                                    <i class="fa-solid fa-plus-circle text-success me-1"></i>
+                                                    <strong>Tạo hợp đồng</strong> (trạng thái: ${log.newStatus})
+                                                </div>
+                                            </c:if>
+
+                                            <c:if test="${log.fieldName == 'status' or (log.fieldName == null and log.oldStatus != null and log.oldStatus != 'CREATED' and log.oldStatus != '')}">
+                                                <div class="mb-2">
+                                                    <i class="fa-solid fa-arrow-right-arrow-left text-primary me-1"></i>
+                                                    <strong>Thay đổi trạng thái:</strong>
+                                                    <c:choose>
+                                                        <c:when test="${not empty log.oldStatus}"><span class="meta-chip">${log.oldStatus}</span></c:when>
+                                                        <c:otherwise><span class="meta-chip text-muted">(không có)</span></c:otherwise>
+                                                    </c:choose>
+                                                    <i class="fa-solid fa-arrow-right mx-1 text-muted"></i>
+                                                    <span class="meta-chip">${log.newStatus}</span>
+                                                    <c:if test="${not empty log.actionReason}">
+                                                        <div class="text-muted small mt-1">Lý do: ${log.actionReason}</div>
+                                                    </c:if>
+                                                </div>
+                                            </c:if>
+
+                                            <c:if test="${log.fieldName != null and log.fieldName != 'status'}">
+                                                <div class="mb-2">
+                                                    <i class="fa-solid fa-pen text-warning me-1"></i>
+                                                    <strong>Sửa ${log.fieldName}:</strong>
+                                                    <span class="text-danger text-decoration-line-through">${log.oldValue}</span>
+                                                    <i class="fa-solid fa-arrow-right mx-1 text-muted"></i>
+                                                    <span class="text-success fw-bold">${log.newValue}</span>
+                                                    <c:if test="${not empty log.actionReason}">
+                                                        <div class="text-muted small mt-1">Lý do: ${log.actionReason}</div>
+                                                    </c:if>
+                                                </div>
+                                            </c:if>
+
+                                            <c:if test="${not empty log.employeeName}">
+                                                <div class="text-muted small mt-1">
+                                                    <i class="fa-regular fa-user me-1"></i>Nhân viên: ${log.employeeName}
+                                                </div>
+                                            </c:if>
                                         </div>
-                                        <a class="btn btn-outline-primary" href="${pageContext.request.contextPath}/v1/manager/contract/detail?contractId=${contract.contractId}">
-                                            Chi tiết
-                                        </a>
                                     </div>
-                                    <c:if test="${not empty contract.note}">
-                                        <div class="mt-3 text-muted small">${contract.note}</div>
-                                    </c:if>
                                 </div>
                             </c:forEach>
                         </div>
                         <div id="historyNoMatch" class="alert alert-warning mt-3 hidden-item mb-0">
-                            Không tìm thấy hợp đồng phù hợp với bộ lọc hiện tại.
+                            Không tìm thấy kết quả phù hợp với bộ lọc hiện tại.
                         </div>
                     </c:otherwise>
                 </c:choose>
@@ -160,39 +167,30 @@
 
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
         <script>
-            (function () {
-                const input = document.getElementById("historySearchInput");
-                const typeFilter = document.getElementById("historyTypeFilter");
-                const items = Array.from(document.querySelectorAll(".history-contract-item"));
-                const emptyState = document.getElementById("historyNoMatch");
-                const countNode = document.getElementById("historyVisibleCount");
-                if (!input || !typeFilter || !items.length || !emptyState || !countNode) {
-                    return;
-                }
+                            (function () {
+                                const input = document.getElementById("historySearchInput");
+                                const items = Array.from(document.querySelectorAll(".history-contract-item"));
+                                const emptyState = document.getElementById("historyNoMatch");
+                                const countNode = document.getElementById("historyVisibleCount");
+                                if (!input || !items.length || !emptyState || !countNode)
+                                    return;
 
-                const normalize = (value) => (value || "").toLowerCase().trim();
-                const applyFilter = () => {
-                    const keyword = normalize(input.value);
-                    const typeValue = normalize(typeFilter.value);
-                    let visible = 0;
+                                const normalize = (value) => (value || "").toLowerCase().trim();
+                                const applyFilter = () => {
+                                    const keyword = normalize(input.value);
+                                    let visible = 0;
+                                    items.forEach((item) => {
+                                        const show = !keyword || normalize(item.dataset.search).includes(keyword);
+                                        item.classList.toggle("hidden-item", !show);
+                                        if (show)
+                                            visible++;
+                                    });
+                                    countNode.textContent = visible;
+                                    emptyState.classList.toggle("hidden-item", visible !== 0);
+                                };
 
-                    items.forEach((item) => {
-                        const matchesKeyword = !keyword || normalize(item.dataset.search).includes(keyword);
-                        const matchesType = !typeValue || normalize(item.dataset.type) === typeValue;
-                        const show = matchesKeyword && matchesType;
-                        item.classList.toggle("hidden-item", !show);
-                        if (show) {
-                            visible++;
-                        }
-                    });
-
-                    countNode.textContent = visible;
-                    emptyState.classList.toggle("hidden-item", visible !== 0);
-                };
-
-                input.addEventListener("input", applyFilter);
-                typeFilter.addEventListener("change", applyFilter);
-            })();
+                                input.addEventListener("input", applyFilter);
+                            })();
         </script>
         <script>
             async function runSchedulerNow() {
