@@ -23,6 +23,7 @@ import dto.ClosingResult;
 import dto.EmployeeDetailDTO;
 import dto.FormRequestDTO;
 import dto.PayrollPreviewDTO;
+import dto.ContractImportDTO;
 import enums.FileStatus;
 import enums.ContractType;
 import enums.ContractStatus;
@@ -57,11 +58,16 @@ import service.EmailService;
 import service.PayrollService;
 import service.PayrollConfigWorkflowService;
 import service.EmploymentContractService;
+import service.ContractPdfService;
 import utils.AttendanceExcelExporter;
 import utils.Paging;
 import utils.ConfigManager;
-
 import com.lowagie.text.DocumentException;
+import service.PdfParsingService;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonPrimitive;
+import com.google.gson.JsonSerializer;
 
 @MultipartConfig(fileSizeThreshold = 1024 * 1024, // 1MB ghi ra đĩa
         maxFileSize = 10L * 1024 * 1024, // 10MB / file
@@ -94,6 +100,11 @@ public class EmployeeController extends HttpServlet {
     private final AttendanceClosingService attendanceClosingService = new AttendanceClosingService();
     private final PayrollConfigDAO payrollConfigDAO = new PayrollConfigDAO();
     private final PayrollConfigWorkflowService payrollConfigWorkflowService = new PayrollConfigWorkflowService();
+
+    private static final Gson GSON = new GsonBuilder()
+            .registerTypeAdapter(LocalDate.class,
+                    (JsonSerializer<LocalDate>) (src, type, context) -> new JsonPrimitive(src.toString()))
+            .create();
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
@@ -135,6 +146,9 @@ public class EmployeeController extends HttpServlet {
                 break;
             case "/contract/status":
                 displayAllContractsOverview(request, response, user);
+                break;
+            case "/contract/blank-template":
+                downloadBlankTemplate(request, response);
                 break;
             case "/contract/download-signed":
                 downloadSignedContract(request, response, user);
@@ -251,6 +265,9 @@ public class EmployeeController extends HttpServlet {
                 break;
             case "/contract/detail":
                 handleUpdateContract(request, response, user);
+                break;
+            case "/contract/parse-pdf":
+                handleParsePdf(request, response);
                 break;
             case "/department/unassign":
                 handleUnassignDepartment(request, response, user);
@@ -543,6 +560,20 @@ public class EmployeeController extends HttpServlet {
         request.getRequestDispatcher("/public/employee/contract/contract_status.jsp").forward(request, response);
     }
 
+    private void downloadBlankTemplate(HttpServletRequest request, HttpServletResponse response) throws IOException {
+        String type = request.getParameter("type");
+        if (type == null || type.isEmpty()) {
+            type = "fixed_term";
+        }
+        String templateName = "contract_" + type + ".html";
+        String templatePath = getServletContext().getRealPath("/templates/" + templateName);
+        try {
+            new ContractPdfService().generateBlankPdf(templatePath, response);
+        } catch (DocumentException e) {
+            throw new IOException("Blank PDF generation failed", e);
+        }
+    }
+
     private void downloadSignedContract(HttpServletRequest request, HttpServletResponse response,
             User user) throws IOException {
         if (!isHrStaff(user) || !hasPermission(user, "ADD_EMPLOYMENT_CONTRACT")) {
@@ -671,6 +702,31 @@ public class EmployeeController extends HttpServlet {
         } catch (IllegalArgumentException e) {
             request.getSession().setAttribute("error", "Giá trị không hợp lệ: " + e.getMessage());
             response.sendRedirect(request.getContextPath() + "/v1/employee/contract/history");
+        }
+    }
+
+    private void handleParsePdf(HttpServletRequest request, HttpServletResponse response) throws IOException {
+        try {
+            jakarta.servlet.http.Part filePart = request.getPart("file");
+            if (filePart == null || filePart.getSize() <= 0) {
+                response.setStatus(400);
+                response.setContentType("application/json; charset=UTF-8");
+                response.getWriter().write("{\"error\":\"Không tìm thấy file PDF.\"}");
+                return;
+            }
+
+            PdfParsingService parsingService = new PdfParsingService();
+            ContractImportDTO dto = parsingService.parsePdf(filePart.getInputStream());
+
+            response.setContentType("application/json; charset=UTF-8");
+            response.getWriter().write(GSON.toJson(dto));
+
+        } catch (Exception e) {
+            response.setStatus(500);
+            response.setContentType("application/json; charset=UTF-8");
+            java.util.Map<String, String> errorMap = new java.util.HashMap<>();
+            errorMap.put("error", "Lỗi xử lý PDF: " + e.getMessage());
+            response.getWriter().write(GSON.toJson(errorMap));
         }
     }
 

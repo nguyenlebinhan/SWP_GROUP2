@@ -151,7 +151,7 @@
 
     <c:if test="${sessionScope.userPermissions.contains('VIEW_ALL_CONTRACTS')}">
         <a href="${pageContext.request.contextPath}/v1/manager/contract/history">
-            Lịch sử hợp đồng nhân viên
+            Lịch sử hợp đồng
         </a>
     </c:if>
 
