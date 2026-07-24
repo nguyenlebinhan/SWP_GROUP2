@@ -56,7 +56,6 @@ import service.CandidateImportService;
 import service.EmailService;
 import service.PayrollService;
 import service.PayrollConfigWorkflowService;
-import service.ContractPdfService;
 import service.EmploymentContractService;
 import utils.AttendanceExcelExporter;
 import utils.Paging;
@@ -244,12 +243,6 @@ public class EmployeeController extends HttpServlet {
             case "/contract/detail":
                 handleContractDetailAction(request, response, user);
                 break;
-            case "/contract/preview-pdf":
-                previewContractPdf(request, response);
-                break;
-            case "/contract/export-pdf":
-                exportContractPdf(request, response);
-                break;
             case "/department/unassign":
                 handleUnassignDepartment(request, response, user);
                 break;
@@ -430,7 +423,7 @@ public class EmployeeController extends HttpServlet {
 
         Set<String> perms = getPermissions(user);
         request.getSession().setAttribute("userPermissions", perms);
-        request.setAttribute("employees", employeeDAO.getAllEmployees(user.getUserId()));
+        request.setAttribute("employees", employeeDAO.getAllEmployees());
         setPermissionFlags(request, perms);
         request.getRequestDispatcher("/public/employee/contract/add_contract.jsp").forward(request, response);
     }
@@ -484,62 +477,6 @@ public class EmployeeController extends HttpServlet {
         java.util.List<EmploymentContract> history = contractDAO.getContractHistory(employee.getEmployeeId());
         request.setAttribute("contractHistory", history);
         request.getRequestDispatcher("/public/employee/contract/contract_history.jsp").forward(request, response);
-    }
-
-    private void previewContractPdf(HttpServletRequest request, HttpServletResponse response) throws IOException {
-        String idParam = request.getParameter("id");
-        if (idParam == null || idParam.isEmpty()) {
-            try {
-                response.sendError(400, "Missing contract id");
-            } catch (IOException e) {
-            }
-            return;
-        }
-        int contractId = Integer.parseInt(idParam);
-        EmploymentContract contract = contractDAO.getContractById(contractId);
-        if (contract == null) {
-            try {
-                response.sendError(404, "Contract not found");
-            } catch (IOException e) {
-            }
-            return;
-        }
-        String templateName = (contract.getContractType() == ContractType.INDEFINITE)
-                ? "contract_indefinite.html" : "contract_fixed_term.html";
-        String templatePath = getServletContext().getRealPath("/templates/" + templateName);
-        try {
-            new ContractPdfService().generatePdf(contractId, templatePath, response, true);
-        } catch (DocumentException e) {
-            throw new IOException("PDF generation failed", e);
-        }
-    }
-
-    private void exportContractPdf(HttpServletRequest request, HttpServletResponse response) throws IOException {
-        String idParam = request.getParameter("id");
-        if (idParam == null || idParam.isEmpty()) {
-            try {
-                response.sendError(400, "Missing contract id");
-            } catch (IOException e) {
-            }
-            return;
-        }
-        int contractId = Integer.parseInt(idParam);
-        EmploymentContract contract = contractDAO.getContractById(contractId);
-        if (contract == null) {
-            try {
-                response.sendError(404, "Contract not found");
-            } catch (IOException e) {
-            }
-            return;
-        }
-        String templateName = (contract.getContractType() == ContractType.INDEFINITE)
-                ? "contract_indefinite.html" : "contract_fixed_term.html";
-        String templatePath = getServletContext().getRealPath("/templates/" + templateName);
-        try {
-            new ContractPdfService().generatePdf(contractId, templatePath, response, false);
-        } catch (DocumentException e) {
-            throw new IOException("PDF generation failed", e);
-        }
     }
 
     private void handleContractDetailAction(HttpServletRequest request, HttpServletResponse response,
@@ -2110,7 +2047,7 @@ public class EmployeeController extends HttpServlet {
         if (code == null || type == null || isBlank(employeeParam) || isBlank(effectiveDate) || isBlank(salaryParam)) {
             request.setAttribute("error",
                     "Vui lòng nhập đầy đủ mã hợp đồng, nhân viên, loại hợp đồng, ngày bắt đầu và lương.");
-            request.setAttribute("employees", employeeDAO.getAllEmployees(user.getUserId()));
+            request.setAttribute("employees", employeeDAO.getAllEmployees());
             setPermissionFlags(request, getPermissions(user));
             request.getRequestDispatcher("/public/employee/contract/add_contract.jsp").forward(request, response);
             return;
@@ -2124,7 +2061,7 @@ public class EmployeeController extends HttpServlet {
             contract.setSalary(new BigDecimal(salaryParam));
         } catch (IllegalArgumentException e) {
             request.setAttribute("error", "Dữ liệu hợp đồng không hợp lệ.");
-            request.setAttribute("employees", employeeDAO.getAllEmployees(user.getUserId()));
+            request.setAttribute("employees", employeeDAO.getAllEmployees());
             setPermissionFlags(request, getPermissions(user));
             request.getRequestDispatcher("/public/employee/contract/add_contract.jsp").forward(request, response);
             return;
@@ -2134,7 +2071,7 @@ public class EmployeeController extends HttpServlet {
             ContractType.valueOf(type.toUpperCase());
         } catch (IllegalArgumentException e) {
             request.setAttribute("error", "Loại hợp đồng không hợp lệ.");
-            request.setAttribute("employees", employeeDAO.getAllEmployees(user.getUserId()));
+            request.setAttribute("employees", employeeDAO.getAllEmployees());
             setPermissionFlags(request, getPermissions(user));
             request.getRequestDispatcher("/public/employee/contract/add_contract.jsp").forward(request, response);
             return;
@@ -2147,7 +2084,7 @@ public class EmployeeController extends HttpServlet {
             request.setAttribute("error",
                     "Loại hợp đồng không hợp lệ.");
             request.setAttribute("employees",
-                    employeeDAO.getAllEmployees(user.getUserId()));
+                    employeeDAO.getAllEmployees());
             setPermissionFlags(request, getPermissions(user));
             request.getRequestDispatcher(
                     "/public/employee/contract/add_contract.jsp")
@@ -2169,7 +2106,7 @@ public class EmployeeController extends HttpServlet {
                     request.getContextPath() + "/v1/employee/contract/preview?employeeId=" + contract.getEmployeeId());
         } else {
             request.setAttribute("error", "Thêm hợp đồng thất bại: " + result.getMessage());
-            request.setAttribute("employees", employeeDAO.getAllEmployees(user.getUserId()));
+            request.setAttribute("employees", employeeDAO.getAllEmployees());
             setPermissionFlags(request, getPermissions(user));
             request.getRequestDispatcher("/public/employee/contract/add_contract.jsp").forward(request, response);
         }

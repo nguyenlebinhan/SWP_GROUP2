@@ -201,18 +201,9 @@ public class EmploymentContractDAO {
         }
     }
 
-    public boolean deleteContract(Connection conn, int contractId) throws SQLException {
-        String SQL = "DELETE FROM Employment_Contracts WHERE contractId = ?";
-        try (PreparedStatement ps = conn.prepareStatement(SQL)) {
-            ps.setInt(1, contractId);
-            return ps.executeUpdate() > 0;
-        }
-    }
-
     public List<EmploymentContract> getContractHistory(int employeeId) {
         List<EmploymentContract> contracts = new ArrayList<>();
         String SQL = "SELECT " + BASE_COLUMNS + " FROM Employment_Contracts WHERE employeeId = ? "
-                + "AND status != 'DRAFT' "
                 + "ORDER BY effectiveDate ASC, contractId ASC";
         try (Connection conn = getInternalConnection(); PreparedStatement ps = conn.prepareStatement(SQL)) {
             ps.setInt(1, employeeId);
@@ -684,7 +675,7 @@ public class EmploymentContractDAO {
     }
 
     public boolean existsByContractCode(String contractCode, Integer excludeContractId) {
-        String SQL = "SELECT 1 FROM Employment_Contracts WHERE contractCode = ? AND status != 'DRAFT'";
+        String SQL = "SELECT 1 FROM Employment_Contracts WHERE contractCode = ?";
         if (excludeContractId != null) {
             SQL += " AND contractId != ?";
         }
@@ -703,6 +694,21 @@ public class EmploymentContractDAO {
         return false;
     }
 
+    public String getMaxContractCode() {
+        String SQL = "SELECT MAX(CAST(SUBSTRING(contractCode, 3, 6) AS UNSIGNED)) FROM Employment_Contracts WHERE contractCode LIKE 'HD%'";
+        try (Connection conn = dbContext.getConnection(); PreparedStatement ps = conn.prepareStatement(SQL); ResultSet rs = ps.executeQuery()) {
+            if (rs.next()) {
+                int maxSeq = rs.getInt(1);
+                if (maxSeq > 0) {
+                    return String.format("HD%06d", maxSeq);
+                }
+            }
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Cannot get max contract code", e);
+        }
+        return null;
+    }
+
     public List<EmploymentContract> getPendingContracts() throws SQLException {
         List<EmploymentContract> contracts = new ArrayList<>();
         String SQL = "SELECT ec.*, u.fullName, e.employeeCode "
@@ -719,24 +725,5 @@ public class EmploymentContractDAO {
             }
         }
         return contracts;
-    }
-
-    public List<EmploymentContract> getDraftContractsByCreatedBy(int createdBy) {
-        String SQL = "SELECT ec.*, u.fullName, e.employeeCode "
-                + "FROM Employment_Contracts ec "
-                + "JOIN Users u ON ec.createdBy = u.userId "
-                + "JOIN Employees e ON ec.employeeId = e.employeeId "
-                + "WHERE ec.createdBy = ? AND ec.status = 'DRAFT' ORDER BY ec.updatedAt DESC";
-        List<EmploymentContract> list = new ArrayList<>();
-        try (Connection conn = dbContext.getConnection(); PreparedStatement ps = conn.prepareStatement(SQL)) {
-            ps.setInt(1, createdBy);
-            ResultSet rs = ps.executeQuery();
-            while (rs.next()) {
-                list.add(mapContract(rs));
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-        return list;
     }
 }

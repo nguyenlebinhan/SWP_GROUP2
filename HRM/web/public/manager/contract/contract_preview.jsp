@@ -287,14 +287,6 @@
                                 <i class="fa-solid fa-file-pdf me-1"></i> Xem hợp đồng đã ký
                             </a>
                         </c:when>
-                        <c:otherwise>
-                            <a class="btn btn-outline-primary" href="${pageContext.request.contextPath}/v1/manager/contract/preview-pdf?id=${contract.contractId}">
-                                <i class="fa-solid fa-eye me-1"></i> Xem hợp đồng nháp
-                            </a>
-                            <a class="btn btn-primary" href="${pageContext.request.contextPath}/v1/manager/contract/export-pdf?id=${contract.contractId}">
-                                <i class="fa-solid fa-download me-1"></i> Xuất PDF
-                            </a>
-                        </c:otherwise>
                     </c:choose>
                 </div>
             </div>

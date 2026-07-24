@@ -2,7 +2,6 @@
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
 <%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
 <jsp:useBean id="contractDAO" class="dao.EmploymentContractDAO" scope="page" />
-<c:set var="draft" value="${empty param.draftId ? null : contractDAO.getContractById(param.draftId)}" />
 <!DOCTYPE html>
 <html lang="vi">
     <head>
@@ -58,19 +57,18 @@
 
             <div class="page-card">
                 <form id="contractForm" method="post" action="${pageContext.request.contextPath}/v1/manager/contract/add" enctype="multipart/form-data">
-                    <input type="hidden" name="draftId" value="${param.draftId}" />
                     <div class="row g-3">
                         <div class="col-md-6">
                             <label class="form-label">Mã hợp đồng</label>
                             <input type="text" name="contractCode" id="contractCode" class="form-control"
-                                   value="${draft != null ? draft.contractCode : param.contractCode}" required>
+                                   value="${generatedCode}" readonly>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Nhân viên</label>
                             <select name="employeeId" id="employeeId" class="form-select" required>
                                 <option value="">-- Chọn nhân viên --</option>
                                 <c:forEach var="emp" items="${employees}">
-                                    <option value="${emp.employeeId}" ${(draft != null ? draft.employeeId : param.employeeId) == emp.employeeId ? 'selected' : ''}>
+                                    <option value="${emp.employeeId}" ${param.employeeId == emp.employeeId ? 'selected' : ''}>
                                         ${emp.fullName} (${emp.employeeCode})
                                     </option>
                                 </c:forEach>
@@ -80,26 +78,26 @@
                             <label class="form-label">Loại hợp đồng</label>
                             <select name="contractType" id="contractType" class="form-select" required>
                                 <option value="">-- Chọn loại hợp đồng --</option>
-                                <option value="PROBATION" ${(draft != null ? draft.contractType.name() : param.contractType) == 'PROBATION' ? 'selected' : ''}>Thử việc</option>
-                                <option value="INTERNSHIP" ${(draft != null ? draft.contractType.name() : param.contractType) == 'INTERNSHIP' ? 'selected' : ''}>Thực tập</option>
-                                <option value="FIXED_TERM" ${(draft != null ? draft.contractType.name() : param.contractType) == 'FIXED_TERM' ? 'selected' : ''}>Có thời hạn</option>
-                                <option value="INDEFINITE" ${(draft != null ? draft.contractType.name() : param.contractType) == 'INDEFINITE' ? 'selected' : ''}>Không xác định thời hạn</option>
+                                <option value="PROBATION" ${param.contractType == 'PROBATION' ? 'selected' : ''}>Thử việc</option>
+                                <option value="INTERNSHIP" ${param.contractType == 'INTERNSHIP' ? 'selected' : ''}>Thực tập</option>
+                                <option value="FIXED_TERM" ${param.contractType == 'FIXED_TERM' ? 'selected' : ''}>Có thời hạn</option>
+                                <option value="INDEFINITE" ${param.contractType == 'INDEFINITE' ? 'selected' : ''}>Không xác định thời hạn</option>
                             </select>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Lương</label>
                             <input type="number" name="salary" id="salary" class="form-control" min="0" step="1000"
-                                   value="${draft != null ? draft.salary.intValue() : param.salary}" required>
+                                   value="${param.salary}" required>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Ngày hiệu lực</label>
                             <input type="date" name="effectiveDate" id="effectiveDate" class="form-control"
-                                   value="${draft != null ? draft.effectiveDate.toString() : param.effectiveDate}" required>
+                                   value="${param.effectiveDate}" required>
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label">Ngày ký <small class="text-muted">(không bắt buộc)</small></label>
+                            <label class="form-label">Ngày ký</label>
                             <input type="date" name="signedDate" id="signedDate" class="form-control"
-                                   value="${draft != null ? draft.signedDate.toString() : param.signedDate}">
+                                   value="${param.signedDate}">
                         </div>
                         <div class="col-md-6" id="durationGroup">
                             <label class="form-label">Thời hạn</label>
@@ -110,7 +108,7 @@
                         </div>
                         <div class="col-12">
                             <label class="form-label">Ghi chú</label>
-                            <textarea name="note" id="note" class="form-control" rows="3">${draft != null ? draft.note : param.note}</textarea>
+                            <textarea name="note" id="note" class="form-control" rows="3">${param.note}</textarea>
                         </div>
                         <div class="col-12">
                             <div class="form-check mt-2">
@@ -128,8 +126,13 @@
                         </div>
                         <div class="col-12">
                             <label class="form-label">File hợp đồng đã ký (PDF)</label>
-                            <input type="file" name="signedContract" id="signedContract" class="form-control" accept="application/pdf">
-                            <div class="form-text">Chỉ chấp nhận file PDF, tối đa 10MB.</div>
+                            <div class="input-group">
+                                <input type="file" name="signedContract" id="signedContract" class="form-control" accept="application/pdf">
+                                <button type="button" id="extractBtn" class="btn btn-outline-primary">
+                                    <i class="fa-solid fa-file-import me-1"></i> Trích xuất thông tin
+                                </button>
+                            </div>
+                            <div id="extractStatus" class="form-text">Chỉ chấp nhận file PDF, tối đa 10MB.</div>
                         </div>
                     </div>
 
@@ -144,12 +147,6 @@
                         <a class="btn btn-outline-info" href="${pageContext.request.contextPath}/v1/manager/contract/blank-template?type=fixed_term">
                             <i class="fa-solid fa-file-export me-1"></i> Tải mẫu hợp đồng trống
                         </a>
-                        <button type="submit" class="btn btn-outline-warning" name="action" value="save-draft" formaction="${pageContext.request.contextPath}/v1/manager/contract/save-draft">
-                            <i class="fa-solid fa-floppy-disk me-1"></i> Lưu nháp
-                        </button>
-                        <a class="btn btn-outline-secondary" href="${pageContext.request.contextPath}/v1/manager/contract/draft-list">
-                            <i class="fa-solid fa-list me-1"></i> Danh sách nháp
-                        </a>
                     </div>
                 </form>
             </div>
@@ -157,91 +154,199 @@
 
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
         <script>
-                               document.addEventListener('DOMContentLoaded', function () {
-                                   const contractType = document.getElementById('contractType');
-                                   const durationSelect = document.getElementById('durationValue');
-                                   const durationUnit = document.getElementById('durationUnit');
-                                   const endDateInput = document.createElement('input');
-                                   endDateInput.type = 'hidden';
-                                   endDateInput.name = 'endDateOld';
-                                   endDateInput.id = 'endDateOld';
+                               document.getElementById('extractBtn').addEventListener('click', function () {
+                                   const fileInput = document.getElementById('signedContract');
+                                   const file = fileInput.files[0];
+                                   const statusDiv = document.getElementById('extractStatus');
 
-                                   const durationOptions = {
-                                       'PROBATION': [
-                                           {value: 30, label: '30 ngày', unit: 'DAY'},
-                                           {value: 60, label: '60 ngày', unit: 'DAY'},
-                                           {value: 180, label: '180 ngày', unit: 'DAY'}
-                                       ],
-                                       'INTERNSHIP': [
-                                           {value: 2, label: '2 tháng', unit: 'MONTH'},
-                                           {value: 3, label: '3 tháng', unit: 'MONTH'},
-                                           {value: 4, label: '4 tháng', unit: 'MONTH'},
-                                           {value: 5, label: '5 tháng', unit: 'MONTH'},
-                                           {value: 6, label: '6 tháng', unit: 'MONTH'}
-                                       ],
-                                       'FIXED_TERM': [
-                                           {value: 1, label: '1 năm', unit: 'YEAR'},
-                                           {value: 2, label: '2 năm', unit: 'YEAR'},
-                                           {value: 3, label: '3 năm', unit: 'YEAR'}
-                                       ],
-                                       'INDEFINITE': []
-                                   };
+                                   if (!file) {
+                                       statusDiv.textContent = 'Vui lòng chọn file PDF trước.';
+                                       statusDiv.className = 'form-text text-danger';
+                                       return;
+                                   }
 
-                                   function updateDuration() {
-                                       const type = contractType.value;
-                                       durationSelect.innerHTML = '';
+                                   const formData = new FormData();
+                                   formData.append('file', file);
 
-                                       if (type === 'INDEFINITE') {
-                                           const opt = document.createElement('option');
-                                           opt.value = '';
-                                           opt.textContent = 'Không xác định';
-                                           durationSelect.appendChild(opt);
-                                           durationSelect.disabled = true;
-                                           durationUnit.value = '';
-                                       } else if (durationOptions[type]) {
-                                           durationSelect.disabled = false;
-                                           const placeholder = document.createElement('option');
-                                           placeholder.value = '';
-                                           placeholder.textContent = '-- Chọn thời hạn --';
-                                           durationSelect.appendChild(placeholder);
+                                   statusDiv.textContent = 'Đang xử lý...';
+                                   statusDiv.className = 'form-text text-info';
 
-                                           durationOptions[type].forEach(function (opt) {
-                                               const option = document.createElement('option');
-                                               option.value = opt.value;
-                                               option.textContent = opt.label;
-                                               option.dataset.unit = opt.unit;
-                                               durationSelect.appendChild(option);
+                                   fetch('${pageContext.request.contextPath}/v1/manager/contract/parse-pdf', {
+                                       method: 'POST',
+                                       body: formData
+                                   })
+                                           .then(response => response.json())
+                                           .then(data => {
+                                               if (data.contractType) {
+                                                   document.getElementById('contractType').value = data.contractType;
+                                                   document.getElementById('contractType').dispatchEvent(new Event('change'));
+                                               }
+                                               if (data.effectiveDate) {
+                                                   document.getElementById('effectiveDate').value = data.effectiveDate;
+                                               }
+                                               if (data.signedDate)
+                                                   document.getElementById('signedDate').value = data.signedDate;
+                                               if (data.salary)
+                                                   document.getElementById('salary').value = data.salary;
+
+                                               if (data.employeeCode) {
+                                                   const empSelect = document.getElementById('employeeId');
+                                                   for (let i = 0; i < empSelect.options.length; i++) {
+                                                       if (empSelect.options[i].text.includes(data.employeeCode)) {
+                                                           empSelect.value = empSelect.options[i].value;
+                                                           break;
+                                                       }
+                                                   }
+                                               }
+
+                                               if (data.effectiveDate && data.endDate && data.contractType !== 'INDEFINITE') {
+                                                   const start = new Date(data.effectiveDate);
+                                                   const end = new Date(data.endDate);
+                                                   const diffYears = end.getFullYear() - start.getFullYear();
+                                                   const diffMonths = (diffYears * 12) + (end.getMonth() - start.getMonth());
+
+                                                   const durSelect = document.getElementById('durationValue');
+                                                   let found = false;
+                                                   for (let i = 0; i < durSelect.options.length; i++) {
+                                                       const opt = durSelect.options[i];
+                                                       if (data.contractType === 'FIXED_TERM' && diffYears == opt.value) {
+                                                           durSelect.value = opt.value;
+                                                           document.getElementById('durationUnit').value = opt.dataset.unit || 'YEAR';
+                                                           found = true;
+                                                           break;
+                                                       } else if (data.contractType === 'PROBATION' && diffMonths == opt.value) {
+                                                           durSelect.value = opt.value;
+                                                           document.getElementById('durationUnit').value = opt.dataset.unit || 'DAY';
+                                                           found = true;
+                                                           break;
+                                                       } else if (data.contractType === 'INTERNSHIP' && diffMonths == opt.value) {
+                                                           durSelect.value = opt.value;
+                                                           document.getElementById('durationUnit').value = opt.dataset.unit || 'MONTH';
+                                                           found = true;
+                                                           break;
+                                                       }
+                                                   }
+                                                   if (found) {
+                                                       durSelect.dispatchEvent(new Event('change'));
+                                                   }
+                                               }
+
+                                               if (data.employeeName) {
+                                                   statusDiv.textContent = 'Tìm thấy: ' + data.employeeName + (data.employeeCode ? ' (' + data.employeeCode + ')' : '') + '. Vui lòng kiểm tra lại thông tin.';
+                                                   statusDiv.className = 'form-text text-success';
+                                               } else {
+                                                   statusDiv.textContent = 'Đã điền thông tin. Vui lòng kiểm tra lại.';
+                                                   statusDiv.className = 'form-text text-success';
+                                               }
+                                           })
+                                           .catch(error => {
+                                               statusDiv.textContent = 'Lỗi xử lý PDF: ' + error.message;
+                                               statusDiv.className = 'form-text text-danger';
                                            });
-                                       }
-                                   }
-
-                                   function updateUnit() {
-                                       const selected = durationSelect.options[durationSelect.selectedIndex];
-                                       if (selected && selected.dataset.unit) {
-                                           durationUnit.value = selected.dataset.unit;
-                                       } else {
-                                           durationUnit.value = '';
-                                       }
-                                   }
-
-                                   contractType.addEventListener('change', function () {
-                                       updateDuration();
-                                       updateUnit();
-                                   });
-
-                                   durationSelect.addEventListener('change', updateUnit);
-
-                                   updateDuration();
-                                   if (durationSelect.options.length > 0) {
-                                       const savedVal = '${param.durationValue}';
-                                       if (savedVal) {
-                                           durationSelect.value = savedVal;
-                                           updateUnit();
-                                       }
-                                   }
                                });
         </script>
-        =======
-        >>>>>>> 184a1144a1fd9114ced214d47b5fe1628bf7886b
+        <script>
+            document.addEventListener('DOMContentLoaded', function () {
+                const contractType = document.getElementById('contractType');
+                const durationSelect = document.getElementById('durationValue');
+                const durationUnit = document.getElementById('durationUnit');
+                const endDateInput = document.createElement('input');
+                endDateInput.type = 'hidden';
+                endDateInput.name = 'endDateOld';
+                endDateInput.id = 'endDateOld';
+
+                const durationOptions = {
+                    'PROBATION': [
+                        {value: 30, label: '30 ngày', unit: 'DAY'},
+                        {value: 60, label: '60 ngày', unit: 'DAY'},
+                        {value: 180, label: '180 ngày', unit: 'DAY'}
+                    ],
+                    'INTERNSHIP': [
+                        {value: 2, label: '2 tháng', unit: 'MONTH'},
+                        {value: 3, label: '3 tháng', unit: 'MONTH'},
+                        {value: 4, label: '4 tháng', unit: 'MONTH'},
+                        {value: 5, label: '5 tháng', unit: 'MONTH'},
+                        {value: 6, label: '6 tháng', unit: 'MONTH'}
+                    ],
+                    'FIXED_TERM': [
+                        {value: 1, label: '1 năm', unit: 'YEAR'},
+                        {value: 2, label: '2 năm', unit: 'YEAR'},
+                        {value: 3, label: '3 năm', unit: 'YEAR'}
+                    ],
+                    'INDEFINITE': []
+                };
+
+                function updateDuration() {
+                    const type = contractType.value;
+                    durationSelect.innerHTML = '';
+
+                    if (type === 'INDEFINITE') {
+                        const opt = document.createElement('option');
+                        opt.value = '';
+                        opt.textContent = 'Không xác định';
+                        durationSelect.appendChild(opt);
+                        durationSelect.disabled = true;
+                        durationUnit.value = '';
+                    } else if (durationOptions[type]) {
+                        durationSelect.disabled = false;
+                        const placeholder = document.createElement('option');
+                        placeholder.value = '';
+                        placeholder.textContent = '-- Chọn thời hạn --';
+                        durationSelect.appendChild(placeholder);
+
+                        durationOptions[type].forEach(function (opt) {
+                            const option = document.createElement('option');
+                            option.value = opt.value;
+                            option.textContent = opt.label;
+                            option.dataset.unit = opt.unit;
+                            durationSelect.appendChild(option);
+                        });
+                    }
+                }
+
+                function updateUnit() {
+                    const selected = durationSelect.options[durationSelect.selectedIndex];
+                    if (selected && selected.dataset.unit) {
+                        durationUnit.value = selected.dataset.unit;
+                    } else {
+                        durationUnit.value = '';
+                    }
+                }
+
+                contractType.addEventListener('change', function () {
+                    updateDuration();
+                    updateUnit();
+                });
+
+                durationSelect.addEventListener('change', updateUnit);
+
+                updateDuration();
+                if (durationSelect.options.length > 0) {
+                    const savedVal = '${param.durationValue}';
+                    if (savedVal) {
+                        durationSelect.value = savedVal;
+                        updateUnit();
+                    }
+                }
+            });
+        </script>
+        <script>
+            document.addEventListener('DOMContentLoaded', function () {
+                const effectiveDateInput = document.getElementById('effectiveDate');
+                const signedDateInput = document.getElementById('signedDate');
+
+                if (effectiveDateInput && signedDateInput) {
+                    effectiveDateInput.addEventListener('change', function () {
+                        if (!signedDateInput.value) {
+                            signedDateInput.value = this.value;
+                        }
+                    });
+
+                    if (effectiveDateInput.value && !signedDateInput.value) {
+                        signedDateInput.value = effectiveDateInput.value;
+                    }
+                }
+            });
+        </script>
     </body>
 </html>
