@@ -640,84 +640,32 @@ public class DBInitializer {
             for (String table : createOrder) {
                 if (enforceReset || !tableExists(conn, table)) {
                     switch (table) {
-                        case "Roles":
-                            createTableRoles(conn);
-                            break;
-                        case "Permissions":
-                            createTablePermissions(conn);
-                            break;
-                        case "Role_Permissions":
-                            createTableRolePermissions(conn);
-                            break;
-                        case "Positions":
-                            createTablePosition(conn);
-                            break;
-                        case "Departments":
-                            createTableDepartments(conn);
-                            break;
-                        case "Department_Roles":
-                            createTableDepartmentRoles(conn);
-                            break;
-                        case "Users":
-                            createTableUsers(conn);
-                            break;
-                        case "Employees":
-                            createTableEmployees(conn);
-                            break;
-                        case "Employment_Contracts":
-                            createTableEmploymentContracts(conn);
-                            break;
-                        case "Contract_Audit_Log":
-                            createTableContractAuditLog(conn);
-                            break;
-                        case "Uploaded_Files":
-                            createTableUploadedFiles(conn);
-                            break;
-                        case "Form_Types":
-                            createTableFormTypes(conn);
-                            break;
-                        case "Form_Requests":
-                            createTableFormRequests(conn);
-                            break;
-                        case "Overtime_Details":
-                            createTableOvertimeDetails(conn);
-                            break;
-                        case "Overtime_Assignees":
-                            createTableOvertimeAssignees(conn);
-                            break;
-                        case "Leave_Balances":
-                            createTableLeaveBalances(conn);
-                            break;
-                        case "Attendance":
-                            createTableAttendance(conn);
-                            break;
-                        case "Attendance_Adjustment_History":
-                            createTableAttendanceAdjustmentHistory(conn);
-                            break;
-                        case "Attendance_Period_Status":
-                            createTableAttendancePeriodStatus(conn);
-                            break;
-                        case "Payroll":
-                            createTablePayroll(conn);
-                            break;
-                        case "Payroll_Settings":
-                            createTablePayrollSettings(conn);
-                            break;
-                        case "Payroll_Deduction_Rules":
-                            createTablePayrollDeductionRules(conn);
-                            break;
-                        case "Payroll_Tax_Brackets":
-                            createTablePayrollTaxBrackets(conn);
-                            break;
-                        case "Payroll_Config_Change_Requests":
-                            createTablePayrollConfigChangeRequests(conn);
-                            break;
-                        case "Audit_Logs":
-                            createTableAuditLogs(conn);
-                            break;
-                        default:
-                            LOGGER.log(Level.WARNING, "Unknown table: {0}", table);
-                            break;
+                        case "Roles":             createTableRoles(conn);             break;
+                        case "Permissions":       createTablePermissions(conn);       break;
+                        case "Role_Permissions":  createTableRolePermissions(conn);   break;
+                        case "Positions":         createTablePosition(conn);          break;
+                        case "Departments":       createTableDepartments(conn);       break;
+                        case "Department_Roles":  createTableDepartmentRoles(conn);   break;
+                        case "Users":             createTableUsers(conn);             break;
+                        case "Employees":         createTableEmployees(conn);         break;
+                        case "Employment_Contracts": createTableEmploymentContracts(conn); break;
+                        case "Contract_Audit_Log": createTableContractAuditLog(conn); break;
+                        case "Uploaded_Files":    createTableUploadedFiles(conn);     break;
+                        case "Form_Types":        createTableFormTypes(conn);         break;
+                        case "Form_Requests":     createTableFormRequests(conn);      break;
+                        case "Overtime_Details":  createTableOvertimeDetails(conn);   break;
+                        case "Overtime_Assignees": createTableOvertimeAssignees(conn); break;
+                        case "Leave_Balances":    createTableLeaveBalances(conn);     break;
+                        case "Attendance":        createTableAttendance(conn);        break;
+                        case "Attendance_Adjustment_History": createTableAttendanceAdjustmentHistory(conn); break;
+                        case "Attendance_Period_Status": createTableAttendancePeriodStatus(conn); break;
+                        case "Payroll":           createTablePayroll(conn);           break;
+                        case "Payroll_Settings":  createTablePayrollSettings(conn);   break;
+                        case "Payroll_Deduction_Rules": createTablePayrollDeductionRules(conn); break;
+                        case "Payroll_Tax_Brackets": createTablePayrollTaxBrackets(conn); break;
+                        case "Payroll_Config_Change_Requests": createTablePayrollConfigChangeRequests(conn); break;
+                        case "Audit_Logs":        createTableAuditLogs(conn);         break;
+                        default: LOGGER.log(Level.WARNING, "Unknown table: {0}", table);     break;
                     }
                 }
             }
