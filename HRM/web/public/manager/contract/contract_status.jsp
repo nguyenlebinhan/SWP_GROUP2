@@ -5,7 +5,7 @@
 <html lang="vi">
     <head>
         <meta charset="UTF-8"/>
-        <title>Hợp đồng chờ duyệt - HRM</title>
+        <title>Tổng quan hợp đồng - HRM</title>
         <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
         <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
         <style>
@@ -58,48 +58,61 @@
 
         <div class="main">
             <jsp:include page="/public/components/managerTopBar.jsp">
-                <jsp:param name="title" value="Hợp đồng chờ duyệt" />
+                <jsp:param name="title" value="Tổng quan hợp đồng" />
                 <jsp:param name="backUrl" value="/v1/manager/dashboard" />
             </jsp:include>
 
             <div class="page-card">
                 <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-4">
                     <div>
-                        <h5 class="fw-bold mb-1">Danh sách chờ duyệt</h5>
-                        <div class="text-muted small"><span id="pendingVisibleCount">${contracts.size()}</span> / ${contracts.size()} hợp đồng</div>
+                        <h5 class="fw-bold mb-1">Tổng quan hợp đồng lao động</h5>
+                        <div class="text-muted small">
+                            <span id="contractVisibleCount">${contracts.size()}</span> / ${contracts.size()} hợp đồng
+                        </div>
                     </div>
                     <div class="d-flex gap-2 flex-wrap">
-                        <input type="text" id="pendingSearchInput" class="form-control" style="width:280px;" placeholder="Tìm theo mã hợp đồng hoặc nhân viên">
-                        <select id="pendingTypeFilter" class="form-select" style="width:220px;">
-                            <option value="">Tất cả loại hợp đồng</option>
+                        <input type="text" id="searchInput" class="form-control" style="width:220px;" placeholder="Tìm mã hợp đồng / nhân viên">
+                        <select id="typeFilter" class="form-select" style="width:180px;">
+                            <option value="">Tất cả loại</option>
                             <option value="INTERNSHIP">Thực tập</option>
                             <option value="PROBATION">Thử việc</option>
                             <option value="FIXED_TERM">Có thời hạn</option>
-                            <option value="INDEFINITE">Không xác định thời hạn</option>
+                            <option value="INDEFINITE">Không xác định</option>
+                        </select>
+                        <select id="statusFilter" class="form-select" style="width:180px;">
+                            <option value="">Tất cả trạng thái</option>
+                            <option value="PENDING_APPROVAL">Chờ duyệt</option>
+                            <option value="PENDING_ACTIVATION">Chờ hiệu lực</option>
+                            <option value="ACTIVE">Đang hiệu lực</option>
+                            <option value="EXPIRED">Đã hết hạn</option>
+                            <option value="TERMINATED">Đã chấm dứt</option>
+                            <option value="CANCELLED">Đã hủy</option>
+                            <option value="REJECTED">Bị từ chối</option>
                         </select>
                     </div>
                 </div>
 
                 <c:choose>
                     <c:when test="${empty contracts}">
-                        <div class="alert alert-info mb-0">Không có hợp đồng nào đang chờ duyệt.</div>
+                        <div class="alert alert-info mb-0">Không có hợp đồng nào.</div>
                     </c:when>
                     <c:otherwise>
-                        <div id="pendingContractList">
+                        <div id="contractList">
                             <c:forEach var="contract" items="${contracts}">
-                                <c:set var="employee" value="${employeeMap[contract.employeeId]}" />
-                                <div class="contract-item pending-contract-item"
+                                <c:set var="emp" value="${employeeMap[contract.employeeId]}" />
+                                <div class="contract-item contract-card"
                                      data-type="${contract.contractType}"
-                                     data-search="${contract.contractCode} ${employee.employeeCode} ${employee.fullName}">
+                                     data-status="${contract.status}"
+                                     data-search="${contract.contractCode} ${emp.employeeCode} ${emp.fullName}">
                                     <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
                                         <div>
                                             <h6 class="mb-1">${empty contract.contractCode ? contract.contractId : contract.contractCode}</h6>
-                                            <div class="text-muted mb-2">${employee.fullName} (${employee.employeeCode})</div>
+                                            <div class="text-muted mb-2">${emp.fullName} (${emp.employeeCode})</div>
                                             <div class="d-flex flex-wrap gap-2">
                                                 <span class="meta-chip"><i class="fa-regular fa-id-badge"></i>${contract.contractType.displayName}</span>
                                                 <span class="meta-chip"><i class="fa-regular fa-calendar"></i><fmt:formatDate value="${contract.effectiveDate}" pattern="dd/MM/yyyy"/></span>
                                                 <span class="meta-chip"><i class="fa-solid fa-money-bill-wave"></i><fmt:formatNumber value="${contract.salary}" type="number" groupingUsed="true" maxFractionDigits="0"/> VND</span>
-                                                <span class="meta-chip"><i class="fa-regular fa-clock"></i>
+                                                <span class="meta-chip">
                                                     <c:choose>
                                                         <c:when test="${contract.status == 'PENDING_APPROVAL'}"><span style="background:#fef3c7;color:#92400e;border:1px solid #fbbf24;padding:2px 10px;border-radius:999px;font-size:12px;">Chờ duyệt</span></c:when>
                                                         <c:when test="${contract.status == 'PENDING_ACTIVATION'}"><span style="background:#ede9fe;color:#5b21b6;border:1px solid #a78bfa;padding:2px 10px;border-radius:999px;font-size:12px;">Chờ hiệu lực</span></c:when>
@@ -113,51 +126,14 @@
                                                 </span>
                                             </div>
                                         </div>
-                                        <c:if test="${canApproveContract}">
-                                            <div class="d-flex gap-2 flex-wrap">
-                                                <a class="btn btn-outline-primary" href="${pageContext.request.contextPath}/v1/manager/contract/detail?contractId=${contract.contractId}">
-                                                    Chi tiết
-                                                </a>
-                                                <form method="post" action="${pageContext.request.contextPath}/v1/manager/contract/approve">
-                                                    <input type="hidden" name="contractId" value="${contract.contractId}">
-                                                    <button type="submit" class="btn btn-success">Phê duyệt</button>
-                                                </form>
-                                                <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#rejectModal${contract.contractId}">
-                                                    Từ chối
-                                                </button>
-                                            </div>
-                                        </c:if>
-                                    </div>
-                                    <c:if test="${not empty contract.note}">
-                                        <div class="mt-3 text-muted small">${contract.note}</div>
-                                    </c:if>
-                                </div>
-
-                                <div class="modal fade" id="rejectModal${contract.contractId}" tabindex="-1" aria-hidden="true">
-                                    <div class="modal-dialog">
-                                        <div class="modal-content">
-                                            <form method="post" action="${pageContext.request.contextPath}/v1/manager/contract/reject">
-                                                <div class="modal-header">
-                                                    <h5 class="modal-title">Từ chối hợp đồng</h5>
-                                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                                                </div>
-                                                <div class="modal-body">
-                                                    <input type="hidden" name="contractId" value="${contract.contractId}">
-                                                    <label class="form-label">Lý do từ chối</label>
-                                                    <textarea class="form-control" name="rejectReason" rows="4" required></textarea>
-                                                </div>
-                                                <div class="modal-footer">
-                                                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Đóng</button>
-                                                    <button type="submit" class="btn btn-danger">Xác nhận</button>
-                                                </div>
-                                            </form>
+                                        <div class="d-flex gap-2 flex-wrap">
+                                            <a class="btn btn-outline-primary" href="${pageContext.request.contextPath}/v1/manager/contract/detail?contractId=${contract.contractId}">
+                                                Chi tiết
+                                            </a>
                                         </div>
                                     </div>
                                 </div>
                             </c:forEach>
-                        </div>
-                        <div id="pendingNoMatch" class="alert alert-warning mt-3 hidden-item mb-0">
-                            Không tìm thấy hợp đồng phù hợp với bộ lọc hiện tại.
                         </div>
                     </c:otherwise>
                 </c:choose>
@@ -166,39 +142,42 @@
 
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
         <script>
-            (function () {
-                const input = document.getElementById("pendingSearchInput");
-                const typeFilter = document.getElementById("pendingTypeFilter");
-                const items = Array.from(document.querySelectorAll(".pending-contract-item"));
-                const emptyState = document.getElementById("pendingNoMatch");
-                const countNode = document.getElementById("pendingVisibleCount");
-                if (!input || !typeFilter || !items.length || !emptyState || !countNode) {
-                    return;
-                }
+            document.addEventListener('DOMContentLoaded', function () {
+                const searchInput = document.getElementById('searchInput');
+                const typeFilter = document.getElementById('typeFilter');
+                const statusFilter = document.getElementById('statusFilter');
 
-                const normalize = (value) => (value || "").toLowerCase().trim();
-                const applyFilter = () => {
-                    const keyword = normalize(input.value);
-                    const typeValue = normalize(typeFilter.value);
+                function filterContracts() {
+                    const kw = searchInput.value.toLowerCase().trim();
+                    const type = typeFilter.value;
+                    const status = statusFilter.value;
+                    const cards = document.querySelectorAll('.contract-card');
                     let visible = 0;
 
-                    items.forEach((item) => {
-                        const matchesKeyword = !keyword || normalize(item.dataset.search).includes(keyword);
-                        const matchesType = !typeValue || normalize(item.dataset.type) === typeValue;
-                        const show = matchesKeyword && matchesType;
-                        item.classList.toggle("hidden-item", !show);
-                        if (show) {
+                    cards.forEach(function (card) {
+                        const searchText = card.dataset.search ? card.dataset.search.toLowerCase() : '';
+                        const cardType = card.dataset.type || '';
+                        const cardStatus = card.dataset.status || '';
+
+                        const matchSearch = !kw || searchText.includes(kw);
+                        const matchType = !type || cardType === type;
+                        const matchStatus = !status || cardStatus === status;
+
+                        if (matchSearch && matchType && matchStatus) {
+                            card.classList.remove('hidden-item');
                             visible++;
+                        } else {
+                            card.classList.add('hidden-item');
                         }
                     });
 
-                    countNode.textContent = visible;
-                    emptyState.classList.toggle("hidden-item", visible !== 0);
-                };
+                    document.getElementById('contractVisibleCount').textContent = visible;
+                }
 
-                input.addEventListener("input", applyFilter);
-                typeFilter.addEventListener("change", applyFilter);
-            })();
+                searchInput.addEventListener('input', filterContracts);
+                typeFilter.addEventListener('change', filterContracts);
+                statusFilter.addEventListener('change', filterContracts);
+            });
         </script>
     </body>
 </html>

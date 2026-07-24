@@ -34,8 +34,6 @@ import static org.apache.tomcat.jakartaee.commons.lang3.StringUtils.isBlank;
 import service.EmailService;
 import service.PayrollConfigWorkflowService;
 import utils.Paging;
-import service.ContractAmendmentService;
-import dao.ContractAmendmentDAO;
 import dao.EmploymentContractDAO;
 import dal.DBContext;
 import dao.PayrollDAO;
@@ -58,7 +56,6 @@ public class BusinessAdminController extends HttpServlet {
     private static final service.AttendanceService attendanceService = new service.AttendanceService();
     private static final service.AttendanceClosingService attendanceClosingService = new service.AttendanceClosingService();
     private static final service.PayrollService payrollService = new service.PayrollService();
-    private static final ContractAmendmentService contractAmendmentService = new ContractAmendmentService(new ContractAmendmentDAO(), new EmploymentContractDAO(), new DBContext());
     private static final utils.AttendanceExcelExporter attendanceExporter = new utils.AttendanceExcelExporter();
 
     @Override
@@ -1406,8 +1403,6 @@ public class BusinessAdminController extends HttpServlet {
                 if (tf.getTargetRoleId() != null) {
                     userDAO.updateUserRole(emp.getUserId(), tf.getTargetRoleId());
                 }
-
-                contractAmendmentService.createTransferAmendment(tf, emp, approverId);
             }
         }
     }
@@ -1430,7 +1425,6 @@ public class BusinessAdminController extends HttpServlet {
                     departmentDAO.assignManager(emp.getDepartmentId(), emp.getEmployeeId());
                 }
             }
-            contractAmendmentService.createPositionAmendment(tf, emp, approverId);
         }
     }
 

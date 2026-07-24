@@ -82,8 +82,6 @@ public class DBInitializer {
         execute(conn, SQL, "CREATE DEPARTMENT_ROLES TABLE SUCCESSFULLY");
     }
 
-
-
     public void createTableUsers(Connection conn) {
         String SQL = "CREATE TABLE Users("
                 + "userId INT PRIMARY KEY AUTO_INCREMENT,"
@@ -122,7 +120,7 @@ public class DBInitializer {
                 + "departmentName NVARCHAR(150) NOT NULL UNIQUE,"
                 + "description NVARCHAR(500),"
                 + "managerId INT,"
-                + "status TINYINT DEFAULT 1," 
+                + "status TINYINT DEFAULT 1,"
                 + "createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,"
                 + "updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,"
                 + "FOREIGN KEY (managerId) REFERENCES Employees(employeeId)"
@@ -201,42 +199,13 @@ public class DBInitializer {
                 + "changedBy INT NOT NULL,"
                 + "changeDate TIMESTAMP DEFAULT CURRENT_TIMESTAMP,"
                 + "actionReason NVARCHAR(255),"
+                + "fieldName VARCHAR(100) NULL,"
+                + "oldValue TEXT NULL,"
+                + "newValue TEXT NULL,"
                 + "FOREIGN KEY (contractId) REFERENCES Employment_Contracts(contractId),"
                 + "FOREIGN KEY (changedBy) REFERENCES Users(userId)"
                 + ")";
         execute(conn, SQL, "CREATE CONTRACT_AUDIT_LOG TABLE SUCCESSFULLY");
-    }
-
-    public void createTableContractAmendments(Connection conn) {
-        String SQL = "CREATE TABLE Contract_Amendments("
-                + "amendmentId INT PRIMARY KEY AUTO_INCREMENT,"
-                + "contractId INT NOT NULL,"
-                + "amendmentCode VARCHAR(50) NOT NULL UNIQUE,"
-                + "amendmentType VARCHAR(50) NOT NULL,"
-                + "effectiveDate DATE NOT NULL,"
-                + "oldDepartmentId INT NULL,"
-                + "newDepartmentId INT NULL,"
-                + "oldPositionId INT NULL,"
-                + "newPositionId INT NULL,"
-                + "oldSalary DECIMAL(15,2) NULL,"
-                + "newSalary DECIMAL(15,2) NULL,"
-                + "reason NVARCHAR(500),"
-                + "sourceFormId INT NULL,"
-                + "status VARCHAR(50) NOT NULL DEFAULT 'APPROVED',"
-                + "createdBy INT NOT NULL,"
-                + "approvedBy INT NULL,"
-                + "createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,"
-                + "approvedAt TIMESTAMP NULL,"
-                + "FOREIGN KEY (contractId) REFERENCES Employment_Contracts(contractId),"
-                + "FOREIGN KEY (oldDepartmentId) REFERENCES Departments(departmentId),"
-                + "FOREIGN KEY (newDepartmentId) REFERENCES Departments(departmentId),"
-                + "FOREIGN KEY (oldPositionId) REFERENCES Positions(positionId),"
-                + "FOREIGN KEY (newPositionId) REFERENCES Positions(positionId),"
-                + "FOREIGN KEY (sourceFormId) REFERENCES Form_Requests(formId),"
-                + "FOREIGN KEY (createdBy) REFERENCES Users(userId),"
-                + "FOREIGN KEY (approvedBy) REFERENCES Users(userId)"
-                + ")";
-        execute(conn, SQL, "CREATE CONTRACT_AMENDMENTS TABLE SUCCESSFULLY");
     }
 
     // ==================== NGHỈ PHÉP ====================
@@ -436,8 +405,6 @@ public class DBInitializer {
         execute(conn, SQL, "CREATE ATTENDANCE_PERIOD_STATUS TABLE SUCCESSFULLY");
     }
 
-
-   
     public void createTablePayroll(Connection conn) {
         String SQL = "CREATE TABLE Payroll("
                 + "payrollId INT PRIMARY KEY AUTO_INCREMENT,"
@@ -615,7 +582,6 @@ public class DBInitializer {
                 "Dependents",
                 "Form_Requests",
                 "Form_Types",
-                "Contract_Amendments",
                 "Contract_Audit_Log",
                 "Employment_Contracts",
                 "Employees",
@@ -639,7 +605,6 @@ public class DBInitializer {
                 "Employees",
                 "Employment_Contracts",
                 "Contract_Audit_Log",
-                "Contract_Amendments",
                 "Uploaded_Files",
                 "Form_Types",
                 "Form_Requests",
@@ -685,7 +650,6 @@ public class DBInitializer {
                         case "Employees":         createTableEmployees(conn);         break;
                         case "Employment_Contracts": createTableEmploymentContracts(conn); break;
                         case "Contract_Audit_Log": createTableContractAuditLog(conn); break;
-                        case "Contract_Amendments": createTableContractAmendments(conn); break;
                         case "Uploaded_Files":    createTableUploadedFiles(conn);     break;
                         case "Form_Types":        createTableFormTypes(conn);         break;
                         case "Form_Requests":     createTableFormRequests(conn);      break;
@@ -1300,8 +1264,6 @@ public class DBInitializer {
             return rs.next();
         }
     }
-
-
 
     private void ensureEmployeeDependentCountColumn(Connection conn) throws SQLException {
         if (!tableExists(conn, "Employees")) {

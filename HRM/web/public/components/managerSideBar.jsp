@@ -156,9 +156,8 @@
     </c:if>
 
     <c:if test="${sessionScope.userPermissions.contains('VIEW_ALL_CONTRACTS')}">
-        <a href="${pageContext.request.contextPath}/v1/manager/contract/amendments"
-           class="${pageContext.request.servletPath == '/public/manager/contract/amendment_history.jsp' ? 'active' : ''}">
-            Lịch sử phụ lục
+        <a href="${pageContext.request.contextPath}/v1/manager/contract/status">
+            Tổng quan hợp đồng
         </a>
     </c:if>
 
