@@ -27,6 +27,7 @@ public class Payroll {
     private BigDecimal taxableIncome;
     private BigDecimal employerContribution;
     private String note;
+    private String configSnapshot;
     private int status;//0 va 1
     private Integer approvedBy;
     private Timestamp approvedAt;
@@ -210,6 +211,14 @@ public class Payroll {
 
     public void setNote(String note) {
         this.note = note;
+    }
+
+    public String getConfigSnapshot() {
+        return configSnapshot;
+    }
+
+    public void setConfigSnapshot(String configSnapshot) {
+        this.configSnapshot = configSnapshot;
     }
 
     public int getStatus() {

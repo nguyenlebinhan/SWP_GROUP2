@@ -1,5 +1,6 @@
 <%@ page contentType="text/html;charset=UTF-8" %>
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
+<%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
 <!DOCTYPE html>
 <html>
 <head>
@@ -70,6 +71,11 @@
             margin-bottom: 16px;
         }
 
+        .feature-icon.blue   { background: #dbeafe; color: #2563eb; }
+        .feature-icon.green  { background: #d1fae5; color: #059669; }
+        .feature-icon.orange { background: #ffedd5; color: #ea580c; }
+        .feature-icon.purple { background: #ede9fe; color: #7c3aed; }
+
         .feature-title { font-size: 16px; font-weight: 700; color: #0f172a; margin-bottom: 6px; }
         .feature-desc  { font-size: 13px; color: #64748b; }
 
@@ -79,6 +85,12 @@
         .badge-active   { background: #d1fae5; color: #065f46; padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; }
         .badge-inactive { background: #fee2e2; color: #991b1b; padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; }
         .badge-leave    { background: #fef3c7; color: #92400e; padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+
+        .badge-status { padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+        .status-0 { background: #fef3c7; color: #92400e; }
+        .status-1 { background: #d1fae5; color: #065f46; }
+        .status-2 { background: #fee2e2; color: #991b1b; }
+        .status-3 { background: #e2e8f0; color: #475569; }
 
         .section-card {
             background: white;
@@ -155,6 +167,115 @@
             </c:choose>
         </div>
     </div>
+
+    <c:if test="${not empty myEmployee}">
+        <div class="row g-3 mt-1">
+            <div class="col-md-3 col-sm-6">
+                <div class="stat-card">
+                    <div class="stat-icon blue"><i class="fa-solid fa-calendar-check"></i></div>
+                    <div>
+                        <div class="stat-value">${attendanceSummary.presentDays + attendanceSummary.lateDays} / ${attendanceSummary.standardDays}</div>
+                        <div class="stat-label">Ngày công tháng trước</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 col-sm-6">
+                <div class="stat-card">
+                    <div class="stat-icon orange"><i class="fa-solid fa-file-circle-question"></i></div>
+                    <div>
+                        <div class="stat-value">${pendingFormsCount}</div>
+                        <div class="stat-label">Đơn đang chờ duyệt</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 col-sm-6">
+                <div class="stat-card">
+                    <div class="stat-icon purple"><i class="fa-solid fa-people-roof"></i></div>
+                    <div>
+                        <div class="stat-value">${myEmployee.dependentCount}</div>
+                        <div class="stat-label">Người phụ thuộc</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 col-sm-6">
+                <div class="stat-card">
+                    <div class="stat-icon green"><i class="fa-solid fa-file-signature"></i></div>
+                    <div>
+                        <div class="stat-value" style="font-size: 18px;">
+                            ${empty activeContract ? 'Chưa có' : activeContract.status.displayName}
+                        </div>
+                        <div class="stat-label">Trạng thái hợp đồng</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row g-3 mt-1">
+            <div class="col-md-3 col-sm-6">
+                <a class="feature-card" href="${pageContext.request.contextPath}/v1/employee/attendance/own-attendance">
+                    <div class="feature-icon blue"><i class="fa-solid fa-clock"></i></div>
+                    <div class="feature-title">Chấm công của tôi</div>
+                    <div class="feature-desc">Xem lịch sử chấm công theo tháng</div>
+                </a>
+            </div>
+            <div class="col-md-3 col-sm-6">
+                <a class="feature-card" href="${pageContext.request.contextPath}/v1/employee/forms/my-forms">
+                    <div class="feature-icon orange"><i class="fa-solid fa-file-lines"></i></div>
+                    <div class="feature-title">Đơn của tôi</div>
+                    <div class="feature-desc">Theo dõi trạng thái các đơn đã gửi</div>
+                </a>
+            </div>
+            <c:if test="${sessionScope.userPermissions.contains('VIEW_ALL_SALARY')}">
+                <div class="col-md-3 col-sm-6">
+                    <a class="feature-card" href="${pageContext.request.contextPath}/v1/employee/salary/all">
+                        <div class="feature-icon green"><i class="fa-solid fa-sack-dollar"></i></div>
+                        <div class="feature-title">Bảng lương</div>
+                        <div class="feature-desc">Xem chi tiết lương hàng tháng</div>
+                    </a>
+                </div>
+            </c:if>
+            <div class="col-md-3 col-sm-6">
+                <a class="feature-card" href="${pageContext.request.contextPath}/v1/employee/forms/dashboard">
+                    <div class="feature-icon purple"><i class="fa-solid fa-user-plus"></i></div>
+                    <div class="feature-title">Gửi đơn mới</div>
+                    <div class="feature-desc">Đăng ký người phụ thuộc, nghỉ phép, v.v.</div>
+                </a>
+            </div>
+        </div>
+
+        <div class="section-card mt-3">
+            <h6 class="fw-bold mb-3">Đơn gần đây</h6>
+            <c:choose>
+                <c:when test="${empty recentForms}">
+                    <div class="text-muted small">Bạn chưa gửi đơn nào.</div>
+                </c:when>
+                <c:otherwise>
+                    <div class="table-responsive">
+                        <table class="table table-sm recent-table align-middle mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Mã đơn</th>
+                                    <th>Loại đơn</th>
+                                    <th>Trạng thái</th>
+                                    <th>Ngày gửi</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <c:forEach var="f" items="${recentForms}">
+                                    <tr>
+                                        <td>${f.formCode}</td>
+                                        <td><c:out value="${f.formTypeName}"/></td>
+                                        <td><span class="badge-status status-${f.status}">${f.statusLabel}</span></td>
+                                        <td><fmt:formatDate value="${f.createdAt}" pattern="dd/MM/yyyy HH:mm"/></td>
+                                    </tr>
+                                </c:forEach>
+                            </tbody>
+                        </table>
+                    </div>
+                </c:otherwise>
+            </c:choose>
+        </div>
+    </c:if>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>

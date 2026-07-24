@@ -310,7 +310,7 @@
                             <input type="hidden" name="year"  id="genYear"  value="${selectedYear}">
                             <input type="hidden" name="departmentId" id="genDept" value="${selectedDepartmentId}">
                             <button type="submit" class="btn-blue border-0"
-                                    onclick="return confirm('Tạo lại bảng lương tháng ${selectedMonth}/${selectedYear} từ dữ liệu hệ thống?');">
+                                    onclick="return confirm('Tạo lại bảng lương tháng ${selectedMonth}/${selectedYear} từ dữ liệu hệ thống?\nCác bảng lương đã duyệt (chưa chốt) sẽ bị tính lại và cần duyệt lại từ đầu. Bảng lương đã chốt được giữ nguyên.');">
                                 <i class="fa-solid fa-calculator me-1"></i> Tạo bảng lương từ dữ liệu tháng này
                             </button>
                         </form>
@@ -338,16 +338,16 @@
                 </div>
             </div>
 
-            <c:if test="${canViewAllSalary && !attendanceLocked}">
-                <div class="alert alert-warning">
-                    <i class="fa-solid fa-circle-info me-2"></i>
-                    Bảng chấm công kỳ này chưa được Quản trị doanh nghiệp chốt nên chưa thể tạo hoặc xuất bảng lương.
-                </div>
-            </c:if>
             <c:if test="${canViewAllSalary && periodFinalized}">
                 <div class="alert alert-info">
                     <i class="fa-solid fa-circle-info me-2"></i>
-                    Kỳ lương này đã được Business Admin chốt nên không thể tạo lại bảng lương.
+                    Kỳ lương này đã được chốt nên không thể tạo lại bảng lương.
+                </div>
+            </c:if>
+            <c:if test="${canViewAllSalary && !attendanceLocked && !periodFinalized}">
+                <div class="alert alert-warning">
+                    <i class="fa-solid fa-circle-info me-2"></i>
+                    Bảng chấm công kỳ này chưa được Quản trị doanh nghiệp chốt nên chưa thể tạo hoặc xuất bảng lương.
                 </div>
             </c:if>
 

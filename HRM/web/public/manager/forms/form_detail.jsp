@@ -254,7 +254,7 @@
                 </c:if>
 
                 <%-- Khu vực duyệt lần 2 (HR): chỉ áp dụng cho đơn Khiếu nại đã được Manager duyệt (status = 1) --%>
-                <c:if test="${((form.status == 1 and form.formTypeCode eq 'COMPLAINT') or (form.status == 0 and form.formTypeCode eq 'DEPENDENT')) and isHrStaff}">
+                <c:if test="${((form.status == 1 and form.formTypeCode eq 'COMPLAINT') or (form.status == 0 and form.formTypeCode eq 'DEPENDENT' and not isMyForm)) and isHrStaff}">
                     <hr class="my-4">
                     <h5 class="mb-3 text-primary"><i class="fa-solid fa-user-tie me-2"></i>Duyệt (HR)</h5>
                     <form method="post">
@@ -273,6 +273,13 @@
                             </button>
                         </div>
                     </form>
+                </c:if>
+                <c:if test="${form.status == 0 and form.formTypeCode eq 'DEPENDENT' and isMyForm and isHrStaff}">
+                    <hr class="my-4">
+                    <div class="alert alert-warning mb-0">
+                        <i class="fa-solid fa-circle-info me-2"></i>
+                        Đây là đơn của chính bạn nên bạn không thể tự duyệt. Cần một nhân viên HR khác xử lý đơn này.
+                    </div>
                 </c:if>
             </div>
         </div>
