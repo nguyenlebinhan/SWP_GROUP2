@@ -6,6 +6,7 @@ package dao;
 
 import dal.DBContext;
 import dto.AttendanceSummaryDTO;
+import dto.EmployeeDetailDTO;
 import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -50,6 +51,45 @@ public class AttendanceDAO {
             LOGGER.log(Level.SEVERE, "Cannot find employeeId by code: " + employeeCode, e);
         }
         return -1;
+    }
+
+    /**
+     * Lấy thông tin chuẩn dùng khi import chấm công. Tên nhân viên, phòng ban
+     * và vị trí luôn được tra từ cơ sở dữ liệu theo employeeCode, không lấy từ
+     * nội dung file Excel.
+     */
+    public EmployeeDetailDTO findEmployeeDetailsByCode(Connection conn, String employeeCode)
+            throws SQLException {
+        String sql = "SELECT e.employeeId, e.employeeCode, e.departmentId, e.positionId, "
+                + "u.fullName, d.departmentName, p.positionName "
+                + "FROM Employees e "
+                + "JOIN Users u ON u.userId = e.userId "
+                + "LEFT JOIN Departments d ON d.departmentId = e.departmentId "
+                + "LEFT JOIN Positions p ON p.positionId = e.positionId "
+                + "WHERE e.employeeCode = ?";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, employeeCode);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (!rs.next()) {
+                    return null;
+                }
+
+                EmployeeDetailDTO employee = new EmployeeDetailDTO();
+                employee.setEmployeeId(rs.getInt("employeeId"));
+                employee.setEmployeeCode(rs.getString("employeeCode"));
+
+                int departmentId = rs.getInt("departmentId");
+                employee.setDepartmentId(rs.wasNull() ? 0 : departmentId);
+                employee.setDepartmentName(rs.getNString("departmentName"));
+
+                int positionId = rs.getInt("positionId");
+                employee.setPositionId(rs.wasNull() ? 0 : positionId);
+                employee.setPositionName(rs.getNString("positionName"));
+
+                employee.setFullName(rs.getNString("fullName"));
+                return employee;
+            }
+        }
     }
 
     

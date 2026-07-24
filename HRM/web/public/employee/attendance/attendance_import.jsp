@@ -87,8 +87,8 @@
                     <input type="file" name="attendanceFile" class="form-control" accept=".xlsx"
                            ${(importWindowOpen && !isLocked) ? 'required' : 'disabled'}>
                     <small class="text-muted d-block mt-1">
-                        Cột yêu cầu (dòng 1 là header): employeeCode, fullName, Department, workDate, timeIn, timeOut.
-                        Trạng thái được tự suy từ giờ vào/ra. Khi chọn "Tất cả phòng ban", hệ thống tự xác định phòng của từng nhân viên. Tối đa 10MB.
+                        Cột yêu cầu (dòng 1 là header): employeeCode, workDate, timeIn, timeOut.
+                        Tên nhân viên và phòng ban được tự động tra theo employeeCode. Trạng thái được tự suy từ giờ vào/ra. Tối đa 10MB.
                     </small>
                 </div>
             </div>
