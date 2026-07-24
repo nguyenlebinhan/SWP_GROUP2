@@ -1364,7 +1364,7 @@ public class BusinessAdminController extends HttpServlet {
             EmployeeDetailDTO approver = employeeDAO.getEmployeeByUserId(user.getUserId());
             int approverId = approver != null ? approver.getEmployeeId() : 0;
 
-            int newStatus = ("TRANSFER".equals(form.getFormTypeCode()) || "PROMOTION_DEMOTION".equals(form.getFormTypeCode())) ? 3 : 1;
+            int newStatus = 1; // Sửa lỗi status = 3 (đã hủy) thành 1 (đã duyệt)
             boolean ok = formRequestDAO.updateFormRequest(formId, newStatus, approverId, note != null ? note.trim() : "");
 
             if (ok) {

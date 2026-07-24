@@ -2400,7 +2400,7 @@ public class EmployeeController extends HttpServlet {
         FormType ft = formTypeDAO.getByCode("DEPENDENT");
         EmployeeDetailDTO me = employeeDAO.getEmployeeByUserId(user.getUserId());
         if (ft == null || me == null) {
-            request.getSession().setAttribute("error", "Khong the tao don nguoi phu thuoc.");
+            request.getSession().setAttribute("error", "Không thể tạo đơn người phụ thuộc.");
             response.sendRedirect(request.getContextPath() + "/v1/employee/forms/dependent/new");
             return;
         }
@@ -2458,12 +2458,12 @@ public class EmployeeController extends HttpServlet {
         FormType ft = formTypeDAO.getByCode("DEPENDENT");
         Integer dependentId = parseIntOrNull(request.getParameter("dependentId"));
         if (me == null || ft == null || dependentId == null) {
-            request.getSession().setAttribute("error", "Khong the gui yeu cau doi trang thai nguoi phu thuoc.");
+            request.getSession().setAttribute("error", "Không thể gửi yêu cầu đổi trạng thái người phụ thuộc.");
             response.sendRedirect(request.getContextPath() + "/v1/employee/my-profile");
             return;
         }
         if (!dependentDAO.canRequestStatusChange(dependentId, me.getEmployeeId())) {
-            request.getSession().setAttribute("error", "Nguoi phu thuoc khong hop le hoac dang co yeu cau cho duyet.");
+            request.getSession().setAttribute("error", "Người phụ thuộc không hợp lệ hoặc đang có yêu cầu chờ duyệt.");
             response.sendRedirect(request.getContextPath() + "/v1/employee/my-profile");
             return;
         }
@@ -2472,13 +2472,13 @@ public class EmployeeController extends HttpServlet {
         fr.setFormCode("DEPENDENT-STATUS-" + me.getEmployeeId() + "-" + System.currentTimeMillis());
         fr.setEmployeeId(me.getEmployeeId());
         fr.setFormTypeId(ft.getFormTypeId());
-        fr.setReason("Yeu cau ngung tinh nguoi phu thuoc ID: " + dependentId);
+        fr.setReason("Yêu cầu ngừng tính người phụ thuộc ID: " + dependentId);
 
         int formId = formRequestDAO.addFormRequest(fr);
         boolean ok = formId > 0 && dependentDAO.requestStatusChange(dependentId, me.getEmployeeId(), formId, 2);
         request.getSession().setAttribute(ok ? "success" : "error",
-                ok ? "Da gui yeu cau doi trang thai nguoi phu thuoc, cho HR duyet."
-                        : "Gui yeu cau doi trang thai that bai hoac dang co yeu cau cho duyet.");
+                ok ? "Đã gửi yêu cầu đổi trạng thái người phụ thuộc, chờ HR duyệt."
+                        : "Gửi yêu cầu đổi trạng thái thất bại hoặc đang có yêu cầu chờ duyệt.");
         response.sendRedirect(request.getContextPath() + "/v1/employee/my-profile");
     }
 
