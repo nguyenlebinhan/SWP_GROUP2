@@ -25,6 +25,12 @@ public class EmploymentContract {
     private String employeeCode;
     private String departmentName;
     private String positionName;
+    private String contractFilePath;
+    private String contractFileName;
+    private Date uploadedAt;
+    private Integer uploadedBy;
+    private Integer durationValue;
+    private String durationUnit;
     private int createdBy;
     private String createdByName;
     private Date createdAt;
@@ -193,6 +199,54 @@ public class EmploymentContract {
 
     public void setPositionName(String positionName) {
         this.positionName = positionName;
+    }
+
+    public String getContractFilePath() {
+        return contractFilePath;
+    }
+
+    public void setContractFilePath(String contractFilePath) {
+        this.contractFilePath = contractFilePath;
+    }
+
+    public String getContractFileName() {
+        return contractFileName;
+    }
+
+    public void setContractFileName(String contractFileName) {
+        this.contractFileName = contractFileName;
+    }
+
+    public Date getUploadedAt() {
+        return uploadedAt;
+    }
+
+    public void setUploadedAt(Date uploadedAt) {
+        this.uploadedAt = uploadedAt;
+    }
+
+    public Integer getUploadedBy() {
+        return uploadedBy;
+    }
+
+    public void setUploadedBy(Integer uploadedBy) {
+        this.uploadedBy = uploadedBy;
+    }
+
+    public Integer getDurationValue() {
+        return durationValue;
+    }
+
+    public void setDurationValue(Integer durationValue) {
+        this.durationValue = durationValue;
+    }
+
+    public String getDurationUnit() {
+        return durationUnit;
+    }
+
+    public void setDurationUnit(String durationUnit) {
+        this.durationUnit = durationUnit;
     }
 
     public int getCreatedBy() {

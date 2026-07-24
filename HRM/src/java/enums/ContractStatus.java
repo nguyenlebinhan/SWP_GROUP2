@@ -31,4 +31,3 @@ public enum ContractStatus {
         return this == EXPIRED || this == TERMINATED || this == CANCELLED || this == REJECTED;
     }
 }
-

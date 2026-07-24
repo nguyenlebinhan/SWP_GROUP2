@@ -25,5 +25,4 @@ public enum ValidationError {
     
     CONTRACT_NOT_ACTIVE,
     CONTRACT_INDEFINITE,
-    INVALID_RENEWAL_DATE
 }

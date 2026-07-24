@@ -82,8 +82,6 @@ public class DBInitializer {
         execute(conn, SQL, "CREATE DEPARTMENT_ROLES TABLE SUCCESSFULLY");
     }
 
-
-
     public void createTableUsers(Connection conn) {
         String SQL = "CREATE TABLE Users("
                 + "userId INT PRIMARY KEY AUTO_INCREMENT,"
@@ -122,7 +120,7 @@ public class DBInitializer {
                 + "departmentName NVARCHAR(150) NOT NULL UNIQUE,"
                 + "description NVARCHAR(500),"
                 + "managerId INT,"
-                + "status TINYINT DEFAULT 1," 
+                + "status TINYINT DEFAULT 1,"
                 + "createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,"
                 + "updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,"
                 + "FOREIGN KEY (managerId) REFERENCES Employees(employeeId)"
@@ -143,7 +141,7 @@ public class DBInitializer {
                 + "degree NVARCHAR(100),"
                 + "dependentCount INT NOT NULL DEFAULT 0,"
                 + "unionMember TINYINT(1) NOT NULL DEFAULT 0,"
-                + "status TINYINT DEFAULT 1,"        // 0: Inactive, 1: Active, 2: On Leave
+                + "status TINYINT DEFAULT 1," // 0: Inactive, 1: Active, 2: On Leave
                 + "managerId INT,"
                 + "startDate DATE,"
                 + "createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,"
@@ -168,6 +166,14 @@ public class DBInitializer {
                 + "endDate DATE NULL,"
                 + "actualEndDate DATE NULL,"
                 + "salary DECIMAL(15,2) NOT NULL DEFAULT 0,"
+                + "departmentName NVARCHAR(150) NULL,"
+                + "positionName NVARCHAR(150) NULL,"
+                + "contractFilePath VARCHAR(255) NULL,"
+                + "contractFileName VARCHAR(255) NULL,"
+                + "uploadedAt TIMESTAMP NULL,"
+                + "uploadedBy INT NULL,"
+                + "durationValue INT NULL,"
+                + "durationUnit VARCHAR(10) NULL,"
                 + "status VARCHAR(50) DEFAULT 'PENDING_APPROVAL',"
                 + "note NVARCHAR(500),"
                 + "previousContractId INT,"
@@ -178,7 +184,8 @@ public class DBInitializer {
                 + "updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,"
                 + "FOREIGN KEY (employeeId) REFERENCES Employees(employeeId),"
                 + "FOREIGN KEY (previousContractId) REFERENCES Employment_Contracts(contractId),"
-                + "FOREIGN KEY (createdBy) REFERENCES Users(userId)"
+                + "FOREIGN KEY (createdBy) REFERENCES Users(userId),"
+                + "FOREIGN KEY (uploadedBy) REFERENCES Users(userId)"
                 + ")";
         execute(conn, SQL, "CREATE EMPLOYMENT_CONTRACTS TABLE SUCCESSFULLY");
     }
@@ -192,42 +199,13 @@ public class DBInitializer {
                 + "changedBy INT NOT NULL,"
                 + "changeDate TIMESTAMP DEFAULT CURRENT_TIMESTAMP,"
                 + "actionReason NVARCHAR(255),"
+                + "fieldName VARCHAR(100) NULL,"
+                + "oldValue TEXT NULL,"
+                + "newValue TEXT NULL,"
                 + "FOREIGN KEY (contractId) REFERENCES Employment_Contracts(contractId),"
                 + "FOREIGN KEY (changedBy) REFERENCES Users(userId)"
                 + ")";
         execute(conn, SQL, "CREATE CONTRACT_AUDIT_LOG TABLE SUCCESSFULLY");
-    }
-
-    public void createTableContractAmendments(Connection conn) {
-        String SQL = "CREATE TABLE Contract_Amendments("
-                + "amendmentId INT PRIMARY KEY AUTO_INCREMENT,"
-                + "contractId INT NOT NULL,"
-                + "amendmentCode VARCHAR(50) NOT NULL UNIQUE,"
-                + "amendmentType VARCHAR(50) NOT NULL,"
-                + "effectiveDate DATE NOT NULL,"
-                + "oldDepartmentId INT NULL,"
-                + "newDepartmentId INT NULL,"
-                + "oldPositionId INT NULL,"
-                + "newPositionId INT NULL,"
-                + "oldSalary DECIMAL(15,2) NULL,"
-                + "newSalary DECIMAL(15,2) NULL,"
-                + "reason NVARCHAR(500),"
-                + "sourceFormId INT NULL,"
-                + "status VARCHAR(50) NOT NULL DEFAULT 'APPROVED',"
-                + "createdBy INT NOT NULL,"
-                + "approvedBy INT NULL,"
-                + "createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,"
-                + "approvedAt TIMESTAMP NULL,"
-                + "FOREIGN KEY (contractId) REFERENCES Employment_Contracts(contractId),"
-                + "FOREIGN KEY (oldDepartmentId) REFERENCES Departments(departmentId),"
-                + "FOREIGN KEY (newDepartmentId) REFERENCES Departments(departmentId),"
-                + "FOREIGN KEY (oldPositionId) REFERENCES Positions(positionId),"
-                + "FOREIGN KEY (newPositionId) REFERENCES Positions(positionId),"
-                + "FOREIGN KEY (sourceFormId) REFERENCES Form_Requests(formId),"
-                + "FOREIGN KEY (createdBy) REFERENCES Users(userId),"
-                + "FOREIGN KEY (approvedBy) REFERENCES Users(userId)"
-                + ")";
-        execute(conn, SQL, "CREATE CONTRACT_AMENDMENTS TABLE SUCCESSFULLY");
     }
 
     // ==================== NGHỈ PHÉP ====================
@@ -427,8 +405,6 @@ public class DBInitializer {
         execute(conn, SQL, "CREATE ATTENDANCE_PERIOD_STATUS TABLE SUCCESSFULLY");
     }
 
-
-   
     public void createTablePayroll(Connection conn) {
         String SQL = "CREATE TABLE Payroll("
                 + "payrollId INT PRIMARY KEY AUTO_INCREMENT,"
@@ -523,7 +499,6 @@ public class DBInitializer {
     }
 
     // ==================== THÔNG BÁO & AUDIT ====================
-
     public void createTablePayrollConfigChangeRequests(Connection conn) {
         String SQL = "CREATE TABLE Payroll_Config_Change_Requests("
                 + "requestId INT PRIMARY KEY AUTO_INCREMENT,"
@@ -608,7 +583,6 @@ public class DBInitializer {
                 "Dependents",
                 "Form_Requests",
                 "Form_Types",
-                "Contract_Amendments",
                 "Contract_Audit_Log",
                 "Employment_Contracts",
                 "Employees",
@@ -632,7 +606,6 @@ public class DBInitializer {
                 "Employees",
                 "Employment_Contracts",
                 "Contract_Audit_Log",
-                "Contract_Amendments",
                 "Uploaded_Files",
                 "Form_Types",
                 "Form_Requests",
@@ -678,14 +651,12 @@ public class DBInitializer {
                         case "Employees":         createTableEmployees(conn);         break;
                         case "Employment_Contracts": createTableEmploymentContracts(conn); break;
                         case "Contract_Audit_Log": createTableContractAuditLog(conn); break;
-                        case "Contract_Amendments": createTableContractAmendments(conn); break;
                         case "Uploaded_Files":    createTableUploadedFiles(conn);     break;
-                        case "Form_Types":       createTableFormTypes(conn);         break;
-                        case "Form_Requests":    createTableFormRequests(conn);     break;
-                        case "Dependents":       createTableDependents(conn);       break;
-                        case "Overtime_Details": createTableOvertimeDetails(conn);  break;
+                        case "Form_Types":        createTableFormTypes(conn);         break;
+                        case "Form_Requests":     createTableFormRequests(conn);      break;
+                        case "Overtime_Details":  createTableOvertimeDetails(conn);   break;
                         case "Overtime_Assignees": createTableOvertimeAssignees(conn); break;
-                        case "Leave_Balances":     createTableLeaveBalances(conn);      break;
+                        case "Leave_Balances":    createTableLeaveBalances(conn);     break;
                         case "Attendance":        createTableAttendance(conn);        break;
                         case "Attendance_Adjustment_History": createTableAttendanceAdjustmentHistory(conn); break;
                         case "Attendance_Period_Status": createTableAttendancePeriodStatus(conn); break;
@@ -693,10 +664,9 @@ public class DBInitializer {
                         case "Payroll_Settings":  createTablePayrollSettings(conn);   break;
                         case "Payroll_Deduction_Rules": createTablePayrollDeductionRules(conn); break;
                         case "Payroll_Tax_Brackets": createTablePayrollTaxBrackets(conn); break;
-                        case "Payroll_Allowance_Types": createTablePayrollAllowanceTypes(conn); break;
                         case "Payroll_Config_Change_Requests": createTablePayrollConfigChangeRequests(conn); break;
                         case "Audit_Logs":        createTableAuditLogs(conn);         break;
-                        default: LOGGER.log(Level.WARNING,"Unknown table: {0}", table);     break;
+                        default: LOGGER.log(Level.WARNING, "Unknown table: {0}", table);     break;
                     }
                 }
             }
@@ -770,10 +740,10 @@ public class DBInitializer {
                 insertPermission(conn, "VIEW_ALL_SALARY", "Xem tất cả lương nhân viên", "Quyền xem lương của tất cả nhân viên");
                 insertPermission(conn, "APPROVE_PAYROLL", "Duyệt bảng lương", "Quyền duyệt bảng lương trước khi thanh toán");
                 insertPermission(conn, "EXPORT_PAYROLL", "Xuất bảng lương", "Quyền xuất bảng lương ra Excel");
-                insertPermission(conn,"CONFIG_PAYROLL","Cấu hình lương","Quyền cấu hình lương và gửi yêu cầu duyệt");
+                insertPermission(conn, "CONFIG_PAYROLL", "Cấu hình lương", "Quyền cấu hình lương và gửi yêu cầu duyệt");
 
             }
-            insertPermission(conn,"CONFIG_PAYROLL","Cấu hình lương","Quyền cấu hình lương và gửi yêu cầu duyệt");
+            insertPermission(conn, "CONFIG_PAYROLL", "Cấu hình lương", "Quyền cấu hình lương và gửi yêu cầu duyệt");
 
             if (countRows(conn, "Positions") == 0) {
                 insertPosition(conn, "Thực tập sinh", 1, "Sinh viên thực tập tại công ty");
@@ -1296,8 +1266,6 @@ public class DBInitializer {
             return rs.next();
         }
     }
-
-
 
     private void ensureEmployeeDependentCountColumn(Connection conn) throws SQLException {
         if (!tableExists(conn, "Employees")) {
