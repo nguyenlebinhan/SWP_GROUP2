@@ -21,8 +21,6 @@
             <file>file:/C:/Users/ADMIN/Desktop/SWP_GROUP2/HRM/web/public/systemadmin/role/role_detail.jsp</file>
             <file>file:/C:/Users/ADMIN/Desktop/SWP_GROUP2/HRM/src/java/controller/SystemAdminController.java</file>
             <file>file:/C:/Users/ADMIN/Desktop/SWP_GROUP2/HRM/web/public/components/employeeSideBar.jsp</file>
-            <file>file:/C:/Users/ADMIN/Desktop/SWP_GROUP2/HRM/src/java/dao/ContractAmendmentDAO.java</file>
-            <file>file:/C:/Users/ADMIN/Desktop/SWP_GROUP2/HRM/src/java/service/ContractAmendmentService.java</file>
             <file>file:/C:/Users/ADMIN/Desktop/SWP_GROUP2/HRM/src/java/exception/InvalidFormatException.java</file>
             <file>file:/C:/Users/ADMIN/Desktop/SWP_GROUP2/HRM/src/java/controller/BusinessAdminController.java</file>
             <file>file:/C:/Users/ADMIN/Desktop/SWP_GROUP2/HRM/src/java/service/AttendanceImportService.java</file>
@@ -33,7 +31,6 @@
             <file>file:/C:/Users/ADMIN/Desktop/SWP_GROUP2/HRM/src/java/dal/DBContext.java</file>
             <file>file:/C:/Users/ADMIN/Desktop/SWP_GROUP2/HRM/src/java/controller/AuthController.java</file>
             <file>file:/C:/Users/ADMIN/Desktop/SWP_GROUP2/HRM/web/public/manager/attendance/own_attendance_list.jsp</file>
-            <file>file:/C:/Users/ADMIN/Desktop/SWP_GROUP2/HRM/nbproject/build-impl.xml</file>
             <file>file:/C:/Users/ADMIN/Desktop/SWP_GROUP2/HRM/web/public/employee/department/department_list.jsp</file>
             <file>file:/C:/Users/ADMIN/Desktop/SWP_GROUP2/HRM/web/public/employee/forms/all_form_list.jsp</file>
             <file>file:/C:/Users/ADMIN/Desktop/SWP_GROUP2/HRM/src/java/config/.env</file>

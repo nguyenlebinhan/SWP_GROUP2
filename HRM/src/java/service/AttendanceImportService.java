@@ -10,6 +10,7 @@ import dao.FormRequestDAO;
 import dao.UploadedFileDAO;
 import dto.AttendanceDataDTO;
 import dto.AttendanceImportResultDTO;
+import dto.EmployeeDetailDTO;
 import enums.AttendanceStatus;
 import enums.FileStatus;
 import exception.InvalidFormatException;
@@ -29,7 +30,6 @@ import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import model.Attendance;
-import model.Position;
 import utils.ExcelAttendanceParser;
 
 public class AttendanceImportService {
@@ -181,10 +181,12 @@ public class AttendanceImportService {
         Time timeIn = parseTime(ad.getTimeIn(), "timeIn");
         Time timeOut = parseTime(ad.getTimeOut(), "timeOut");
 
-        int employeeId = attendanceDAO.findEmployeeIdByCode(employeeCode);
-        if (employeeId <= 0) {
+        EmployeeDetailDTO employee = attendanceDAO.findEmployeeDetailsByCode(conn, employeeCode);
+        if (employee == null) {
             throw new RowValidationException("employeeCode không tồn tại: " + employeeCode);
         }
+        int employeeId = employee.getEmployeeId();
+        employeeCode = employee.getEmployeeCode();
 
         // Giữ NGUYÊN giờ thực (timeIn/timeOut) để lưu và hiển thị.
         // Mọi tính toán bên dưới (giờ công, trạng thái) dùng bản chuẩn hóa theo block.
@@ -233,26 +235,15 @@ public class AttendanceImportService {
             hoursWorked = BigDecimal.ZERO;
         }
 
-        int effectiveDeptId;
-        String effectiveDeptName;
-        if (departmentId > 0) {
-            if (!attendanceDAO.employeeBelongsToDepartment(employeeId, departmentId)) {
-                throw new RowValidationException("Nhân viên " + employeeCode
-                        + " không thuộc phòng ban đã chọn để import.");
-            }
-            effectiveDeptId = departmentId;
-            effectiveDeptName = trimToNull(ad.getDepartmentName());
-        } else {
-            model.Department dep = attendanceDAO.getEmployeeDepartment(employeeId);
-            if (dep == null) {
-                throw new RowValidationException("Nhân viên " + employeeCode
-                        + " chưa được phân công phòng ban, không thể import.");
-            }
-            effectiveDeptId = dep.getDepartmentId();
-            effectiveDeptName = dep.getDepartmentName();
+        if (employee.getDepartmentId() <= 0
+                || trimToNull(employee.getDepartmentName()) == null) {
+            throw new RowValidationException("Nhân viên " + employeeCode
+                    + " chưa được phân công phòng ban, không thể import.");
         }
-
-        Position position = attendanceDAO.getEmployeePosition(employeeId);
+        if (departmentId > 0 && employee.getDepartmentId() != departmentId) {
+            throw new RowValidationException("Nhân viên " + employeeCode
+                    + " không thuộc phòng ban đã chọn để import.");
+        }
 
         AttendanceStatus baseStatus = deriveStatus(calcTimeIn, calcTimeOut);
         AttendanceStatus finalStatus = determineFinalStatus(baseStatus, employeeId, workDate, conn);
@@ -261,12 +252,12 @@ public class AttendanceImportService {
         att.setAttendanceCode(generateAttendanceCode(employeeCode, workDate));
         att.setEmployeeId(employeeId);
         att.setEmployeeCode(employeeCode);
-        att.setFullName(trimToNull(ad.getFullName()));
-        att.setDepartmentId(effectiveDeptId);
-        att.setDepartmentName(effectiveDeptName);
-        if (position != null) {
-            att.setPositionId(position.getPositionId());
-            att.setPositionName(position.getPositionName());
+        att.setFullName(employee.getFullName());
+        att.setDepartmentId(employee.getDepartmentId());
+        att.setDepartmentName(employee.getDepartmentName());
+        if (employee.getPositionId() > 0) {
+            att.setPositionId(employee.getPositionId());
+            att.setPositionName(employee.getPositionName());
         }
         att.setWorkDate(workDate);
         att.setTimeIn(timeIn);
