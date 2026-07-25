@@ -137,6 +137,34 @@ public class EmploymentContractDAO {
         return null;
     }
 
+    public EmploymentContract getActiveOrPendingContract(int employeeId) {
+        try (Connection conn = getInternalConnection()) {
+            return getActiveOrPendingContract(conn, employeeId);
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Cannot retrieve current/upcoming contract for employeeId: " + employeeId, e);
+        }
+        return null;
+    }
+
+    public EmploymentContract getActiveOrPendingContract(Connection conn, int employeeId) throws SQLException {
+        String SQL = "SELECT " + BASE_COLUMNS + " FROM Employment_Contracts WHERE employeeId = ? "
+                + "AND status IN ('ACTIVE', 'PENDING_ACTIVATION') "
+                + "ORDER BY CASE WHEN status = 'ACTIVE' THEN 0 ELSE 1 END, "
+                + "effectiveDate ASC "
+                + "LIMIT 1";
+
+        try (PreparedStatement ps = conn.prepareStatement(SQL)) {
+            ps.setInt(1, employeeId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return mapContract(rs);
+                }
+            }
+        }
+
+        return null;
+    }
+
     public boolean hasOverlappingContract(Connection conn, int employeeId, java.sql.Date newStart,
             java.sql.Date newEnd, Integer excludeContractId) throws SQLException {
         String SQL = "SELECT 1 FROM Employment_Contracts "
