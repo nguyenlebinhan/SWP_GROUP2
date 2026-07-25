@@ -161,14 +161,14 @@ public class ManagerController extends HttpServlet {
             case "/contract/pending":
                 displayPendingContracts(request, response, user);
                 break;
-            case "/contract/history":
-                displayContractHistory(request, response, user);
-                break;
             case "/contract/status":
                 displayAllContractsOverview(request, response, user);
                 break;
             case "/contract/detail":
                 displayContractDetail(request, response, user);
+                break;
+            case "/contract/self":
+                displayMyContracts(request, response, user);
                 break;
             case "/contract/terminate":
                 displayTerminateContractList(request, response, user);
@@ -1347,66 +1347,6 @@ public class ManagerController extends HttpServlet {
         request.getRequestDispatcher("/public/manager/contract/pending_contract_list.jsp").forward(request, response);
     }
 
-    private void displayContractHistory(HttpServletRequest request, HttpServletResponse response,
-            User user) throws ServletException, IOException {
-        if (!"own".equalsIgnoreCase(request.getParameter("scope"))
-                && !isHrStaff(user)) {
-            request.getSession().setAttribute("error", "Bạn không có quyền xem lịch sử hợp đồng.");
-            response.sendRedirect(request.getContextPath() + "/v1/manager/dashboard");
-            return;
-        }
-
-        Set<String> perms = getPermissions(user);
-        request.getSession().setAttribute("userPermissions", perms);
-
-        if ("own".equalsIgnoreCase(request.getParameter("scope"))) {
-            if (!perms.contains("VIEW_OWN_CONTRACT")) {
-                request.getSession().setAttribute("error", "Bạn không có quyền xem lịch sử hợp đồng.");
-                response.sendRedirect(request.getContextPath() + "/v1/manager/dashboard");
-                return;
-            }
-            EmployeeDetailDTO employee = employeeDAO.getEmployeeByUserId(user.getUserId());
-            if (employee == null) {
-                request.getSession().setAttribute("error", "Không tìm thấy thông tin nhân viên.");
-                response.sendRedirect(request.getContextPath() + "/v1/manager/dashboard");
-                return;
-            }
-
-            List<ContractAuditLog> auditLogs = contractDAO.searchContractHistory(
-                    employee.getEmployeeId(), null, null,
-                    employee.getEmployeeId(), false);
-
-            request.setAttribute("auditLogs", auditLogs);
-            request.setAttribute("employee", employee);
-            request.setAttribute("isOwnScope", true);
-            setPermissionFlags(request, perms);
-            request.getRequestDispatcher("/public/manager/contract/contract_history.jsp").forward(request, response);
-            return;
-        }
-
-        String empIdStr = trimToNull(request.getParameter("employeeId"));
-        Integer targetEmpId = empIdStr != null ? Integer.parseInt(empIdStr) : null;
-        String nameKeyword = trimToNull(request.getParameter("nameKeyword"));
-        String deptIdStr = trimToNull(request.getParameter("departmentId"));
-        Integer departmentId = deptIdStr != null ? Integer.parseInt(deptIdStr) : null;
-
-        EmployeeDetailDTO loggedInEmployee = employeeDAO.getEmployeeByUserId(user.getUserId());
-        int loggedInEmpId = loggedInEmployee != null ? loggedInEmployee.getEmployeeId() : 0;
-
-        List<ContractAuditLog> auditLogs = contractDAO.searchContractHistory(
-                targetEmpId, nameKeyword, departmentId,
-                loggedInEmpId, isHrStaff(user));
-
-        request.setAttribute("auditLogs", auditLogs);
-        request.setAttribute("filterEmployeeId", targetEmpId);
-        request.setAttribute("filterNameKeyword", nameKeyword);
-        request.setAttribute("filterDepartmentId", departmentId);
-        request.setAttribute("isOwnScope", false);
-        setPermissionFlags(request, perms);
-        request.setAttribute("isHrStaffRole", isHrStaff(user));
-        request.getRequestDispatcher("/public/manager/contract/contract_history.jsp").forward(request, response);
-    }
-
     private void displayAllContractsOverview(HttpServletRequest request, HttpServletResponse response,
             User user) throws ServletException, IOException {
         if (!isHrStaff(user) || !hasPermission(user, "VIEW_ALL_CONTRACTS")) {
@@ -1428,6 +1368,7 @@ public class ManagerController extends HttpServlet {
         try {
             List<EmploymentContract> contracts = contractDAO.getAllContractsForOverview(
                     keyword, contractType, status, null, loggedInEmpId, isHrStaff(user));
+            
             Map<Integer, EmployeeDetailDTO> employeeMap = new HashMap<>();
             for (EmploymentContract c : contracts) {
                 if (!employeeMap.containsKey(c.getEmployeeId())) {
@@ -1448,6 +1389,7 @@ public class ManagerController extends HttpServlet {
         request.setAttribute("keyword", keyword);
         request.setAttribute("contractType", contractType);
         request.setAttribute("status", status);
+        request.setAttribute("isHrManager", isHrManager(user));
         setPermissionFlags(request, perms);
         request.getRequestDispatcher("/public/manager/contract/contract_status.jsp").forward(request, response);
     }
@@ -1481,7 +1423,7 @@ public class ManagerController extends HttpServlet {
         request.setAttribute("employee", employee);
         request.setAttribute("backUrl", contract.getStatus() == ContractStatus.PENDING_APPROVAL
                 ? "/v1/manager/contract/pending"
-                : "/v1/manager/contract/history");
+                : "/v1/employee/contract/status");
         setPermissionFlags(request, perms);
         request.getRequestDispatcher("/public/manager/contract/contract_detail.jsp").forward(request, response);
     }
@@ -1510,6 +1452,35 @@ public class ManagerController extends HttpServlet {
 
         response.sendRedirect(request.getContextPath()
                 + "/v1/manager/contract/detail?contractId=" + contract.getContractId());
+    }
+
+    private void displayMyContracts(HttpServletRequest request, HttpServletResponse response,
+            User user) throws ServletException, IOException {
+        if (!isHrStaff(user)) {
+            request.getSession().setAttribute("error", "Bạn không có quyền xem hợp đồng.");
+            response.sendRedirect(request.getContextPath() + "/v1/manager/dashboard");
+            return;
+        }
+
+        Set<String> perms = getPermissions(user);
+        request.getSession().setAttribute("userPermissions", perms);
+
+        EmployeeDetailDTO loggedInEmployee = employeeDAO.getEmployeeByUserId(user.getUserId());
+        if (loggedInEmployee == null) {
+            request.setAttribute("contracts", new ArrayList<>());
+        } else {
+            try {
+                List<EmploymentContract> contracts = contractDAO.getAllContractsByEmployeeId(loggedInEmployee.getEmployeeId());
+                request.setAttribute("contracts", contracts);
+            } catch (SQLException e) {
+                LOGGER.log(Level.SEVERE, "Error loading my contracts", e);
+                request.setAttribute("contracts", new ArrayList<>());
+            }
+            request.setAttribute("employee", loggedInEmployee);
+        }
+
+        setPermissionFlags(request, perms);
+        request.getRequestDispatcher("/public/manager/contract/contract_self.jsp").forward(request, response);
     }
 
     private void displayTerminateContractList(HttpServletRequest request, HttpServletResponse response,
@@ -2484,16 +2455,6 @@ public class ManagerController extends HttpServlet {
             LOGGER.log(Level.SEVERE, "Error running scheduler manually", e);
             sendJsonResponse(response, false, "Internal error: " + e.getMessage());
         }
-    }
-
-    private void forwardContractFormError(HttpServletRequest request, HttpServletResponse response,
-            User user, String message) throws ServletException, IOException {
-        Set<String> perms = getPermissions(user);
-        request.getSession().setAttribute("userPermissions", perms);
-        request.setAttribute("error", message);
-        request.setAttribute("employees", employeeDAO.getAllEmployees());
-        setPermissionFlags(request, perms);
-        request.getRequestDispatcher("/public/manager/contract/add_contract.jsp").forward(request, response);
     }
 
     private EmployeeDetailDTO getEmployeeFromRequest(HttpServletRequest request, HttpServletResponse response) {
