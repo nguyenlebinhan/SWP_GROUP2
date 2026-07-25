@@ -70,7 +70,7 @@
                 <input type="text" class="form-control bg-light" value="${myEmployee != null ? myEmployee.positionName : 'N/A'}" readonly>
             </div>
             <div class="col-md-6 mb-3">
-                <label class="form-label">So nguoi phu thuoc</label>
+                <label class="form-label">Số người phụ thuộc</label>
                 <input type="text" class="form-control bg-light" value="${myEmployee != null ? myEmployee.dependentCount : 0}" readonly>
             </div>
         </div>

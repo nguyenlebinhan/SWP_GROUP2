@@ -311,9 +311,9 @@ public class PayrollDAO {
                 + "(periodStart, periodEnd, employeeId, positionId, departmentId, workingDays, hoursWorked, "
                 + "baseSalary, allowance, bonus, overtimePay, unpaidDeduction, grossSalary, "
                 + "insuranceDeduction, personalIncomeTax, netSalary, "
-                + "insuranceSalaryBase, postInsuranceIncome, taxableIncome, employerContribution, note, status, "
+                + "insuranceSalaryBase, postInsuranceIncome, taxableIncome, employerContribution, note, configSnapshot, status, "
                 + "approvedBy, approvedAt) "
-                + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         try (PreparedStatement ps = conn.prepareStatement(SQL, Statement.RETURN_GENERATED_KEYS)) {
             bindPayroll(ps, payroll, false);
             int rows = ps.executeUpdate();
@@ -332,7 +332,7 @@ public class PayrollDAO {
                 + "workingDays = ?, hoursWorked = ?, baseSalary = ?, allowance = ?, bonus = ?, "
                 + "overtimePay = ?, unpaidDeduction = ?, grossSalary = ?, insuranceDeduction = ?, personalIncomeTax = ?, "
                 + "netSalary = ?, insuranceSalaryBase = ?, postInsuranceIncome = ?, taxableIncome = ?, employerContribution = ?, "
-                + "note = ?, status = ?, "
+                + "note = ?, configSnapshot = ?, status = ?, "
                 + "approvedBy = ?, approvedAt = ? "
                 + "WHERE payrollId = ?";
         try (PreparedStatement ps = conn.prepareStatement(SQL)) {
@@ -367,16 +367,17 @@ public class PayrollDAO {
         setBigDecimal(ps, 19, p.getTaxableIncome());
         setBigDecimal(ps, 20, p.getEmployerContribution());
         ps.setNString(21, p.getNote());
-        ps.setInt(22, p.getStatus());
+        ps.setNString(22, p.getConfigSnapshot());
+        ps.setInt(23, p.getStatus());
 
         if (p.getApprovedBy() != null) {
-            ps.setInt(23, p.getApprovedBy());
+            ps.setInt(24, p.getApprovedBy());
         } else {
-            ps.setNull(23, Types.INTEGER);
+            ps.setNull(24, Types.INTEGER);
         }
-        ps.setTimestamp(24, p.getApprovedAt());
+        ps.setTimestamp(25, p.getApprovedAt());
         if (includeIdAtEnd) {
-            ps.setInt(25, p.getPayrollId());
+            ps.setInt(26, p.getPayrollId());
         }
     }
 
@@ -392,7 +393,7 @@ public class PayrollDAO {
         return "SELECT payrollId, periodStart, periodEnd, employeeId, positionId, departmentId, "
                 + "workingDays, hoursWorked, baseSalary, allowance, bonus, overtimePay, unpaidDeduction, "
                 + "grossSalary, insuranceDeduction, personalIncomeTax, netSalary, "
-                + "insuranceSalaryBase, postInsuranceIncome, taxableIncome, employerContribution, note, status, "
+                + "insuranceSalaryBase, postInsuranceIncome, taxableIncome, employerContribution, note, configSnapshot, status, "
                 + "approvedBy, approvedAt, "
                 + "createdAt, updatedAt FROM Payroll";
     }
@@ -422,6 +423,7 @@ public class PayrollDAO {
         p.setTaxableIncome(rs.getBigDecimal("taxableIncome"));
         p.setEmployerContribution(rs.getBigDecimal("employerContribution"));
         p.setNote(rs.getNString("note"));
+        p.setConfigSnapshot(rs.getNString("configSnapshot"));
         p.setStatus(rs.getInt("status"));
         int approvedBy = rs.getInt("approvedBy");
         p.setApprovedBy(rs.wasNull() ? null : approvedBy);
