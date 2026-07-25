@@ -55,7 +55,7 @@
                     <input type="text" name="phoneNumber" class="form-control" value="<c:out value='${employee.phoneNumber}'/>">
                 </div>
                 <div class="col-md-6">
-                    <label class="form-label">So nguoi phu thuoc</label>
+                    <label class="form-label">Số người phụ thuộc</label>
                     <div class="form-control bg-light">${employee.dependentCount}</div>
                 </div>
                 <div class="col-md-6">
