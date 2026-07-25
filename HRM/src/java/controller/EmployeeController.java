@@ -138,14 +138,11 @@ public class EmployeeController extends HttpServlet {
             case "/contract/detail":
                 displayContractDetail(request, response, user);
                 break;
-            case "/contract/current":
-                displayCurrentContract(request, response, user);
-                break;
-            case "/contract/history":
-                displayContractHistory(request, response, user);
-                break;
             case "/contract/status":
                 displayAllContractsOverview(request, response, user);
+                break;
+            case "/contract/self":
+                displayMyContracts(request, response, user);
                 break;
             case "/contract/blank-template":
                 downloadBlankTemplate(request, response);
@@ -527,36 +524,9 @@ public class EmployeeController extends HttpServlet {
         request.getSession().setAttribute("userPermissions", perms);
         request.setAttribute("contract", contract);
         request.setAttribute("employee", employee);
-        request.setAttribute("backUrl", "/v1/employee/contract/history");
+        request.setAttribute("backUrl", "/v1/employee/contract/status");
         setPermissionFlags(request, perms);
         request.getRequestDispatcher("/public/employee/contract/contract_detail.jsp").forward(request, response);
-    }
-
-    private void displayCurrentContract(HttpServletRequest request, HttpServletResponse response,
-            User user) throws ServletException, IOException {
-        EmployeeDetailDTO employee = employeeDAO.getEmployeeByUserId(user.getUserId());
-        EmploymentContract contract = contractDAO.getActiveOrPendingContract(employee.getEmployeeId());
-        request.setAttribute("activeContract", contract);
-        request.setAttribute("employee", employee);
-        request.getRequestDispatcher("/public/employee/contract/contract_current.jsp").forward(request, response);
-    }
-
-    private void displayContractHistory(HttpServletRequest request, HttpServletResponse response,
-            User user) throws ServletException, IOException {
-        EmployeeDetailDTO employee = employeeDAO.getEmployeeByUserId(user.getUserId());
-        if (employee == null) {
-            request.getSession().setAttribute("error", "Không tìm thấy thông tin nhân viên.");
-            response.sendRedirect(request.getContextPath() + "/v1/employee/dashboard");
-            return;
-        }
-
-        List<ContractAuditLog> auditLogs = contractDAO.searchContractHistory(
-                employee.getEmployeeId(), null, null,
-                employee.getEmployeeId(), false);
-
-        request.setAttribute("auditLogs", auditLogs);
-        request.setAttribute("employee", employee);
-        request.getRequestDispatcher("/public/employee/contract/contract_history.jsp").forward(request, response);
     }
 
     private void displayAllContractsOverview(HttpServletRequest request, HttpServletResponse response,
@@ -602,6 +572,35 @@ public class EmployeeController extends HttpServlet {
         request.setAttribute("status", status);
         setPermissionFlags(request, perms);
         request.getRequestDispatcher("/public/employee/contract/contract_status.jsp").forward(request, response);
+    }
+
+    private void displayMyContracts(HttpServletRequest request, HttpServletResponse response,
+            User user) throws ServletException, IOException {
+        if (!isHrStaff(user)) {
+            request.getSession().setAttribute("error", "Bạn không có quyền xem hợp đồng.");
+            response.sendRedirect(request.getContextPath() + "/v1/employee/dashboard");
+            return;
+        }
+
+        Set<String> perms = getPermissions(user);
+        request.getSession().setAttribute("userPermissions", perms);
+
+        EmployeeDetailDTO loggedInEmployee = employeeDAO.getEmployeeByUserId(user.getUserId());
+        if (loggedInEmployee == null) {
+            request.setAttribute("contracts", new ArrayList<>());
+        } else {
+            try {
+                List<EmploymentContract> contracts = contractDAO.getAllContractsByEmployeeId(loggedInEmployee.getEmployeeId());
+                request.setAttribute("contracts", contracts);
+            } catch (SQLException e) {
+                LOGGER.log(Level.SEVERE, "Error loading my contracts", e);
+                request.setAttribute("contracts", new ArrayList<>());
+            }
+            request.setAttribute("employee", loggedInEmployee);
+        }
+
+        setPermissionFlags(request, perms);
+        request.getRequestDispatcher("/public/employee/contract/contract_self.jsp").forward(request, response);
     }
 
     private void downloadBlankTemplate(HttpServletRequest request, HttpServletResponse response) throws IOException {
@@ -657,14 +656,14 @@ public class EmployeeController extends HttpServlet {
             User user) throws ServletException, IOException {
         if (!isHrStaff(user) || !hasPermission(user, "ADD_EMPLOYMENT_CONTRACT")) {
             request.getSession().setAttribute("error", "Bạn không có quyền chỉnh sửa hợp đồng.");
-            response.sendRedirect(request.getContextPath() + "/v1/employee/contract/history");
+            response.sendRedirect(request.getContextPath() + "/v1/employee/contract/status");
             return;
         }
 
         String contractIdStr = trimToNull(request.getParameter("contractId"));
         if (contractIdStr == null) {
             request.getSession().setAttribute("error", "Thiếu contractId.");
-            response.sendRedirect(request.getContextPath() + "/v1/employee/contract/history");
+            response.sendRedirect(request.getContextPath() + "/v1/employee/contract/status");
             return;
         }
 
@@ -674,7 +673,7 @@ public class EmployeeController extends HttpServlet {
 
             if (contract == null) {
                 request.getSession().setAttribute("error", "Hợp đồng không tồn tại.");
-                response.sendRedirect(request.getContextPath() + "/v1/employee/contract/history");
+                response.sendRedirect(request.getContextPath() + "/v1/employee/contract/status");
                 return;
             }
 
@@ -742,10 +741,10 @@ public class EmployeeController extends HttpServlet {
 
         } catch (NumberFormatException e) {
             request.getSession().setAttribute("error", "Dữ liệu nhập không hợp lệ: " + e.getMessage());
-            response.sendRedirect(request.getContextPath() + "/v1/employee/contract/history");
+            response.sendRedirect(request.getContextPath() + "/v1/employee/contract/status");
         } catch (IllegalArgumentException e) {
             request.getSession().setAttribute("error", "Giá trị không hợp lệ: " + e.getMessage());
-            response.sendRedirect(request.getContextPath() + "/v1/employee/contract/history");
+            response.sendRedirect(request.getContextPath() + "/v1/employee/contract/status");
         }
     }
 
@@ -786,7 +785,7 @@ public class EmployeeController extends HttpServlet {
         String contractIdStr = trimToNull(request.getParameter("contractId"));
         if (contractIdStr == null) {
             request.getSession().setAttribute("error", "Thiếu contractId.");
-            response.sendRedirect(request.getContextPath() + "/v1/employee/contract/history");
+            response.sendRedirect(request.getContextPath() + "/v1/employee/contract/status");
             return;
         }
 
@@ -796,7 +795,7 @@ public class EmployeeController extends HttpServlet {
 
             if (contract == null) {
                 request.getSession().setAttribute("error", "Hợp đồng không tồn tại.");
-                response.sendRedirect(request.getContextPath() + "/v1/employee/contract/history");
+                response.sendRedirect(request.getContextPath() + "/v1/employee/contract/status");
                 return;
             }
 
@@ -816,7 +815,7 @@ public class EmployeeController extends HttpServlet {
 
         } catch (NumberFormatException e) {
             request.getSession().setAttribute("error", "ContractId không hợp lệ.");
-            response.sendRedirect(request.getContextPath() + "/v1/employee/contract/history");
+            response.sendRedirect(request.getContextPath() + "/v1/employee/contract/status");
         }
     }
 
@@ -2445,7 +2444,7 @@ public class EmployeeController extends HttpServlet {
                 response.sendRedirect(request.getContextPath()
                         + "/v1/employee/contract/detail?contractId=" + createdContract.getContractId());
             } else {
-                response.sendRedirect(request.getContextPath() + "/v1/employee/contract/history");
+                response.sendRedirect(request.getContextPath() + "/v1/employee/contract/status");
             }
         } else {
             // giữ nguyên phần else như cũ
