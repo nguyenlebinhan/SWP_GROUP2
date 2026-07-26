@@ -1,0 +1,267 @@
+/*
+ * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
+ * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
+ */
+package service;
+
+import dao.DepartmentDAO;
+import dao.DependentDAO;
+import dao.EmployeeDAO;
+import dao.FormRequestDAO;
+import dao.LeaveBalanceDAO;
+import dao.RoleDAO;
+import dao.UploadedFileDAO;
+import dto.EmployeeDetailDTO;
+import enums.FormErrorCode;
+import enums.FormTypeCode;
+import java.time.DayOfWeek;
+import java.time.LocalDate;
+import java.sql.Date;
+import java.sql.Time;
+import model.ComplaintFormRequest;
+import model.Department;
+import model.DependentFormRequest;
+import model.FormOperationalResult;
+import model.LeaveBalance;
+import model.LeaveFormRequest;
+import model.Role;
+import model.TransferFormRequest;
+
+/**
+ *
+ * @author admin
+ */
+public class FormService {
+
+    private final FormRequestDAO formRequestDAO;
+    private final DepartmentDAO departmentDAO;
+    private final LeaveBalanceDAO leaveBalanceDAO;
+    private final RoleDAO roleDAO;
+    private final UploadedFileDAO uploadedFileDAO;
+    private final EmployeeDAO employeeDAO;
+    private final DependentDAO dependentDAO;
+
+    public FormService() {
+        this.formRequestDAO = new FormRequestDAO();
+        this.departmentDAO = new DepartmentDAO();
+        this.leaveBalanceDAO = new LeaveBalanceDAO();
+        this.roleDAO = new RoleDAO();
+        this.uploadedFileDAO = new UploadedFileDAO();
+        this.employeeDAO = new EmployeeDAO();
+        this.dependentDAO = new DependentDAO();
+    }
+
+    public FormOperationalResult submitLeaveForm(int employeeId, int formTypeId, String reason,
+            Date startDate, Date endDate, String attachmentUrl, String attachmentName) {
+        EmployeeDetailDTO emp = employeeDAO.getEmployeeById(employeeId);
+        if (emp == null) {
+            return new FormOperationalResult(false, FormErrorCode.EMPLOYEE_NOT_FOUND.name(), "Nhân viên không tồn tại.");
+        }
+        LeaveBalance balance = leaveBalanceDAO.getLeaveBalance(employeeId, LocalDate.now().getYear());
+        if (balance == null) {
+            return new FormOperationalResult(false, FormErrorCode.NO_LEAVE_BALANCE.name(), "Không có nghỉ phép năm trong năm nay");
+        }
+        int allowedDays = balance.getRemainingDays();
+        if (startDate.toLocalDate().isBefore(LocalDate.now())) {
+            return new FormOperationalResult(false, FormErrorCode.START_DATE_IN_PAST.name(), "Ngày bắt đầu không được trong quá khứ");
+        }
+        if (endDate.before(startDate)) {
+            return new FormOperationalResult(false, FormErrorCode.END_DATE_BEFORE_START_DATE.name(), "Ngày kết thúc không được trước ngày bắt đầu");
+        }
+
+        int totalDays = countDays(startDate.toLocalDate(), endDate.toLocalDate());
+        if (totalDays == 0) {
+            return new FormOperationalResult(false, FormErrorCode.WEEKEND_ONLY.name(), "Không cần nộp đơn, toàn bộ ngày chọn đều là cuối tuần");
+        }
+        if (totalDays > allowedDays) {
+            return new FormOperationalResult(false, FormErrorCode.INSUFFICIENT_LEAVE_BALANCE.name(), "Số ngày nghỉ mong muốn vượt quá số ngày phép còn lại (" + allowedDays + " ngày)");
+        }
+        boolean exist = formRequestDAO.hasOverlappingLeave(employeeId, startDate, endDate);
+        if (exist) {
+            return new FormOperationalResult(false, FormErrorCode.OVERLAPPING_LEAVE.name(), "Đã có đơn xin nghỉ trong khoảng thời gian này");
+        }
+        LeaveFormRequest fr = new LeaveFormRequest();
+        fr.setFormCode(FormTypeCode.LEAVE.name() + employeeId + System.currentTimeMillis());
+        fr.setEmployeeId(employeeId);
+        fr.setFormTypeId(formTypeId);
+        fr.setStartDate(startDate);
+        fr.setEndDate(endDate);
+        fr.setTotalDays(totalDays);
+        fr.setReason(reason);
+        fr.setAttachmentUrl(attachmentUrl);
+        fr.setAttachmentName(attachmentName);
+
+        int id = formRequestDAO.addFormRequest(fr);
+        if (id <= 0) {
+            return new FormOperationalResult(false, FormErrorCode.DATABASE_ERROR.name(), "Gửi đơn nghỉ phép thất bại");
+        }
+        return new FormOperationalResult(true, null, "Đã gửi đơn nghỉ phép thành công.");
+    }
+
+    public FormOperationalResult submitComplaintForm(int employeeId, int formTypeId, String reason,
+            Date startDate, Time startTime, Time endTime,
+            String attachmentUrl, String attachmentName) {
+        EmployeeDetailDTO emp = employeeDAO.getEmployeeById(employeeId);
+        if (emp == null) {
+            return new FormOperationalResult(false, FormErrorCode.EMPLOYEE_NOT_FOUND.name(), "Nhân viên không tồn tại.");
+        }
+        int[] latestPeriod = uploadedFileDAO.getLatestAttendanceImportMonthYear();
+        if (latestPeriod == null) {
+            return new FormOperationalResult(false, FormErrorCode.NO_ATTENDANCE_RECORD.name(), "Không có dữ liệu chấm công cho tháng " + latestPeriod[0]);
+        }
+        LocalDate complaintDate = startDate.toLocalDate();
+        if (complaintDate.getMonthValue() != latestPeriod[0] || complaintDate.getYear() != latestPeriod[1]) {
+            return new FormOperationalResult(false, FormErrorCode.COMPLAINT_PERIOD_MISMATCH.name(), String.format("Chỉ được khiếu nại cho tháng %02d/%d", latestPeriod[0], latestPeriod[1]));
+        }
+        if (endTime.before(startTime)) {
+            return new FormOperationalResult(false, FormErrorCode.END_TIME_BEFORE_START_TIME.name(), "Giờ kết thúc phải lớn hơn giờ bắt đầu");
+        }
+
+        boolean exist = formRequestDAO.hasPendingComplaintForDate(employeeId, startDate);
+        if (exist) {
+            return new FormOperationalResult(false, FormErrorCode.OVERLAPPING_COMPLAINT.name(), "Đã có đơn xin khiếu nại vào ngày " + startDate);
+        }
+        ComplaintFormRequest fr = new ComplaintFormRequest();
+        fr.setFormCode(FormTypeCode.COMPLAINT.name() + "-" + employeeId + "-" + System.currentTimeMillis());
+        fr.setEmployeeId(employeeId);
+        fr.setFormTypeId(formTypeId);
+        fr.setStartDate(startDate);
+        fr.setStartTime(startTime);
+        fr.setEndTime(endTime);
+        fr.setReason(reason);
+        fr.setAttachmentUrl(attachmentUrl);
+        fr.setAttachmentName(attachmentName);
+
+        int id = formRequestDAO.addFormRequest(fr);
+        if (id <= 0) {
+            return new FormOperationalResult(false, FormErrorCode.DATABASE_ERROR.name(), "Gửi đơn khiếu nại thất bại");
+        }
+        return new FormOperationalResult(true, null, "Gửi đơn khiếu nại thành công");
+    }
+
+    public FormOperationalResult submitTransferRequest(int employeeId, int formTypeId, String reason,
+            int targetDepartmentId, int targetRoleId, String attachmentUrl, String attachmentName) {
+        EmployeeDetailDTO emp = employeeDAO.getEmployeeById(employeeId);
+        if (emp == null) {
+            return new FormOperationalResult(false, FormErrorCode.EMPLOYEE_NOT_FOUND.name(), "Nhân viên không tồn tại");
+        }
+
+        Department dept = departmentDAO.getDepartmentById(emp.getDepartmentId());
+        Role targetRole = roleDAO.getRoleById(targetRoleId);
+        if (dept.getDepartmentId() == targetDepartmentId) {
+            return new FormOperationalResult(false, FormErrorCode.SAME_DEPARTMENT.name(), "Đã ở phòng ban này");
+        }
+
+        boolean isCurrentManager = emp.getRoleName() != null && emp.getRoleName().endsWith("Manager");
+        boolean isTargetManager = targetRole.getRoleName() != null && targetRole.getRoleName().endsWith("Manager");
+        if (isCurrentManager != isTargetManager) {
+            return new FormOperationalResult(false, FormErrorCode.INVALID_TRANSFER_LEVEL.name(), "Chỉ được chuyển phòng ban ngang cấp bậc (VD: Employee sang Employee).");
+        }
+
+        Department targetDept = departmentDAO.getDepartmentById(targetDepartmentId);
+        if (targetDept != null && targetDept.getManagerId() != null && isTargetManager) {
+            return new FormOperationalResult(false, FormErrorCode.DEPARTMENT_MANAGER_EXIST.name(), "Phòng ban đích đã có trưởng phòng");
+        }
+        if (!departmentDAO.isRoleAllowedForDepartment(targetDepartmentId, targetRoleId)) {
+            return new FormOperationalResult(false, FormErrorCode.ROLE_NOT_ALLOWED_FOR_DEPARTMENT.name(), "Vị trí không có trong phòng ban này");
+        }
+        boolean exist = formRequestDAO.hasPendingTransfer(employeeId);
+        if (exist) {
+            return new FormOperationalResult(false, FormErrorCode.OVERLAPPING_TRANSFER.name(), "Đã có đơn thuyên chuyển phòng ban");
+        }
+        TransferFormRequest fr = new TransferFormRequest();
+        fr.setFormCode(FormTypeCode.TRANSFER.name()+ "-" + employeeId + "-" + System.currentTimeMillis());
+        fr.setEmployeeId(employeeId);
+        fr.setFormTypeId(formTypeId);
+        fr.setTargetDepartmentId(targetDepartmentId);
+        fr.setTargetRoleId(targetRoleId);
+        fr.setAttachmentUrl(attachmentUrl);
+        fr.setAttachmentName(attachmentName);
+
+        int id = formRequestDAO.addFormRequest(fr);
+        if (id <= 0) {
+            return new FormOperationalResult(false, FormErrorCode.DATABASE_ERROR.name(), "Gửi đơn thuyên chuyển phòng ban thất bại");
+        }
+        return new FormOperationalResult(true, null, "Gửi đơn thuyên chuyển phòng ban thành công");
+    }
+
+    public FormOperationalResult submitPromotionForm(int employeeId, int formTypeId, String reason,
+            int targetRoleId, String attachmentUrl, String attachmentName) {
+        EmployeeDetailDTO emp = employeeDAO.getEmployeeById(employeeId);
+        if (emp == null) {
+            return new FormOperationalResult(false, FormErrorCode.EMPLOYEE_NOT_FOUND.name(), "Nhân viên không tồn tại.");
+        }
+
+        Department dept = departmentDAO.getDepartmentById(emp.getDepartmentId());
+        Role targetRole = roleDAO.getRoleById(targetRoleId);
+        if (dept.getManagerId() != null && targetRole.getRoleName().contains("Manager")) {
+            return new FormOperationalResult(false, FormErrorCode.DEPARTMENT_MANAGER_EXIST.name(), "Phòng ban này đã có trưởng phòng");
+        }
+        int deptId = emp.getDepartmentId();
+        if (!departmentDAO.isRoleAllowedForDepartment(deptId, targetRoleId)) {
+            return new FormOperationalResult(false, FormErrorCode.ROLE_NOT_ALLOWED_FOR_DEPARTMENT.name(), "Vị trí không có trong phòng ban này");
+        }
+        TransferFormRequest fr = new TransferFormRequest();
+        fr.setFormCode(FormTypeCode.PROMOTION_DEMOTION.name() + "-" + employeeId + "-" + System.currentTimeMillis());
+        fr.setEmployeeId(employeeId);
+        fr.setFormTypeId(formTypeId);
+        fr.setReason(reason);
+        fr.setTargetRoleId(targetRoleId);
+        fr.setAttachmentUrl(attachmentUrl);
+        fr.setAttachmentName(attachmentName);
+
+        int id = formRequestDAO.addFormRequest(fr);
+        if (id <= 0) {
+            return new FormOperationalResult(false, FormErrorCode.DATABASE_ERROR.name(), "Gửi đơn thăng/giáng chức thất bại.");
+        }
+        return new FormOperationalResult(true, null, "Gửi đơn thăng/giáng chức thành công.");
+    }
+
+    public FormOperationalResult submitDependentForm(int employeeId, int formTypeId, String reason,
+            String fullName, String relationship, Date dateOfBirth, String taxCode,
+            String attachmentUrl, String attachmentName) {
+        EmployeeDetailDTO emp = employeeDAO.getEmployeeById(employeeId);
+        if (emp == null) {
+            return new FormOperationalResult(false, "NOT_FOUND", "Nhân viên không tồn tại.");
+        }
+        if (taxCode != null && !taxCode.trim().isEmpty()) {
+            if (dependentDAO.checkTaxCodeExist(taxCode)) {
+                return new FormOperationalResult(false, FormErrorCode.TAX_CODE_ALREADY_USED.name(), "Mã số thuế/CCCD này đã được duyệt giảm trừ cho một nhân viên.");
+            }
+            if (formRequestDAO.hasPendingDependentTaxCode(taxCode)) {
+                return new FormOperationalResult(false, FormErrorCode.TAX_CODE_ALREADY_USED.name(), "Mã số thuế/CCCD này đang có đơn xin giảm trừ chờ duyệt.");
+            }
+        }
+        DependentFormRequest fr = new DependentFormRequest();
+        fr.setFormCode(FormTypeCode.DEPENDENT.name() + "-" + employeeId + "-" + System.currentTimeMillis());
+        fr.setEmployeeId(employeeId);
+        fr.setFormTypeId(formTypeId);
+        fr.setDependentName(fullName);
+        fr.setDependentRelationship(relationship);
+        fr.setDependentDob(dateOfBirth);
+        fr.setDependentTaxCode(taxCode);
+        fr.setReason(reason);
+        fr.setAttachmentUrl(attachmentUrl);
+        fr.setAttachmentName(attachmentName);
+        
+        int id = formRequestDAO.addFormRequest(fr);
+        if (id <= 0) {
+            return new FormOperationalResult(false,
+                    FormErrorCode.DATABASE_ERROR.name(), "Gửi đơn đăng kí người phụ thuộc thất bại.");
+        }
+        return new FormOperationalResult(true, null, "Gửi đơn đăng kí người phụ thuộc thành công.");
+    }
+
+    private int countDays(LocalDate startDate, LocalDate endDate) {
+        int count = 0;
+        LocalDate i = startDate;
+        while (!i.isAfter(endDate)) {
+            DayOfWeek day = i.getDayOfWeek();
+            if (day != DayOfWeek.SATURDAY && day != DayOfWeek.SUNDAY) {
+                count++;
+            }
+            i = i.plusDays(1);
+        }
+        return count;
+    }
+}

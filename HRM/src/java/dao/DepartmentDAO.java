@@ -16,6 +16,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import model.Department;
 import model.Position;
+import model.Role;
 
 /**
  *
@@ -157,6 +158,29 @@ public class DepartmentDAO {
             LOGGER.log(Level.SEVERE, "Cannot check role-department compatibility for dept: " + departmentId, e);
         }
         return false;
+    }
+
+    public List<Role> getAllowedRoles(int departmentId) {
+        List<Role> roles = new java.util.ArrayList<>();
+        String SQL = "SELECT r.roleId, r.roleName, r.description FROM Department_Roles dr "
+                + "JOIN Roles r ON r.roleId = dr.roleId "
+                + "WHERE dr.departmentId = ? AND r.status = 1";
+        try (Connection conn = dbContext.getConnection();
+             java.sql.PreparedStatement ps = conn.prepareStatement(SQL)) {
+            ps.setInt(1, departmentId);
+            try (java.sql.ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    model.Role role = new model.Role();
+                    role.setRoleId(rs.getInt("roleId"));
+                    role.setRoleName(rs.getString("roleName"));
+                    role.setDescription(rs.getString("description"));
+                    roles.add(role);
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return roles;
     }
 
     public List<String> getAllowedRoleNames(int departmentId) {

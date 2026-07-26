@@ -3,7 +3,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Đơn Nghỉ Phép - HRM</title>
+    <title>Đơn Khiếu Nại - HRM</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
     <style>
@@ -31,15 +31,15 @@
 </head>
 <body>
 
-<jsp:include page="/public/components/employeeSideBar.jsp" />
+<jsp:include page="/public/components/managerSideBar.jsp" />
 
 <div class="main">
-    <jsp:include page="/public/components/employeeTopBar.jsp">
+    <jsp:include page="/public/components/managerTopBar.jsp">
         <jsp:param name="title" value="Tạo đơn yêu cầu" />
     </jsp:include>
 
-    <jsp:include page="/public/employee/forms/form_tabs.jsp">
-        <jsp:param name="active" value="leave" />
+    <jsp:include page="/public/manager/forms/form_tabs.jsp">
+        <jsp:param name="active" value="complaint" />
     </jsp:include>
 
     <c:if test="${not empty sessionScope.success}">
@@ -57,40 +57,33 @@
     </c:if>
 
     <div class="section-card">
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <h5 class="mb-0">Tạo Đơn Xin Nghỉ Phép</h5>
-            <c:if test="${not empty remainingDays}">
-                <span class="badge bg-info text-dark" style="font-size: 0.95em;">
-                    Số ngày phép còn lại: ${remainingDays} ngày
-                </span>
-            </c:if>
-        </div>
-        <form method="post" action="${pageContext.request.contextPath}/v1/employee/forms/leave/submit"
+        <h5 class="mb-4">Tạo Đơn Khiếu Nại</h5>
+                <form method="post" action="${pageContext.request.contextPath}/v1/manager/forms/complaint/submit"
               enctype="multipart/form-data">
             <div class="row g-3">
-
+                
                 <div class="col-md-4">
-                    <label class="form-label fw-semibold">Ngày bắt đầu <span class="text-danger">*</span></label>
+                    <label class="form-label fw-semibold">Ngày làm việc <span class="text-danger">*</span></label>
                     <input type="date" id="startDate" name="startDate" class="form-control" required
                            value="${param.startDate}">
                 </div>
 
                 <div class="col-md-4">
-                    <label class="form-label fw-semibold">Ngày kết thúc <span class="text-danger">*</span></label>
-                    <input type="date" id="endDate" name="endDate" class="form-control" required
-                           value="${param.endDate}">
+                    <label class="form-label fw-semibold">Giờ vào (Thực tế) <span class="text-danger">*</span></label>
+                    <input type="time" id="startTime" name="startTime" class="form-control" required
+                           value="${param.startTime}">
                 </div>
 
                 <div class="col-md-4">
-                    <label class="form-label fw-semibold">Số ngày nghỉ</label>
-                    <input type="text" id="totalDays" class="form-control" readonly
-                           placeholder="Tự động tính">
+                    <label class="form-label fw-semibold">Giờ ra (Thực tế) <span class="text-danger">*</span></label>
+                    <input type="time" id="endTime" name="endTime" class="form-control" required
+                           value="${param.endTime}">
                 </div>
 
                 <div class="col-md-12">
-                    <label class="form-label fw-semibold">Lý do xin nghỉ <span class="text-danger">*</span></label>
-                    <textarea id="reason" name="reason" class="form-control" rows="4" required
-                              placeholder="Mô tả chi tiết lý do xin nghỉ phép..."><c:out value="${param.reason}"/></textarea>
+                    <label class="form-label fw-semibold">Nội dung khiếu nại <span class="text-danger">*</span></label>
+                    <textarea id="reason" name="reason" class="form-control" rows="6" required
+                              placeholder="Trình bày chi tiết nội dung khiếu nại của bạn..."><c:out value="${param.reason}"/></textarea>
                 </div>
 
                 <div class="col-md-12">
@@ -103,7 +96,7 @@
             </div>
             <div class="mt-4 d-flex gap-2">
                 <button type="submit" class="btn btn-primary" id="submitBtn">Gửi đơn</button>
-                <a href="${pageContext.request.contextPath}/v1/employee/forms/my-forms"
+                <a href="${pageContext.request.contextPath}/v1/manager/forms/my-forms"
                    class="btn btn-outline-secondary">Quay lại</a>
             </div>
         </form>
@@ -111,37 +104,5 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-<script>
-
-    function calcTotalDays() {
-        const s = document.getElementById('startDate').value;
-        const e = document.getElementById('endDate').value;
-        if (s && e) {
-            let start = new Date(s);
-            let end = new Date(e);
-            if (end < start) {
-                document.getElementById('totalDays').value = '';
-                return;
-            }
-            let diff = 0;
-            let current = new Date(start);
-            while (current <= end) {
-                let dayOfWeek = current.getDay();
-                if (dayOfWeek !== 0 && dayOfWeek !== 6) { // 0 = Sunday, 6 = Saturday
-                    diff++;
-                }
-                current.setDate(current.getDate() + 1);
-            }
-            document.getElementById('totalDays').value = diff > 0 ? diff + ' ngày' : '0 ngày';
-        } else {
-            document.getElementById('totalDays').value = '';
-        }
-    }
-
-    document.getElementById('startDate').addEventListener('change', function () {
-        calcTotalDays();
-    });
-    document.getElementById('endDate').addEventListener('change', calcTotalDays);
-</script>
 </body>
 </html>

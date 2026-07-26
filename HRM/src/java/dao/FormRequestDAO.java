@@ -22,8 +22,11 @@ import model.TransferFormRequest;
 import dto.FormRequestDTO;
 import dto.LeaveFormRequestDTO;
 import dto.ComplaintFormRequestDTO;
+import dto.DependentFormRequestDTO;
 import dto.TransferRequestDTO;
+import java.sql.Date;
 import java.util.Objects;
+import model.DependentFormRequest;
 
 /**
  *
@@ -223,8 +226,74 @@ public class FormRequestDAO {
         return -1;
     }
 
+    // INSERT đơn Người phụ thuộc
+    public int addFormRequest(DependentFormRequest fr) {
+        String SQL = """
+                     INSERT INTO form_requests
+                     (formCode, employeeId, formTypeId, reason, usedDays,
+                      attachmentUrl, attachmentName,
+                      dependentName, dependentRelationship, dependentDob, dependentTaxCode,
+                      status)
+                     VALUES (?, ?, ?, ?, 0, ?, ?, ?, ?, ?, ?, 0)
+                     """;
+        try (Connection conn = dbContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(SQL, Statement.RETURN_GENERATED_KEYS)) {
+            ps.setString(1, fr.getFormCode());
+            ps.setInt(2, fr.getEmployeeId());
+            ps.setInt(3, fr.getFormTypeId());
+            ps.setNString(4, fr.getReason());
+            if (fr.getAttachmentUrl() == null) {
+                ps.setNull(5, Types.VARCHAR);
+                ps.setNull(6, Types.VARCHAR);
+            } else {
+                ps.setString(5, fr.getAttachmentUrl());
+                ps.setString(6, fr.getAttachmentName());
+            }
+            ps.setNString(7, fr.getDependentName());
+            ps.setNString(8, fr.getDependentRelationship());
+            if (fr.getDependentDob() == null) ps.setNull(9, Types.DATE); else ps.setDate(9, fr.getDependentDob());
+            ps.setString(10, fr.getDependentTaxCode());
+
+            int rows = ps.executeUpdate();
+            if (rows > 0) {
+                try (ResultSet rs = ps.getGeneratedKeys()) {
+                    if (rs.next()) {
+                        int newId = rs.getInt(1);
+                        LOGGER.log(Level.INFO, "Dependent form request added: id={0}, code={1}", new Object[]{newId, fr.getFormCode()});
+                        return newId;
+                    }
+                }
+            }
+            LOGGER.log(Level.WARNING, "Add dependent form request failed for code: {0}", fr.getFormCode());
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Error adding dependent form request: " + fr.getFormCode(), e);
+        }
+        return -1;
+    }
+
+    // Kiểm tra trùng mã số thuế người phụ thuộc (đang chờ duyệt)
+    public boolean hasPendingDependentTaxCode(String taxCode) {
+        if (taxCode == null || taxCode.trim().isEmpty()) return false;
+        String SQL = """
+                     SELECT 1 FROM Form_Requests fr
+                     JOIN Form_Types ft ON fr.formTypeId = ft.formTypeId
+                     WHERE ft.formTypeCode = 'DEPENDENT'
+                       AND fr.dependentTaxCode = ?
+                       AND fr.status IN (0, 1)
+                     """;
+        try (Connection conn = dbContext.getConnection(); PreparedStatement ps = conn.prepareStatement(SQL)) {
+            ps.setString(1, taxCode.trim());
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next();
+            }
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Error checking pending dependent tax code: " + taxCode, e);
+        }
+        return false;
+    }
+
     // Kiểm tra trùng ngày nghỉ
-    public boolean hasOverlappingLeave(int employeeId, java.sql.Date startDate, java.sql.Date endDate) {
+    public boolean hasOverlappingLeave(int employeeId, Date startDate, Date endDate) {
         String SQL = """
                      SELECT COUNT(*) FROM Form_Requests fr
                      JOIN Form_Types ft ON fr.formTypeId = ft.formTypeId
@@ -244,6 +313,71 @@ public class FormRequestDAO {
             }
         } catch (SQLException e) {
             LOGGER.log(Level.SEVERE, "Error checking overlapping leave for employee: " + employeeId, e);
+        }
+        return false;
+    }
+    
+    public boolean hasPendingComplaintForDate(int employeeId, Date startDate) {
+        String SQL = """
+                     SELECT COUNT(*) FROM Form_Requests fr 
+                     JOIN Form_Types ft ON fr.formTypeId = ft.formTypeId
+                     WHERE fr.employeeId = ?
+                        AND ft.formTypeCode = 'COMPLAINT'
+                        AND fr.status = 0
+                        AND fr.startDate = ?
+                     """;
+        try (Connection conn = dbContext.getConnection(); PreparedStatement ps = conn.prepareStatement(SQL)) {
+            ps.setInt(1, employeeId);
+            ps.setDate(2, startDate);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt(1) > 0;
+                }
+            }
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Error checking overlapping complaint for employee: " + employeeId, e);
+        }
+        return false;
+    }
+
+    public boolean hasPendingTransfer(int employeeId) {
+        String SQL = """
+                     SELECT COUNT(*) FROM Form_Requests fr 
+                     JOIN Form_Types ft ON fr.formTypeId = ft.formTypeId
+                     WHERE fr.employeeId = ?
+                        AND ft.formTypeCode = 'TRANSFER'
+                        AND fr.status = 0
+                     """;
+        try (Connection conn = dbContext.getConnection(); PreparedStatement ps = conn.prepareStatement(SQL)) {
+            ps.setInt(1, employeeId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if(rs.next()) {
+                    return rs.getInt(1) > 0;
+                }
+            }
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Error checking pending transfer for employee: " + employeeId, e);
+        }
+        return false;
+    }
+    
+    public boolean hasPendingPromotion(int employeeId) {
+        String SQL = """
+                     SELECT COUNT(*) FROM Form_Requests fr 
+                     JOIN Form_Types ft ON fr.formTypeId = ft.formTypeId
+                     WHERE fr.employeeId = ?
+                        AND ft.formTypeCode = 'PROMOTION_DEMOTION'
+                        AND fr.status = 0
+                     """;
+        try (Connection conn = dbContext.getConnection(); PreparedStatement ps = conn.prepareStatement(SQL)) {
+            ps.setInt(1, employeeId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt(1) > 0;
+                }
+            }
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Error checking pending promotion for employee: " + employeeId, e);
         }
         return false;
     }
@@ -462,6 +596,7 @@ public class FormRequestDAO {
             + "fr.status, fr.approverId, fr.approverNote, fr.approvedAt, "
             + "fr.attachmentUrl, fr.attachmentName, fr.createdAt, fr.updatedAt, "
             + "fr.targetDepartmentId, fr.targetRoleId, "
+            + "fr.dependentName, fr.dependentRelationship, fr.dependentDob, fr.dependentTaxCode, "
             + "e.employeeCode, u.fullName, "
             + "d.departmentId, d.departmentName, "
             + "ft.formTypeName, ft.formTypeCode, "
@@ -494,6 +629,8 @@ public class FormRequestDAO {
             fr = new ComplaintFormRequestDTO();
         } else if ("TRANSFER".equals(typeCode) || "PROMOTION_DEMOTION".equals(typeCode)) {
             fr = new TransferRequestDTO();
+        } else if ("DEPENDENT".equals(typeCode)) {
+            fr = new DependentFormRequestDTO();
         } else {
             fr = new FormRequestDTO();
         }
@@ -512,14 +649,19 @@ public class FormRequestDAO {
             compFr.setStartTime(rs.getTime("startTime"));
             compFr.setEndTime(rs.getTime("endTime"));
         } else if (fr instanceof TransferRequestDTO) {
-            TransferRequestDTO transferFr = (TransferRequestDTO) fr;
-            int tDeptId = rs.getInt("targetDepartmentId");
-            transferFr.setTargetDepartmentId(rs.wasNull() ? null : tDeptId);
-            int tRoleId = rs.getInt("targetRoleId");
-            transferFr.setTargetRoleId(rs.wasNull() ? null : tRoleId);
-            
-            transferFr.setTargetDepartmentName(rs.getNString("targetDepartmentName"));
-            transferFr.setTargetRoleName(rs.getString("targetRoleName"));
+            TransferRequestDTO transFr = (TransferRequestDTO) fr;
+            transFr.setTargetDepartmentId(rs.getInt("targetDepartmentId"));
+            if (rs.wasNull()) transFr.setTargetDepartmentId(null);
+            transFr.setTargetRoleId(rs.getInt("targetRoleId"));
+            if (rs.wasNull()) transFr.setTargetRoleId(null);
+            transFr.setTargetDepartmentName(rs.getString("targetDepartmentName"));
+            transFr.setTargetRoleName(rs.getString("targetRoleName"));
+        } else if (fr instanceof DependentFormRequestDTO) {
+            DependentFormRequestDTO depFr = (DependentFormRequestDTO) fr;
+            depFr.setDependentName(rs.getString("dependentName"));
+            depFr.setDependentRelationship(rs.getString("dependentRelationship"));
+            depFr.setDependentDob(rs.getDate("dependentDob"));
+            depFr.setDependentTaxCode(rs.getString("dependentTaxCode"));
         }
 
         fr.setFormId(rs.getInt("formId"));
