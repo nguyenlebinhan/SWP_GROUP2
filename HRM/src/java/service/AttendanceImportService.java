@@ -173,13 +173,15 @@ public class AttendanceImportService {
             throw new RowValidationException("workDate " + ad.getWorkDate().trim()
                     + " không thuộc tháng " + month + "/" + year + " đã chọn.");
         }
-        if (isWeekend(workDate)) {
-            throw new RowValidationException("workDate " + workDate
-                    + " rơi vào ngày cuối tuần (Thứ Bảy/Chủ nhật), không được phép import.");
-        }
-
         Time timeIn = parseTime(ad.getTimeIn(), "timeIn");
         Time timeOut = parseTime(ad.getTimeOut(), "timeOut");
+
+        // Các dòng cuối tuần không có giờ vào/ra là dữ liệu hợp lệ và sẽ được
+        // lưu với trạng thái WEEKEND. Chỉ từ chối cuối tuần nếu có giờ chấm công.
+        if (isWeekend(workDate) && (timeIn != null || timeOut != null)) {
+            throw new RowValidationException("workDate " + workDate
+                    + " rơi vào ngày cuối tuần (Thứ Bảy/Chủ nhật), không được phép import giờ chấm công.");
+        }
 
         EmployeeDetailDTO employee = attendanceDAO.findEmployeeDetailsByCode(conn, employeeCode);
         if (employee == null) {
