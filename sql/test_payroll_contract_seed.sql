@@ -4,6 +4,26 @@
 -- Payroll.status hiện là quy trình 3 cấp: 0 = HREmployee vừa tạo (chờ duyệt),
 -- 1 = HRManager đã duyệt (nhân viên xem được lương, vẫn tạo lại được),
 -- 2 = Business Admin đã chốt (khoá cứng, không sửa được nữa).
+--
+-- Bảng phân bổ trường hợp tính lương theo từng nhân viên (đủ 7 nhân viên seed sẵn):
+--   EMP001 - Full tháng, chấm công hoàn hảo (không đi trễ, không nghỉ không phép)
+--            => được thưởng chuyên cần + có tăng ca + là đoàn viên (phí công đoàn)
+--            + có 2 người phụ thuộc đã duyệt (test giảm trừ gia cảnh/phụ cấp người phụ thuộc).
+--   EMP002 - Hợp đồng bắt đầu giữa tháng (effectiveDate = 12/06) => không bị trừ những
+--            ngày trước ngày bắt đầu hợp đồng. Không phải đoàn viên.
+--   EMP003 - Hợp đồng kết thúc giữa tháng (endDate = 18/06) => không bị trừ những ngày
+--            sau ngày kết thúc hợp đồng. Là đoàn viên.
+--   EMP004 - CỐ Ý không có hợp đồng ACTIVE nào cho kỳ lương 06/2026 (chỉ có 1 hợp đồng
+--            PENDING_APPROVAL hiệu lực từ 08/2026 dùng để test màn duyệt hợp đồng)
+--            => test nhánh "Chưa có hợp đồng active hoặc lương hợp đồng hợp lệ."
+--            (danh sách lỗi phát sinh lương). Đây cũng là user HR dùng để duyệt các đơn test khác.
+--   EMP005 - Chỉ chấm công 5 ngày rồi nghỉ không phép phần còn lại của tháng => số ngày
+--            không làm vượt ngưỡng đóng bảo hiểm => test nhánh insuranceCalculated = false.
+--   EMP006 - Kết hợp nghỉ phép có lương + nghỉ không phép + đi trễ trong cùng 1 tháng
+--            => test paidLeaveDays, unauthorizedAbsentDays, lateDeduction cùng lúc
+--            (đi trễ/nghỉ không phép cũng khiến không được thưởng chuyên cần). Là đoàn viên.
+--   EMP007 - Không có bản ghi chấm công nào trong tháng => test nhánh
+--            "Chưa có dữ liệu chấm công trong tháng lương này." (danh sách lỗi phát sinh lương).
 
 SET @payroll_year = 2026;
 SET @payroll_month = 6;
@@ -18,6 +38,7 @@ SET @emp_no_insurance = (SELECT employeeId FROM Employees WHERE employeeCode = '
 SET @emp_leave = (SELECT employeeId FROM Employees WHERE employeeCode = 'EMP006');
 SET @emp_no_attendance = (SELECT employeeId FROM Employees WHERE employeeCode = 'EMP007');
 SET @overtime_type = (SELECT formTypeId FROM Form_Types WHERE formTypeCode = 'OVERTIME');
+SET @dependent_type = (SELECT formTypeId FROM Form_Types WHERE formTypeCode = 'DEPENDENT');
 SET @hr_user = (SELECT userId FROM Employees WHERE employeeId = @emp_hr_manager);
 
 START TRANSACTION;
@@ -29,7 +50,7 @@ WHERE payrollId > 0
   AND periodEnd = @period_end
   AND employeeId IN (@emp_full, @emp_mid_start, @emp_mid_end, @emp_no_insurance, @emp_leave, @emp_no_attendance);
 
-UPDATE Employees SET dependentCount = 0, unionMember = 1 WHERE employeeCode = 'EMP001';
+UPDATE Employees SET dependentCount = 2, unionMember = 1 WHERE employeeCode = 'EMP001';
 UPDATE Employees SET dependentCount = 0, unionMember = 0 WHERE employeeCode = 'EMP002';
 UPDATE Employees SET dependentCount = 0, unionMember = 1 WHERE employeeCode = 'EMP003';
 UPDATE Employees SET dependentCount = 0, unionMember = 0 WHERE employeeCode = 'EMP005';
@@ -41,7 +62,7 @@ INSERT INTO Employment_Contracts
      salary, status, note, createdBy)
 VALUES
     ('TEST_CONTRACT_FULL_MONTH', @emp_full, 'INDEFINITE', '2026-01-01', '2026-01-01', NULL,
-     30000000, 'ACTIVE', 'Full month: attendance bonus + union fee + overtime', @hr_user),
+     30000000, 'ACTIVE', 'Full month, perfect attendance: bonus + union fee + overtime + 2 dependents', @hr_user),
     ('TEST_CONTRACT_MID_START', @emp_mid_start, 'INDEFINITE', '2026-06-12', '2026-06-12', NULL,
      24000000, 'ACTIVE', 'Starts mid-month: days before start must not be deducted', @hr_user),
     ('TEST_CONTRACT_MID_END', @emp_mid_end, 'FIXED_TERM', '2026-01-01', '2026-01-01', '2026-06-18',
@@ -52,8 +73,10 @@ VALUES
      20000000, 'ACTIVE', 'Includes paid leave, unpaid absence, and late arrival', @hr_user),
     ('TEST_CONTRACT_NO_ATTENDANCE', @emp_no_attendance, 'INDEFINITE', '2026-01-01', '2026-01-01', NULL,
      18000000, 'ACTIVE', 'No attendance rows: should produce generation warning', @hr_user),
+    -- EMP004 chỉ có hợp đồng PENDING_APPROVAL hiệu lực tương lai (08/2026) -> không có hợp đồng
+    -- ACTIVE nào phủ kỳ lương 06/2026, dùng để test nhánh "chưa có hợp đồng active hợp lệ".
     ('TEST_CONTRACT_PENDING_UI', @emp_hr_manager, 'FIXED_TERM', '2026-07-01', '2026-08-01', '2027-07-31',
-     35000000, 'PENDING_APPROVAL', 'Pending contract for contract approval screen', @hr_user)
+     35000000, 'PENDING_APPROVAL', 'Pending contract for contract approval screen; intentionally has no ACTIVE contract in 06/2026', @hr_user)
 ON DUPLICATE KEY UPDATE
     employeeId = VALUES(employeeId),
     contractType = VALUES(contractType),
@@ -98,7 +121,7 @@ SELECT CONCAT('TEST_ATT_', e.employeeCode, '_', DATE_FORMAT(d.workDate, '%Y%m%d'
        e.employeeId, e.employeeCode, u.fullName, e.positionId, p.positionName,
        e.departmentId, dept.departmentName, d.workDate,
        CASE
-           WHEN e.employeeCode = 'EMP001' AND d.workDate = '2026-06-05' THEN '08:45:00'
+           -- EMP001 giờ chấm công hoàn hảo (không đi trễ) để test được thưởng chuyên cần.
            WHEN e.employeeCode = 'EMP006' AND d.workDate = '2026-06-10' THEN '08:40:00'
            WHEN e.employeeCode = 'EMP006' AND d.workDate = '2026-06-09' THEN NULL
            ELSE '08:00:00'
@@ -116,7 +139,6 @@ SELECT CONCAT('TEST_ATT_', e.employeeCode, '_', DATE_FORMAT(d.workDate, '%Y%m%d'
        CASE WHEN e.employeeCode = 'EMP001' AND d.workDate = '2026-06-10' THEN 1 ELSE 0 END,
        CASE WHEN e.employeeCode = 'EMP001' AND d.workDate = '2026-06-10' THEN 3.00 ELSE 0.00 END,
        CASE
-           WHEN e.employeeCode = 'EMP001' AND d.workDate = '2026-06-05' THEN 1
            WHEN e.employeeCode = 'EMP006' AND d.workDate = '2026-06-08' THEN 4
            WHEN e.employeeCode = 'EMP006' AND d.workDate = '2026-06-09' THEN 2
            WHEN e.employeeCode = 'EMP006' AND d.workDate = '2026-06-10' THEN 1
@@ -188,9 +210,44 @@ ON DUPLICATE KEY UPDATE
 INSERT IGNORE INTO Overtime_Assignees (formId, employeeId)
 VALUES (@ot_form_emp001, @emp_full);
 
+-- 2 người phụ thuộc đã duyệt cho EMP001, để test giảm trừ gia cảnh/phụ cấp người phụ thuộc
+-- trong tính lương. Đơn được tạo và duyệt thẳng (status = 4 = đã duyệt) để không phải đi
+-- qua luồng UI, tương tự cách Attendance_Period_Status ở trên được set LOCKED trực tiếp.
+INSERT INTO Form_Requests
+    (formCode, employeeId, formTypeId, reason, status, approverId, approverNote, approvedAt)
+VALUES
+    ('TEST_DEP_EMP001_CHILD1', @emp_full, @dependent_type, 'TEST_PAYROLL_SEED dependent 1',
+     4, @emp_hr_manager, 'Approved test dependent', NOW()),
+    ('TEST_DEP_EMP001_CHILD2', @emp_full, @dependent_type, 'TEST_PAYROLL_SEED dependent 2',
+     4, @emp_hr_manager, 'Approved test dependent', NOW())
+ON DUPLICATE KEY UPDATE
+    employeeId = VALUES(employeeId),
+    formTypeId = VALUES(formTypeId),
+    reason = VALUES(reason),
+    status = VALUES(status),
+    approverId = VALUES(approverId),
+    approverNote = VALUES(approverNote),
+    approvedAt = VALUES(approvedAt);
+
+SET @dep_form_emp001_1 = (SELECT formId FROM Form_Requests WHERE formCode = 'TEST_DEP_EMP001_CHILD1');
+SET @dep_form_emp001_2 = (SELECT formId FROM Form_Requests WHERE formCode = 'TEST_DEP_EMP001_CHILD2');
+
+INSERT INTO Dependents (employeeId, formId, fullName, relationship, dateOfBirth, taxCode, note, status, approvedAt)
+VALUES
+    (@emp_full, @dep_form_emp001_1, 'TEST Con Một', 'Con', '2018-03-10', NULL, 'TEST_PAYROLL_SEED', 1, NOW()),
+    (@emp_full, @dep_form_emp001_2, 'TEST Con Hai', 'Con', '2020-07-22', NULL, 'TEST_PAYROLL_SEED', 1, NOW())
+ON DUPLICATE KEY UPDATE
+    fullName = VALUES(fullName),
+    relationship = VALUES(relationship),
+    dateOfBirth = VALUES(dateOfBirth),
+    taxCode = VALUES(taxCode),
+    note = VALUES(note),
+    status = VALUES(status),
+    approvedAt = VALUES(approvedAt);
+
 COMMIT;
 
 SELECT 'TEST DATA READY' AS result,
        @period_start AS periodStart,
        @period_end AS periodEnd,
-       'Run payroll for 06/2026.' AS note;
+       'Run payroll for 06/2026. EMP001..EMP007 each cover a distinct calculation case (see header comment).' AS note;

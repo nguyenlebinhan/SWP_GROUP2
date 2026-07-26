@@ -218,6 +218,20 @@ public class PayrollService {
 
     // Duyệt chốt cuối (Business Admin) — chuyển status 1 (HR đã duyệt) -> 2 (đã chốt, khoá cứng)
     public int finalizePayrollForPeriod(User user, int year, int month, Integer departmentId) {
+        // Chặn cứng: chỉ được chốt lương khi bảng chấm công của kỳ đã được chốt (LOCKED),
+        // đồng bộ với điều kiện dùng khi tạo bảng lương (saveGeneratedPayrollForPeriod).
+        boolean locked = departmentId == null
+                ? attendanceClosingService.isPeriodLocked(year, month)
+                : attendanceClosingService.isDepartmentLocked(year, month, departmentId);
+        if (!locked) {
+            LOGGER.log(Level.WARNING, "Refuse to finalize payroll: attendance period {0}-{1} dept {2} is not LOCKED.",
+                    new Object[]{year, month, departmentId});
+            auditPayroll(user, "FINALIZE_PAYROLL", null, "status=1",
+                    "period=" + String.format("%04d-%02d", year, month)
+                    + "; departmentId=" + departmentId, "DENIED_ATTENDANCE_NOT_LOCKED");
+            return 0;
+        }
+
         Date start = toPeriodStart(year, month);
         Date end = toPeriodEnd(year, month);
 

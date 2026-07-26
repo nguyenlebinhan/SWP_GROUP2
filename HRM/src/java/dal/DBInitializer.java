@@ -885,12 +885,12 @@ public class DBInitializer {
             deletePayrollSetting(conn, "WORK_END_MINUTES");
             migratePayrollSettingKey(conn, "LATE_" + "PEN" + "ALTY_BLOCK_MINUTES", "LATE_DEDUCTION_BLOCK_MINUTES");
             migratePayrollSettingKey(conn, "INSURANCE_SALARY_CAP", "INSURANCE_SALARY_FLOOR");
-            insertPayrollSetting(conn, "PERSONAL_DEDUCTION", "11000000", "Giam tru ca nhan khi tinh thue TNCN");
+            insertPayrollSetting(conn, "PERSONAL_DEDUCTION", "11000000", "Giảm trừ cá nhân khi tính thuế TNCN");
             updatePayrollSettingValueIfCurrent(conn, "PERSONAL_DEDUCTION", "15500000", "11000000");
-            insertPayrollSetting(conn, "DEPENDENT_ALLOWANCE", "4500000", "Giam tru cho moi nguoi phu thuoc khi tinh thue TNCN");
-            insertPayrollSetting(conn, "INSURANCE_SALARY_FLOOR", "40000000", "Muc floor/tran ap dung cho luong tinh bao hiem");
-            insertPayrollSetting(conn, "INSURANCE_NOT_WORKED_DAYS_THRESHOLD", "14", "So ngay khong lam trong thang tu nguong nay tro len thi khong tinh bao hiem");
-            insertPayrollSetting(conn, "LATE_DEDUCTION_BLOCK_MINUTES", "30", "So phut cua mot block khau tru di muon");
+            insertPayrollSetting(conn, "DEPENDENT_ALLOWANCE", "4500000", "Giảm trừ cho mỗi người phụ thuộc khi tính thuế TNCN");
+            insertPayrollSetting(conn, "INSURANCE_SALARY_FLOOR", "40000000", "Mức sàn/trần áp dụng cho lương tính bảo hiểm");
+            insertPayrollSetting(conn, "INSURANCE_NOT_WORKED_DAYS_THRESHOLD", "14", "Số ngày không làm trong tháng từ ngưỡng này trở lên thì không tính bảo hiểm");
+            insertPayrollSetting(conn, "LATE_DEDUCTION_BLOCK_MINUTES", "30", "Số phút của một block khấu trừ đi muộn");
             insertPayrollSetting(conn, "ATTENDANCE_BONUS_RATE", "0.03", "Tỷ lệ thưởng chuyên cần trên lương hợp đồng");
             insertPayrollSetting(conn, "WORK_START", "480", "Giờ vào làm chuẩn, nhập theo HH:mm trên UI");
             insertPayrollSetting(conn, "WORK_END", "1020", "Giờ ra làm chuẩn, nhập theo HH:mm trên UI");
@@ -1013,7 +1013,7 @@ public class DBInitializer {
         String renameOld = "UPDATE Payroll_Settings SET settingKey = ?, description = ? WHERE settingKey = ?";
         try (PreparedStatement ps = conn.prepareStatement(renameOld)) {
             ps.setString(1, newKey);
-            ps.setNString(2, "So phut cua mot block khau tru di muon");
+            ps.setNString(2, "Số phút của một block khấu trừ đi muộn");
             ps.setString(3, oldKey);
             ps.executeUpdate();
         }

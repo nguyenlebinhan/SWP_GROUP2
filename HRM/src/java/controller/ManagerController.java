@@ -2878,12 +2878,6 @@ public class ManagerController extends HttpServlet {
                 response.sendRedirect(request.getContextPath() + "/v1/manager/forms/all");
                 return;
             }
-            if ("DEPENDENT".equals(form.getFormTypeCode()) && form.getEmployeeId() == me.getEmployeeId()) {
-                request.getSession().setAttribute("error",
-                        "Bạn không thể tự duyệt đơn người phụ thuộc của chính mình. Cần một nhân viên HR khác duyệt.");
-                response.sendRedirect(request.getContextPath() + "/v1/manager/forms/all");
-                return;
-            }
             // Chỉ cho phép duyệt đơn đang ở status 1 (Manager đã duyệt)
             int fromStatus = "DEPENDENT".equals(form.getFormTypeCode()) ? 0 : 1;
             if (form.getStatus() != fromStatus) {
@@ -3048,12 +3042,6 @@ public class ManagerController extends HttpServlet {
             int formId = Integer.parseInt(rawId);
             // Từ chối từ status 1 → status 2 (khác với reject thường cần status = 0)
             FormRequestDTO form = formRequestDAO.getFormRequestById(formId);
-            if (form != null && "DEPENDENT".equals(form.getFormTypeCode()) && form.getEmployeeId() == me.getEmployeeId()) {
-                request.getSession().setAttribute("error",
-                        "Bạn không thể tự từ chối đơn người phụ thuộc của chính mình. Cần một nhân viên HR khác xử lý.");
-                response.sendRedirect(request.getContextPath() + "/v1/manager/forms/all");
-                return;
-            }
             int fromStatus = form != null && "DEPENDENT".equals(form.getFormTypeCode()) ? 0 : 1;
             boolean ok = formRequestDAO.approveFormRequestFromStatus(formId, fromStatus, 2, me.getEmployeeId(), note);
             if (ok && form != null && "DEPENDENT".equals(form.getFormTypeCode())
