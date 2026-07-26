@@ -24,16 +24,8 @@ public class Dependent {
         this.dependentId = dependentId;
     }
 
-    public int getEmployeeId() {
-        return employeeId;
-    }
-
     public void setEmployeeId(int employeeId) {
         this.employeeId = employeeId;
-    }
-
-    public int getFormId() {
-        return formId;
     }
 
     public void setFormId(int formId) {
@@ -72,16 +64,8 @@ public class Dependent {
         this.taxCode = taxCode;
     }
 
-    public String getNote() {
-        return note;
-    }
-
     public void setNote(String note) {
         this.note = note;
-    }
-
-    public int getStatus() {
-        return status;
     }
 
     public void setStatus(int status) {

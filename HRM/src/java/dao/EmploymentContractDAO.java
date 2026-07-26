@@ -137,31 +137,6 @@ public class EmploymentContractDAO {
         return null;
     }
 
-    public EmploymentContract getActiveContract(int employeeId) {
-        try (Connection conn = getInternalConnection()) {
-            return getActiveContract(conn, employeeId);
-        } catch (SQLException e) {
-            LOGGER.log(Level.SEVERE, "Cannot get connection for employeeId: " + employeeId, e);
-        }
-        return null;
-    }
-
-    public EmploymentContract getActiveContract(Connection conn, int employeeId) {
-        String SQL = "SELECT " + BASE_COLUMNS + " FROM Employment_Contracts WHERE employeeId = ? AND status = 'ACTIVE' "
-                + "LIMIT 1";
-        try (PreparedStatement ps = conn.prepareStatement(SQL)) {
-            ps.setInt(1, employeeId);
-            try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) {
-                    return mapContract(rs);
-                }
-            }
-        } catch (SQLException e) {
-            LOGGER.log(Level.SEVERE, "Cannot retrieve active contract for employeeId: " + employeeId, e);
-        }
-        return null;
-    }
-
     public EmploymentContract getActiveOrPendingContract(int employeeId) {
         try (Connection conn = getInternalConnection()) {
             return getActiveOrPendingContract(conn, employeeId);
@@ -188,51 +163,6 @@ public class EmploymentContractDAO {
         }
 
         return null;
-    }
-
-    public boolean deleteContract(int contractId) {
-        String SQL = "DELETE FROM Employment_Contracts WHERE contractId = ?";
-        try (Connection conn = dbContext.getConnection(); PreparedStatement ps = conn.prepareStatement(SQL)) {
-            ps.setInt(1, contractId);
-            return ps.executeUpdate() > 0;
-        } catch (SQLException e) {
-            e.printStackTrace();
-            return false;
-        }
-    }
-
-    public List<EmploymentContract> getContractHistory(int employeeId) {
-        List<EmploymentContract> contracts = new ArrayList<>();
-        String SQL = "SELECT " + BASE_COLUMNS + " FROM Employment_Contracts WHERE employeeId = ? "
-                + "ORDER BY effectiveDate ASC, contractId ASC";
-        try (Connection conn = getInternalConnection(); PreparedStatement ps = conn.prepareStatement(SQL)) {
-            ps.setInt(1, employeeId);
-            try (ResultSet rs = ps.executeQuery()) {
-                while (rs.next()) {
-                    contracts.add(mapContract(rs));
-                }
-            }
-        } catch (SQLException e) {
-            LOGGER.log(Level.SEVERE, "Cannot retrieve contract history for employeeId: " + employeeId, e);
-        }
-        return contracts;
-    }
-
-    public List<EmploymentContract> getFutureContracts(int employeeId) {
-        List<EmploymentContract> contracts = new ArrayList<>();
-        String SQL = "SELECT " + BASE_COLUMNS + " FROM Employment_Contracts WHERE employeeId = ? AND status = 'PENDING_ACTIVATION' "
-                + "ORDER BY effectiveDate ASC";
-        try (Connection conn = getInternalConnection(); PreparedStatement ps = conn.prepareStatement(SQL)) {
-            ps.setInt(1, employeeId);
-            try (ResultSet rs = ps.executeQuery()) {
-                while (rs.next()) {
-                    contracts.add(mapContract(rs));
-                }
-            }
-        } catch (SQLException e) {
-            LOGGER.log(Level.SEVERE, "Cannot retrieve future contracts for employeeId: " + employeeId, e);
-        }
-        return contracts;
     }
 
     public boolean hasOverlappingContract(Connection conn, int employeeId, java.sql.Date newStart,
@@ -333,23 +263,6 @@ public class EmploymentContractDAO {
         return contracts;
     }
 
-    public List<EmploymentContract> getContractsByEmployeeId(int empId) {
-        List<EmploymentContract> contracts = new ArrayList<>();
-        String SQL = "SELECT " + BASE_COLUMNS + " FROM Employment_Contracts WHERE employeeId = ? "
-                + "ORDER BY effectiveDate DESC, contractId DESC";
-        try (Connection conn = getInternalConnection(); PreparedStatement ps = conn.prepareStatement(SQL)) {
-            ps.setInt(1, empId);
-            try (ResultSet rs = ps.executeQuery()) {
-                while (rs.next()) {
-                    contracts.add(mapContract(rs));
-                }
-            }
-        } catch (SQLException e) {
-            LOGGER.log(Level.SEVERE, "Cannot retrieve contracts for employeeId: " + empId, e);
-        }
-        return contracts;
-    }
-
     public List<EmploymentContract> getAllContracts() {
         List<EmploymentContract> contracts = new ArrayList<>();
         String SQL = "SELECT " + BASE_COLUMNS + " FROM Employment_Contracts "
@@ -364,15 +277,6 @@ public class EmploymentContractDAO {
             LOGGER.log(Level.SEVERE, "Cannot retrieve all contracts", e);
         }
         return contracts;
-    }
-
-    public boolean updateContractStatusWithoutEndDate(Connection conn, int contractId, ContractStatus newStatus) throws SQLException {
-        String SQL = "UPDATE Employment_Contracts SET status = ?, updatedAt = CURRENT_TIMESTAMP WHERE contractId = ?";
-        try (PreparedStatement ps = conn.prepareStatement(SQL)) {
-            ps.setString(1, newStatus.name());
-            ps.setInt(2, contractId);
-            return ps.executeUpdate() > 0;
-        }
     }
 
     public List<EmploymentContract> getContractsReadyForExpiration() {
@@ -446,79 +350,6 @@ public class EmploymentContractDAO {
             ps.setString(8, newValue);
             ps.executeUpdate();
         }
-    }
-
-    public List<ContractAuditLog> searchContractHistory(Integer targetEmpId, String nameKeyword,
-            Integer departmentId, int loggedInEmpId, boolean isHrStaff) {
-        List<ContractAuditLog> logs = new ArrayList<>();
-        StringBuilder sql = new StringBuilder(
-                "SELECT la.LogId, la.ContractId, la.OldStatus, la.NewStatus, "
-                + "la.ChangedBy, la.ChangeDate, la.ActionReason, "
-                + "la.FieldName, la.OldValue, la.NewValue, " // ← THÊM 3 DÒNG NÀY
-                + "u.userName AS changedByName, ec.employeeId, e.fullName AS employeeName "
-                + "FROM Contract_Audit_Log la "
-                + "JOIN Employment_Contracts ec ON la.ContractId = ec.contractId "
-                + "JOIN Users u ON la.ChangedBy = u.userId "
-                + "JOIN Employees e ON ec.employeeId = e.employeeId "
-                + "WHERE 1=1 "
-        );
-
-        if (targetEmpId != null) {
-            sql.append("AND ec.employeeId = ? ");
-        }
-        if (nameKeyword != null && !nameKeyword.isBlank()) {
-            sql.append("AND e.fullName LIKE ? ");
-        }
-        if (departmentId != null) {
-            sql.append("AND e.departmentId = ? ");
-        }
-
-        // CRITICAL: Data Isolation for non-HR users
-        if (!isHrStaff) {
-            sql.append("AND ec.employeeId = ? ");
-        }
-
-        sql.append("ORDER BY la.ChangeDate DESC");
-
-        try (Connection conn = getInternalConnection(); PreparedStatement ps = conn.prepareStatement(sql.toString())) {
-            int idx = 1;
-            if (targetEmpId != null) {
-                ps.setInt(idx++, targetEmpId);
-            }
-            if (nameKeyword != null && !nameKeyword.isBlank()) {
-                ps.setString(idx++, "%" + nameKeyword + "%");
-            }
-            if (departmentId != null) {
-                ps.setInt(idx++, departmentId);
-            }
-            if (!isHrStaff) {
-                ps.setInt(idx++, loggedInEmpId);
-            }
-
-            try (ResultSet rs = ps.executeQuery()) {
-                while (rs.next()) {
-                    ContractAuditLog log = new ContractAuditLog();
-                    log.setLogId(rs.getInt("LogId"));
-                    log.setContractId(rs.getInt("ContractId"));
-                    log.setOldStatus(rs.getString("OldStatus"));
-                    log.setNewStatus(rs.getString("NewStatus"));
-                    log.setChangedBy(rs.getInt("ChangedBy"));
-                    log.setChangedByName(rs.getString("changedByName"));
-                    log.setChangeDate(rs.getTimestamp("ChangeDate"));
-                    log.setActionReason(rs.getString("ActionReason"));
-                    // THÊM 3 DÒNG NÀY:
-                    log.setFieldName(rs.getString("FieldName"));
-                    log.setOldValue(rs.getString("OldValue"));
-                    log.setNewValue(rs.getString("NewValue"));
-                    log.setEmployeeId(rs.getInt("employeeId"));
-                    log.setEmployeeName(rs.getString("employeeName"));
-                    logs.add(log);
-                }
-            }
-        } catch (SQLException e) {
-            LOGGER.log(Level.SEVERE, "Error searching contract audit history", e);
-        }
-        return logs;
     }
 
     private EmploymentContract mapContract(ResultSet rs) throws SQLException {
@@ -809,18 +640,19 @@ public class EmploymentContractDAO {
 
         List<EmploymentContract> contracts = new ArrayList<>();
         String sql = "SELECT c.* FROM Employment_Contracts c "
-                + "JOIN Employees e ON c.employee_id = e.employee_id "
+                + "JOIN Employees e ON c.employeeId = e.employeeId "
+                + "JOIN Users u ON e.userId = u.userId "
                 + "WHERE 1=1";
 
         List<Object> params = new ArrayList<>();
 
         if (!isHrStaff) {
-            sql += " AND e.department_id = (SELECT department_id FROM Employees WHERE employee_id = ?)";
+            sql += " AND e.departmentId = (SELECT departmentId FROM Employees WHERE employeeId = ?)";
             params.add(loggedInEmpId);
         }
 
         if (keyword != null && !keyword.trim().isEmpty()) {
-            sql += " AND (c.contract_code LIKE ? OR e.full_name LIKE ? OR e.employee_code LIKE ?)";
+            sql += " AND (c.contractCode LIKE ? OR u.fullName LIKE ? OR e.employeeCode LIKE ?)";
             String kw = "%" + keyword.trim() + "%";
             params.add(kw);
             params.add(kw);
@@ -828,7 +660,7 @@ public class EmploymentContractDAO {
         }
 
         if (contractType != null && !contractType.trim().isEmpty()) {
-            sql += " AND c.contract_type = ?";
+            sql += " AND c.contractType = ?";
             params.add(contractType);
         }
 
@@ -838,11 +670,11 @@ public class EmploymentContractDAO {
         }
 
         if (departmentId != null) {
-            sql += " AND e.department_id = ?";
+            sql += " AND e.departmentId = ?";
             params.add(departmentId);
         }
 
-        sql += " ORDER BY c.created_at DESC";
+        sql += " ORDER BY c.createdAt DESC";
 
         try (Connection conn = new DBContext().getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
 
@@ -867,6 +699,20 @@ public class EmploymentContractDAO {
             ps.setInt(2, contractId);
             return ps.executeUpdate() > 0;
         }
+    }
+
+    public List<EmploymentContract> getAllContractsByEmployeeId(int employeeId) throws SQLException {
+        List<EmploymentContract> contracts = new ArrayList<>();
+        String sql = "SELECT * FROM Employment_Contracts WHERE employeeId = ? ORDER BY createdAt DESC";
+        try (Connection conn = new DBContext().getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, employeeId);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    contracts.add(mapContract(rs));
+                }
+            }
+        }
+        return contracts;
     }
 
     public boolean existsByContractCode(String contractCode, Integer excludeContractId) {

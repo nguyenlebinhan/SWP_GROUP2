@@ -91,10 +91,6 @@ public class PayrollConfigWorkflowService {
         return requestDAO.createRequest(request);
     }
 
-    public List<PayrollAllowanceType> getAllowanceTypes(boolean activeOnly) {
-        return payrollConfigDAO.getAllowanceTypes(activeOnly);
-    }
-
     public int requestAllowanceSave(PayrollAllowanceType type, User requestedBy) {
         PayrollConfigChangeRequest request = new PayrollConfigChangeRequest();
         request.setRequestType(PayrollConfigChangeRequest.TYPE_ALLOWANCE_SAVE);

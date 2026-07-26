@@ -5,7 +5,6 @@ import java.math.BigDecimal;
 public class PayrollDeductionRule {
 
     public static final String CALC_PERCENT = "PERCENT";
-    public static final String CALC_FIXED = "FIXED";
 
     private int ruleId;
     private String ruleCode;

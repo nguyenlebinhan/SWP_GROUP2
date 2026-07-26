@@ -98,24 +98,12 @@
     </c:if>
 
     <div class="nav-section">Hợp đồng lao động</div>
-    <c:if test="${sessionScope.userPermissions.contains('ADD_EMPLOYMENT_CONTRACT')}">
-        <a href="${pageContext.request.contextPath}/v1/employee/contract/add">
-            Tạo hợp đồng
-        </a>
-    </c:if>
-
-    <c:if test="${sessionScope.userPermissions.contains('VIEW_ALL_CONTRACTS')}">
-
-        <a href="${pageContext.request.contextPath}/v1/employee/contract/history">
-            Lịch sử hợp đồng
-        </a>
-    </c:if>
-
+   
     <c:if test="${sessionScope.userPermissions.contains('VIEW_OWN_CONTRACT')}">
-        <a href="${pageContext.request.contextPath}/v1/employee/contract/history?scope=own">
-            Lịch sử hợp đồng của bản thân
+        <a href="${pageContext.request.contextPath}/v1/employee/contract/self">
+            Hợp đồng của tôi
         </a>
-    </c:if>
+    </c:if> 
     
     <c:if test="${sessionScope.userPermissions.contains('ADD_EMPLOYMENT_CONTRACT')}">
         <a href="${pageContext.request.contextPath}/v1/employee/contract/status">

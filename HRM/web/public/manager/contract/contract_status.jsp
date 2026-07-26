@@ -70,6 +70,7 @@
                             <span id="contractVisibleCount">${contracts.size()}</span> / ${contracts.size()} hợp đồng
                         </div>
                     </div>
+
                     <div class="d-flex gap-2 flex-wrap">
                         <input type="text" id="searchInput" class="form-control" style="width:220px;" placeholder="Tìm mã hợp đồng / nhân viên">
                         <select id="typeFilter" class="form-select" style="width:180px;">
@@ -89,6 +90,11 @@
                             <option value="CANCELLED">Đã hủy</option>
                             <option value="REJECTED">Bị từ chối</option>
                         </select>
+                        <c:if test="${isHrManager}">
+                            <button type="button" class="btn btn-outline-warning" id="btnRunScheduler" onclick="runSchedulerNow()">
+                                <i class="fa-solid fa-play me-1"></i>Chạy Scheduler
+                            </button>
+                        </c:if>
                     </div>
                 </div>
 
@@ -142,42 +148,74 @@
 
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
         <script>
-            document.addEventListener('DOMContentLoaded', function () {
-                const searchInput = document.getElementById('searchInput');
-                const typeFilter = document.getElementById('typeFilter');
-                const statusFilter = document.getElementById('statusFilter');
+                                document.addEventListener('DOMContentLoaded', function () {
+                                    const searchInput = document.getElementById('searchInput');
+                                    const typeFilter = document.getElementById('typeFilter');
+                                    const statusFilter = document.getElementById('statusFilter');
 
-                function filterContracts() {
-                    const kw = searchInput.value.toLowerCase().trim();
-                    const type = typeFilter.value;
-                    const status = statusFilter.value;
-                    const cards = document.querySelectorAll('.contract-card');
-                    let visible = 0;
+                                    function filterContracts() {
+                                        const kw = searchInput.value.toLowerCase().trim();
+                                        const type = typeFilter.value;
+                                        const status = statusFilter.value;
+                                        const cards = document.querySelectorAll('.contract-card');
+                                        let visible = 0;
 
-                    cards.forEach(function (card) {
-                        const searchText = card.dataset.search ? card.dataset.search.toLowerCase() : '';
-                        const cardType = card.dataset.type || '';
-                        const cardStatus = card.dataset.status || '';
+                                        cards.forEach(function (card) {
+                                            const searchText = card.dataset.search ? card.dataset.search.toLowerCase() : '';
+                                            const cardType = card.dataset.type || '';
+                                            const cardStatus = card.dataset.status || '';
 
-                        const matchSearch = !kw || searchText.includes(kw);
-                        const matchType = !type || cardType === type;
-                        const matchStatus = !status || cardStatus === status;
+                                            const matchSearch = !kw || searchText.includes(kw);
+                                            const matchType = !type || cardType === type;
+                                            const matchStatus = !status || cardStatus === status;
 
-                        if (matchSearch && matchType && matchStatus) {
-                            card.classList.remove('hidden-item');
-                            visible++;
-                        } else {
-                            card.classList.add('hidden-item');
-                        }
+                                            if (matchSearch && matchType && matchStatus) {
+                                                card.classList.remove('hidden-item');
+                                                visible++;
+                                            } else {
+                                                card.classList.add('hidden-item');
+                                            }
+                                        });
+
+                                        document.getElementById('contractVisibleCount').textContent = visible;
+                                    }
+
+                                    searchInput.addEventListener('input', filterContracts);
+                                    typeFilter.addEventListener('change', filterContracts);
+                                    statusFilter.addEventListener('change', filterContracts);
+                                });
+        </script>
+        <script>
+            async function runSchedulerNow() {
+                const btn = document.getElementById('btnRunScheduler');
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-1"></i>Đang chạy...';
+
+                try {
+                    const response = await fetch('${pageContext.request.contextPath}/v1/manager/scheduler/run-now', {
+                        method: 'POST',
+                        headers: {'X-Requested-With': 'XMLHttpRequest'}
                     });
+                    const data = await response.json();
 
-                    document.getElementById('contractVisibleCount').textContent = visible;
+                    if (data.success) {
+                        btn.className = 'btn btn-outline-success';
+                        btn.innerHTML = '<i class="fa-solid fa-circle-check me-1"></i>' + data.message;
+                    } else {
+                        btn.className = 'btn btn-outline-danger';
+                        btn.innerHTML = '<i class="fa-solid fa-triangle-exclamation me-1"></i>' + data.message;
+                    }
+                } catch (err) {
+                    btn.className = 'btn btn-outline-danger';
+                    btn.innerHTML = '<i class="fa-solid fa-circle-xmark me-1"></i>Lỗi kết nối';
+                } finally {
+                    setTimeout(() => {
+                        btn.disabled = false;
+                        btn.className = 'btn btn-outline-warning';
+                        btn.innerHTML = '<i class="fa-solid fa-play me-1"></i>Chạy Scheduler';
+                    }, 5000);
                 }
-
-                searchInput.addEventListener('input', filterContracts);
-                typeFilter.addEventListener('change', filterContracts);
-                statusFilter.addEventListener('change', filterContracts);
-            });
+            }
         </script>
     </body>
 </html>

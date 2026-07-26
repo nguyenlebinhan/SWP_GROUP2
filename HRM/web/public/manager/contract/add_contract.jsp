@@ -38,7 +38,7 @@
         <div class="main">
             <jsp:include page="/public/components/managerTopBar.jsp">
                 <jsp:param name="title" value="Thêm hợp đồng lao động" />
-                <jsp:param name="backUrl" value="/v1/manager/employee_info/list" />
+                <jsp:param name="backUrl" value="/v1/manager/dashboard" />
             </jsp:include>
 
             <c:if test="${not empty sessionScope.success}">
@@ -179,8 +179,6 @@
                                                if (data.effectiveDate) {
                                                    document.getElementById('effectiveDate').value = data.effectiveDate;
                                                }
-                                               if (data.signedDate)
-                                                   document.getElementById('signedDate').value = data.signedDate;
                                                if (data.salary)
                                                    document.getElementById('salary').value = data.salary;
 
@@ -321,24 +319,6 @@
                     if (savedVal) {
                         durationSelect.value = savedVal;
                         updateUnit();
-                    }
-                }
-            });
-        </script>
-        <script>
-            document.addEventListener('DOMContentLoaded', function () {
-                const effectiveDateInput = document.getElementById('effectiveDate');
-                const signedDateInput = document.getElementById('signedDate');
-
-                if (effectiveDateInput && signedDateInput) {
-                    effectiveDateInput.addEventListener('change', function () {
-                        if (!signedDateInput.value) {
-                            signedDateInput.value = this.value;
-                        }
-                    });
-
-                    if (effectiveDateInput.value && !signedDateInput.value) {
-                        signedDateInput.value = effectiveDateInput.value;
                     }
                 }
             });
