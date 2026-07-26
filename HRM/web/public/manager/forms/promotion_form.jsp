@@ -48,7 +48,7 @@
             <p class="text-muted">Đề xuất thay đổi chức vụ (Role) cho nhân viên. Đơn sẽ được gửi lên Business Admin để phê duyệt.</p>
         </div>
 
-        <form action="${pageContext.request.contextPath}/v1/manager/forms/submit-promotion" method="POST">
+        <form action="${pageContext.request.contextPath}/v1/manager/forms/submit-promotion" method="POST" enctype="multipart/form-data">
             <div class="row g-3">
                 <div class="col-md-6">
                     <label class="form-label fw-bold">Nhân viên <span class="text-danger">*</span></label>
@@ -74,6 +74,14 @@
                     <label class="form-label fw-bold">Lý do đề xuất <span class="text-danger">*</span></label>
                     <textarea name="reason" class="form-control" rows="4" 
                               placeholder="Trình bày lý do đề xuất thăng chức hoặc giáng chức..." required></textarea>
+                </div>
+
+                
+                <div class="col-md-12">
+                    <label class="form-label fw-semibold">File đính kèm <span class="text-muted">(không bắt buộc)</span></label>
+                    <input type="file" name="attachment" class="form-control"
+                           accept=".xlsx,.pdf,.docx,.doc,.xls,.jpg,.png,.zip">
+                    <small class="text-muted">Cho phép: xlsx, pdf, docx, doc, xls, jpg, png, zip</small>
                 </div>
 
                 <div class="col-12 mt-4 text-end">

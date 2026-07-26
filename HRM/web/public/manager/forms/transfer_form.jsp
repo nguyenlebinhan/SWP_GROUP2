@@ -31,14 +31,14 @@
 </head>
 <body>
 
-<jsp:include page="/public/components/employeeSideBar.jsp" />
+<jsp:include page="/public/components/managerSideBar.jsp" />
 
 <div class="main">
-    <jsp:include page="/public/components/employeeTopBar.jsp">
+    <jsp:include page="/public/components/managerTopBar.jsp">
         <jsp:param name="title" value="Tạo đơn yêu cầu" />
     </jsp:include>
 
-    <jsp:include page="/public/employee/forms/form_tabs.jsp">
+    <jsp:include page="/public/manager/forms/form_tabs.jsp">
         <jsp:param name="active" value="transfer" />
     </jsp:include>
 
@@ -61,7 +61,7 @@
             <h5 class="mb-0">Tạo Đơn Thuyên Chuyển</h5>
         </div>
 
-                <form action="${pageContext.request.contextPath}/v1/employee/forms/transfer/submit" method="POST" enctype="multipart/form-data">
+                <form action="${pageContext.request.contextPath}/v1/manager/forms/transfer/submit" method="POST" enctype="multipart/form-data">
             <div class="row g-3">
                 <div class="col-md-6">
                     <label class="form-label fw-bold">Phòng ban mong muốn <span class="text-danger">*</span></label>
@@ -97,7 +97,7 @@
                 </div>
 
                 <div class="col-12 mt-4 text-end">
-                                        <a href="${pageContext.request.contextPath}/v1/employee/forms/my-forms" 
+                                        <a href="${pageContext.request.contextPath}/v1/manager/dashboard" 
                        class="btn btn-light me-2">Hủy</a>
                     <button type="submit" class="btn btn-primary" id="btn-submit-transfer">
                         <i class="fas fa-paper-plane me-1"></i> Gửi Đơn

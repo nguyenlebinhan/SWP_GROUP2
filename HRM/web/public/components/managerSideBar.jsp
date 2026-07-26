@@ -95,6 +95,11 @@
         </a>
     </c:if>
 
+    <a href="${pageContext.request.contextPath}/v1/manager/forms/my-forms"
+       class="${pageContext.request.servletPath == '/public/employee/forms/my_form_list.jsp' ? 'active' : ''}">
+        Đơn của tôi
+    </a>
+
     <a href="${pageContext.request.contextPath}/v1/manager/forms/dept-forms"
        class="${pageContext.request.servletPath == '/public/manager/forms/dept_form_list.jsp' ? 'active' : ''}">
         Đơn của phòng ban
