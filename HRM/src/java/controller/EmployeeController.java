@@ -2743,6 +2743,63 @@ public class EmployeeController extends HttpServlet {
         request.getRequestDispatcher("/public/employee/forms/dependent_form.jsp").forward(request, response);
     }
 
+    private void handleDependentFormSubmit(HttpServletRequest request, HttpServletResponse response, User user)
+            throws ServletException, IOException {
+        FormType ft = formTypeDAO.getByCode("DEPENDENT");
+        EmployeeDetailDTO me = employeeDAO.getEmployeeByUserId(user.getUserId());
+        if (ft == null || me == null) {
+            request.getSession().setAttribute("error", "Không thể tạo đơn người phụ thuộc.");
+            response.sendRedirect(request.getContextPath() + "/v1/employee/forms/dependent/new");
+            return;
+        }
+
+        String fullName = trimToNull(request.getParameter("fullName"));
+        String relationship = trimToNull(request.getParameter("relationship"));
+        String rawDateOfBirth = trimToNull(request.getParameter("dateOfBirth"));
+        String taxCode = trimToNull(request.getParameter("taxCode"));
+        String note = trimToNull(request.getParameter("note"));
+        Date dateOfBirth = null;
+        try {
+            if (rawDateOfBirth != null) {
+                dateOfBirth = Date.valueOf(rawDateOfBirth);
+            }
+        } catch (IllegalArgumentException e) {
+            dateOfBirth = null;
+        }
+        if (fullName == null || relationship == null || dateOfBirth == null || taxCode == null) {
+            request.setAttribute("error", "Vui lòng nhập đầy đủ tên, quan hệ, ngày sinh và mã số thuế người phụ thuộc.");
+            setPermissionFlags(request, getPermissions(user));
+            request.setAttribute("formAction", request.getContextPath() + "/v1/employee/forms/dependent/submit");
+            request.setAttribute("cancelUrl", request.getContextPath() + "/v1/employee/forms/my-forms");
+            request.getRequestDispatcher("/public/employee/forms/dependent_form.jsp").forward(request, response);
+            return;
+        }
+        if (!taxCode.matches("\\d+")) {
+            request.setAttribute("error", "Mã số thuế chỉ được nhập số.");
+            setPermissionFlags(request, getPermissions(user));
+            request.setAttribute("formAction", request.getContextPath() + "/v1/employee/forms/dependent/submit");
+            request.setAttribute("cancelUrl", request.getContextPath() + "/v1/employee/forms/my-forms");
+            request.getRequestDispatcher("/public/employee/forms/dependent_form.jsp").forward(request, response);
+            return;
+        }
+
+        FormRequest fr = new FormRequest();
+        fr.setFormCode("DEPENDENT-" + me.getEmployeeId() + "-" + System.currentTimeMillis());
+        fr.setEmployeeId(me.getEmployeeId());
+        fr.setFormTypeId(ft.getFormTypeId());
+        fr.setReason("Tên: " + fullName + "\nQuan hệ: " + relationship
+                + "\nNgày sinh: " + dateOfBirth
+                + (taxCode == null ? "" : "\nMã số thuế: " + taxCode)
+                + (note == null ? "" : "\nGhi chú: " + note));
+
+        int formId = formRequestDAO.addFormRequest(fr);
+        boolean ok = formId > 0 && dependentDAO.addPending(formId, me.getEmployeeId(), fullName, relationship, dateOfBirth, taxCode, note);
+        request.getSession().setAttribute(ok ? "success" : "error",
+                ok ? "Đã gửi đơn đăng ký người phụ thuộc, chờ HR duyệt."
+                        : "Gửi đơn người phụ thuộc thất bại.");
+        response.sendRedirect(request.getContextPath() + "/v1/employee/forms/my-forms");
+    }
+
     private void handleDependentStatusRequest(HttpServletRequest request, HttpServletResponse response, User user)
             throws ServletException, IOException {
         EmployeeDetailDTO me = employeeDAO.getEmployeeByUserId(user.getUserId());
