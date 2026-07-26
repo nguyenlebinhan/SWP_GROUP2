@@ -152,9 +152,9 @@
                 </span>
                 <span>
                     <span class="admin-user-name">
-                        <c:out value="${empty topbarDisplayName ? 'Nhân sự' : topbarDisplayName}" />
+                        <c:out value="${empty topbarDisplayName ? 'Nhân viên' : topbarDisplayName}" />
                     </span>
-                    <span class="admin-user-role d-block">Nhân sự</span>
+                    <span class="admin-user-role d-block">Nhân viên</span>
                 </span>
                 <i class="fa-solid fa-chevron-down" style="font-size:12px;color:#6b7280;margin-left:4px"></i>
             </button>

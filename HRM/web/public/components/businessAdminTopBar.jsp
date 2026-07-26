@@ -65,6 +65,11 @@
         overflow: hidden;
         text-overflow: ellipsis;
     }
+    .admin-user-role {
+        font-size: 11px;
+        color: #9ca3af;
+        font-weight: 500;
+    }
 
     .admin-user-dropdown {
         display: none;
@@ -144,10 +149,13 @@
                 <span class="admin-avatar-img">
                     <i class="fa-solid fa-user-tie"></i>
                 </span>
-                <span class="admin-user-name">
-                    <c:out value="${empty topbarDisplayName ? 'BusinessAdmin' : topbarDisplayName}" />
+                <span>
+                    <span class="admin-user-name">
+                        <c:out value="${empty topbarDisplayName ? 'Business Admin' : topbarDisplayName}" />
+                    </span>
+                    <span class="admin-user-role d-block">Business Admin</span>
                 </span>
-                <i class="fa-solid fa-chevron-down" style="font-size:12px;color:#6b7280"></i>
+                <i class="fa-solid fa-chevron-down" style="font-size:12px;color:#6b7280;margin-left:4px"></i>
             </button>
             <div class="admin-user-dropdown">
                 <a href="${pageContext.request.contextPath}/v1/businessadmin/my-profile" class="admin-dropdown-item">
