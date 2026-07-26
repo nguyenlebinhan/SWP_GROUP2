@@ -1,7 +1,6 @@
 package model;
 
 import java.math.BigDecimal;
-import java.sql.Timestamp;
 
 public class PayrollAllowanceType {
 
@@ -12,8 +11,6 @@ public class PayrollAllowanceType {
     private boolean insuranceApplicable;
     private boolean active;
     private String description;
-    private Timestamp createdAt;
-    private Timestamp updatedAt;
 
     public int getAllowanceId() {
         return allowanceId;
@@ -69,21 +66,5 @@ public class PayrollAllowanceType {
 
     public void setDescription(String description) {
         this.description = description;
-    }
-
-    public Timestamp getCreatedAt() {
-        return createdAt;
-    }
-
-    public void setCreatedAt(Timestamp createdAt) {
-        this.createdAt = createdAt;
-    }
-
-    public Timestamp getUpdatedAt() {
-        return updatedAt;
-    }
-
-    public void setUpdatedAt(Timestamp updatedAt) {
-        this.updatedAt = updatedAt;
     }
 }

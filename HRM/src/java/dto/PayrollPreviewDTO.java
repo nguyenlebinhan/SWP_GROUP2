@@ -165,20 +165,12 @@ public class PayrollPreviewDTO {
         this.unpaidLeaveDays = unpaidLeaveDays;
     }
 
-    public int getUnauthorizedAbsentDays() {
-        return unauthorizedAbsentDays;
-    }
-
     public int getNotWorkedDays() {
         return unauthorizedAbsentDays;
     }
 
     public void setUnauthorizedAbsentDays(int unauthorizedAbsentDays) {
         this.unauthorizedAbsentDays = unauthorizedAbsentDays;
-    }
-
-    public int getLateMinutes() {
-        return lateMinutes;
     }
 
     public void setLateMinutes(int lateMinutes) {
@@ -193,10 +185,6 @@ public class PayrollPreviewDTO {
         this.lateDeductionBlocks = lateDeductionBlocks;
     }
 
-    public int getLateDeductionMinutes() {
-        return lateDeductionMinutes;
-    }
-
     public void setLateDeductionMinutes(int lateDeductionMinutes) {
         this.lateDeductionMinutes = lateDeductionMinutes;
     }
@@ -207,10 +195,6 @@ public class PayrollPreviewDTO {
 
     public void setLateDeductionBlockMinutes(int lateDeductionBlockMinutes) {
         this.lateDeductionBlockMinutes = Math.max(0, lateDeductionBlockMinutes);
-    }
-
-    public BigDecimal getOvertimeHours() {
-        return overtimeHours;
     }
 
     public void setOvertimeHours(BigDecimal overtimeHours) {
@@ -257,10 +241,6 @@ public class PayrollPreviewDTO {
         this.overtimeWorkdayMultiplier = overtimeWorkdayMultiplier;
     }
 
-    public BigDecimal getAttendanceBonus() {
-        return attendanceBonus;
-    }
-
     public void setAttendanceBonus(BigDecimal attendanceBonus) {
         this.attendanceBonus = attendanceBonus;
     }
@@ -287,10 +267,6 @@ public class PayrollPreviewDTO {
 
     public void setLateDeductionBlockAmount(BigDecimal lateDeductionBlockAmount) {
         this.lateDeductionBlockAmount = lateDeductionBlockAmount;
-    }
-
-    public BigDecimal getUnauthorizedAbsentDeduction() {
-        return unauthorizedAbsentDeduction;
     }
 
     public void setUnauthorizedAbsentDeduction(BigDecimal unauthorizedAbsentDeduction) {
@@ -411,21 +387,5 @@ public class PayrollPreviewDTO {
 
     public void setDetails(List<PayrollDetailDTO> details) {
         this.details = details;
-    }
-
-    public BigDecimal getGrossSalary() {
-        return payroll != null ? payroll.getGrossSalary() : null;
-    }
-
-    public BigDecimal getInsuranceDeduction() {
-        return payroll != null ? payroll.getInsuranceDeduction() : null;
-    }
-
-    public BigDecimal getPersonalIncomeTax() {
-        return payroll != null ? payroll.getPersonalIncomeTax() : null;
-    }
-
-    public BigDecimal getNetSalary() {
-        return payroll != null ? payroll.getNetSalary() : null;
     }
 }

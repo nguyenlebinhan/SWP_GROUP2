@@ -360,24 +360,6 @@ public class PayrollService {
         return result;
     }
 
-    public PayrollPreviewDTO generatePayrollForEmployee(int employeeId, int year, int month, boolean save) {
-        try (Connection conn = dbContext.getConnection()) {
-            EmployeePayrollBase employee = getActiveEmployeeWithContract(conn, employeeId, year, month);
-            if (employee == null) {
-                return null;
-            }
-            PayrollPreviewDTO preview = calculatePayroll(conn, employee, year, month);
-            if (save && preview.getPayroll() != null && !preview.isGenerationBlocked()) {
-                int payrollId = saveGeneratedPayrollIfEditable(preview.getPayroll());
-                preview.getPayroll().setPayrollId(payrollId);
-            }
-            return preview;
-        } catch (SQLException e) {
-            LOGGER.log(Level.SEVERE, "Cannot generate payroll for employeeId: " + employeeId, e);
-        }
-        return null;
-    }
-
     public int saveGeneratedPayrollForPeriod(int year, int month, Integer departmentId) {
         // Chặn cứng: kỳ lương đã được Business Admin chốt (toàn công ty) thì không được tạo/tính lại nữa.
         if (isPeriodFinalized(year, month)) {
@@ -732,8 +714,7 @@ public class PayrollService {
                 continue;
             }
             BigDecimal ruleBase = deductionBase(rule, preview.getContractSalary(), payroll.getGrossSalary(), config);
-            BigDecimal amount = calculateDeductionRuleAmount(rule,
-                    ruleBase, payroll.getGrossSalary(), preview.getTaxableIncome());
+            BigDecimal amount = calculateDeductionRuleAmount(rule, ruleBase);
             String ruleDisplayName = deductionRuleDisplayName(rule);
             PayrollDetailDTO deductionDetail = new PayrollDetailDTO(rule.getRuleCode(), ruleDisplayName,
                     PayrollDetailDTO.TYPE_DEDUCTION, scale(amount), buildDeductionBaseNote(rule, config));
@@ -741,8 +722,7 @@ public class PayrollService {
             deductionDetail.setEmployeeRatePercent(percentValue(rule.getEmployeeRate()));
             deductionDetail.setEmployerRatePercent(percentValue(rule.getEmployerRate()));
             deductionDetail.setTotalRatePercent(percentValue(rule.getRate()));
-            BigDecimal employerAmount = calculateEmployerContributionAmount(rule,
-                    ruleBase, payroll.getGrossSalary(), preview.getTaxableIncome());
+            BigDecimal employerAmount = calculateEmployerContributionAmount(rule, ruleBase);
             deductionDetail.setEmployerAmount(scale(employerAmount));
             details.add(deductionDetail);
             if (employerAmount.signum() > 0) {
@@ -1008,27 +988,6 @@ public class PayrollService {
         return list;
     }
 
-    private EmployeePayrollBase getActiveEmployeeWithContract(Connection conn, int employeeId, int year, int month)
-            throws SQLException {
-        String SQL = baseEmployeeContractQuery()
-                + "WHERE e.employeeId = ? AND e.status = 1 "
-                + "  AND ec.status = 'ACTIVE' "
-                + "  AND ec.effectiveDate <= ? "
-                + "  AND (ec.endDate IS NULL OR ec.endDate >= ?) "
-                + "ORDER BY ec.contractId DESC LIMIT 1";
-        try (PreparedStatement ps = conn.prepareStatement(SQL)) {
-            ps.setInt(1, employeeId);
-            ps.setDate(2, toPeriodEnd(year, month));
-            ps.setDate(3, toPeriodStart(year, month));
-            try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) {
-                    return mapEmployeePayrollBase(rs);
-                }
-            }
-        }
-        return null;
-    }
-
     private String baseEmployeeContractQuery() {
         return "SELECT e.employeeId, e.employeeCode, e.positionId, e.departmentId, "
                 + "(SELECT COUNT(*) FROM Dependents dep WHERE dep.employeeId = e.employeeId AND dep.status = 1) AS dependentCount, "
@@ -1254,7 +1213,7 @@ public class PayrollService {
                 continue;
             }
             total = total.add(calculateDeductionRuleAmount(rule,
-                    deductionBase(rule, contractSalary, grossSalary, config), grossSalary, taxableIncome));
+                    deductionBase(rule, contractSalary, grossSalary, config)));
         }
         return total;
     }
@@ -1270,7 +1229,7 @@ public class PayrollService {
                 continue;
             }
             total = total.add(calculateDeductionRuleAmount(rule,
-                    deductionBase(rule, contractSalary, grossSalary, config), grossSalary, taxableIncome));
+                    deductionBase(rule, contractSalary, grossSalary, config)));
         }
         return total;
     }
@@ -1286,7 +1245,7 @@ public class PayrollService {
                 continue;
             }
             total = total.add(calculateEmployerContributionAmount(rule,
-                    deductionBase(rule, contractSalary, grossSalary, config), grossSalary, taxableIncome));
+                    deductionBase(rule, contractSalary, grossSalary, config)));
         }
         return total;
     }
@@ -1305,16 +1264,14 @@ public class PayrollService {
         return rule != null && "INSURANCE".equals(rule.getRuleType());
     }
 
-    private BigDecimal calculateDeductionRuleAmount(PayrollDeductionRule rule, BigDecimal contractSalary,
-            BigDecimal grossSalary, BigDecimal taxableIncome) {
+    private BigDecimal calculateDeductionRuleAmount(PayrollDeductionRule rule, BigDecimal contractSalary) {
         if (rule == null) {
             return ZERO;
         }
         return moneyOrZero(contractSalary).multiply(moneyOrZero(rule.getEmployeeRate()));
     }
 
-    private BigDecimal calculateEmployerContributionAmount(PayrollDeductionRule rule, BigDecimal contractSalary,
-            BigDecimal grossSalary, BigDecimal taxableIncome) {
+    private BigDecimal calculateEmployerContributionAmount(PayrollDeductionRule rule, BigDecimal contractSalary) {
         if (rule == null) {
             return ZERO;
         }
