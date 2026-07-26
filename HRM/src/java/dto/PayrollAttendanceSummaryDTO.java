@@ -61,10 +61,6 @@ public class PayrollAttendanceSummaryDTO {
         this.unauthorizedAbsentDays = Math.max(0, unauthorizedAbsentDays);
     }
 
-    public int getLateCount() {
-        return lateCount;
-    }
-
     public void incrementLateCount() {
         this.lateCount++;
     }
