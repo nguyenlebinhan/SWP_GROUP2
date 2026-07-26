@@ -1,49 +1,83 @@
 <%@ page contentType="text/html;charset=UTF-8" %>
 
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
 
 <style>
-    .sidebar{
-        width:250px;
-        height:100vh;
-        background:#0B0E2A;
-        position:fixed;
-        color:white;
+    .emp-sidebar {
+        width: 250px;
+        height: 100vh;
+        background: #0B0E2A;
+        position: fixed;
+        top: 0;
+        left: 0;
+        color: white;
+        overflow-y: auto;
     }
 
-    .sidebar h4{
-        padding:20px;
+    .emp-sidebar .brand {
+        padding: 20px 20px 10px;
+        font-size: 18px;
+        font-weight: 700;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        margin-bottom: 8px;
     }
 
-    .sidebar a{
-        display:block;
-        padding:14px 20px;
-        color:white;
-        text-decoration:none;
+    .emp-sidebar .nav-section {
+        padding: 8px 12px 2px;
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: rgba(255, 255, 255, 0.4);
+        font-weight: 600;
     }
 
-    .sidebar a:hover{
-        background:#1565C0;
-        border-radius: 5px;
+    .emp-sidebar a {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 11px 20px;
+        color: rgba(255, 255, 255, 0.85);
+        text-decoration: none;
+        font-size: 14px;
+        border-radius: 6px;
+        margin: 2px 8px;
+        transition: background 0.15s;
     }
 
+    .emp-sidebar a:hover,
+    .emp-sidebar a.active {
+        background: #1565C0;
+        color: white;
+    }
+
+    .emp-sidebar a i {
+        width: 18px;
+        text-align: center;
+        font-size: 14px;
+    }
 </style>
 
-<div class="sidebar">
+<div class="emp-sidebar">
+    <div class="brand">HRM System Admin</div>
 
-            <h4>HRM System</h4>
+    <div class="nav-section">Hệ thống</div>
+    <a href="${pageContext.request.contextPath}/v1/systemadmin/dashboard"
+       class="${pageContext.request.servletPath == '/public/systemadmin/dashboard.jsp' ? 'active' : ''}">
+        Tổng quan
+    </a>
+    <a href="${pageContext.request.contextPath}/v1/systemadmin/audit-logs"
+       class="${pageContext.request.servletPath == '/public/systemadmin/audit_logs.jsp' ? 'active' : ''}">
+        Nhật ký hệ thống
+    </a>
 
-            <a href="${pageContext.request.contextPath}/v1/systemadmin/dashboard"><i></i> Tổng quan</a>
-<!--            <a><i class="fa fa-briefcase"></i> Công việc</a>-->
-            <a href="${pageContext.request.contextPath}/v1/systemadmin/user-list" ><i></i> Người dùng</a>
-<!--            <a><i class="fa fa-clock"></i> Chấm công</a>
-            <a><i class="fa fa-user-plus"></i> Tuyển dụng</a>
-            <a><i class="fa fa-money-bill"></i> Bảng lương</a>
-            <a><i class="fa fa-building"></i> Phòng ban</a>-->
-            <a href="${pageContext.request.contextPath}/v1/systemadmin/role-list"><i></i> Phân quyền</a>
-            <a href="${pageContext.request.contextPath}/v1/systemadmin/audit-logs"><i></i> Nhật ký hệ thống</a>
-<!--            <a><i class="fa fa-chart-bar"></i> Báo cáo</a>-->
-
+    <div class="nav-section">Quản lý truy cập</div>
+    <a href="${pageContext.request.contextPath}/v1/systemadmin/user-list"
+       class="${pageContext.request.servletPath == '/public/systemadmin/user_list.jsp' ? 'active' : ''}">
+        Người dùng
+    </a>
+    <a href="${pageContext.request.contextPath}/v1/systemadmin/role-list"
+       class="${pageContext.request.servletPath == '/public/systemadmin/role_list.jsp' ? 'active' : ''}">
+        Phân quyền
+    </a>
 </div>

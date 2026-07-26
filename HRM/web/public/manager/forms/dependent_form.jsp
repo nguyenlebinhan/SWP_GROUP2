@@ -5,6 +5,7 @@
 <head>
     <title>Đăng ký người phụ thuộc - HRM</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
     <style>
         body { background: #f5f6fa; font-family: 'Segoe UI', sans-serif; }
         .main { margin-left: 250px; padding: 25px; }
@@ -28,15 +29,14 @@
     </style>
 </head>
 <body>
-<jsp:include page="/public/components/managerTopBar.jsp">
+<jsp:include page="/public/components/managerSideBar.jsp" />
+<div class="main">
+    <jsp:include page="/public/components/managerTopBar.jsp">
         <jsp:param name="title" value="Đăng ký người phụ thuộc" />
     </jsp:include>
-
-    <c:if test="${not managerForm}">
-        <jsp:include page="/public/manager/forms/form_tabs.jsp">
-            <jsp:param name="active" value="dependent" />
-        </jsp:include>
-    </c:if>
+    <jsp:include page="/public/manager/forms/form_tabs.jsp">
+        <jsp:param name="active" value="dependent" />
+    </jsp:include>
 
     <c:if test="${not empty error}">
         <div class="alert alert-danger">${error}</div>

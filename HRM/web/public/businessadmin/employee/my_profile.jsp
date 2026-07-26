@@ -250,8 +250,8 @@
 
                     <div class="profile-meta">
                         <div class="meta-item">
-                            <span class="meta-label">Mã nhân viên</span>
-                            <span class="meta-value">NV<c:out value="${currentUser.userId}"/></span>
+                            <span class="meta-label">Vai trò</span>
+                            <span class="meta-value"><c:out value="${empty currentUser.roleName ? '-' : currentUser.roleName}"/></span>
                         </div>
                         <div class="meta-item">
                             <span class="meta-label">Tên đăng nhập</span>
