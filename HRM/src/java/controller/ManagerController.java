@@ -1203,6 +1203,9 @@ public class ManagerController extends HttpServlet {
             return;
         }
 
+        request.setAttribute("approvedOTDays",
+                overtimeDAO.getApprovedOTDaysInMonth(employeeId, month, year));
+
         int day = paramOr(request, "day", 0);
         List<Attendance> filtered = detail.getDailyRows();
         if (day >= 1 && day <= 31) {
