@@ -2762,15 +2762,15 @@ public class EmployeeController extends HttpServlet {
         } catch (IllegalArgumentException e) {
             dateOfBirth = null;
         }
-        if (fullName == null || relationship == null || dateOfBirth == null) {
-            request.setAttribute("error", "Vui lòng nhập tên, quan hệ và ngày sinh người phụ thuộc.");
+        if (fullName == null || relationship == null || dateOfBirth == null || taxCode == null) {
+            request.setAttribute("error", "Vui lòng nhập đầy đủ tên, quan hệ, ngày sinh và mã số thuế người phụ thuộc.");
             setPermissionFlags(request, getPermissions(user));
             request.setAttribute("formAction", request.getContextPath() + "/v1/employee/forms/dependent/submit");
             request.setAttribute("cancelUrl", request.getContextPath() + "/v1/employee/forms/my-forms");
             request.getRequestDispatcher("/public/employee/forms/dependent_form.jsp").forward(request, response);
             return;
         }
-        if (taxCode != null && !taxCode.matches("\\d+")) {
+        if (!taxCode.matches("\\d+")) {
             request.setAttribute("error", "Mã số thuế chỉ được nhập số.");
             setPermissionFlags(request, getPermissions(user));
             request.setAttribute("formAction", request.getContextPath() + "/v1/employee/forms/dependent/submit");

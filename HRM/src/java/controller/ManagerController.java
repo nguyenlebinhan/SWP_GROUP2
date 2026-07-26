@@ -3201,10 +3201,10 @@ public class ManagerController extends HttpServlet {
             dateOfBirth = null;
         }
         boolean invalidTaxCode = taxCode != null && !taxCode.matches("\\d+");
-        if (fullName == null || relationship == null || dateOfBirth == null || invalidTaxCode) {
+        if (fullName == null || relationship == null || dateOfBirth == null || taxCode == null || invalidTaxCode) {
             request.setAttribute("error", invalidTaxCode
                     ? "Mã số thuế chỉ được nhập số."
-                    : "Vui lòng nhập tên, quan hệ và ngày sinh người phụ thuộc.");
+                    : "Vui lòng nhập đầy đủ tên, quan hệ, ngày sinh và mã số thuế người phụ thuộc.");
             displayDependentForm(request, response, user);
             return;
         }
