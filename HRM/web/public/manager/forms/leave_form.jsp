@@ -31,14 +31,14 @@
 </head>
 <body>
 
-<jsp:include page="/public/components/employeeSideBar.jsp" />
+<jsp:include page="/public/components/managerSideBar.jsp" />
 
 <div class="main">
-    <jsp:include page="/public/components/employeeTopBar.jsp">
+    <jsp:include page="/public/components/managerTopBar.jsp">
         <jsp:param name="title" value="Tạo đơn yêu cầu" />
     </jsp:include>
 
-    <jsp:include page="/public/employee/forms/form_tabs.jsp">
+    <jsp:include page="/public/manager/forms/form_tabs.jsp">
         <jsp:param name="active" value="leave" />
     </jsp:include>
 
@@ -65,7 +65,7 @@
                 </span>
             </c:if>
         </div>
-        <form method="post" action="${pageContext.request.contextPath}/v1/employee/forms/leave/submit"
+                <form method="post" action="${pageContext.request.contextPath}/v1/manager/forms/leave/submit"
               enctype="multipart/form-data">
             <div class="row g-3">
 
@@ -103,7 +103,7 @@
             </div>
             <div class="mt-4 d-flex gap-2">
                 <button type="submit" class="btn btn-primary" id="submitBtn">Gửi đơn</button>
-                <a href="${pageContext.request.contextPath}/v1/employee/forms/my-forms"
+                <a href="${pageContext.request.contextPath}/v1/manager/forms/my-forms"
                    class="btn btn-outline-secondary">Quay lại</a>
             </div>
         </form>

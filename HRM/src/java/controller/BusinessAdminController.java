@@ -10,6 +10,7 @@ import dto.EmployeeDetailDTO;
 import dto.FormRequestDTO;
 import dto.TransferRequestDTO;
 import dao.FormRequestDAO;
+import enums.FormTypeCode;
 import dao.OvertimeDAO;
 import dto.OvertimeRequestDTO;
 import dao.PayrollConfigDAO;
@@ -1336,7 +1337,7 @@ public class BusinessAdminController extends HttpServlet {
         try {
             int formId = Integer.parseInt(idParam.trim());
             FormRequestDTO form = formRequestDAO.getFormRequestById(formId);
-            if (form == null || !"TRANSFER".equals(form.getFormTypeCode())) {
+            if (form == null || !FormTypeCode.TRANSFER.name().equals(form.getFormTypeCode())) {
                 request.getSession().setAttribute("error", "Không tìm thấy đơn chuyển phòng ban.");
                 response.sendRedirect(request.getContextPath() + "/v1/businessadmin/forms");
                 return;

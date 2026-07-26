@@ -115,6 +115,23 @@ public class DependentDAO {
         return applyStatusChange(formId, updateDependent, null);
     }
 
+    public boolean checkTaxCodeExist(String taxCode) {
+        if (taxCode == null || taxCode.trim().isEmpty()) {
+            return false;
+        }
+        String sql = "SELECT 1 FROM Dependents WHERE taxCode = ? AND status IN (0, 1)";
+        try (Connection conn = dbContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, taxCode.trim());
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next();
+            }
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Cannot check taxCode existence: " + taxCode, e);
+        }
+        return false;
+    }
+
     public List<Dependent> getActiveByEmployeeId(int employeeId) {
         List<Dependent> list = new ArrayList<>();
         String sql = """
