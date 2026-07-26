@@ -1177,6 +1177,15 @@ public class BusinessAdminController extends HttpServlet {
         }
 
         service.PayrollService payrollService = new service.PayrollService();
+        service.AttendanceClosingService closingService = new service.AttendanceClosingService();
+        if (!closingService.isPeriodLocked(year, month)) {
+            request.getSession().setAttribute("error",
+                    "Bảng chấm công kỳ này chưa được chốt cho toàn bộ phòng ban. Chưa thể chốt bảng lương.");
+            response.sendRedirect(request.getContextPath() + "/v1/businessadmin/salary/all?month=" + month
+                    + "&year=" + year);
+            return;
+        }
+
         int finalizedCount = payrollService.finalizePayrollForPeriod(user, year, month, null);
         if (finalizedCount > 0) {
             request.getSession().setAttribute("success",

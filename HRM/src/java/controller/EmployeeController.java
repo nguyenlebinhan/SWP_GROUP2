@@ -2788,12 +2788,6 @@ public class EmployeeController extends HttpServlet {
             response.sendRedirect(request.getContextPath() + "/v1/employee/forms/all");
             return;
         }
-        if (form.getEmployeeId() == me.getEmployeeId()) {
-            request.getSession().setAttribute("error",
-                    "Bạn không thể tự duyệt đơn người phụ thuộc của chính mình. Cần một nhân viên HR khác duyệt.");
-            response.sendRedirect(request.getContextPath() + "/v1/employee/forms/all");
-            return;
-        }
         String note = trimToNull(request.getParameter("note"));
         boolean formOk = formRequestDAO.approveFormRequestFromStatus(formId, 0, 4, me.getEmployeeId(), note);
         boolean added = formOk && dependentDAO.approveByFormId(formId);
@@ -2819,12 +2813,6 @@ public class EmployeeController extends HttpServlet {
         FormRequestDTO form = formId == null ? null : formRequestDAO.getFormRequestById(formId);
         if (formId == null || me == null || form == null || !"DEPENDENT".equals(form.getFormTypeCode())) {
             request.getSession().setAttribute("error", "Không tìm thấy đơn người phụ thuộc.");
-            response.sendRedirect(request.getContextPath() + "/v1/employee/forms/all");
-            return;
-        }
-        if (form.getEmployeeId() == me.getEmployeeId()) {
-            request.getSession().setAttribute("error",
-                    "Bạn không thể tự từ chối đơn người phụ thuộc của chính mình. Cần một nhân viên HR khác xử lý.");
             response.sendRedirect(request.getContextPath() + "/v1/employee/forms/all");
             return;
         }
