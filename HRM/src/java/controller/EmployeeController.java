@@ -25,6 +25,10 @@ import dto.FormRequestDTO;
 import dto.PayrollPreviewDTO;
 import dto.ContractImportDTO;
 import enums.FileStatus;
+import service.FormService;
+import model.FormOperationalResult;
+import model.UploadedFileInfo;
+import enums.FormTypeCode;
 import enums.ContractType;
 import enums.ContractStatus;
 import jakarta.servlet.ServletException;
@@ -100,7 +104,7 @@ public class EmployeeController extends HttpServlet {
     private final AttendanceClosingService attendanceClosingService = new AttendanceClosingService();
     private final PayrollConfigDAO payrollConfigDAO = new PayrollConfigDAO();
     private final PayrollConfigWorkflowService payrollConfigWorkflowService = new PayrollConfigWorkflowService();
-
+    private final FormService formService = new FormService();
     private static final Gson GSON = new GsonBuilder()
             .registerTypeAdapter(LocalDate.class,
                     (JsonSerializer<LocalDate>) (src, type, context) -> new JsonPrimitive(src.toString()))
@@ -2739,63 +2743,6 @@ public class EmployeeController extends HttpServlet {
         request.getRequestDispatcher("/public/employee/forms/dependent_form.jsp").forward(request, response);
     }
 
-    private void handleDependentFormSubmit(HttpServletRequest request, HttpServletResponse response, User user)
-            throws ServletException, IOException {
-        FormType ft = formTypeDAO.getByCode("DEPENDENT");
-        EmployeeDetailDTO me = employeeDAO.getEmployeeByUserId(user.getUserId());
-        if (ft == null || me == null) {
-            request.getSession().setAttribute("error", "Không thể tạo đơn người phụ thuộc.");
-            response.sendRedirect(request.getContextPath() + "/v1/employee/forms/dependent/new");
-            return;
-        }
-
-        String fullName = trimToNull(request.getParameter("fullName"));
-        String relationship = trimToNull(request.getParameter("relationship"));
-        String rawDateOfBirth = trimToNull(request.getParameter("dateOfBirth"));
-        String taxCode = trimToNull(request.getParameter("taxCode"));
-        String note = trimToNull(request.getParameter("note"));
-        Date dateOfBirth = null;
-        try {
-            if (rawDateOfBirth != null) {
-                dateOfBirth = Date.valueOf(rawDateOfBirth);
-            }
-        } catch (IllegalArgumentException e) {
-            dateOfBirth = null;
-        }
-        if (fullName == null || relationship == null || dateOfBirth == null) {
-            request.setAttribute("error", "Vui lòng nhập tên, quan hệ và ngày sinh người phụ thuộc.");
-            setPermissionFlags(request, getPermissions(user));
-            request.setAttribute("formAction", request.getContextPath() + "/v1/employee/forms/dependent/submit");
-            request.setAttribute("cancelUrl", request.getContextPath() + "/v1/employee/forms/my-forms");
-            request.getRequestDispatcher("/public/employee/forms/dependent_form.jsp").forward(request, response);
-            return;
-        }
-        if (taxCode != null && !taxCode.matches("\\d+")) {
-            request.setAttribute("error", "Mã số thuế chỉ được nhập số.");
-            setPermissionFlags(request, getPermissions(user));
-            request.setAttribute("formAction", request.getContextPath() + "/v1/employee/forms/dependent/submit");
-            request.setAttribute("cancelUrl", request.getContextPath() + "/v1/employee/forms/my-forms");
-            request.getRequestDispatcher("/public/employee/forms/dependent_form.jsp").forward(request, response);
-            return;
-        }
-
-        FormRequest fr = new FormRequest();
-        fr.setFormCode("DEPENDENT-" + me.getEmployeeId() + "-" + System.currentTimeMillis());
-        fr.setEmployeeId(me.getEmployeeId());
-        fr.setFormTypeId(ft.getFormTypeId());
-        fr.setReason("Tên: " + fullName + "\nQuan hệ: " + relationship
-                + "\nNgày sinh: " + dateOfBirth
-                + (taxCode == null ? "" : "\nMã số thuế: " + taxCode)
-                + (note == null ? "" : "\nGhi chú: " + note));
-
-        int formId = formRequestDAO.addFormRequest(fr);
-        boolean ok = formId > 0 && dependentDAO.addPending(formId, me.getEmployeeId(), fullName, relationship, dateOfBirth, taxCode, note);
-        request.getSession().setAttribute(ok ? "success" : "error",
-                ok ? "Đã gửi đơn đăng ký người phụ thuộc, chờ HR duyệt."
-                        : "Gửi đơn người phụ thuộc thất bại.");
-        response.sendRedirect(request.getContextPath() + "/v1/employee/forms/my-forms");
-    }
-
     private void handleDependentStatusRequest(HttpServletRequest request, HttpServletResponse response, User user)
             throws ServletException, IOException {
         EmployeeDetailDTO me = employeeDAO.getEmployeeByUserId(user.getUserId());
@@ -2889,285 +2836,6 @@ public class EmployeeController extends HttpServlet {
         request.getSession().setAttribute(ok ? "success" : "error",
                 ok ? "Đã từ chối đơn người phụ thuộc." : "Từ chối đơn người phụ thuộc thất bại.");
         response.sendRedirect(request.getContextPath() + "/v1/employee/forms/all");
-    }
-
-    private void handleLeaveFormSubmit(HttpServletRequest request, HttpServletResponse response, User user)
-            throws ServletException, IOException {
-
-        FormType ft = formTypeDAO.getByCode("LEAVE");
-        if (ft == null) {
-            request.getSession().setAttribute("error", "Loại đơn LEAVE không tồn tại.");
-            response.sendRedirect(request.getContextPath() + "/v1/employee/dashboard");
-            return;
-        }
-        int formTypeId = ft.getFormTypeId();
-
-        EmployeeDetailDTO me = employeeDAO.getEmployeeByUserId(user.getUserId());
-        if (me == null) {
-            request.getSession().setAttribute("error", "Bạn chưa được gắn hồ sơ nhân viên.");
-            response.sendRedirect(request.getContextPath() + "/v1/employee/dashboard");
-            return;
-        }
-
-        String reason = request.getParameter("reason");
-        String rawStart = trimToNull(request.getParameter("startDate"));
-        String rawEnd = trimToNull(request.getParameter("endDate"));
-
-        if (rawStart == null || rawEnd == null) {
-            request.setAttribute("error", "Đơn nghỉ phép yêu cầu nhập ngày bắt đầu và ngày kết thúc.");
-            setPermissionFlags(request, getPermissions(user));
-            request.getRequestDispatcher("/public/employee/forms/leave_form.jsp").forward(request, response);
-            return;
-        }
-
-        Date startDate, endDate;
-        try {
-            startDate = Date.valueOf(rawStart);
-            endDate = Date.valueOf(rawEnd);
-        } catch (IllegalArgumentException ex) {
-            request.setAttribute("error", "Ngày không hợp lệ. Vui lòng nhập đúng định dạng.");
-            setPermissionFlags(request, getPermissions(user));
-            request.getRequestDispatcher("/public/employee/forms/leave_form.jsp").forward(request, response);
-            return;
-        }
-
-        LocalDate today = LocalDate.now();
-        if (startDate.toLocalDate().isBefore(today)) {
-            request.setAttribute("error", "Ngày bắt đầu không được là ngày trong quá khứ.");
-            setPermissionFlags(request, getPermissions(user));
-            request.getRequestDispatcher("/public/employee/forms/leave_form.jsp").forward(request, response);
-            return;
-        }
-        if (endDate.before(startDate)) {
-            request.setAttribute("error", "Ngày kết thúc không được trước ngày bắt đầu.");
-            setPermissionFlags(request, getPermissions(user));
-            request.getRequestDispatcher("/public/employee/forms/leave_form.jsp").forward(request, response);
-            return;
-        }
-        int totalDays = 0;
-        LocalDate current = startDate.toLocalDate();
-        LocalDate end = endDate.toLocalDate();
-
-        while (!current.isAfter(end)) {
-            DayOfWeek dayOfWeek = current.getDayOfWeek();
-            if (dayOfWeek == DayOfWeek.SATURDAY || dayOfWeek == DayOfWeek.SUNDAY) {
-                current = current.plusDays(1);
-                continue;
-            }
-            totalDays++;
-            current = current.plusDays(1);
-        }
-
-        if (totalDays == 0) {
-            request.setAttribute("error", "Khoảng thời gian bạn chọn toàn bộ là ngày cuối tuần. Không cần phải xin phép!");
-            setPermissionFlags(request, getPermissions(user));
-            request.getRequestDispatcher("/public/employee/forms/leave_form.jsp").forward(request, response);
-            return;
-        }
-        int currentYear = LocalDate.now().getYear();
-        LeaveBalance lb = leaveBalanceDAO.getLeaveBalance(me.getEmployeeId(), currentYear);
-        int remaining = 0;
-        if (lb != null) {
-            remaining = lb.getRemainingDays();
-        }
-        if (totalDays > remaining) {
-            request.setAttribute("error", "Số ngày nghỉ vượt quá số ngày phép còn lại (" + remaining + " ngày).");
-            setPermissionFlags(request, getPermissions(user));
-            request.getRequestDispatcher("/public/employee/forms/leave_form.jsp").forward(request, response);
-            return;
-        }
-
-        // Kiểm tra đơn trùng lặp
-        if (formRequestDAO.hasOverlappingLeave(me.getEmployeeId(), startDate, endDate)) {
-            request.setAttribute("error", "Bạn đã có đơn xin nghỉ phép (Chờ duyệt hoặc Đã duyệt) trong khoảng thời gian này. Vui lòng kiểm tra lại!");
-            setPermissionFlags(request, getPermissions(user));
-            request.getRequestDispatcher("/public/employee/forms/leave_form.jsp").forward(request, response);
-            return;
-        }
-
-        // Xử lý file đính kèm
-        String savedUrl = null, savedName = null;
-        Part filePart = request.getPart("attachment");
-        if (filePart != null && filePart.getSize() > 0) {
-            String submitted = filePart.getSubmittedFileName();
-            if (submitted != null && !submitted.isEmpty()) {
-                String ext = submitted.contains(".") ? submitted.substring(submitted.lastIndexOf('.')).toLowerCase()
-                        : "";
-                String[] allowed = {".xlsx", ".pdf", ".docx", ".doc", ".xls", ".jpg", ".png", ".zip"};
-                boolean ok = false;
-                for (String a : allowed) {
-                    if (a.equals(ext)) {
-                        ok = true;
-                        break;
-                    }
-                }
-                if (!ok) {
-                    request.setAttribute("error", "Định dạng file không hợp lệ.");
-                    setPermissionFlags(request, getPermissions(user));
-                    request.getRequestDispatcher("/public/employee/forms/leave_form.jsp").forward(request, response);
-                    return;
-                }
-                String uploadDir = "uploads/forms";
-                String serverName = "FORM_" + me.getEmployeeId() + "_" + System.currentTimeMillis() + "_"
-                        + java.util.UUID.randomUUID().toString().substring(0, 8) + ext;
-                Path dir = Paths.get(getServletContext().getRealPath("/" + uploadDir));
-                Files.createDirectories(dir);
-                try (InputStream is = filePart.getInputStream()) {
-                    Files.copy(is, dir.resolve(serverName));
-                }
-                savedUrl = uploadDir + "/" + serverName;
-                savedName = sanitizeFileName(submitted);
-            }
-        }
-
-        LeaveFormRequest fr = new LeaveFormRequest();
-        fr.setFormCode("LEAVE-" + me.getEmployeeId() + "-" + System.currentTimeMillis());
-        fr.setEmployeeId(me.getEmployeeId());
-        fr.setFormTypeId(formTypeId);
-        fr.setReason(isBlank(reason) ? null : reason.trim());
-        fr.setStartDate(startDate);
-        fr.setEndDate(endDate);
-        fr.setTotalDays(totalDays);
-        fr.setAttachmentUrl(savedUrl);
-        fr.setAttachmentName(savedName);
-
-        int id = formRequestDAO.addFormRequest(fr);
-        if (id <= 0) {
-            request.setAttribute("error", "Gửi đơn thất bại. Vui lòng thử lại.");
-            setPermissionFlags(request, getPermissions(user));
-            request.getRequestDispatcher("/public/employee/forms/leave_form.jsp").forward(request, response);
-            return;
-        }
-        request.getSession().setAttribute("success", "Đã gửi đơn nghỉ phép thành cóng.");
-        response.sendRedirect(request.getContextPath() + "/v1/employee/forms/my-forms");
-    }
-
-    // Xử lý gửi Đơn Khiếu Nại
-    private void handleComplaintFormSubmit(HttpServletRequest request, HttpServletResponse response, User user)
-            throws ServletException, IOException {
-
-        FormType ft = formTypeDAO.getByCode("COMPLAINT");
-        if (ft == null) {
-            request.getSession().setAttribute("error", "Loại đơn COMPLAINT không tồn tại.");
-            response.sendRedirect(request.getContextPath() + "/v1/employee/dashboard");
-            return;
-        }
-        int formTypeId = ft.getFormTypeId();
-
-        EmployeeDetailDTO me = employeeDAO.getEmployeeByUserId(user.getUserId());
-        if (me == null) {
-            request.getSession().setAttribute("error", "Bạn chưa được gắn hồ sơ nhân viên.");
-            response.sendRedirect(request.getContextPath() + "/v1/employee/dashboard");
-            return;
-        }
-
-        String reason = request.getParameter("reason");
-        String rawDate = trimToNull(request.getParameter("startDate"));
-        String rawStartTime = trimToNull(request.getParameter("startTime"));
-        String rawEndTime = trimToNull(request.getParameter("endTime"));
-
-        if (isBlank(reason)) {
-            request.setAttribute("error", "Vui lòng nhập nội dung khiếu nại.");
-            setPermissionFlags(request, getPermissions(user));
-            request.getRequestDispatcher("/public/employee/forms/complaint_form.jsp").forward(request, response);
-            return;
-        }
-
-        if (rawDate == null || rawStartTime == null || rawEndTime == null) {
-            request.setAttribute("error", "Vui lòng nhập đầy đủ ngày và giờ làm việc cần sửa.");
-            setPermissionFlags(request, getPermissions(user));
-            request.getRequestDispatcher("/public/employee/forms/complaint_form.jsp").forward(request, response);
-            return;
-        }
-
-        Date startDate;
-        Time startTime, endTime;
-        try {
-            startDate = Date.valueOf(rawDate);
-            // Append seconds for Time.valueOf format (HH:mm:ss)
-            startTime = Time.valueOf(rawStartTime.length() == 5 ? rawStartTime + ":00" : rawStartTime);
-            endTime = Time.valueOf(rawEndTime.length() == 5 ? rawEndTime + ":00" : rawEndTime);
-        } catch (IllegalArgumentException ex) {
-            request.setAttribute("error", "Định dạng ngày/giờ không hợp lệ.");
-            setPermissionFlags(request, getPermissions(user));
-            request.getRequestDispatcher("/public/employee/forms/complaint_form.jsp").forward(request, response);
-            return;
-        }
-
-        if (!endTime.after(startTime)) {
-            request.setAttribute("error", "Giờ kết thúc phải lớn hơn giờ bắt đầu.");
-            setPermissionFlags(request, getPermissions(user));
-            request.getRequestDispatcher("/public/employee/forms/complaint_form.jsp").forward(request, response);
-            return;
-        }
-
-        // Ràng buộc: Chỉ được khiếu nại trong tháng import chấm công mới nhất
-        int[] latestPeriod = uploadedFileDAO.getLatestAttendanceImportMonthYear(me.getDepartmentId());
-        if (latestPeriod != null) {
-            java.time.LocalDate localDate = startDate.toLocalDate();
-            if (localDate.getMonthValue() != latestPeriod[0] || localDate.getYear() != latestPeriod[1]) {
-                request.setAttribute("error", String.format("Bạn chỉ được nộp đơn khiếu nại chấm công cho tháng %02d/%d (kỳ import gần nhất).", latestPeriod[0], latestPeriod[1]));
-                setPermissionFlags(request, getPermissions(user));
-                request.getRequestDispatcher("/public/employee/forms/complaint_form.jsp").forward(request, response);
-                return;
-            }
-        }
-
-        // Xử lý file đính kèm
-        String savedUrl = null, savedName = null;
-        Part filePart = request.getPart("attachment");
-        if (filePart != null && filePart.getSize() > 0) {
-            String submitted = filePart.getSubmittedFileName();
-            if (submitted != null && !submitted.isEmpty()) {
-                String ext = submitted.contains(".") ? submitted.substring(submitted.lastIndexOf('.')).toLowerCase()
-                        : "";
-                String[] allowed = {".xlsx", ".pdf", ".docx", ".doc", ".xls", ".jpg", ".png", ".zip"};
-                boolean ok = false;
-                for (String a : allowed) {
-                    if (a.equals(ext)) {
-                        ok = true;
-                        break;
-                    }
-                }
-                if (!ok) {
-                    request.setAttribute("error", "Định dạng file không hợp lệ.");
-                    setPermissionFlags(request, getPermissions(user));
-                    request.getRequestDispatcher("/public/employee/forms/complaint_form.jsp").forward(request, response);
-                    return;
-                }
-                String uploadDir = "uploads/forms";
-                String serverName = "FORM_" + me.getEmployeeId() + "_" + System.currentTimeMillis() + "_"
-                        + java.util.UUID.randomUUID().toString().substring(0, 8) + ext;
-                Path dir = Paths.get(getServletContext().getRealPath("/" + uploadDir));
-                Files.createDirectories(dir);
-                try (InputStream is = filePart.getInputStream()) {
-                    Files.copy(is, dir.resolve(serverName));
-                }
-                savedUrl = uploadDir + "/" + serverName;
-                savedName = sanitizeFileName(submitted);
-            }
-        }
-
-        ComplaintFormRequest fr = new ComplaintFormRequest();
-        fr.setFormCode("COMPLAINT-" + me.getEmployeeId() + "-" + System.currentTimeMillis());
-        fr.setEmployeeId(me.getEmployeeId());
-        fr.setFormTypeId(formTypeId);
-        fr.setReason(reason.trim());
-        fr.setStartDate(startDate);
-        fr.setStartTime(startTime);
-        fr.setEndTime(endTime);
-        fr.setAttachmentUrl(savedUrl);
-        fr.setAttachmentName(savedName);
-
-        int id = formRequestDAO.addFormRequest(fr);
-        if (id <= 0) {
-            request.setAttribute("error", "Gửi đơn thất bại. Vui lòng thử lại.");
-            setPermissionFlags(request, getPermissions(user));
-            request.getRequestDispatcher("/public/employee/forms/complaint_form.jsp").forward(request, response);
-            return;
-        }
-        request.getSession().setAttribute("success", "Đã gửi đơn khiếu nại thành công.");
-        response.sendRedirect(request.getContextPath() + "/v1/employee/forms/my-forms");
     }
 
     private List<Integer> parseRoleIds(String[] raw) {
@@ -3360,13 +3028,179 @@ public class EmployeeController extends HttpServlet {
 
     private void displayRequestTransferForm(HttpServletRequest request, HttpServletResponse response, User user)
             throws ServletException, IOException {
-        request.setAttribute("departments", departmentDAO.getAllActiveDepartments());
+        List<Department> depts = departmentDAO.getAllActiveDepartments();
+        Map<Integer, String> deptRolesMap = new HashMap<>();
+        for (model.Department d : depts) {
+            java.util.List<String> rNames = departmentDAO.getAllowedRoleNames(d.getDepartmentId());
+            deptRolesMap.put(d.getDepartmentId(), String.join(",", rNames));
+        }
+        request.setAttribute("departments", depts);
+        request.setAttribute("deptRolesMap", deptRolesMap);
+        request.setAttribute("roles", new dao.RoleDAO().getAllActiveRoles());
         request.setAttribute("positions", departmentDAO.getAllPositions());
         request.getRequestDispatcher("/public/employee/forms/transfer_form.jsp").forward(request, response);
     }
 
+    // handleLeaveFormSubmit
+    private void handleLeaveFormSubmit(HttpServletRequest request, HttpServletResponse response, User user)
+            throws ServletException, IOException {
+
+        FormType ft = formTypeDAO.getByCode("LEAVE");
+        if (ft == null) {
+            request.getSession().setAttribute("error", "Loại đơn LEAVE không tồn tại.");
+            response.sendRedirect(
+                    request.getContextPath() + (request.getRequestURI().contains("manager") ? "/v1/manager/dashboard"
+                            : "/v1/employee/dashboard"));
+            return;
+        }
+
+        EmployeeDetailDTO me = employeeDAO.getEmployeeByUserId(user.getUserId());
+        if (me == null) {
+            request.getSession().setAttribute("error", "Bạn chưa được gắn hồ sơ nhân viên.");
+            response.sendRedirect(
+                    request.getContextPath() + (request.getRequestURI().contains("manager") ? "/v1/manager/dashboard"
+                            : "/v1/employee/dashboard"));
+            return;
+        }
+
+        String reason = trimToNull(request.getParameter("reason"));
+        String rawStart = trimToNull(request.getParameter("startDate"));
+        String rawEnd = trimToNull(request.getParameter("endDate"));
+
+        if (rawStart == null || rawEnd == null) {
+            request.setAttribute("error", "Vui lòng nhập ngày bắt đầu và ngày kết thúc.");
+            displayLeaveForm(request, response, user);
+            return;
+        }
+
+        Date startDate, endDate;
+        try {
+            startDate = Date.valueOf(rawStart);
+            endDate = Date.valueOf(rawEnd);
+        } catch (IllegalArgumentException ex) {
+            request.setAttribute("error", "Định dạng ngày không hợp lệ.");
+            displayLeaveForm(request, response, user);
+            return;
+        }
+
+        UploadedFileInfo uploadInfo = null;
+        try {
+            uploadInfo = utils.FileUploadUtil.saveAttachment(request.getPart("attachment"), me.getEmployeeId(), "LEAVE",
+                    getServletContext());
+        } catch (IllegalArgumentException e) {
+            request.setAttribute("error", e.getMessage());
+            displayLeaveForm(request, response, user);
+            return;
+        }
+
+        FormOperationalResult result = formService.submitLeaveForm(
+                me.getEmployeeId(),
+                ft.getFormTypeId(),
+                reason,
+                startDate,
+                endDate,
+                uploadInfo != null ? uploadInfo.getUrl() : null,
+                uploadInfo != null ? uploadInfo.getOriginalName() : null);
+
+        if (!result.isSuccess()) {
+            request.setAttribute("error", result.getMessage());
+            displayLeaveForm(request, response, user);
+            return;
+        }
+
+        request.getSession().setAttribute("success", "Đã gửi đơn nghỉ phép thành công.");
+        response.sendRedirect(
+                request.getContextPath() + (request.getRequestURI().contains("manager") ? "/v1/manager/forms/all"
+                        : "/v1/employee/forms/my-forms"));
+    }
+
+    private void handleComplaintFormSubmit(HttpServletRequest request, HttpServletResponse response, User user)
+            throws ServletException, IOException {
+
+        FormType ft = formTypeDAO.getByCode("COMPLAINT");
+        if (ft == null) {
+            request.getSession().setAttribute("error", "Loại đơn COMPLAINT không tồn tại.");
+            response.sendRedirect(
+                    request.getContextPath() + (request.getRequestURI().contains("manager") ? "/v1/manager/dashboard"
+                            : "/v1/employee/dashboard"));
+            return;
+        }
+
+        EmployeeDetailDTO me = employeeDAO.getEmployeeByUserId(user.getUserId());
+        if (me == null) {
+            request.getSession().setAttribute("error", "Bạn chưa được gắn hồ sơ nhân viên.");
+            response.sendRedirect(
+                    request.getContextPath() + (request.getRequestURI().contains("manager") ? "/v1/manager/dashboard"
+                            : "/v1/employee/dashboard"));
+            return;
+        }
+
+        String reason = trimToNull(request.getParameter("reason"));
+        String startDate = trimToNull(request.getParameter("startDate"));
+        String startTime = trimToNull(request.getParameter("startTime"));
+        String endTime = trimToNull(request.getParameter("endTime"));
+
+        if (reason == null || startDate == null || startTime == null || endTime == null) {
+            request.setAttribute("error", "Vui lòng nhập đầy đủ lý do, ngày và giờ làm việc thực tế.");
+            displayComplaintForm(request, response, user);
+            return;
+        }
+
+        Date parsedStartDate;
+        Time parsedStartTime, parsedEndTime;
+        try {
+            parsedStartDate = Date.valueOf(startDate);
+            parsedStartTime = parseTimeOrNull(startTime);
+            parsedEndTime = parseTimeOrNull(endTime);
+        } catch (IllegalArgumentException ex) {
+            request.setAttribute("error", "Định dạng ngày giờ không hợp lệ.");
+            displayComplaintForm(request, response, user);
+            return;
+        }
+
+        UploadedFileInfo uploadInfo = null;
+        try {
+            uploadInfo = utils.FileUploadUtil.saveAttachment(request.getPart("attachment"), me.getEmployeeId(),
+                    "COMPLAINT", getServletContext());
+        } catch (IllegalArgumentException e) {
+            request.setAttribute("error", e.getMessage());
+            displayComplaintForm(request, response, user);
+            return;
+        }
+
+        FormOperationalResult result = formService.submitComplaintForm(
+                me.getEmployeeId(),
+                ft.getFormTypeId(),
+                reason,
+                parsedStartDate,
+                parsedStartTime,
+                parsedEndTime,
+                uploadInfo != null ? uploadInfo.getUrl() : null,
+                uploadInfo != null ? uploadInfo.getOriginalName() : null);
+
+        if (!result.isSuccess()) {
+            request.setAttribute("error", result.getMessage());
+            displayComplaintForm(request, response, user);
+            return;
+        }
+
+        request.getSession().setAttribute("success", "Đã gửi đơn khiếu nại thành công.");
+        response.sendRedirect(
+                request.getContextPath() + (request.getRequestURI().contains("manager") ? "/v1/manager/forms/all"
+                        : "/v1/employee/forms/my-forms"));
+    }
+
     private void handleRequestTransfer(HttpServletRequest request, HttpServletResponse response, User user)
             throws ServletException, IOException {
+
+        FormType ft = formTypeDAO.getByCode("TRANSFER");
+        if (ft == null) {
+            request.getSession().setAttribute("error", "Loại đơn TRANSFER không tồn tại.");
+            response.sendRedirect(
+                    request.getContextPath() + (request.getRequestURI().contains("manager") ? "/v1/manager/dashboard"
+                            : "/v1/employee/dashboard"));
+            return;
+        }
 
         EmployeeDetailDTO me = employeeDAO.getEmployeeByUserId(user.getUserId());
         if (me == null || me.getDepartmentId() <= 0) {
@@ -3375,70 +3209,131 @@ public class EmployeeController extends HttpServlet {
             return;
         }
 
-        // Ràng buộc: Manager không được xin thuyên chuyển
-        String myRole = roleDAO.getRoleByUserId(user.getUserId());
-        if (myRole != null && myRole.toLowerCase().contains("manager")) {
-            request.getSession().setAttribute("error", "Manager không được phép gửi đơn thuyên chuyển phòng ban.");
-            response.sendRedirect(request.getContextPath() + "/v1/employee/dashboard");
-            return;
-        }
+        String targetDepartmentIdStr = trimToNull(request.getParameter("targetDepartmentId"));
+        String targetRoleIdStr = trimToNull(request.getParameter("targetRoleId"));
+        String reason = trimToNull(request.getParameter("reason"));
 
-        String rawTargetDeptId = request.getParameter("targetDepartmentId");
-        String reason = request.getParameter("reason");
-        if (isBlank(rawTargetDeptId)) {
-            request.getSession().setAttribute("error", "Vui lòng chọn phòng ban muốn chuyển đến.");
-            response.sendRedirect(request.getContextPath() + "/v1/employee/forms/transfer/new");
+        if (targetDepartmentIdStr == null || targetRoleIdStr == null || reason == null) {
+            request.setAttribute("error", "Vui lòng chọn phòng ban, chức vụ và nhập lý do.");
+            displayRequestTransferForm(request, response, user);
             return;
         }
 
         int targetDepartmentId;
+        int targetRoleId;
         try {
-            targetDepartmentId = Integer.parseInt(rawTargetDeptId);
+            targetDepartmentId = Integer.parseInt(targetDepartmentIdStr);
+            targetRoleId = Integer.parseInt(targetRoleIdStr);
         } catch (NumberFormatException e) {
-            request.getSession().setAttribute("error", "Phòng ban không hợp lệ.");
-            response.sendRedirect(request.getContextPath() + "/v1/employee/forms/transfer/new");
+            request.setAttribute("error", "ID phòng ban hoặc chức vụ không hợp lệ.");
+            displayRequestTransferForm(request, response, user);
             return;
         }
 
-        if (targetDepartmentId == me.getDepartmentId()) {
-            request.getSession().setAttribute("error", "Bạn đã ở phòng ban này rồi.");
-            response.sendRedirect(request.getContextPath() + "/v1/employee/forms/transfer/new");
+        UploadedFileInfo uploadInfo = null;
+        try {
+            uploadInfo = utils.FileUploadUtil.saveAttachment(request.getPart("attachment"), me.getEmployeeId(),
+                    "TRANSFER", getServletContext());
+        } catch (IllegalArgumentException e) {
+            request.setAttribute("error", e.getMessage());
+            displayRequestTransferForm(request, response, user);
             return;
         }
 
-        // Tự động resolve targetRoleId từ deptCode + "Employee"
-        String deptCode = departmentDAO.getDepartmentCodeById(targetDepartmentId);
-        Integer targetRoleId = null;
-        if (deptCode != null) {
-            model.Role role = roleDAO.getRoleByName(deptCode + "Employee");
-            if (role != null) {
-                targetRoleId = role.getRoleId();
-            }
-        }
+        FormOperationalResult result = formService.submitTransferRequest(
+                me.getEmployeeId(),
+                ft.getFormTypeId(),
+                reason,
+                targetDepartmentId,
+                targetRoleId,
+                uploadInfo != null ? uploadInfo.getUrl() : null,
+                uploadInfo != null ? uploadInfo.getOriginalName() : null);
 
-        // Lấy formTypeId của TRANSFER
-        int formTypeId = formTypeDAO.getFormTypeIdByCode("TRANSFER");
-        if (formTypeId <= 0) {
-            request.getSession().setAttribute("error", "Loại đơn TRANSFER chưa được cấu hình.");
-            response.sendRedirect(request.getContextPath() + "/v1/employee/forms/transfer/new");
+        if (!result.isSuccess()) {
+            request.setAttribute("error", result.getMessage());
+            displayRequestTransferForm(request, response, user);
             return;
         }
 
-        TransferFormRequest fr = new TransferFormRequest();
-        fr.setFormCode("TRF-" + me.getEmployeeId() + "-" + System.currentTimeMillis());
-        fr.setEmployeeId(me.getEmployeeId());
-        fr.setFormTypeId(formTypeId);
-        fr.setReason(isBlank(reason) ? null : reason.trim());
-        fr.setTargetDepartmentId(targetDepartmentId);
-        fr.setTargetRoleId(targetRoleId);
+        request.getSession().setAttribute("success", "Đã gửi đơn thuyên chuyển thành công.");
+        response.sendRedirect(
+                request.getContextPath() + (request.getRequestURI().contains("manager") ? "/v1/manager/forms/all"
+                        : "/v1/employee/forms/my-forms"));
+    }
 
-        int newId = formRequestDAO.addFormRequest(fr);
-        if (newId > 0) {
-            request.getSession().setAttribute("success", "Đơn thuyên chuyển đã được gửi, chờ Business Admin phê duyệt.");
-        } else {
-            request.getSession().setAttribute("error", "Gửi đơn thuyên chuyển thất bại. Vui lòng thử lại.");
+    private void handleDependentFormSubmit(HttpServletRequest request, HttpServletResponse response, User user)
+            throws ServletException, IOException {
+
+        FormType ft = formTypeDAO.getByCode("DEPENDENT");
+        if (ft == null) {
+            request.getSession().setAttribute("error", "Loại đơn DEPENDENT không tồn tại.");
+            response.sendRedirect(
+                    request.getContextPath() + (request.getRequestURI().contains("manager") ? "/v1/manager/dashboard"
+                            : "/v1/employee/dashboard"));
+            return;
         }
-        response.sendRedirect(request.getContextPath() + "/v1/employee/dashboard");
+
+        EmployeeDetailDTO me = employeeDAO.getEmployeeByUserId(user.getUserId());
+        if (me == null) {
+            request.getSession().setAttribute("error", "Bạn chưa được gắn hồ sơ nhân viên.");
+            response.sendRedirect(
+                    request.getContextPath() + (request.getRequestURI().contains("manager") ? "/v1/manager/dashboard"
+                            : "/v1/employee/dashboard"));
+            return;
+        }
+
+        String fullName = trimToNull(request.getParameter("fullName"));
+        String relationship = trimToNull(request.getParameter("relationship"));
+        String rawDateOfBirth = trimToNull(request.getParameter("dateOfBirth"));
+        String taxCode = trimToNull(request.getParameter("taxCode"));
+        String reason = trimToNull(request.getParameter("note"));
+
+        if (fullName == null || relationship == null || rawDateOfBirth == null) {
+            request.setAttribute("error", "Vui lòng nhập tên, quan hệ và ngày sinh người phụ thuộc.");
+            displayDependentForm(request, response, user);
+            return;
+        }
+
+        Date dateOfBirth;
+        try {
+            dateOfBirth = Date.valueOf(rawDateOfBirth);
+        } catch (IllegalArgumentException ex) {
+            request.setAttribute("error", "Định dạng ngày sinh không hợp lệ.");
+            displayDependentForm(request, response, user);
+            return;
+        }
+
+        UploadedFileInfo uploadInfo = null;
+        try {
+            uploadInfo = utils.FileUploadUtil.saveAttachment(request.getPart("attachment"), me.getEmployeeId(),
+                    "DEPENDENT", getServletContext());
+        } catch (IllegalArgumentException e) {
+            request.setAttribute("error", e.getMessage());
+            displayDependentForm(request, response, user);
+            return;
+        }
+
+        FormOperationalResult result = formService.submitDependentForm(
+                me.getEmployeeId(),
+                ft.getFormTypeId(),
+                reason, // note is passed as reason
+                fullName,
+                relationship,
+                dateOfBirth,
+                taxCode,
+                uploadInfo != null ? uploadInfo.getUrl() : null,
+                uploadInfo != null ? uploadInfo.getOriginalName() : null);
+
+        if (!result.isSuccess()) {
+            request.setAttribute("error", result.getMessage());
+            displayDependentForm(request, response, user);
+            return;
+        }
+
+        request.getSession().setAttribute("success", "Đã gửi đơn đăng ký người phụ thuộc thành công.");
+        response.sendRedirect(
+                request.getContextPath() + (request.getRequestURI().contains("manager") ? "/v1/manager/forms/all"
+                        : "/v1/employee/forms/my-forms"));
     }
 
 }

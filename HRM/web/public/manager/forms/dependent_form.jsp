@@ -28,15 +28,12 @@
     </style>
 </head>
 <body>
-<jsp:include page="/public/components/employeeSideBar.jsp" />
-
-<div class="main">
-    <jsp:include page="/public/components/employeeTopBar.jsp">
+<jsp:include page="/public/components/managerTopBar.jsp">
         <jsp:param name="title" value="Đăng ký người phụ thuộc" />
     </jsp:include>
 
     <c:if test="${not managerForm}">
-        <jsp:include page="/public/employee/forms/form_tabs.jsp">
+        <jsp:include page="/public/manager/forms/form_tabs.jsp">
             <jsp:param name="active" value="dependent" />
         </jsp:include>
     </c:if>
