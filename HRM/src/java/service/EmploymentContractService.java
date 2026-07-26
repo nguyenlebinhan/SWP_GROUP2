@@ -210,67 +210,6 @@ public class EmploymentContractService {
         }
     }
 
-    public ContractOperationResult activateContract(int contractId, int userId) {
-        Connection conn = null;
-        try {
-            conn = dbContext.getConnection();
-            conn.setAutoCommit(false);
-
-            EmploymentContract contract = contractDAO.getContractById(conn, contractId);
-
-            if (contract == null) {
-                conn.rollback();
-                return new ContractOperationResult(false,
-                        ContractErrorCode.DATABASE_ERROR.name(), "Contract not found.");
-            }
-
-            if (contract.getStatus() != ContractStatus.PENDING_ACTIVATION) {
-                conn.rollback();
-                return new ContractOperationResult(false,
-                        ContractErrorCode.INVALID_CONTRACT_STATUS.name(),
-                        "Only pending activation contracts can be activated.");
-            }
-
-            Date today = Date.valueOf(LocalDate.now());
-            if (contract.getEffectiveDate().after(today)) {
-                conn.rollback();
-                return new ContractOperationResult(false,
-                        ContractErrorCode.INVALID_EFFECTIVE_DATE.name(),
-                        "Ngày hiệu lực chưa đến.");
-            }
-
-            boolean success = contractDAO.updateContractStatus(conn, contractId, ContractStatus.ACTIVE, null, null);
-
-            if (success) {
-                contractDAO.insertAuditLog(conn, contractId,
-                        contract.getStatus().name(), ContractStatus.ACTIVE.name(),
-                        userId, "Kich hoat hop dong");
-
-                conn.commit();
-                LOGGER.log(Level.INFO, "HR kích hoạt thủ công: Hợp đồng {0} -> ACTIVE", contractId);
-                return new ContractOperationResult(true, null, "Kich hoat hop dong thanh cong.");
-            } else {
-                conn.rollback();
-                return new ContractOperationResult(false,
-                        ContractErrorCode.DATABASE_ERROR.name(), "Failed to update contract status.");
-            }
-
-        } catch (SQLException e) {
-            if (conn != null) try {
-                conn.rollback();
-            } catch (SQLException ex) {
-            }
-            LOGGER.log(Level.SEVERE, "Database error during HR activation for contract " + contractId, e);
-            return new ContractOperationResult(false,
-                    ContractErrorCode.DATABASE_ERROR.name(), "Database connection error: " + e.getMessage());
-        } finally {
-            if (conn != null) try {
-                conn.close();
-            } catch (SQLException ex) {
-            }
-        }
-    }
-
     public ContractOperationResult approveContract(int contractId, int userId) {
         Connection conn = null;
         try {
@@ -320,62 +259,6 @@ public class EmploymentContractService {
             LOGGER.log(Level.SEVERE, "Database error during contract approval", e);
             return new ContractOperationResult(false, ContractErrorCode.DATABASE_ERROR.name(),
                     "Loi he thong khi phe duyet: " + e.getMessage());
-        } finally {
-            if (conn != null) try {
-                conn.close();
-            } catch (SQLException ex) {
-            }
-        }
-    }
-
-    public ContractOperationResult updateContractStatusWithAudit(int contractId,
-            ContractStatus newStatus, java.sql.Date actualEndDate,
-            String reason, int userId) {
-        Connection conn = null;
-        try {
-            conn = dbContext.getConnection();
-            conn.setAutoCommit(false);
-
-            EmploymentContract contract = contractDAO.getContractById(conn, contractId);
-            if (contract == null) {
-                conn.rollback();
-                return new ContractOperationResult(false, ContractErrorCode.CONTRACT_NOT_FOUND.name(), "Không tìm thấy hợp đồng.");
-            }
-
-            String oldStatus = contract.getStatus().name();
-            String newStatusStr = newStatus.name();
-            String auditReason = "Hợp đồng chuyển từ " + oldStatus + " sang " + newStatusStr
-                    + ". " + (reason != null ? reason : "");
-
-            // Update status with termination details
-            boolean updated = contractDAO.updateContractStatus(conn, contractId,
-                    newStatus, actualEndDate, reason);
-
-            if (!updated) {
-                conn.rollback();
-                return new ContractOperationResult(false,
-                        ContractErrorCode.DATABASE_ERROR.name(),
-                        "Không thể cập nhật trạng thái hợp đồng.");
-            }
-
-            // Audit log (same connection = same transaction)
-            contractDAO.insertAuditLog(conn, contractId, oldStatus, newStatusStr,
-                    userId, auditReason);
-
-            conn.commit();
-            return new ContractOperationResult(true, null,
-                    "Cập nhật trạng thái hợp đồng thành công.");
-
-        } catch (SQLException e) {
-            if (conn != null) try {
-                conn.rollback();
-            } catch (SQLException ex) {
-            }
-            LOGGER.log(Level.SEVERE,
-                    "Database error during status transition for contract " + contractId, e);
-            return new ContractOperationResult(false,
-                    ContractErrorCode.DATABASE_ERROR.name(),
-                    "Lỗi hệ thống: " + e.getMessage());
         } finally {
             if (conn != null) try {
                 conn.close();

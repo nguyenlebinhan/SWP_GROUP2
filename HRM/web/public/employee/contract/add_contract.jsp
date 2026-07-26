@@ -38,7 +38,7 @@
         <div class="main">
             <jsp:include page="/public/components/employeeTopBar.jsp">
                 <jsp:param name="title" value="Thêm hợp đồng lao động" />
-                <jsp:param name="backUrl" value="/v1/employee/employee_info/list" />
+                <jsp:param name="backUrl" value="/v1/employee/dashboard" />
             </jsp:include>
 
             <c:if test="${not empty sessionScope.success}">
