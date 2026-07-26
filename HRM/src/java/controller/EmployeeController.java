@@ -1573,7 +1573,7 @@ public class EmployeeController extends HttpServlet {
         request.setAttribute("allowedMonth", allowedMonth);
         request.setAttribute("allowedYear", allowedYear);
         request.setAttribute("importWindowOpen", today.getDayOfMonth() <= 2);
-        
+
         boolean locked = attendanceClosingService.isPeriodLocked(allowedYear, allowedMonth);
         request.setAttribute("isLocked", locked);
 

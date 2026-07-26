@@ -1203,9 +1203,8 @@ public class ManagerController extends HttpServlet {
             return;
         }
 
-        java.util.List<Integer> approvedOTDays = new dao.OvertimeDAO().getApprovedOTDaysInMonth(employeeId, month, year);
-        request.setAttribute("approvedOTDays", approvedOTDays);
-
+        request.setAttribute("approvedOTDays",
+                overtimeDAO.getApprovedOTDaysInMonth(employeeId, month, year));
 
         int day = paramOr(request, "day", 0);
         List<Attendance> filtered = detail.getDailyRows();
@@ -2549,7 +2548,7 @@ public class ManagerController extends HttpServlet {
         request.setAttribute("allowedMonth", allowedMonth);
         request.setAttribute("allowedYear", allowedYear);
         request.setAttribute("importWindowOpen", today.getDayOfMonth() <= 2);
-        
+
         boolean locked = attendanceClosingService.isPeriodLocked(allowedYear, allowedMonth);
         request.setAttribute("isLocked", locked);
 
@@ -3241,10 +3240,6 @@ public class ManagerController extends HttpServlet {
                         : "Gửi yêu cầu đổi trạng thái thất bại hoặc đang có yêu cầu chờ duyệt.");
         response.sendRedirect(request.getContextPath() + "/v1/manager/my-profile");
     }
-
-
-
-
 
     private void handleUpdateMyProfile(HttpServletRequest request, HttpServletResponse response,
             User user) throws ServletException, IOException {

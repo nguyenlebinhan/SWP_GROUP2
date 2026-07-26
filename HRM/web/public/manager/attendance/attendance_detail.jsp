@@ -26,11 +26,6 @@
         .cal-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:8px; }
         .cal-dow { text-align:center; font-weight:600; color:#64748b; font-size:13px; padding:6px 0; }
         .cal-cell { position:relative; min-height:96px; border-radius:10px; border:1px solid #eef0f4; padding:8px; background:#fff; display:flex; flex-direction:column; }
-        .att-edit { position:absolute; top:6px; right:6px; width:24px; height:24px; display:flex; align-items:center; justify-content:center;
-                    border-radius:6px; background:#eef2ff; color:#4f46e5; font-size:12px; text-decoration:none;
-                    opacity:0; transition:opacity .15s ease, background .15s ease; }
-        .att-edit:hover { background:#4f46e5; color:#fff; }
-        .cal-cell:hover .att-edit { opacity:1; }
         .cal-cell.empty { background:transparent; border:none; }
         .cal-cell.weekend { background:#fafafa; }
         .cal-cell.today { border-color:#6366f1; box-shadow:0 0 0 2px rgba(99,102,241,.18); }
@@ -143,7 +138,6 @@
     <c:forEach var="a" items="${detail.dailyRows}">
         <fmt:formatDate value="${a.workDate}" pattern="d" var="dnum" />
         attData[${dnum}] = {
-            id: ${a.attendanceId},
             status: ${a.attendanceStatus},
             label: "${a.statusLabel}",
             timeIn: "${a.timeIn}".substring(0,5),
@@ -155,74 +149,72 @@
     </c:forEach>
 
     var calMonth = ${selectedMonth};
-    var calYear  = ${selectedYear};
-    var canEditAttendance = ${canEditAttendance ? 'true' : 'false'};
+    var calYear = ${selectedYear};
+    var STANDARD_MINS = 480;
 
-    var STANDARD_MINS = 480; // 8 tiếng chuẩn
-
-    function fmtHours(m) {
-        if (m < 0) m = 0;
-        return Math.floor(m / 60) + 'h' + ('0' + (m % 60)).slice(-2) + 'm';
+    function fmtHours(minutes) {
+        if (minutes < 0) minutes = 0;
+        return Math.floor(minutes / 60) + 'h' + ('0' + (minutes % 60)).slice(-2) + 'm';
     }
 
-    function displayHours(rec, isOtDay) {
-        var m = rec.mins;
-        if (!(rec.isOT || isOtDay)) m = Math.min(m, STANDARD_MINS);
-        return m > 0 ? fmtHours(m) : '';
+    function displayHours(record, isOtDay) {
+        var minutes = record.mins;
+        if (!(record.isOT || isOtDay)) minutes = Math.min(minutes, STANDARD_MINS);
+        return minutes > 0 ? fmtHours(minutes) : '';
     }
-    var ctxPath  = "${pageContext.request.contextPath}";
-    var attEmpId = ${sm.employeeId};
-    var attDeptId = ${deptParam};
 
     function renderCalendar() {
         var body = document.getElementById('calBody');
         body.innerHTML = '';
+
         var daysInMonth = new Date(calYear, calMonth, 0).getDate();
         var firstDow = (new Date(calYear, calMonth - 1, 1).getDay() + 6) % 7;
-
         var now = new Date();
-        var isCurMonth = (now.getFullYear() === calYear && (now.getMonth() + 1) === calMonth);
+        var isCurrentMonth = now.getFullYear() === calYear && now.getMonth() + 1 === calMonth;
 
         for (var i = 0; i < firstDow; i++) {
-            var e = document.createElement('div');
-            e.className = 'cal-cell empty';
-            body.appendChild(e);
+            var emptyCell = document.createElement('div');
+            emptyCell.className = 'cal-cell empty';
+            body.appendChild(emptyCell);
         }
 
         for (var day = 1; day <= daysInMonth; day++) {
             var cell = document.createElement('div');
             cell.className = 'cal-cell';
+
             var dow = (new Date(calYear, calMonth - 1, day).getDay() + 6) % 7;
             if (dow >= 5) cell.classList.add('weekend');
-            if (isCurMonth && now.getDate() === day) cell.classList.add('today');
+            if (isCurrentMonth && now.getDate() === day) cell.classList.add('today');
 
-            var rec = attData[day];
+            var record = attData[day];
             var isOtDay = otDays.includes(day);
             var html = '<div class="d">' + day + '</div>';
-            if (rec) {
-                var hasIn  = rec.timeIn  && rec.timeIn.length  === 5 && rec.timeIn  !== '00:00';
-                var hasOut = rec.timeOut && rec.timeOut.length === 5 && rec.timeOut !== '00:00';
+
+            if (record) {
+                var hasIn = record.timeIn && record.timeIn.length === 5 && record.timeIn !== '00:00';
+                var hasOut = record.timeOut && record.timeOut.length === 5 && record.timeOut !== '00:00';
 
                 if (hasIn || hasOut) {
-                    var hoursStr = displayHours(rec, isOtDay);
-                    html += '<div class="tm">' + (hasIn ? rec.timeIn : 'NA')
-                          + ' - ' + (hasOut ? rec.timeOut : 'NA')
-                          + (hoursStr ? '<br>' + hoursStr : '') + '</div>';
-                }
-                html += '<div class="st cl' + rec.status + '">' + rec.label + '</div>';
-                if (rec.isOT || isOtDay) {
-                    html += '<div class="mt-1"><span class="badge bg-warning text-dark px-2 py-1">OT</span></div>';
-                }
-                if (rec.edited) {
-                    html += '<div class="mt-1"><span class="badge bg-info text-dark px-2 py-1" title="Chấm công đã được chỉnh sửa"><i class="fa-solid fa-pen-to-square me-1"></i>Đã sửa</span></div>';
+                    var hours = displayHours(record, isOtDay);
+                    html += '<div class="tm">' + (hasIn ? record.timeIn : 'NA')
+                          + ' - ' + (hasOut ? record.timeOut : 'NA')
+                          + (hours ? '<br>' + hours : '') + '</div>';
                 }
 
+                html += '<div class="st cl' + record.status + '">' + record.label + '</div>';
+                if (record.isOT || isOtDay) {
+                    html += '<div class="mt-1"><span class="badge bg-warning text-dark px-2 py-1">OT</span></div>';
+                }
+                if (record.edited) {
+                    html += '<div class="mt-1"><span class="badge bg-info text-dark px-2 py-1" title="Chấm công đã được chỉnh sửa"><i class="fa-solid fa-pen-to-square me-1"></i>Đã sửa</span></div>';
+                }
             } else {
                 cell.classList.add('off-day');
                 if (isOtDay) {
                     html += '<div class="mt-1"><span class="badge bg-warning text-dark px-2 py-1">OT</span></div>';
                 }
             }
+
             cell.innerHTML = html;
             body.appendChild(cell);
         }
@@ -233,4 +225,3 @@
 </c:if>
 </body>
 </html>
-
