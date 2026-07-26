@@ -283,14 +283,14 @@
                                                     <a href="${pageContext.request.contextPath}/v1/systemadmin/update-role?id=${r.roleId}" class="btn-action btn-view">
                                                         Sửa
                                                     </a>
-                                                    <c:if test="${r.roleCode != 'SA' && r.roleCode != 'BA'}">
+                                                    <c:if test="${r.roleName != 'Admin'}">
                                                         <a href="${pageContext.request.contextPath}/v1/systemadmin/edit-role-permissions?id=${r.roleId}" class="btn-action" style="background:#fef3c7;color:#92400e;border:1px solid #fde68a">
                                                             Phân quyền
                                                         </a>
                                                     </c:if>
                                                     <c:choose>
-                                                        <c:when test="${r.roleName == 'Admin'}">
-                                                            <span class="btn-action btn-disabled" title="Không thể thay đổi trạng thái vai trò ADMIN">
+                                                        <c:when test="${r.roleName == 'Admin' || r.roleCode == 'SA' || r.roleCode == 'BA'}">
+                                                            <span class="btn-action btn-disabled" title="Không thể thay đổi trạng thái vai trò hệ thống">
                                                                 Được bảo vệ
                                                             </span>
                                                         </c:when>
@@ -310,10 +310,8 @@
                                                         </c:otherwise>
                                                     </c:choose>
                                                     <c:choose>    
-                                                        <c:when test="${r.roleName == 'Admin'}">
-                                                            <span class="btn-action btn-disabled" title="Không thể xóa vai trò ADMIN">
-                                                                Được bảo vệ
-                                                            </span>
+                                                        <c:when test="${r.roleName == 'Admin' || r.roleCode == 'SA' || r.roleCode == 'BA'}">
+                                                            <!-- Đã có 1 nút bảo vệ ở trên -->
                                                         </c:when>  
                                                         <c:otherwise>
                                                             <a href="${pageContext.request.contextPath}/v1/systemadmin/delete-role?id=${r.roleId}" class="btn-action btn-delete">

@@ -216,14 +216,7 @@
                 if (rec.edited) {
                     html += '<div class="mt-1"><span class="badge bg-info text-dark px-2 py-1" title="Chấm công đã được chỉnh sửa"><i class="fa-solid fa-pen-to-square me-1"></i>Đã sửa</span></div>';
                 }
-                if (canEditAttendance && rec.id ) {
-                    var editUrl = ctxPath + '/v1/employee/attendance/update?id=' + rec.id
-                            + '&employeeId=' + attEmpId
-                            + '&month=' + calMonth + '&year=' + calYear
-                            + '&departmentId=' + attDeptId;
-                    html += '<a href="' + editUrl + '" class="att-edit" title="Sửa chấm công">'
-                          + '<i class="fa-solid fa-pen"></i></a>';
-                }                
+
             } else {
                 cell.classList.add('off-day');
                 if (isOtDay) {

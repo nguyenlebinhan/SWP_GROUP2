@@ -31,7 +31,7 @@ import model.PayrollSetting;
 import model.Role;
 import model.User;
 import model.PayrollConfigChangeRequest;
-import static org.apache.tomcat.jakartaee.commons.lang3.StringUtils.isBlank;
+
 import service.EmailService;
 import service.PayrollConfigWorkflowService;
 import utils.Paging;
@@ -1463,6 +1463,10 @@ public class BusinessAdminController extends HttpServlet {
             request.getSession().setAttribute("error", "Lỗi hệ thống khi từ chối đơn.");
         }
         response.sendRedirect(request.getContextPath() + "/v1/businessadmin/forms");
+    }
+
+    private boolean isBlank(String str) {
+        return str == null || str.trim().isEmpty();
     }
 
 }

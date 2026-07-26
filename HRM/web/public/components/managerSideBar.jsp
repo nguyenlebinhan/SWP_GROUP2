@@ -89,11 +89,7 @@
         </a>
     </c:if>
 
-    <c:if test="${sessionScope.userPermissions.contains('APPROVE_LEAVE')}">
-        <a href="${pageContext.request.contextPath}/v1/manager/leave-requests">
-            Đơn nghỉ phép
-        </a>
-    </c:if>
+    <div class="nav-section">Đơn từ</div>
 
     <a href="${pageContext.request.contextPath}/v1/manager/forms/my-forms"
        class="${pageContext.request.servletPath == '/public/employee/forms/my_form_list.jsp' ? 'active' : ''}">
@@ -105,10 +101,19 @@
         Đơn của phòng ban
     </a>
 
-    <a href="${pageContext.request.contextPath}/v1/manager/forms/dependent/new"
-       class="${pageContext.request.servletPath == '/public/employee/forms/dependent_form.jsp' ? 'active' : ''}">
-        Đăng ký người phụ thuộc
-    </a>
+
+
+    <c:if test="${sessionScope.userPermissions.contains('APPROVE_LEAVE')}">
+        <a href="${pageContext.request.contextPath}/v1/manager/leave-requests">
+            Đơn nghỉ phép
+        </a>
+    </c:if>
+
+    <c:if test="${sessionScope.userPermissions.contains('VIEW_LEAVE_BALANCE')}">
+        <a href="${pageContext.request.contextPath}/v1/manager/leave-balances">
+            Ngày phép
+        </a>
+    </c:if>
 
     <c:if test="${sessionScope.userPermissions.contains('VIEW_ALL_FORMS')}">
         <a href="${pageContext.request.contextPath}/v1/manager/forms/all"
@@ -118,12 +123,6 @@
         <a href="${pageContext.request.contextPath}/v1/manager/forms/submit-promotion"
            class="${pageContext.request.servletPath == '/public/manager/forms/promotion_form.jsp' ? 'active' : ''}">
             Tạo đề xuất thăng/giáng chức
-        </a>
-    </c:if>
-
-    <c:if test="${sessionScope.userPermissions.contains('VIEW_LEAVE_BALANCE')}">
-        <a href="${pageContext.request.contextPath}/v1/manager/leave-balances">
-            Ngày phép
         </a>
     </c:if>
 
@@ -183,11 +182,7 @@
         Chấm công phòng ban
     </a>
 
-    <c:if test="${sessionScope.userPermissions.contains('IMPORT_ATTENDANCE')}">
-        <a href="${pageContext.request.contextPath}/v1/manager/attendance/import">
-            Import chấm công
-        </a>
-    </c:if>
+
     <c:if test="${sessionScope.userPermissions.contains('VIEW_ATTENDANCE')}">
         <a href="${pageContext.request.contextPath}/v1/manager/attendance/list">
             Xem chấm công toàn công ty

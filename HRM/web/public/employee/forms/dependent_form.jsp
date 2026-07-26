@@ -62,7 +62,7 @@
             </div>
             <div class="mb-3">
                 <label class="form-label" for="taxCode">Mã số thuế</label>
-                <input class="form-control" id="taxCode" name="taxCode" inputmode="numeric" pattern="[0-9]*" maxlength="50"
+                <input class="form-control" id="taxCode" name="taxCode" required inputmode="numeric" pattern="[0-9]*" maxlength="50"
                        title="Mã số thuế chỉ được nhập số">
             </div>
             <div class="mb-3">

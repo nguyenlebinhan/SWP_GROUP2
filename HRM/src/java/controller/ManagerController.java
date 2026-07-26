@@ -2542,14 +2542,21 @@ public class ManagerController extends HttpServlet {
     private void setImportWindowAttributes(HttpServletRequest request) {
         LocalDate today = LocalDate.now();
         LocalDate prevMonth = today.minusMonths(1);
-        request.setAttribute("allowedMonth", prevMonth.getMonthValue());
-        request.setAttribute("allowedYear", prevMonth.getYear());
+        int allowedMonth = prevMonth.getMonthValue();
+        int allowedYear = prevMonth.getYear();
+
+        request.setAttribute("allowedMonth", allowedMonth);
+        request.setAttribute("allowedYear", allowedYear);
         request.setAttribute("importWindowOpen", today.getDayOfMonth() <= 2);
+
+        boolean locked = attendanceClosingService.isPeriodLocked(allowedYear, allowedMonth);
+        request.setAttribute("isLocked", locked);
+
         if (request.getAttribute("selectedMonth") == null) {
-            request.setAttribute("selectedMonth", prevMonth.getMonthValue());
+            request.setAttribute("selectedMonth", allowedMonth);
         }
         if (request.getAttribute("selectedYear") == null) {
-            request.setAttribute("selectedYear", prevMonth.getYear());
+            request.setAttribute("selectedYear", allowedYear);
         }
     }
 
@@ -2597,6 +2604,17 @@ public class ManagerController extends HttpServlet {
         } catch (NumberFormatException e) {
             request.getSession().setAttribute("error", "Dữ liệu tháng, năm hoặc phòng ban không hợp lệ.");
             response.sendRedirect(request.getContextPath() + "/v1/manager/attendance/import");
+            return;
+        }
+
+        boolean locked = (departmentId == 0)
+                ? attendanceClosingService.isPeriodLocked(year, month)
+                : attendanceClosingService.isDepartmentLocked(year, month, departmentId);
+
+        if (locked) {
+            request.getSession().setAttribute("error",
+                    "Kỳ chấm công tháng " + month + "/" + year + " đã được đóng/khóa. Không thể import dữ liệu mới!");
+            response.sendRedirect(request.getContextPath() + "/v1/manager/attendance/import?month=" + month + "&year=" + year);
             return;
         }
 

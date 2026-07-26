@@ -175,9 +175,7 @@ public class EmployeeController extends HttpServlet {
             case "/attendance/import":
                 displayImportForm(request, response, user);
                 break;
-            case "/attendance/update":
-                displayUpdateAttendanceForm(request, response, user);
-                break;
+
             case "/attendance/own-attendance":
                 displayOwnAttendanceList(request, response, user);
                 break;
@@ -285,9 +283,7 @@ public class EmployeeController extends HttpServlet {
             case "/attendance/import":
                 handleImportAttendance(request, response, user);
                 break;
-            case "/attendance/update":
-                handleUpdateAttendance(request, response, user);
-                break;
+
             case "/update-employee-detail":
                 handleUpdateEmployeeDetail(request, response, user);
                 break;
@@ -1571,14 +1567,21 @@ public class EmployeeController extends HttpServlet {
     private void setImportWindowAttributes(HttpServletRequest request) {
         LocalDate today = LocalDate.now();
         LocalDate prevMonth = today.minusMonths(1);
-        request.setAttribute("allowedMonth", prevMonth.getMonthValue());
-        request.setAttribute("allowedYear", prevMonth.getYear());
+        int allowedMonth = prevMonth.getMonthValue();
+        int allowedYear = prevMonth.getYear();
+
+        request.setAttribute("allowedMonth", allowedMonth);
+        request.setAttribute("allowedYear", allowedYear);
         request.setAttribute("importWindowOpen", today.getDayOfMonth() <= 2);
+
+        boolean locked = attendanceClosingService.isPeriodLocked(allowedYear, allowedMonth);
+        request.setAttribute("isLocked", locked);
+
         if (request.getAttribute("selectedMonth") == null) {
-            request.setAttribute("selectedMonth", prevMonth.getMonthValue());
+            request.setAttribute("selectedMonth", allowedMonth);
         }
         if (request.getAttribute("selectedYear") == null) {
-            request.setAttribute("selectedYear", prevMonth.getYear());
+            request.setAttribute("selectedYear", allowedYear);
         }
     }
 
@@ -1597,170 +1600,6 @@ public class EmployeeController extends HttpServlet {
         return null;
     }
 
-    private void displayUpdateAttendanceForm(HttpServletRequest request, HttpServletResponse response,
-            User user) throws ServletException, IOException {
-        if (!isHrStaff(user) || !hasPermission(user, "EDIT_ATTENDANCE")) {
-            request.getSession().setAttribute("error", "Bạn không có quyền chỉnh sửa dữ liệu chấm cóng.");
-            response.sendRedirect(request.getContextPath() + "/v1/employee/dashboard");
-            return;
-        }
-        Set<String> perms = getPermissions(user);
-        request.getSession().setAttribute("userPermissions", perms);
-
-        String backUrl = request.getContextPath() + "/v1/employee/attendance/detail"
-                + buildAttendanceDetailQuery(request);
-
-        Integer attendanceId = parseIntOrNull(request.getParameter("id"));
-        Attendance attendance = (attendanceId != null) ? attendanceDAO.getAttendanceById(attendanceId) : null;
-        if (attendance == null) {
-            request.getSession().setAttribute("error", "Không tìm thấy bản ghi chấm cóng.");
-            response.sendRedirect(backUrl);
-            return;
-        }
-        request.setAttribute("attendance", attendance);
-        boolean deadlineLocked
-                = attendanceClosingService.isEditLocked(attendance.getWorkDate(), attendance.getDepartmentId());
-        boolean weekendLocked = isWeekend(attendance.getWorkDate());
-        request.setAttribute("editLocked", deadlineLocked || weekendLocked);
-        request.setAttribute("lockMessage", weekendLocked
-                ? "Không thể chỉnh sửa chấm công của ngày cuối tuần (thứ Bảy/Chủ Nhật)."
-                : "Đã quá hạn chỉnh sửa. Chấm công chỉ được sửa đến hết ngày 5 của tháng kế tiếp tháng chấm công.");
-        request.setAttribute("adjustmentHistory", attendanceDAO.getAdjustmentHistory(attendanceId));
-        request.setAttribute("backUrl", backUrl);
-        request.setAttribute("filterMonth", trimToNull(request.getParameter("month")));
-        request.setAttribute("filterYear", trimToNull(request.getParameter("year")));
-        request.setAttribute("filterDepartmentId", trimToNull(request.getParameter("departmentId")));
-        request.setAttribute("filterEmployeeCode", trimToNull(request.getParameter("employeeCode")));
-        String filterEmployeeId = trimToNull(request.getParameter("employeeId"));
-        if (filterEmployeeId == null) {
-            filterEmployeeId = String.valueOf(attendance.getEmployeeId());
-        }
-        request.setAttribute("filterEmployeeId", filterEmployeeId);
-        request.getRequestDispatcher("/public/employee/attendance/attendance_update.jsp").forward(request, response);
-    }
-
-    private void handleUpdateAttendance(HttpServletRequest request, HttpServletResponse response,
-            User user) throws ServletException, IOException {
-        if (!isHrStaff(user) || !hasPermission(user, "EDIT_ATTENDANCE")) {
-            request.getSession().setAttribute("error", "Bạn không có quyền chỉnh sửa dữ liệu chấm cóng.");
-            response.sendRedirect(request.getContextPath() + "/v1/employee/dashboard");
-            return;
-        }
-
-        String redirectUrl = request.getContextPath() + "/v1/employee/attendance/detail"
-                + buildAttendanceDetailQuery(request);
-
-        Integer attendanceId = parseIntOrNull(request.getParameter("attendanceId"));
-        if (attendanceId == null) {
-            request.getSession().setAttribute("error", "Dữ liệu chỉnh sửa chấm cóng không hợp lệ.");
-            response.sendRedirect(redirectUrl);
-            return;
-        }
-
-        String reason = trimToNull(request.getParameter("reason"));
-        if (reason == null) {
-            request.getSession().setAttribute("error", "Vui lêng nhập lý do chỉnh sửa chấm cóng.");
-            response.sendRedirect(redirectUrl);
-            return;
-        }
-
-        Attendance attendance = attendanceDAO.getAttendanceById(attendanceId);
-        if (attendance == null) {
-            request.getSession().setAttribute("error", "Không tìm thấy bản ghi chấm cóng.");
-            response.sendRedirect(redirectUrl);
-            return;
-        }
-
-        if (attendanceClosingService.isEditLocked(attendance.getWorkDate(), attendance.getDepartmentId())) {
-            request.getSession().setAttribute("error",
-                    "Đã quá hạn chỉnh sửa. Chấm công chỉ được sửa đến hết ngày 5 của tháng kế tiếp "
-                    + "hoặc khi bảng chấm công đã được gửi đi chốt.");
-            response.sendRedirect(redirectUrl);
-            return;
-        }
-
-        if (isWeekend(attendance.getWorkDate())) {
-            request.getSession().setAttribute("error",
-                    "Không thể chỉnh sửa chấm công của ngày cuối tuần (thứ Bảy/Chủ Nhật).");
-            response.sendRedirect(redirectUrl);
-            return;
-        }
-
-        Time timeIn;
-        Time timeOut;
-        try {
-            timeIn = parseTimeOrNull(request.getParameter("timeIn"));
-            timeOut = parseTimeOrNull(request.getParameter("timeOut"));
-        } catch (IllegalArgumentException e) {
-            request.getSession().setAttribute("error", "Giờ vào / giờ ra không hợp lệ.");
-            response.sendRedirect(redirectUrl);
-            return;
-        }
-
-        if (timeIn != null && timeOut != null && timeOut.before(timeIn)) {
-            request.getSession().setAttribute("error", "Giờ ra phải sau giờ vào.");
-            response.sendRedirect(redirectUrl);
-            return;
-        }
-
-        dao.OvertimeDAO overtimeDAO = new dao.OvertimeDAO();
-        boolean hasOT = overtimeDAO.hasApprovedOT(
-                attendance.getEmployeeId(), attendance.getWorkDate());
-
-        Time maxTime = hasOT ? Time.valueOf("19:00:00") : Time.valueOf("17:00:00");
-
-        if (timeOut != null && timeOut.after(maxTime)) {
-            boolean otRevived = overtimeDAO.reviveAndCompleteOTForm(attendance.getEmployeeId(), attendance.getWorkDate());
-            if (otRevived && !hasOT) {
-                hasOT = true;
-                maxTime = Time.valueOf("19:00:00");
-            }
-        }
-
-        if (timeIn != null && timeIn.after(maxTime)) {
-            request.getSession().setAttribute("error", "Thời gian Check-in tối đa là " + (hasOT ? "19:00" : "17:00") + ".");
-            response.sendRedirect(redirectUrl);
-            return;
-        }
-
-        Time calcTimeIn = utils.WorkHoursCalculator.ceilToBlock(timeIn);
-        Time calcTimeOut = utils.WorkHoursCalculator.floorToBlock(timeOut);
-
-        if (calcTimeOut != null && calcTimeOut.after(maxTime)) {
-            calcTimeOut = maxTime;
-        }
-
-        int status;
-        try {
-            status = importService.resolveStatus(attendance.getEmployeeId(),
-                    attendance.getWorkDate(), calcTimeIn, calcTimeOut).getRelatedNum();
-        } catch (SQLException e) {
-            request.getSession().setAttribute("error", "Lỗi hệ thống khi xác định trạng thái chấm công.");
-            response.sendRedirect(redirectUrl);
-            return;
-        }
-
-        BigDecimal hoursWorked;
-        if (calcTimeIn != null && calcTimeOut != null && (status == 0 || status == 1)) {
-            hoursWorked = utils.WorkHoursCalculator.hoursWorked(calcTimeIn, calcTimeOut);
-
-            BigDecimal standardHours = new BigDecimal("8.00");
-            if (!hasOT && hoursWorked.compareTo(standardHours) > 0) {
-                hoursWorked = standardHours;
-            }
-        } else {
-            hoursWorked = BigDecimal.ZERO;
-        }
-
-        String updateError = attendanceDAO.updateAttendanceWithHistory(attendanceId, timeIn, timeOut,
-                hoursWorked, status, reason, user.getUserId());
-        if (updateError == null) {
-            request.getSession().setAttribute("success", "Đã cập nhật dữ liệu chấm cóng.");
-        } else {
-            request.getSession().setAttribute("error", updateError);
-        }
-        response.sendRedirect(redirectUrl);
-    }
 
     private void handleImportAttendance(HttpServletRequest request, HttpServletResponse response,
             User user) throws ServletException, IOException {
@@ -2742,6 +2581,8 @@ public class EmployeeController extends HttpServlet {
         request.setAttribute("cancelUrl", request.getContextPath() + "/v1/employee/forms/my-forms");
         request.getRequestDispatcher("/public/employee/forms/dependent_form.jsp").forward(request, response);
     }
+
+
 
     private void handleDependentStatusRequest(HttpServletRequest request, HttpServletResponse response, User user)
             throws ServletException, IOException {

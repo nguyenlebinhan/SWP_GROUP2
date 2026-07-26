@@ -5,7 +5,7 @@
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <title>Quản lý Đơn từ</title>
+    <title>Quản lý Tăng ca</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
     <style>
@@ -58,7 +58,7 @@
 
 <div class="main">
     <jsp:include page="/public/components/businessAdminTopBar.jsp">
-        <jsp:param name="title" value="Quản lý Đơn từ" />
+        <jsp:param name="title" value="Quản lý Tăng ca" />
     </jsp:include>
 
     <c:if test="${not empty success}">
@@ -77,11 +77,11 @@
     <!-- Bộ lọc -->
     <div class="dept-card p-4">
         <form action="${pageContext.request.contextPath}/v1/businessadmin/forms" method="GET" class="row g-3 align-items-end">
-            <div class="col-md-2">
-                <label class="form-label">Ngày tạo</label>
+            <div class="col-md-1">
+                <label class="form-label">Ngày</label>
                 <input type="number" name="day" class="form-control" placeholder="DD" min="1" max="31" value="${filterDay}">
             </div>
-            <div class="col-md-2">
+            <div class="col-md-1">
                 <label class="form-label">Tháng</label>
                 <input type="number" name="month" class="form-control" placeholder="MM" min="1" max="12" value="${filterMonth}">
             </div>
@@ -105,7 +105,7 @@
                 <input type="text" name="keyword" class="form-control" placeholder="Từ khóa..." value="${keyword}">
             </div>
             <div class="col-md-2 text-end">
-                <button type="submit" class="btn btn-assign w-100">
+                <button type="submit" class="btn btn-primary w-100">
                     <i class="fa-solid fa-filter me-1"></i> Lọc
                 </button>
             </div>
@@ -115,7 +115,7 @@
     <!-- Danh sách Đơn -->
     <div class="dept-card">
         <div class="p-4 border-bottom">
-            <h5 class="mb-0 fw-bold" style="color:#0B0E2A;">Danh sách Đơn từ</h5>
+            <h5 class="mb-0 fw-bold" style="color:#0B0E2A;">Danh sách Đơn tăng ca</h5>
         </div>
         <div class="p-0">
             <div class="table-responsive">
