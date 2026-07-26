@@ -287,32 +287,27 @@ public class PayrollService {
                 row.createCell(1).setCellValue(nullToEmpty(preview.getEmployeeCode()));
                 row.createCell(2).setCellValue(nullToEmpty(preview.getFullName()));
                 row.createCell(3).setCellValue(nullToEmpty(preview.getDepartmentName()));
-                row.createCell(4).setCellValue(nullToEmpty(preview.getPositionName()));
-                row.createCell(5).setCellValue(periodLabel);
+                row.createCell(4).setCellValue(periodLabel);
 
                 if (preview.isGenerationBlocked() || preview.getPayroll() == null) {
-                    row.createCell(20).setCellValue("Chưa đủ thông tin");
-                    row.createCell(21).setCellValue(nullToEmpty(preview.getGenerationError()));
                     continue;
                 }
 
                 Payroll p = preview.getPayroll();
-                row.createCell(6).setCellValue(preview.getStandardWorkingDays());
-                row.createCell(7).setCellValue(p.getWorkingDays());
-                setNumeric(row, 8, p.getHoursWorked(), moneyStyle);
-                setNumeric(row, 9, p.getBaseSalary(), moneyStyle);
-                setNumeric(row, 10, p.getAllowance(), moneyStyle);
-                setNumeric(row, 11, p.getBonus(), moneyStyle);
-                setNumeric(row, 12, p.getOvertimePay(), moneyStyle);
-                setNumeric(row, 13, p.getGrossSalary(), moneyStyle);
-                setNumeric(row, 14, p.getUnpaidDeduction(), moneyStyle);
-                setNumeric(row, 15, p.getInsuranceDeduction(), moneyStyle);
-                setNumeric(row, 16, p.getPersonalIncomeTax(), moneyStyle);
-                setNumeric(row, 17, preview.getTotalDeduction(), moneyStyle);
-                setNumeric(row, 18, p.getNetSalary(), moneyStyle);
-                setNumeric(row, 19, p.getEmployerContribution(), moneyStyle);
-                row.createCell(20).setCellValue(payrollStatusText(p.getStatus()));
-                row.createCell(21).setCellValue("");
+                row.createCell(5).setCellValue(preview.getStandardWorkingDays());
+                row.createCell(6).setCellValue(p.getWorkingDays());
+                setNumeric(row, 7, p.getHoursWorked(), moneyStyle);
+                setNumeric(row, 8, p.getBaseSalary(), moneyStyle);
+                setNumeric(row, 9, p.getAllowance(), moneyStyle);
+                setNumeric(row, 10, p.getBonus(), moneyStyle);
+                setNumeric(row, 11, p.getOvertimePay(), moneyStyle);
+                setNumeric(row, 12, p.getGrossSalary(), moneyStyle);
+                setNumeric(row, 13, p.getUnpaidDeduction(), moneyStyle);
+                setNumeric(row, 14, p.getInsuranceDeduction(), moneyStyle);
+                setNumeric(row, 15, p.getPersonalIncomeTax(), moneyStyle);
+                setNumeric(row, 16, preview.getTotalDeduction(), moneyStyle);
+                setNumeric(row, 17, p.getNetSalary(), moneyStyle);
+                setNumeric(row, 18, p.getEmployerContribution(), moneyStyle);
                 exportedRows++;
             }
             for (int i = 0; i < headers.length; i++) {
@@ -324,17 +319,6 @@ public class PayrollService {
                 "period=" + String.format("%04d-%02d", year, month)
                 + "; departmentId=" + departmentId
                 + "; rows=" + exportedRows, allowed ? "SUCCESS" : "DENIED");
-    }
-
-    private String payrollStatusText(int status) {
-        switch (status) {
-            case STATUS_FINALIZED:
-                return "Đã chốt";
-            case STATUS_APPROVED:
-                return "HR đã duyệt - chờ chốt";
-            default:
-                return "Chờ duyệt";
-        }
     }
 
     private String nullToEmpty(String value) {
@@ -1077,12 +1061,11 @@ public class PayrollService {
 
     private String[] payrollHeaders() {
         return new String[]{
-            "STT", "Mã nhân viên", "Họ tên", "Phòng ban", "Chức vụ", "Kỳ lương",
+            "STT", "Mã nhân viên", "Họ tên", "Phòng ban", "Kỳ lương",
             "Ngày công chuẩn", "Ngày công thực tế", "Giờ làm",
             "Lương cơ bản", "Phụ cấp", "Thưởng chuyên cần", "Tiền tăng ca", "Tổng thu nhập",
             "Khấu trừ ngày không làm", "Bảo hiểm/phí công đoàn (NV đóng)", "Thuế thu nhập cá nhân",
-            "Tổng khấu trừ", "Lương thực nhận", "Bảo hiểm/phí công đoàn (DN đóng)",
-            "Trạng thái", "Ghi chú"
+            "Tổng khấu trừ", "Lương thực nhận", "Bảo hiểm/phí công đoàn (DN đóng)"
         };
     }
 
