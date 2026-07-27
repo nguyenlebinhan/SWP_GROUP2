@@ -1546,11 +1546,6 @@ public class ManagerController extends HttpServlet {
 
     private void displayMyContracts(HttpServletRequest request, HttpServletResponse response,
             User user) throws ServletException, IOException {
-        if (!isHrStaff(user)) {
-            request.getSession().setAttribute("error", "Bạn không có quyền xem hợp đồng.");
-            response.sendRedirect(request.getContextPath() + "/v1/manager/dashboard");
-            return;
-        }
 
         Set<String> perms = getPermissions(user);
         request.getSession().setAttribute("userPermissions", perms);
