@@ -53,6 +53,27 @@ public class AttendanceDAO {
         return -1;
     }
 
+    public int[] getLatestAttendanceMonthYear() {
+        String SQL = """
+                     SELECT MONTH(MAX(workDate)) AS month, YEAR(MAX(workDate)) AS year
+                     FROM Attendance
+                     """;
+        try (Connection conn = dbContext.getConnection();
+                PreparedStatement ps = conn.prepareStatement(SQL);
+                ResultSet rs = ps.executeQuery()) {
+            if (rs.next()) {
+                int month = rs.getInt("month");
+                int year = rs.getInt("year");
+                if (!rs.wasNull()) {
+                    return new int[]{month, year};
+                }
+            }
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Cannot get latest attendance period", e);
+        }
+        return null;
+    }
+
     /**
      * Lấy thông tin chuẩn dùng khi import chấm công. Tên nhân viên, phòng ban
      * và vị trí luôn được tra từ cơ sở dữ liệu theo employeeCode, không lấy từ

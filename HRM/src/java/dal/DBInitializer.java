@@ -840,6 +840,7 @@ public class DBInitializer {
             ensureRolePermission(conn, "HRManager", "VIEW_PENDING_CONTRACTS");
             ensureRolePermission(conn, "HRManager", "VIEW_ALL_CONTRACTS");
             ensureRolePermission(conn, "HRManager", "VIEW_OWN_CONTRACT");
+            ensureRolePermission(conn, "HRManager", "VIEW_ALL_ATTENDANCE");
 
             ensureRolePermission(conn, "HREmployee", "ADD_EMPLOYMENT_CONTRACT");
             ensureRolePermission(conn, "HREmployee", "VIEW_OWN_CONTRACT");
