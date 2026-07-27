@@ -19,6 +19,7 @@ import service.FormService;
 import model.FormOperationalResult;
 import model.UploadedFileInfo;
 import enums.FormTypeCode;
+import enums.AttendanceStatus;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.MultipartConfig;
 import jakarta.servlet.http.HttpServlet;
@@ -381,6 +382,12 @@ public class ManagerController extends HttpServlet {
                 break;
             case "/attendance/import":
                 handleImportAttendance(request, response, user);
+                break;
+            case "/attendance/close-period":
+                handleCloseAttendancePeriod(request, response, user);
+                break;
+            case "/attendance/finalize":
+                handleFinalizeAttendancePeriod(request, response, user);
                 break;
             case "/attendance/confirm":
                 handleConfirmDeptAttendance(request, response, user);
@@ -1073,6 +1080,28 @@ public class ManagerController extends HttpServlet {
                 + "/v1/manager/attendance/my-department-attendance?month=" + month + "&year=" + year);
     }
 
+    private void handleCloseAttendancePeriod(HttpServletRequest request, HttpServletResponse response,
+            User user) throws IOException {
+        LocalDate prev = LocalDate.now().minusMonths(1);
+        int month = paramOr(request, "month", prev.getMonthValue());
+        int year = paramOr(request, "year", prev.getYear());
+        ClosingResult result = attendanceClosingService.openPeriodForManagers(year, month, user);
+        request.getSession().setAttribute(result.isSuccess() ? "success" : "error", result.getMessage());
+        response.sendRedirect(request.getContextPath()
+                + "/v1/manager/attendance/overview?month=" + month + "&year=" + year);
+    }
+
+    private void handleFinalizeAttendancePeriod(HttpServletRequest request, HttpServletResponse response,
+            User user) throws IOException {
+        LocalDate prev = LocalDate.now().minusMonths(1);
+        int month = paramOr(request, "month", prev.getMonthValue());
+        int year = paramOr(request, "year", prev.getYear());
+        ClosingResult result = attendanceClosingService.approveByHr(year, month, user);
+        request.getSession().setAttribute(result.isSuccess() ? "success" : "error", result.getMessage());
+        response.sendRedirect(request.getContextPath()
+                + "/v1/manager/attendance/overview?month=" + month + "&year=" + year);
+    }
+
     // ===================== Attendance Dashboard (Overview / Detail / Export) =====================
     private Integer resolveManagerDepartmentId(User user) {
         EmployeeDetailDTO manager = employeeDAO.getEmployeeByUserId(user.getUserId());
@@ -1152,21 +1181,49 @@ public class ManagerController extends HttpServlet {
         request.setAttribute("selectedMonth", month);
         request.setAttribute("selectedYear", year);
 
-        // Trạng thái chốt của phòng đang xem: hiển thị nút "Chốt phòng" khi đang chờ trưởng phòng.
-        if (departmentId != null) {
+        boolean hrClosingMode = isHrManager(user);
+        request.setAttribute("hrClosingMode", hrClosingMode);
+        if (hrClosingMode) {
+            setClosingOverviewAttributes(request, year, month);
+        } else if (departmentId != null) {
+            // Trang tổng quan chỉ hiển thị trạng thái; thao tác chốt phòng nằm ở trang chấm công phòng ban.
             model.AttendancePeriod closingRow
                     = attendanceClosingService.getClosingRow(year, month, departmentId);
             java.util.List<model.AttendancePeriod> closingPeriods = new java.util.ArrayList<>();
             closingPeriods.add(closingRow);
             request.setAttribute("closingPeriods", closingPeriods);
             request.setAttribute("closingHasData", true);
-            request.setAttribute("canManagerConfirm",
-                    closingRow.getStatus() == enums.AttendancePeriodStatus.WAITING_MANAGER.getRelatedNum());
             request.setAttribute("closingConfirmed",
                     closingRow.getStatus() >= enums.AttendancePeriodStatus.MANAGER_CONFIRMED.getRelatedNum());
-            request.setAttribute("closingDepartmentId", departmentId);
         }
         request.getRequestDispatcher("/public/manager/attendance/attendance_overview.jsp").forward(request, response);
+    }
+
+    private void setClosingOverviewAttributes(HttpServletRequest request, int year, int month) {
+        List<model.AttendancePeriod> closingPeriods
+                = attendanceClosingService.getClosingOverview(year, month);
+        boolean hasData = !closingPeriods.isEmpty();
+        boolean anyOpen = false;
+        boolean allReadyForHrFinalization = hasData;
+        boolean allLocked = hasData;
+        for (model.AttendancePeriod period : closingPeriods) {
+            int status = period.getStatus();
+            if (status == enums.AttendancePeriodStatus.OPEN.getRelatedNum()) {
+                anyOpen = true;
+            }
+            if (status != enums.AttendancePeriodStatus.MANAGER_CONFIRMED.getRelatedNum()
+                    && status != enums.AttendancePeriodStatus.WAITING_HR_FINAL_CHECK.getRelatedNum()) {
+                allReadyForHrFinalization = false;
+            }
+            if (status != enums.AttendancePeriodStatus.LOCKED.getRelatedNum()) {
+                allLocked = false;
+            }
+        }
+        request.setAttribute("closingPeriods", closingPeriods);
+        request.setAttribute("closingHasData", hasData);
+        request.setAttribute("closingCanOpen", anyOpen);
+        request.setAttribute("closingCanFinalize", allReadyForHrFinalization);
+        request.setAttribute("closingLocked", allLocked);
     }
 
     private void displayAttendanceDetail(HttpServletRequest request, HttpServletResponse response,
@@ -1753,7 +1810,7 @@ public class ManagerController extends HttpServlet {
 
         LOGGER.log(Level.INFO, "Employee assigned: userId={0} → deptId={1}", new Object[]{userId, departmentId});
 
-        request.getSession().setAttribute("success", "Phân cóng nhân viên vào phòng ban thành cóng.");
+        request.getSession().setAttribute("success", "Phân công nhân viên vào phòng ban thành công.");
         response.sendRedirect(request.getContextPath() + "/v1/manager/dashboard");
     }
 
@@ -1862,7 +1919,7 @@ public class ManagerController extends HttpServlet {
         }
 
         LOGGER.log(Level.INFO, "Department created: code={0} by userId={1}", new Object[]{code, user.getUserId()});
-        request.getSession().setAttribute("success", "Thêm phòng ban \"" + name.trim() + "\" thành cóng.");
+        request.getSession().setAttribute("success", "Thêm phòng ban \"" + name.trim() + "\" thành công.");
         response.sendRedirect(request.getContextPath() + "/v1/manager/dashboard");
     }
 
@@ -1957,7 +2014,7 @@ public class ManagerController extends HttpServlet {
         boolean success = departmentDAO.updateDepartmentInfo(dept);
         if (success) {
             departmentDAO.replaceDepartmentRoles(deptId, roleIds);
-            request.getSession().setAttribute("success", "Cập nhật phòng ban thành cóng.");
+            request.getSession().setAttribute("success", "Cập nhật phòng ban thành công.");
             response.sendRedirect(request.getContextPath() + "/v1/manager/department/list");
         } else {
             request.getSession().setAttribute("error", "Cập nhật thất bại. Vui lêng thử lại.");
@@ -2025,7 +2082,7 @@ public class ManagerController extends HttpServlet {
 
         boolean success = employeeDAO.updateEmployee(emp);
         if (success) {
-            request.getSession().setAttribute("success", "Cập nhật thông tin nhân viên thành cóng.");
+            request.getSession().setAttribute("success", "Cập nhật thông tin nhân viên thành công.");
             response.sendRedirect(request.getContextPath() + "/v1/manager/employee/detail?id=" + employeeId);
         } else {
             request.getSession().setAttribute("error", "Cập nhật nhân viên thất bại. Vui lêng thử lại.");
@@ -2745,8 +2802,11 @@ public class ManagerController extends HttpServlet {
         request.setAttribute("filterDay", day);
         request.setAttribute("filterMonth", month);
         request.setAttribute("filterYear", year);
-        request.setAttribute("forms",
-                formRequestDAO.getAllFormRequestsByEmployeeId(em.getEmployeeId(), day, month, year));
+        java.util.List<dto.FormRequestDTO> forms = formRequestDAO.getAllFormRequestsByEmployeeId(em.getEmployeeId(), day, month, year)
+                .stream()
+                .filter(f -> !"OVERTIME".equals(f.getFormTypeCode()))
+                .collect(java.util.stream.Collectors.toList());
+        request.setAttribute("forms", forms);
         request.getRequestDispatcher("/public/manager/forms/my_form_list.jsp").forward(request, response);
     }
 
@@ -2762,7 +2822,11 @@ public class ManagerController extends HttpServlet {
         Integer year = parseIntOrNull(request.getParameter("year"));
         String keyword = request.getParameter("keyword");
 
-        request.setAttribute("forms", formRequestDAO.getAllFormRequests(day, month, year, keyword));
+        java.util.List<dto.FormRequestDTO> forms = formRequestDAO.getAllFormRequests(day, month, year, keyword)
+                .stream()
+                .filter(f -> !"OVERTIME".equals(f.getFormTypeCode()))
+                .collect(java.util.stream.Collectors.toList());
+        request.setAttribute("forms", forms);
         request.setAttribute("departments", departmentDAO.getAllActiveDepartments());
 
         request.setAttribute("filterDay", day);
@@ -2818,7 +2882,11 @@ public class ManagerController extends HttpServlet {
         Integer month = parseIntOrNull(request.getParameter("month"));
         Integer year = parseIntOrNull(request.getParameter("year"));
         String name = request.getParameter("empName");
-        request.setAttribute("forms", formRequestDAO.getAllFormRequestsByDepartmentId(me.getDepartmentId(), day, month, year, name));
+        java.util.List<dto.FormRequestDTO> forms = formRequestDAO.getAllFormRequestsByDepartmentId(me.getDepartmentId(), day, month, year, name)
+                .stream()
+                .filter(f -> !"OVERTIME".equals(f.getFormTypeCode()))
+                .collect(java.util.stream.Collectors.toList());
+        request.setAttribute("forms", forms);
         request.setAttribute("filterDay", day);
         request.setAttribute("filterMonth", month);
         request.setAttribute("filterYear", year);
@@ -2858,6 +2926,12 @@ public class ManagerController extends HttpServlet {
 
             if ("DEPENDENT".equals(form.getFormTypeCode())) {
                 request.getSession().setAttribute("error", "Đơn người phụ thuộc chỉ do HR duyệt.");
+                response.sendRedirect(request.getContextPath() + "/v1/manager/forms/dept-forms");
+                return;
+            }
+
+            if ("OVERTIME".equals(form.getFormTypeCode())) {
+                request.getSession().setAttribute("error", "Đơn tăng ca chỉ do Business Admin duyệt.");
                 response.sendRedirect(request.getContextPath() + "/v1/manager/forms/dept-forms");
                 return;
             }
@@ -2959,10 +3033,11 @@ public class ManagerController extends HttpServlet {
             boolean ok = formRequestDAO.approveFormRequestFromStatus(formId, fromStatus, 4, me.getEmployeeId(), note);
             boolean dependentAdded = false;
             boolean dependentChanged = false;
+            boolean complaintAttUpdated = false;
             if (ok) {
                 switch (form.getFormTypeCode()) {
                     case "COMPLAINT":
-                        onHrApproveComplaint(form, me, request);
+                        complaintAttUpdated = onHrApproveComplaint(form, me, request);
                         break;
                     case "DEPENDENT":
                         dependentAdded = dependentDAO.approveByFormId(formId);
@@ -2975,12 +3050,22 @@ public class ManagerController extends HttpServlet {
                     ok = dependentAdded || dependentChanged;
                 }
             }
-            request.getSession().setAttribute(ok ? "success" : "error",
-                    ok ? "HR duyệt đơn thành công." : "HR duyệt đơn thất bại.");
-            if (ok && dependentAdded) {
-                request.getSession().setAttribute("success", "Thêm người phụ thuộc thành công");
-            } else if (ok && dependentChanged) {
-                request.getSession().setAttribute("success", "Cập nhật người phụ thuộc thành công");
+            // Với COMPLAINT: chỉ hiện success nếu cả form lẫn chấm công đều cập nhật thành công
+            // Tránh ghi đè error/warning đã set bởi onHrApproveComplaint
+            boolean isComplaint = "COMPLAINT".equals(form.getFormTypeCode());
+            if (isComplaint) {
+                if (complaintAttUpdated) {
+                    request.getSession().setAttribute("success", "HR duyệt đơn thành công. Chấm công đã được cập nhật.");
+                }
+                // Nếu !complaintAttUpdated thì error/warning đã được set bởi onHrApproveComplaint
+            } else {
+                request.getSession().setAttribute(ok ? "success" : "error",
+                        ok ? "HR duyệt đơn thành công." : "HR duyệt đơn thất bại.");
+                if (ok && dependentAdded) {
+                    request.getSession().setAttribute("success", "Thêm người phụ thuộc thành công");
+                } else if (ok && dependentChanged) {
+                    request.getSession().setAttribute("success", "Cập nhật người phụ thuộc thành công");
+                }
             }
         } catch (NumberFormatException e) {
             request.getSession().setAttribute("error", "Mã đơn không hợp lệ.");
@@ -2988,14 +3073,14 @@ public class ManagerController extends HttpServlet {
         response.sendRedirect(request.getContextPath() + "/v1/manager/forms/all");
     }
 
-    private void onHrApproveComplaint(FormRequestDTO form, EmployeeDetailDTO me, HttpServletRequest request) {
+    private boolean onHrApproveComplaint(FormRequestDTO form, EmployeeDetailDTO me, HttpServletRequest request) {
         if (!(form instanceof ComplaintFormRequestDTO)) {
-            return;
+            return false;
         }
         ComplaintFormRequestDTO compForm = (ComplaintFormRequestDTO) form;
         if (compForm.getStartDate() == null || compForm.getStartTime() == null || compForm.getEndTime() == null) {
             LOGGER.log(Level.WARNING, "Complaint formId={0} missing date/time data, skipping attendance update.", form.getFormId());
-            return;
+            return false;
         }
         Time timeIn = compForm.getStartTime() != null ? Time.valueOf(compForm.getStartTime().toLocalTime()) : null;
         Time timeOut = compForm.getEndTime() != null ? Time.valueOf(compForm.getEndTime().toLocalTime()) : null;
@@ -3031,18 +3116,42 @@ public class ManagerController extends HttpServlet {
             hoursWorked = standardHours;
         }
 
-        LocalTime stdStart = LocalTime.of(8, 30);
-        int newStatus = compForm.getStartTime().toLocalTime().isAfter(stdStart) ? 2 : 1;
+        // Dùng lại logic tính status từ AttendanceImportService (WORK_START = 08:00)
+        // để đảm bảo nhất quán với luồng import chấm công
+        AttendanceStatus resolvedStatus;
+        try {
+            resolvedStatus = importService.resolveStatus(
+                    form.getEmployeeId(), compForm.getStartDate(), timeIn, timeOut);
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Cannot resolve attendance status for complaint formId=" + form.getFormId(), e);
+            resolvedStatus = (timeIn == null && timeOut == null)
+                    ? AttendanceStatus.ABSENT
+                    : (timeIn == null || timeOut == null)
+                        ? AttendanceStatus.MISSING_CHECK
+                        : timeIn.toLocalTime().isAfter(java.time.LocalTime.of(8, 0))
+                            ? AttendanceStatus.LATE
+                            : AttendanceStatus.PRESENT;
+        }
+        int newStatus = resolvedStatus.getRelatedNum();
 
         Attendance att = attendanceDAO.getAttendanceByDate(form.getEmployeeId(), compForm.getStartDate());
         if (att != null) {
-            attendanceDAO.updateAttendanceWithHistory(
+            String updateError = attendanceDAO.updateAttendanceWithHistory(
                     att.getAttendanceId(),
                     compForm.getStartTime(), compForm.getEndTime(),
                     hoursWorked, newStatus,
                     "Updated by complaint approval (HR step)", me.getUserId());
-            LOGGER.log(Level.INFO, "Attendance updated via complaint HR approval: formId={0}, attId={1}",
-                    new Object[]{form.getFormId(), att.getAttendanceId()});
+            if (updateError == null) {
+                LOGGER.log(Level.INFO, "Attendance updated via complaint HR approval: formId={0}, attId={1}",
+                        new Object[]{form.getFormId(), att.getAttendanceId()});
+                return true;
+            } else {
+                LOGGER.log(Level.SEVERE, "Failed to update attendance for formId={0}, attId={1}: {2}",
+                        new Object[]{form.getFormId(), att.getAttendanceId(), updateError});
+                request.getSession().setAttribute("error",
+                        "Đơn khiếu nại đã duyệt nhưng cập nhật chấm công thất bại: " + updateError);
+                return false;
+            }
         } else {
             // Không INSERT mới — chỉ báo warning
             LOGGER.log(Level.WARNING,
@@ -3051,6 +3160,7 @@ public class ManagerController extends HttpServlet {
             request.getSession().setAttribute("warning",
                     "Đơn khiếu nại được duyệt nhưng không tìm thấy bản ghi chấm công ngày "
                             + compForm.getStartDate() + " — không có gì được cập nhật.");
+            return false;
         }
     }
 
@@ -3073,6 +3183,12 @@ public class ManagerController extends HttpServlet {
             int formId = Integer.parseInt(rawId);
             if (!isDepartmentManager(me, formId)) {
                 request.getSession().setAttribute("error", "Bạn không có quyền xử lý đơn này.");
+                response.sendRedirect(request.getContextPath() + "/v1/manager/forms/dept-forms");
+                return;
+            }
+            FormRequestDTO form = formRequestDAO.getFormRequestById(formId);
+            if (form != null && "OVERTIME".equals(form.getFormTypeCode())) {
+                request.getSession().setAttribute("error", "Đơn tăng ca chỉ do Business Admin từ chối.");
                 response.sendRedirect(request.getContextPath() + "/v1/manager/forms/dept-forms");
                 return;
             }
@@ -3264,7 +3380,7 @@ public class ManagerController extends HttpServlet {
         );
 
         if (success) {
-            request.getSession().setAttribute("success", "Cập nhật hồ sơ thành cóng.");
+            request.getSession().setAttribute("success", "Cập nhật hồ sơ thành công.");
         } else {
             request.getSession().setAttribute("error", "Cập nhật thất bại. Vui lêng thử lại.");
         }
@@ -3313,7 +3429,7 @@ public class ManagerController extends HttpServlet {
         );
 
         if (statusSuccess || profileSuccess) {
-            request.getSession().setAttribute("success", "Cập nhật nhân viên thành cóng.");
+            request.getSession().setAttribute("success", "Cập nhật nhân viên thành công.");
         } else {
             request.getSession().setAttribute("error", "Cập nhật thất bại hoặc không có thay đổi.");
         }
@@ -3432,7 +3548,7 @@ public class ManagerController extends HttpServlet {
                 if (fr != null && fr.getEmployeeId() == manager.getEmployeeId() && fr.getStatus() == 0) {
                     boolean success = formRequestDAO.updateFormRequest(formId, 3, manager.getEmployeeId(), "Đã hủy bởi người tạo");
                     if (success) {
-                        request.getSession().setAttribute("success", "Đã hủy đơn OT thành cóng.");
+                        request.getSession().setAttribute("success", "Đã hủy đơn OT thành công.");
                     } else {
                         request.getSession().setAttribute("error", "Lỗi khi cập nhật trạng thái hủy đơn. Vui lòng thử lại.");
                     }
@@ -3554,7 +3670,7 @@ public class ManagerController extends HttpServlet {
                 boolean detailAdded = overtimeDAO.addOvertimeDetails(newFormId, otDate, startTime, endTime, dayType);
                 boolean assigneesAdded = overtimeDAO.addOvertimeAssignees(newFormId, assigneeIds);
                 if (detailAdded && assigneesAdded) {
-                    request.getSession().setAttribute("success", "Đã tạo đơn Overtime thành cóng (Mã đơn: " + formCode + ") và gửi chờ duyệt.");
+                    request.getSession().setAttribute("success", "Đã tạo đơn Overtime thành công (Mã đơn: " + formCode + ") và gửi chờ duyệt.");
                     response.sendRedirect(request.getContextPath() + "/v1/manager/forms/ot-requests");
                     return;
                 }

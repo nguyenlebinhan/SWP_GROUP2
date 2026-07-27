@@ -81,9 +81,6 @@ public class BusinessAdminController extends HttpServlet {
             case "/department":
                 displayDepartmentList(request, response);
                 break;
-            case "/department/assign":
-                displayAssignPage(request, response, user);
-                break;
             case "/department/employees":
                 displayDepartmentEmployees(request, response);
                 break;
@@ -92,15 +89,6 @@ public class BusinessAdminController extends HttpServlet {
                 break;
             case "/employee-detail":
                 displayEmployeeDetail(request, response);
-                break;
-            case "/assign-department":
-                displayAssignDepartmentForm(request, response, user);
-                break;
-            case "/add-department":
-                displayAddDepartmentForm(request, response);
-                break;
-            case "/update-department":
-                displayUpdateDepartmentForm(request, response);
                 break;
             case "/salary/all":
                 displayAllSalaryForBa(request, response, user);
@@ -160,21 +148,7 @@ public class BusinessAdminController extends HttpServlet {
             case "/my-profile":
                 handleUpdateMyProfile(request, response, user);
                 break;
-            case "/department/assign":
-                handleAssignManager(request, response, user);
-                break;
-            case "/department/unassign":
-                handleUnassignManager(request, response);
-                break;
-            case "/assign-department":
-                handleAssignDepartment(request, response, user);
-                break;
-            case "/add-department":
-                handleAddDepartment(request, response, user);
-                break;
-            case "/update-department":
-                handleUpdateDepartment(request, response);
-                break;
+
             case "/payroll-config/setting/save":
                 handleSavePayrollSetting(request, response);
                 break;
@@ -418,6 +392,12 @@ public class BusinessAdminController extends HttpServlet {
 
         request.setAttribute("departments", departments);
         request.setAttribute("managerMap", managerMap);
+
+        java.util.Map<Integer, Integer> empCounts = new java.util.HashMap<>();
+        for (Department d : departments) {
+            empCounts.put(d.getDepartmentId(), employeeDAO.countByDepartmentId(d.getDepartmentId()));
+        }
+        request.setAttribute("empCounts", empCounts);
 
         // Flash messages set by redirect from assign/unassign
         HttpSession session = request.getSession(false);

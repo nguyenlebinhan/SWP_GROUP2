@@ -22,6 +22,7 @@
         .badge-s2 { background:#fee2e2; color:#991b1b; }
         .badge-s4 { background:#dbeafe; color:#1e40af; }
         .badge-s6 { background:#f3f4f6; color:#4b5563; }
+        .badge-ot { background:#fef3c7; color:#92400e; }
         .cnt { display:inline-block; min-width:26px; text-align:center; padding:3px 7px; border-radius:8px; font-size:12px; font-weight:600; }
         .progress { height:8px; border-radius:6px; }
     </style>
@@ -128,20 +129,42 @@
                 <i class="fa-solid fa-lock me-2"></i>Quy trình chốt bảng chấm công — Tháng ${selectedMonth}/${selectedYear}
             </h5>
             <div class="d-flex gap-2 flex-wrap">
-                <c:if test="${canManagerConfirm}">
-                    <form method="post" action="${pageContext.request.contextPath}/v1/manager/attendance/confirm"
-                          onsubmit="return confirm('Xác nhận chốt bảng chấm công của phòng? Sau khi chốt sẽ không sửa được nữa.');">
-                        <input type="hidden" name="month" value="${selectedMonth}">
-                        <input type="hidden" name="year" value="${selectedYear}">
-                        <input type="hidden" name="departmentId" value="${closingDepartmentId}">
-                        <button class="btn btn-warning"><i class="fa-solid fa-check me-1"></i>Chốt bảng chấm công phòng</button>
-                    </form>
-                </c:if>
-                <c:if test="${closingConfirmed}">
-                    <span class="badge bg-success align-self-center p-2">
-                        <i class="fa-solid fa-circle-check me-1"></i>Phòng đã chốt
-                    </span>
-                </c:if>
+                <c:choose>
+                    <c:when test="${hrClosingMode}">
+                        <c:if test="${closingCanOpen}">
+                            <form method="post" action="${pageContext.request.contextPath}/v1/manager/attendance/close-period"
+                                  onsubmit="return confirm('Đóng kỳ và gửi bảng chấm công cho trưởng các phòng ban để chốt?');">
+                                <input type="hidden" name="month" value="${selectedMonth}">
+                                <input type="hidden" name="year" value="${selectedYear}">
+                                <button class="btn btn-warning">
+                                    <i class="fa-solid fa-paper-plane me-1"></i>Đóng kỳ &amp; gửi trưởng phòng
+                                </button>
+                            </form>
+                        </c:if>
+                        <c:if test="${closingCanFinalize}">
+                            <form method="post" action="${pageContext.request.contextPath}/v1/manager/attendance/finalize"
+                                  onsubmit="return confirm('Chốt cuối toàn bộ bảng chấm công kỳ này? Sau khi chốt sẽ có thể tính lương và không thể sửa chấm công.');">
+                                <input type="hidden" name="month" value="${selectedMonth}">
+                                <input type="hidden" name="year" value="${selectedYear}">
+                                <button class="btn btn-success">
+                                    <i class="fa-solid fa-circle-check me-1"></i>HR chốt cuối
+                                </button>
+                            </form>
+                        </c:if>
+                        <c:if test="${closingLocked}">
+                            <span class="badge bg-success align-self-center p-2">
+                                <i class="fa-solid fa-circle-check me-1"></i>Đã chốt — được tính lương
+                            </span>
+                        </c:if>
+                    </c:when>
+                    <c:otherwise>
+                        <c:if test="${closingConfirmed}">
+                            <span class="badge bg-success align-self-center p-2">
+                                <i class="fa-solid fa-circle-check me-1"></i>Phòng đã chốt
+                            </span>
+                        </c:if>
+                    </c:otherwise>
+                </c:choose>
             </div>
         </div>
         <div class="table-responsive">
@@ -201,6 +224,7 @@
                         <th class="text-center" title="Nghỉ phép">Lv</th>
                         <th class="text-center" title="Vắng mặt">Ab</th>
                         <th class="text-center" title="Cuối tuần">We</th>
+                        <th class="text-center" title="Tăng ca (số ngày có đơn OT được duyệt)"> OT</th>
                         <th class="text-center" style="min-width:130px">Tỷ lệ</th>
                         <th class="text-center"></th>
                     </tr>
@@ -218,6 +242,18 @@
                             <td class="text-center"><span class="cnt badge-s4">${s.leaveDays}</span></td>
                             <td class="text-center"><span class="cnt badge-s2">${s.absentDays}</span></td>
                             <td class="text-center"><span class="cnt badge-s6">${s.weekendDays}</span></td>
+                            <td class="text-center">
+                                <c:choose>
+                                    <c:when test="${s.otDays > 0}">
+                                        <span class="cnt badge-ot" title="${s.otDays} ngày tăng ca">
+                                            ${s.otDays}
+                                        </span>
+                                    </c:when>
+                                    <c:otherwise>
+                                        <span class="cnt badge-s6">0</span>
+                                    </c:otherwise>
+                                </c:choose>
+                            </td>
                             <td>
                                 <div class="d-flex justify-content-between">
                                     <small class="fw-semibold ${s.attendanceRate < 80 ? 'text-danger' : 'text-success'}">${s.attendanceRate}%</small>

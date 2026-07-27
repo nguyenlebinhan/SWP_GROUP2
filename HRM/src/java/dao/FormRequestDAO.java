@@ -596,7 +596,7 @@ public class FormRequestDAO {
             + "fr.status, fr.approverId, fr.approverNote, fr.approvedAt, "
             + "fr.attachmentUrl, fr.attachmentName, fr.createdAt, fr.updatedAt, "
             + "fr.targetDepartmentId, fr.targetRoleId, "
-            + "fr.dependentName, fr.dependentRelationship, fr.dependentDob, fr.dependentTaxCode, "
+            + "dp.fullName AS dependentName, dp.relationship AS dependentRelationship, dp.dateOfBirth AS dependentDob, dp.taxCode AS dependentTaxCode, "
             + "e.employeeCode, u.fullName, "
             + "d.departmentId, d.departmentName, "
             + "ft.formTypeName, ft.formTypeCode, "
@@ -611,7 +611,8 @@ public class FormRequestDAO {
             + "LEFT JOIN Employees ea ON fr.approverId  = ea.employeeId "
             + "LEFT JOIN Users ua     ON ea.userId       = ua.userId "
             + "LEFT JOIN Departments td ON fr.targetDepartmentId = td.departmentId "
-            + "LEFT JOIN Roles tr       ON fr.targetRoleId       = tr.roleId ";
+            + "LEFT JOIN Roles tr       ON fr.targetRoleId       = tr.roleId "
+            + "LEFT JOIN dependents dp  ON fr.formId             = dp.formId ";
 
     /**
      * Map ResultSet thành đúng subtype DTO dựa vào formTypeCode.

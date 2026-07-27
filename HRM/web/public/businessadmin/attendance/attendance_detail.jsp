@@ -192,7 +192,13 @@
             var rec = attData[day];
             var isOtDay = otDays.includes(day);
             var html = '<div class="d">' + day + '</div>';
-            if (rec) {
+            if (dow >= 5) {
+                cell.classList.add('off-day');
+                html += '<div class="st cl6">Cuối tuần</div>';
+                if (isOtDay) {
+                    html += '<div class="mt-1"><span class="badge bg-warning text-dark px-2 py-1">OT</span></div>';
+                }
+            } else if (rec) {
                 var hasIn  = rec.timeIn  && rec.timeIn.length  === 5 && rec.timeIn  !== '00:00';
                 var hasOut = rec.timeOut && rec.timeOut.length === 5 && rec.timeOut !== '00:00';
 

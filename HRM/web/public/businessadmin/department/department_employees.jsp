@@ -83,10 +83,7 @@
                 <div class="dept-code">${department.departmentCode}</div>
             </div>
             <div>
-                <a href="${pageContext.request.contextPath}/v1/businessadmin/update-department?id=${department.departmentId}"
-                   class="btn btn-sm btn-outline-primary me-2">
-                   <i class="fa-solid fa-pen"></i> Chỉnh sửa
-                </a>
+
                 <c:choose>
                     <c:when test="${department.status == 1}">
                         <span class="badge-active">Hoạt động</span>
