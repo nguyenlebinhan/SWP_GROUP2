@@ -83,7 +83,6 @@
 
                 <div class="col-md-12">
                     <label class="form-label fw-bold">File Excel (.xlsx) <span class="text-danger">*</span></label>
-                    <!-- Disable nếu quá hạn HOẶC kỳ công đã bị đóng -->
                     <input type="file" name="attendanceFile" class="form-control" accept=".xlsx"
                            ${(importWindowOpen && !isLocked) ? 'required' : 'disabled'}>
                     <small class="text-muted d-block mt-1">
@@ -94,7 +93,6 @@
             </div>
 
             <div class="mt-4">
-                <!-- Disable nút bấm nếu quá hạn HOẶC kỳ công đã bị đóng -->
                 <button type="submit" class="btn btn-primary px-4" ${(importWindowOpen && !isLocked) ? '' : 'disabled'}>
                     <i class="fa-solid fa-upload me-1"></i> Upload &amp; Import
                 </button>

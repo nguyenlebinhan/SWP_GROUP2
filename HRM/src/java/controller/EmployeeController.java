@@ -1624,8 +1624,7 @@ public class EmployeeController extends HttpServlet {
                 : attendanceClosingService.isDepartmentLocked(year, month, departmentId);
 
         if (locked) {
-            request.getSession().setAttribute("error",
-                    "Kỳ chấm công tháng " + month + "/" + year + " đã được đóng/khóa. Không thể import dữ liệu mới!");
+            request.getSession().setAttribute("error", "Kỳ chấm công tháng " + month + "/" + year + " đã được đóng/khóa. Không thể import dữ liệu mới!");
             response.sendRedirect(request.getContextPath() + "/v1/employee/attendance/import?month=" + month + "&year=" + year);
             return;
         }
@@ -1673,7 +1672,7 @@ public class EmployeeController extends HttpServlet {
 
         String contentType = filePart.getContentType();
         if (contentType != null && !isAcceptableXlsxContentType(contentType)) {
-            request.setAttribute("error", "Loại file không hợp lệ. Yeaua cầu file excel .xlsx ");
+            request.setAttribute("error", "Loại file không hợp lệ. Yêu cầu file excel .xlsx ");
             List<Department> activeDepartments = departmentDAO.getAllActiveDepartments();
             request.setAttribute("departments", activeDepartments);
             request.getRequestDispatcher("/public/employee/attendance/attendance_import.jsp").forward(request, response);

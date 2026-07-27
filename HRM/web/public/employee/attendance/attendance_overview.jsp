@@ -122,7 +122,6 @@
         </form>
     </div>
 
-    <%-- Panel quy trình chốt bảng chấm công --%>
     <c:if test="${closingHasData}">
     <div class="section-card">
         <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">

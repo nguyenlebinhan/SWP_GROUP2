@@ -176,8 +176,6 @@ public class AttendanceImportService {
         Time timeIn = parseTime(ad.getTimeIn(), "timeIn");
         Time timeOut = parseTime(ad.getTimeOut(), "timeOut");
 
-        // Các dòng cuối tuần không có giờ vào/ra là dữ liệu hợp lệ và sẽ được
-        // lưu với trạng thái WEEKEND. Chỉ từ chối cuối tuần nếu có giờ chấm công.
         if (isWeekend(workDate) && (timeIn != null || timeOut != null)) {
             throw new RowValidationException("workDate " + workDate
                     + " rơi vào ngày cuối tuần (Thứ Bảy/Chủ nhật), không được phép import giờ chấm công.");
@@ -190,8 +188,6 @@ public class AttendanceImportService {
         int employeeId = employee.getEmployeeId();
         employeeCode = employee.getEmployeeCode();
 
-        // Giữ NGUYÊN giờ thực (timeIn/timeOut) để lưu và hiển thị.
-        // Mọi tính toán bên dưới (giờ công, trạng thái) dùng bản chuẩn hóa theo block.
         Time calcTimeIn = timeIn;
         Time calcTimeOut = timeOut;
 
@@ -217,8 +213,7 @@ public class AttendanceImportService {
                 throw new RowValidationException("Thời gian Check-in tối đa là " + (hasOT ? "19:00" : "17:00") + ".");
             }
 
-            // Chuẩn hóa thời gian theo block 30 phút: giờ vào làm tròn LÊN
-            // (đi muộn trong block nào mất trọn block đó), giờ ra làm tròn XUỐNG.
+
             calcTimeIn = utils.WorkHoursCalculator.ceilToBlock(timeIn);
             calcTimeOut = utils.WorkHoursCalculator.floorToBlock(timeOut);
 
@@ -228,7 +223,6 @@ public class AttendanceImportService {
 
             hoursWorked = utils.WorkHoursCalculator.hoursWorked(calcTimeIn, calcTimeOut);
 
-            // Không OT thì giờ công không vượt quá 8 tiếng chuẩn.
             if (!hasOT && hoursWorked.compareTo(STANDARD_HOURS) > 0) {
                 hoursWorked = STANDARD_HOURS;
             }

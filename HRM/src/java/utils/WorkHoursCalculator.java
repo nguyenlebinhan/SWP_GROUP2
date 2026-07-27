@@ -13,7 +13,6 @@ public final class WorkHoursCalculator {
     private static final Time LUNCH_START = Time.valueOf("12:00:00");
     private static final Time LUNCH_END = Time.valueOf("13:00:00");
 
-    /** Độ dài một block tính công, tính theo phút. */
     public static final int BLOCK_MINUTES = 30;
 
     private static final int MINUTES_PER_DAY = 24 * 60;
