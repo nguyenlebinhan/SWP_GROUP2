@@ -4,13 +4,13 @@
  */
 package service;
 
+import dao.AttendanceDAO;
 import dao.DepartmentDAO;
 import dao.DependentDAO;
 import dao.EmployeeDAO;
 import dao.FormRequestDAO;
 import dao.LeaveBalanceDAO;
 import dao.RoleDAO;
-import dao.UploadedFileDAO;
 import dto.EmployeeDetailDTO;
 import enums.FormErrorCode;
 import enums.FormTypeCode;
@@ -37,7 +37,7 @@ public class FormService {
     private final DepartmentDAO departmentDAO;
     private final LeaveBalanceDAO leaveBalanceDAO;
     private final RoleDAO roleDAO;
-    private final UploadedFileDAO uploadedFileDAO;
+    private final AttendanceDAO attendanceDAO;
     private final EmployeeDAO employeeDAO;
     private final DependentDAO dependentDAO;
 
@@ -46,7 +46,7 @@ public class FormService {
         this.departmentDAO = new DepartmentDAO();
         this.leaveBalanceDAO = new LeaveBalanceDAO();
         this.roleDAO = new RoleDAO();
-        this.uploadedFileDAO = new UploadedFileDAO();
+        this.attendanceDAO = new AttendanceDAO();
         this.employeeDAO = new EmployeeDAO();
         this.dependentDAO = new DependentDAO();
     }
@@ -105,9 +105,10 @@ public class FormService {
         if (emp == null) {
             return new FormOperationalResult(false, FormErrorCode.EMPLOYEE_NOT_FOUND.name(), "Nhân viên không tồn tại.");
         }
-        int[] latestPeriod = uploadedFileDAO.getLatestAttendanceImportMonthYear();
+        int[] latestPeriod = attendanceDAO.getLatestAttendanceMonthYear();
         if (latestPeriod == null) {
-            return new FormOperationalResult(false, FormErrorCode.NO_ATTENDANCE_RECORD.name(), "Không có dữ liệu chấm công cho tháng " + latestPeriod[0]);
+            return new FormOperationalResult(false, FormErrorCode.NO_ATTENDANCE_RECORD.name(),
+                    "Không có dữ liệu chấm công đã nhập thành công để tạo khiếu nại.");
         }
         LocalDate complaintDate = startDate.toLocalDate();
         if (complaintDate.getMonthValue() != latestPeriod[0] || complaintDate.getYear() != latestPeriod[1]) {
