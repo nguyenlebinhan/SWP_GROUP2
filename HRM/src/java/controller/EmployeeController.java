@@ -2290,9 +2290,10 @@ public class EmployeeController extends HttpServlet {
                 response.sendRedirect(request.getContextPath() + "/v1/employee/contract/status");
             }
         } else {
-            // giữ nguyên phần else như cũ
             request.setAttribute("error", "Thêm hợp đồng thất bại: " + result.getMessage());
             request.setAttribute("employees", employeeDAO.getAllEmployees());
+            String newCode = contractService.generateNextContractCode();
+            request.setAttribute("generatedCode", newCode);
             setPermissionFlags(request, getPermissions(user));
             request.getRequestDispatcher("/public/employee/contract/add_contract.jsp").forward(request, response);
         }

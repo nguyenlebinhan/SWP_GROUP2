@@ -1457,7 +1457,7 @@ public class ManagerController extends HttpServlet {
         try {
             List<EmploymentContract> contracts = contractDAO.getAllContractsForOverview(
                     keyword, contractType, status, null, loggedInEmpId, isHrStaff(user));
-            
+
             Map<Integer, EmployeeDetailDTO> employeeMap = new HashMap<>();
             for (EmploymentContract c : contracts) {
                 if (!employeeMap.containsKey(c.getEmployeeId())) {
@@ -1512,7 +1512,7 @@ public class ManagerController extends HttpServlet {
         request.setAttribute("employee", employee);
         request.setAttribute("backUrl", contract.getStatus() == ContractStatus.PENDING_APPROVAL
                 ? "/v1/manager/contract/pending"
-                : "/v1/employee/contract/status");
+                : "/v1/manager/contract/status");
         setPermissionFlags(request, perms);
         request.getRequestDispatcher("/public/manager/contract/contract_detail.jsp").forward(request, response);
     }
@@ -2222,6 +2222,8 @@ public class ManagerController extends HttpServlet {
         } else {
             request.setAttribute("error", "Thêm hợp đồng thất bại: " + result.getMessage());
             request.setAttribute("employees", employeeDAO.getAllEmployees());
+            String newCode = contractService.generateNextContractCode();
+            request.setAttribute("generatedCode", newCode);
             setPermissionFlags(request, getPermissions(user));
             request.getRequestDispatcher("/public/manager/contract/add_contract.jsp").forward(request, response);
         }
