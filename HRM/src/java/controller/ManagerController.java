@@ -4122,8 +4122,11 @@ public class ManagerController extends HttpServlet {
         String taxCode = trimToNull(request.getParameter("taxCode"));
         String reason = trimToNull(request.getParameter("note"));
 
-        if (fullName == null || relationship == null || rawDateOfBirth == null) {
-            request.setAttribute("error", "Vui lòng nhập tên, quan hệ và ngày sinh người phụ thuộc.");
+        boolean invalidTaxCode = taxCode != null && !taxCode.matches("\\d+");
+        if (fullName == null || relationship == null || rawDateOfBirth == null || taxCode == null || invalidTaxCode) {
+            request.setAttribute("error", invalidTaxCode
+                    ? "Mã số thuế chỉ được nhập số."
+                    : "Vui lòng nhập đầy đủ tên, quan hệ, ngày sinh và mã số thuế người phụ thuộc.");
             displayDependentForm(request, response, user);
             return;
         }

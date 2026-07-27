@@ -1272,6 +1272,18 @@ public class DBInitializer {
         }
     }
 
+    private boolean indexExists(Connection conn, String tableName, String indexName) throws SQLException {
+        DatabaseMetaData meta = conn.getMetaData();
+        try (ResultSet rs = meta.getIndexInfo(null, null, tableName, false, false)) {
+            while (rs.next()) {
+                if (indexName.equalsIgnoreCase(rs.getString("INDEX_NAME"))) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
     private void ensureEmployeeDependentCountColumn(Connection conn) throws SQLException {
         if (!tableExists(conn, "Employees")) {
             return;
@@ -1296,6 +1308,10 @@ public class DBInitializer {
         }
         if (!columnExists(conn, "Dependents", "dateOfBirth")) {
             execute(conn, "ALTER TABLE Dependents ADD COLUMN dateOfBirth DATE NULL AFTER relationship", "ADD DEPENDENTS DATE OF BIRTH COLUMN");
+        }
+        if (!indexExists(conn, "Dependents", "uq_dependents_taxcode")) {
+            execute(conn, "ALTER TABLE Dependents ADD CONSTRAINT uq_dependents_taxcode UNIQUE (taxCode)",
+                    "ADD DEPENDENTS TAX CODE UNIQUE CONSTRAINT");
         }
     }
 
@@ -1383,6 +1399,18 @@ public class DBInitializer {
         }
         if (!columnExists(conn, "Form_Requests", "targetRoleId")) {
             execute(conn, "ALTER TABLE Form_Requests ADD COLUMN targetRoleId INT", "ADD FORM_REQUESTS TARGET ROLE COLUMN");
+        }
+        if (!columnExists(conn, "Form_Requests", "dependentName")) {
+            execute(conn, "ALTER TABLE Form_Requests ADD COLUMN dependentName NVARCHAR(100) NULL", "ADD FORM_REQUESTS DEPENDENT NAME COLUMN");
+        }
+        if (!columnExists(conn, "Form_Requests", "dependentRelationship")) {
+            execute(conn, "ALTER TABLE Form_Requests ADD COLUMN dependentRelationship NVARCHAR(50) NULL", "ADD FORM_REQUESTS DEPENDENT RELATIONSHIP COLUMN");
+        }
+        if (!columnExists(conn, "Form_Requests", "dependentDob")) {
+            execute(conn, "ALTER TABLE Form_Requests ADD COLUMN dependentDob DATE NULL", "ADD FORM_REQUESTS DEPENDENT DOB COLUMN");
+        }
+        if (!columnExists(conn, "Form_Requests", "dependentTaxCode")) {
+            execute(conn, "ALTER TABLE Form_Requests ADD COLUMN dependentTaxCode CHAR(12) NULL", "ADD FORM_REQUESTS DEPENDENT TAX CODE COLUMN");
         }
 
     }

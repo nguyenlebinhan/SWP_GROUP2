@@ -250,6 +250,11 @@ public class FormService {
             return new FormOperationalResult(false,
                     FormErrorCode.DATABASE_ERROR.name(), "Gửi đơn đăng kí người phụ thuộc thất bại.");
         }
+        boolean pendingAdded = dependentDAO.addPending(id, employeeId, fullName, relationship, dateOfBirth, taxCode, reason);
+        if (!pendingAdded) {
+            return new FormOperationalResult(false,
+                    FormErrorCode.DATABASE_ERROR.name(), "Gửi đơn đăng kí người phụ thuộc thất bại.");
+        }
         return new FormOperationalResult(true, null, "Gửi đơn đăng kí người phụ thuộc thành công.");
     }
 
