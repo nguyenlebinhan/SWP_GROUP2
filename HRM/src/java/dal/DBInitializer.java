@@ -842,7 +842,7 @@ public class DBInitializer {
                 insertFormTypeIfAbsent(conn, "PROMOTION_DEMOTION", "Thăng/Giáng chức");
             }
 
-            insertFormTypeIfAbsent(conn, "DEPENDENT", "Dang ky nguoi phu thuoc");
+            insertFormTypeIfAbsent(conn, "DEPENDENT", "Đăng ký người phụ thuộc");
 
             ensureRolePermission(conn, "HRManager", "ADD_EMPLOYMENT_CONTRACT");
             ensureRolePermission(conn, "HRManager", "APPROVE_CONTRACT");
