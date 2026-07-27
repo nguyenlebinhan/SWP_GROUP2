@@ -19,6 +19,7 @@ import service.FormService;
 import model.FormOperationalResult;
 import model.UploadedFileInfo;
 import enums.FormTypeCode;
+import enums.AttendanceStatus;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.MultipartConfig;
 import jakarta.servlet.http.HttpServlet;
@@ -3032,10 +3033,11 @@ public class ManagerController extends HttpServlet {
             boolean ok = formRequestDAO.approveFormRequestFromStatus(formId, fromStatus, 4, me.getEmployeeId(), note);
             boolean dependentAdded = false;
             boolean dependentChanged = false;
+            boolean complaintAttUpdated = false;
             if (ok) {
                 switch (form.getFormTypeCode()) {
                     case "COMPLAINT":
-                        onHrApproveComplaint(form, me, request);
+                        complaintAttUpdated = onHrApproveComplaint(form, me, request);
                         break;
                     case "DEPENDENT":
                         dependentAdded = dependentDAO.approveByFormId(formId);
@@ -3048,12 +3050,22 @@ public class ManagerController extends HttpServlet {
                     ok = dependentAdded || dependentChanged;
                 }
             }
-            request.getSession().setAttribute(ok ? "success" : "error",
-                    ok ? "HR duyệt đơn thành công." : "HR duyệt đơn thất bại.");
-            if (ok && dependentAdded) {
-                request.getSession().setAttribute("success", "Thêm người phụ thuộc thành công");
-            } else if (ok && dependentChanged) {
-                request.getSession().setAttribute("success", "Cập nhật người phụ thuộc thành công");
+            // Với COMPLAINT: chỉ hiện success nếu cả form lẫn chấm công đều cập nhật thành công
+            // Tránh ghi đè error/warning đã set bởi onHrApproveComplaint
+            boolean isComplaint = "COMPLAINT".equals(form.getFormTypeCode());
+            if (isComplaint) {
+                if (complaintAttUpdated) {
+                    request.getSession().setAttribute("success", "HR duyệt đơn thành công. Chấm công đã được cập nhật.");
+                }
+                // Nếu !complaintAttUpdated thì error/warning đã được set bởi onHrApproveComplaint
+            } else {
+                request.getSession().setAttribute(ok ? "success" : "error",
+                        ok ? "HR duyệt đơn thành công." : "HR duyệt đơn thất bại.");
+                if (ok && dependentAdded) {
+                    request.getSession().setAttribute("success", "Thêm người phụ thuộc thành công");
+                } else if (ok && dependentChanged) {
+                    request.getSession().setAttribute("success", "Cập nhật người phụ thuộc thành công");
+                }
             }
         } catch (NumberFormatException e) {
             request.getSession().setAttribute("error", "Mã đơn không hợp lệ.");
@@ -3061,14 +3073,14 @@ public class ManagerController extends HttpServlet {
         response.sendRedirect(request.getContextPath() + "/v1/manager/forms/all");
     }
 
-    private void onHrApproveComplaint(FormRequestDTO form, EmployeeDetailDTO me, HttpServletRequest request) {
+    private boolean onHrApproveComplaint(FormRequestDTO form, EmployeeDetailDTO me, HttpServletRequest request) {
         if (!(form instanceof ComplaintFormRequestDTO)) {
-            return;
+            return false;
         }
         ComplaintFormRequestDTO compForm = (ComplaintFormRequestDTO) form;
         if (compForm.getStartDate() == null || compForm.getStartTime() == null || compForm.getEndTime() == null) {
             LOGGER.log(Level.WARNING, "Complaint formId={0} missing date/time data, skipping attendance update.", form.getFormId());
-            return;
+            return false;
         }
         Time timeIn = compForm.getStartTime() != null ? Time.valueOf(compForm.getStartTime().toLocalTime()) : null;
         Time timeOut = compForm.getEndTime() != null ? Time.valueOf(compForm.getEndTime().toLocalTime()) : null;
@@ -3104,18 +3116,42 @@ public class ManagerController extends HttpServlet {
             hoursWorked = standardHours;
         }
 
-        LocalTime stdStart = LocalTime.of(8, 30);
-        int newStatus = compForm.getStartTime().toLocalTime().isAfter(stdStart) ? 2 : 1;
+        // Dùng lại logic tính status từ AttendanceImportService (WORK_START = 08:00)
+        // để đảm bảo nhất quán với luồng import chấm công
+        AttendanceStatus resolvedStatus;
+        try {
+            resolvedStatus = importService.resolveStatus(
+                    form.getEmployeeId(), compForm.getStartDate(), timeIn, timeOut);
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Cannot resolve attendance status for complaint formId=" + form.getFormId(), e);
+            resolvedStatus = (timeIn == null && timeOut == null)
+                    ? AttendanceStatus.ABSENT
+                    : (timeIn == null || timeOut == null)
+                        ? AttendanceStatus.MISSING_CHECK
+                        : timeIn.toLocalTime().isAfter(java.time.LocalTime.of(8, 0))
+                            ? AttendanceStatus.LATE
+                            : AttendanceStatus.PRESENT;
+        }
+        int newStatus = resolvedStatus.getRelatedNum();
 
         Attendance att = attendanceDAO.getAttendanceByDate(form.getEmployeeId(), compForm.getStartDate());
         if (att != null) {
-            attendanceDAO.updateAttendanceWithHistory(
+            String updateError = attendanceDAO.updateAttendanceWithHistory(
                     att.getAttendanceId(),
                     compForm.getStartTime(), compForm.getEndTime(),
                     hoursWorked, newStatus,
                     "Updated by complaint approval (HR step)", me.getUserId());
-            LOGGER.log(Level.INFO, "Attendance updated via complaint HR approval: formId={0}, attId={1}",
-                    new Object[]{form.getFormId(), att.getAttendanceId()});
+            if (updateError == null) {
+                LOGGER.log(Level.INFO, "Attendance updated via complaint HR approval: formId={0}, attId={1}",
+                        new Object[]{form.getFormId(), att.getAttendanceId()});
+                return true;
+            } else {
+                LOGGER.log(Level.SEVERE, "Failed to update attendance for formId={0}, attId={1}: {2}",
+                        new Object[]{form.getFormId(), att.getAttendanceId(), updateError});
+                request.getSession().setAttribute("error",
+                        "Đơn khiếu nại đã duyệt nhưng cập nhật chấm công thất bại: " + updateError);
+                return false;
+            }
         } else {
             // Không INSERT mới — chỉ báo warning
             LOGGER.log(Level.WARNING,
@@ -3124,6 +3160,7 @@ public class ManagerController extends HttpServlet {
             request.getSession().setAttribute("warning",
                     "Đơn khiếu nại được duyệt nhưng không tìm thấy bản ghi chấm công ngày "
                             + compForm.getStartDate() + " — không có gì được cập nhật.");
+            return false;
         }
     }
 

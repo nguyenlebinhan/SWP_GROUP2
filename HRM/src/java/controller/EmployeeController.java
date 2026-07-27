@@ -98,8 +98,8 @@ public class EmployeeController extends HttpServlet {
     private final EmploymentContractService contractService = new EmploymentContractService(contractDAO, employeeDAO, new dal.DBContext());
     private final AttendanceService attendanceService = new AttendanceService();
     private final AttendanceExcelExporter attendanceExporter = new AttendanceExcelExporter();
-    private final String UPLOAD_DIR = config.getProperty("UPLOAD_DIR");
-    private final String FILE_PART = config.getProperty("FILE_PART");
+    private final String UPLOAD_DIR = config.getProperty("UPLOAD_DIR", "uploads");
+    private final String FILE_PART = config.getProperty("FILE_PART", "attendanceFile");
     private final PayrollService payrollService = new PayrollService();
     private final AttendanceClosingService attendanceClosingService = new AttendanceClosingService();
     private final PayrollConfigDAO payrollConfigDAO = new PayrollConfigDAO();
