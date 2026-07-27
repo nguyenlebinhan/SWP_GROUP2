@@ -22,6 +22,7 @@
         .badge-s2 { background:#fee2e2; color:#991b1b; }
         .badge-s4 { background:#dbeafe; color:#1e40af; }
         .badge-s6 { background:#f3f4f6; color:#4b5563; }
+        .badge-ot { background:#fef3c7; color:#92400e; }
         .cnt { display:inline-block; min-width:26px; text-align:center; padding:3px 7px; border-radius:8px; font-size:12px; font-weight:600; }
         .progress { height:8px; border-radius:6px; }
     </style>
@@ -223,6 +224,7 @@
                         <th class="text-center" title="Nghỉ phép">Lv</th>
                         <th class="text-center" title="Vắng mặt">Ab</th>
                         <th class="text-center" title="Cuối tuần">We</th>
+                        <th class="text-center" title="Tăng ca (số ngày có đơn OT được duyệt)"> OT</th>
                         <th class="text-center" style="min-width:130px">Tỷ lệ</th>
                         <th class="text-center"></th>
                     </tr>
@@ -240,6 +242,18 @@
                             <td class="text-center"><span class="cnt badge-s4">${s.leaveDays}</span></td>
                             <td class="text-center"><span class="cnt badge-s2">${s.absentDays}</span></td>
                             <td class="text-center"><span class="cnt badge-s6">${s.weekendDays}</span></td>
+                            <td class="text-center">
+                                <c:choose>
+                                    <c:when test="${s.otDays > 0}">
+                                        <span class="cnt badge-ot" title="${s.otDays} ngày tăng ca">
+                                            ${s.otDays}
+                                        </span>
+                                    </c:when>
+                                    <c:otherwise>
+                                        <span class="cnt badge-s6">0</span>
+                                    </c:otherwise>
+                                </c:choose>
+                            </td>
                             <td>
                                 <div class="d-flex justify-content-between">
                                     <small class="fw-semibold ${s.attendanceRate < 80 ? 'text-danger' : 'text-success'}">${s.attendanceRate}%</small>
