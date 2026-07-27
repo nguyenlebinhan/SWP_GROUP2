@@ -8,6 +8,7 @@ import dao.AttendanceDAO;
 import dao.DepartmentDAO;
 import dao.DependentDAO;
 import dao.EmployeeDAO;
+import dao.EmploymentContractDAO;
 import dao.FormRequestDAO;
 import dao.LeaveBalanceDAO;
 import dao.RoleDAO;
@@ -41,6 +42,7 @@ public class FormService {
     private final EmployeeDAO employeeDAO;
     private final DependentDAO dependentDAO;
     private final AttendanceClosingService attendanceClosingService;
+    private final EmploymentContractDAO employmentContractDAO;
 
     public FormService() {
         this.formRequestDAO = new FormRequestDAO();
@@ -51,6 +53,77 @@ public class FormService {
         this.employeeDAO = new EmployeeDAO();
         this.dependentDAO = new DependentDAO();
         this.attendanceClosingService = new AttendanceClosingService();
+        this.employmentContractDAO = new EmploymentContractDAO();
+    }
+
+    public int calculateEntitledLeaveDays(int employeeId) {
+        return calculateEntitledLeaveDays(employeeId, java.time.LocalDate.now().getYear());
+    }
+
+    public int calculateEntitledLeaveDays(int employeeId, int targetYear) {
+        model.EmploymentContract activeContract = employmentContractDAO.getActiveOrPendingContract(employeeId);
+        if (activeContract == null || activeContract.getStatus() != enums.ContractStatus.ACTIVE) {
+            return 0;
+        }
+        java.time.LocalDate earliestStartDate = null;
+        try {
+            java.util.List<model.EmploymentContract> contracts = employmentContractDAO.getAllContractsByEmployeeId(employeeId);
+            for (model.EmploymentContract c : contracts) {
+                if (c.getEffectiveDate() != null) {
+                    java.time.LocalDate eff = c.getEffectiveDate().toLocalDate();
+                    if (earliestStartDate == null || eff.isBefore(earliestStartDate)) {
+                        earliestStartDate = eff;
+                    }
+                } else if (c.getSignedDate() != null) {
+                    java.time.LocalDate sig = c.getSignedDate().toLocalDate();
+                    if (earliestStartDate == null || sig.isBefore(earliestStartDate)) {
+                        earliestStartDate = sig;
+                    }
+                }
+            }
+        } catch (java.sql.SQLException e) {
+            java.util.logging.Logger.getLogger(FormService.class.getName()).log(java.util.logging.Level.SEVERE, "Error retrieving contracts for leave calculation", e);
+        }
+
+        if (earliestStartDate == null) {
+            return 12;
+        }
+
+        int startYear = earliestStartDate.getYear();
+        if (targetYear < startYear) {
+            return 0;
+        }
+
+        // Năm đầu tiên vào làm việc (Ví dụ: vào tháng 7 -> 12 - 7 = 5 ngày)
+        if (targetYear == startYear) {
+            int startMonth = earliestStartDate.getMonthValue();
+            return (startMonth == 1) ? 12 : Math.max(0, 12 - startMonth);
+        }
+
+        // Những năm còn lại (tính 12 ngày chuẩn + thưởng thâm niên 5 năm + 1 ngày)
+        int baseDays = 12;
+        java.time.LocalDate referenceDate = (targetYear == java.time.LocalDate.now().getYear()) ? java.time.LocalDate.now() : java.time.LocalDate.of(targetYear, 12, 31);
+        long yearsOfService = java.time.temporal.ChronoUnit.YEARS.between(earliestStartDate, referenceDate);
+        if (yearsOfService > 0) {
+            int seniorityBonus = (int) (yearsOfService / 5);
+            baseDays += seniorityBonus;
+        }
+        return baseDays;
+    }
+
+    public LeaveBalance getOrInitializeLeaveBalance(int employeeId, int year) {
+        LeaveBalance lb = leaveBalanceDAO.getLeaveBalance(employeeId, year);
+        int entitledDays = calculateEntitledLeaveDays(employeeId, year);
+        if (lb == null) {
+            lb = new LeaveBalance(0, employeeId, year, entitledDays, 0);
+            leaveBalanceDAO.createLeaveBalance(lb);
+        } else {
+            if (lb.getTotalAllowed() != entitledDays) {
+                lb.setTotalAllowed(entitledDays);
+                leaveBalanceDAO.updateTotalAllowed(employeeId, year, entitledDays);
+            }
+        }
+        return lb;
     }
 
     public FormOperationalResult submitLeaveForm(int employeeId, int formTypeId, String reason,
@@ -59,9 +132,9 @@ public class FormService {
         if (emp == null) {
             return new FormOperationalResult(false, FormErrorCode.EMPLOYEE_NOT_FOUND.name(), "Nhân viên không tồn tại.");
         }
-        LeaveBalance balance = leaveBalanceDAO.getLeaveBalance(employeeId, LocalDate.now().getYear());
-        if (balance == null) {
-            return new FormOperationalResult(false, FormErrorCode.NO_LEAVE_BALANCE.name(), "Không có nghỉ phép năm trong năm nay");
+        LeaveBalance balance = getOrInitializeLeaveBalance(employeeId, LocalDate.now().getYear());
+        if (balance == null || balance.getTotalAllowed() <= 0) {
+            return new FormOperationalResult(false, FormErrorCode.NO_LEAVE_BALANCE.name(), "Bạn chưa có hợp đồng lao động hiệu lực hoặc không đủ điều kiện có ngày nghỉ phép năm.");
         }
         int allowedDays = balance.getRemainingDays();
         if (startDate.toLocalDate().isBefore(LocalDate.now())) {
@@ -168,15 +241,15 @@ public class FormService {
 
         Department dept = departmentDAO.getDepartmentById(emp.getDepartmentId());
         Role targetRole = roleDAO.getRoleById(targetRoleId);
-        if (dept.getDepartmentId() == targetDepartmentId) {
-            return new FormOperationalResult(false, FormErrorCode.SAME_DEPARTMENT.name(), "Đã ở phòng ban này");
-        }
-//        boolean isCurrentManager = emp.getRoleName() != null && emp.getRoleName().endsWith("Manager");
-//        boolean isTargetManager = targetRole.getRoleName() != null && targetRole.getRoleName().endsWith("Manager");
-        boolean isCurrentManager = emp.getRoleName() != null && emp.getRoleName().toLowerCase().contains("manager");
-        boolean isTargetManager = targetRole.getRoleName() != null && targetRole.getRoleName().toLowerCase().contains("manager");
-        if (isCurrentManager != isTargetManager) {
-            return new FormOperationalResult(false, FormErrorCode.INVALID_TRANSFER_LEVEL.name(), "Chỉ được chuyển phòng ban ngang cấp bậc (VD: Employee sang Employee).");
+        boolean isTargetManager = targetRole != null && targetRole.getRoleName() != null && targetRole.getRoleName().toLowerCase().contains("manager");
+        if (emp.getDepartmentId() > 0 && dept != null) {
+            if (dept.getDepartmentId() == targetDepartmentId) {
+                return new FormOperationalResult(false, FormErrorCode.SAME_DEPARTMENT.name(), "Đã ở phòng ban này");
+            }
+            boolean isCurrentManager = emp.getRoleName() != null && emp.getRoleName().toLowerCase().contains("manager");
+            if (isCurrentManager != isTargetManager) {
+                return new FormOperationalResult(false, FormErrorCode.INVALID_TRANSFER_LEVEL.name(), "Chỉ được chuyển phòng ban ngang cấp bậc (VD: Employee sang Employee).");
+            }
         }
 
         Department targetDept = departmentDAO.getDepartmentById(targetDepartmentId);

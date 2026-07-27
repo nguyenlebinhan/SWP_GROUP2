@@ -2561,12 +2561,11 @@ public class EmployeeController extends HttpServlet {
         EmployeeDetailDTO me = employeeDAO.getEmployeeByUserId(user.getUserId());
         if (me != null) {
             int currentYear = LocalDate.now().getYear();
-            LeaveBalance lb = leaveBalanceDAO.getLeaveBalance(me.getEmployeeId(), currentYear);
-            if (lb == null) {
-                lb = new LeaveBalance(0, me.getEmployeeId(), currentYear, 12, 0);
-                leaveBalanceDAO.createLeaveBalance(lb);
+            LeaveBalance lb = formService.getOrInitializeLeaveBalance(me.getEmployeeId(), currentYear);
+            request.setAttribute("remainingDays", lb != null ? lb.getRemainingDays() : 0);
+            if (lb != null && lb.getTotalAllowed() <= 0) {
+                request.setAttribute("noContractWarning", "Bạn chưa có hợp đồng lao động hiệu lực nên chưa có ngày phép năm.");
             }
-            request.setAttribute("remainingDays", lb.getRemainingDays());
         }
 
         request.getRequestDispatcher("/public/employee/forms/leave_form.jsp").forward(request, response);
@@ -3117,7 +3116,8 @@ public class EmployeeController extends HttpServlet {
         java.util.List<model.Department> departments;
 
         if (!isHr && me != null) {
-            employees = employeeDAO.getEmployeesByDepartmentId(me.getDepartmentId());
+            employees = new java.util.ArrayList<>();
+            employees.add(me);
             departments = new java.util.ArrayList<>();
             model.Department myDept = departmentDAO.getDepartmentById(me.getDepartmentId());
             if (myDept != null) departments.add(myDept);
@@ -3147,8 +3147,10 @@ public class EmployeeController extends HttpServlet {
         request.setAttribute("departments", departments);
         request.setAttribute("deptRolesMap", deptRolesMap);
         request.setAttribute("isHr", isHr);
+        request.setAttribute("isSelf", !isHr);
         if (me != null) {
             request.setAttribute("myDepartmentId", me.getDepartmentId());
+            request.setAttribute("myEmployeeId", me.getEmployeeId());
         }
         request.setAttribute("positions", departmentDAO.getAllPositions());
         request.getRequestDispatcher("/public/employee/forms/promotion_form.jsp").forward(request, response);
@@ -3377,8 +3379,8 @@ public class EmployeeController extends HttpServlet {
         }
 
         EmployeeDetailDTO me = employeeDAO.getEmployeeByUserId(user.getUserId());
-        if (me == null || me.getDepartmentId() <= 0) {
-            request.getSession().setAttribute("error", "Bạn chưa được phân công vào phòng ban nào.");
+        if (me == null) {
+            request.getSession().setAttribute("error", "Không tìm thấy thông tin nhân viên.");
             response.sendRedirect(request.getContextPath() + "/v1/employee/forms/transfer/new");
             return;
         }

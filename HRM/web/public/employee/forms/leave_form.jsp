@@ -55,6 +55,12 @@
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
     </c:if>
+    <c:if test="${not empty noContractWarning}">
+        <div class="alert alert-warning alert-dismissible fade show" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i> ${noContractWarning}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    </c:if>
 
     <div class="section-card">
         <div class="d-flex justify-content-between align-items-center mb-4">
@@ -102,7 +108,7 @@
 
             </div>
             <div class="mt-4 d-flex gap-2">
-                <button type="submit" class="btn btn-primary" id="submitBtn">Gửi đơn</button>
+                <button type="submit" class="btn btn-primary" id="submitBtn" ${not empty noContractWarning ? 'disabled' : ''}>Gửi đơn</button>
                 <a href="${pageContext.request.contextPath}/v1/employee/forms/my-forms"
                    class="btn btn-outline-secondary">Quay lại</a>
             </div>
