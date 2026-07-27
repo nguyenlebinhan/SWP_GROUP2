@@ -120,10 +120,6 @@
            class="${pageContext.request.servletPath == '/public/manager/forms/all_form_list.jsp' ? 'active' : ''}">
             Tất cả đơn yêu cầu
         </a>
-        <a href="${pageContext.request.contextPath}/v1/manager/forms/submit-promotion"
-           class="${pageContext.request.servletPath == '/public/manager/forms/promotion_form.jsp' ? 'active' : ''}">
-            Tạo đề xuất thăng/giáng chức
-        </a>
     </c:if>
 
     <c:if test="${sessionScope.userPermissions.contains('PROCESS_RECRUITMENT')}">
