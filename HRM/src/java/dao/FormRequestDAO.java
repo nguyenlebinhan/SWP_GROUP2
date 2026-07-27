@@ -292,6 +292,58 @@ public class FormRequestDAO {
         return false;
     }
 
+    public boolean hasPendingDuplicateDependent(int employeeId, String dependentName, java.util.Date dependentDob, String taxCode) {
+        if (taxCode != null && !taxCode.trim().isEmpty()) {
+            if (hasPendingDependentTaxCode(taxCode)) {
+                return true;
+            }
+        }
+        String sqlCond = (dependentDob == null) ? "AND fr.dependentDob IS NULL" : "AND fr.dependentDob = ?";
+        String SQL = "SELECT 1 FROM Form_Requests fr "
+                   + "JOIN Form_Types ft ON fr.formTypeId = ft.formTypeId "
+                   + "WHERE ft.formTypeCode = 'DEPENDENT' "
+                   + "AND fr.employeeId = ? "
+                   + "AND LOWER(fr.dependentName) = LOWER(?) "
+                   + sqlCond + " AND fr.status IN (0, 1)";
+        try (Connection conn = dbContext.getConnection(); PreparedStatement ps = conn.prepareStatement(SQL)) {
+            ps.setInt(1, employeeId);
+            ps.setNString(2, dependentName != null ? dependentName.trim() : "");
+            if (dependentDob != null) {
+                ps.setDate(3, new java.sql.Date(dependentDob.getTime()));
+            }
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next();
+            }
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Error checking pending duplicate dependent for employeeId: " + employeeId, e);
+        }
+        return false;
+    }
+
+    public boolean hasPendingComplaintsInDepartment(int departmentId, int year, int month) {
+        String SQL = """
+                     SELECT 1 FROM Form_Requests fr
+                     JOIN Form_Types ft ON fr.formTypeId = ft.formTypeId
+                     JOIN Employees e ON fr.employeeId = e.employeeId
+                     WHERE ft.formTypeCode = 'COMPLAINT'
+                       AND e.departmentId = ?
+                       AND YEAR(fr.startDate) = ?
+                       AND MONTH(fr.startDate) = ?
+                       AND fr.status IN (0, 1)
+                     """;
+        try (Connection conn = dbContext.getConnection(); PreparedStatement ps = conn.prepareStatement(SQL)) {
+            ps.setInt(1, departmentId);
+            ps.setInt(2, year);
+            ps.setInt(3, month);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next();
+            }
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Error checking pending complaints in department: " + departmentId, e);
+        }
+        return false;
+    }
+
     // Kiểm tra trùng ngày nghỉ
     public boolean hasOverlappingLeave(int employeeId, Date startDate, Date endDate) {
         String SQL = """
@@ -596,7 +648,7 @@ public class FormRequestDAO {
             + "fr.status, fr.approverId, fr.approverNote, fr.approvedAt, "
             + "fr.attachmentUrl, fr.attachmentName, fr.createdAt, fr.updatedAt, "
             + "fr.targetDepartmentId, fr.targetRoleId, "
-            + "dp.fullName AS dependentName, dp.relationship AS dependentRelationship, dp.dateOfBirth AS dependentDob, dp.taxCode AS dependentTaxCode, "
+            + "fr.dependentName, fr.dependentRelationship, fr.dependentDob, fr.dependentTaxCode, "
             + "e.employeeCode, u.fullName, "
             + "d.departmentId, d.departmentName, "
             + "ft.formTypeName, ft.formTypeCode, "
@@ -611,8 +663,7 @@ public class FormRequestDAO {
             + "LEFT JOIN Employees ea ON fr.approverId  = ea.employeeId "
             + "LEFT JOIN Users ua     ON ea.userId       = ua.userId "
             + "LEFT JOIN Departments td ON fr.targetDepartmentId = td.departmentId "
-            + "LEFT JOIN Roles tr       ON fr.targetRoleId       = tr.roleId "
-            + "LEFT JOIN dependents dp  ON fr.formId             = dp.formId ";
+            + "LEFT JOIN Roles tr       ON fr.targetRoleId       = tr.roleId ";
 
     /**
      * Map ResultSet thành đúng subtype DTO dựa vào formTypeCode.

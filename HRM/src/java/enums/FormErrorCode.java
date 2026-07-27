@@ -25,6 +25,8 @@ public enum FormErrorCode {
     COMPLAINT_PERIOD_MISMATCH,
     END_TIME_BEFORE_START_TIME,
     OVERLAPPING_COMPLAINT,
+    ATTENDANCE_PERIOD_CLOSED,
+    DEADLINE_EXCEEDED,
 
     // Transfer
     SAME_DEPARTMENT,
@@ -37,6 +39,7 @@ public enum FormErrorCode {
 
     // Dependent
     TAX_CODE_ALREADY_USED,
+    DUPLICATE_DEPENDENT,
 
     // File upload
     INVALID_FILE_TYPE,

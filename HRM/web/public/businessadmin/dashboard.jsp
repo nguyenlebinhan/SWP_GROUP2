@@ -338,10 +338,6 @@
                                 <span><i class="fa-solid fa-sliders text-blue"></i> Lương</span>
                                 <span class="pending-count">${pendingPayrollConfigCount}</span>
                             </a>
-                            <a href="${pageContext.request.contextPath}/v1/businessadmin/forms?status=0" class="pending-row" title="Đơn khác (chuyển đơn vị/thăng-giáng chức)">
-                                <span><i class="fa-solid fa-file-lines text-purple"></i> Khác</span>
-                                <span class="pending-count">${pendingOtherFormsCount}</span>
-                            </a>
                         </div>
                     </div>
                 </div>

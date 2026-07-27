@@ -136,6 +136,18 @@
                             <div class="info-label">Phòng ban muốn chuyển đến</div>
                             <div class="info-value text-primary fw-bold">${form.targetDepartmentName}</div>
                         </div>
+                        <div class="col-md-6">
+                            <div class="info-label">Vai trò (Role) mới</div>
+                            <div class="info-value text-primary fw-bold">${not empty form.targetRoleName ? form.targetRoleName : 'Chưa xác định'}</div>
+                        </div>
+                    </div>
+                </c:if>
+                <c:if test="${form.formTypeCode eq 'PROMOTION_DEMOTION'}">
+                    <div class="row mt-3">
+                        <div class="col-md-6">
+                            <div class="info-label">Vai trò (Role) đề xuất</div>
+                            <div class="info-value text-primary fw-bold">${form.targetRoleName}</div>
+                        </div>
                     </div>
                 </c:if>
                 <c:if test="${form.formTypeCode eq 'COMPLAINT'}">
@@ -204,7 +216,7 @@
                         </c:choose>
                     </div>
                 </c:if>
-                <c:if test="${form.status == 0 and form.formTypeCode eq 'DEPENDENT' and isHrStaff}">
+                <c:if test="${((form.status == 1 and form.formTypeCode eq 'COMPLAINT') or (form.status == 0 and (form.formTypeCode eq 'DEPENDENT' or form.formTypeCode eq 'TRANSFER' or form.formTypeCode eq 'PROMOTION_DEMOTION'))) and isHrStaff}">
                     <hr class="my-4">
                     <h5 class="mb-3 text-primary"><i class="fa-solid fa-user-tie me-2"></i>Duyệt (HR)</h5>
                     <form method="post">
@@ -215,11 +227,11 @@
                                       placeholder="Nhập lý do duyệt hoặc từ chối..."></textarea>
                         </div>
                         <div class="d-flex justify-content-end gap-2">
-                            <button type="submit" formaction="${pageContext.request.contextPath}/v1/employee/forms/dependent/reject" class="btn btn-danger px-4">
-                                <i class="fa-solid fa-xmark me-1"></i> Từ chối
+                            <button type="submit" formaction="${pageContext.request.contextPath}/v1/employee/forms/hr-reject" class="btn btn-danger px-4">
+                                <i class="fa-solid fa-xmark me-1"></i> Từ chối (HR)
                             </button>
-                            <button type="submit" formaction="${pageContext.request.contextPath}/v1/employee/forms/dependent/approve" class="btn btn-primary px-4">
-                                <i class="fa-solid fa-check-double me-1"></i> Duyệt
+                            <button type="submit" formaction="${pageContext.request.contextPath}/v1/employee/forms/hr-approve" class="btn btn-primary px-4">
+                                <i class="fa-solid fa-check-double me-1"></i> Hoàn tất Duyệt (HR)
                             </button>
                         </div>
                     </form>

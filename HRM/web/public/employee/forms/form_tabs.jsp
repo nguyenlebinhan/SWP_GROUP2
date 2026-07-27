@@ -26,4 +26,10 @@
             Đăng ký người phụ thuộc
         </a>
     </li>
+    <li class="nav-item">
+        <a class="nav-link ${param.active == 'promotion' ? 'active' : ''}"
+           href="${pageContext.request.contextPath}/v1/employee/forms/promotion/new">
+            Đơn Thăng / Giáng Chức
+        </a>
+    </li>
 </ul>
