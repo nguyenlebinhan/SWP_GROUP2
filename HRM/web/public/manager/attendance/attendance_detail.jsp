@@ -190,7 +190,13 @@
             var isOtDay = otDays.includes(day);
             var html = '<div class="d">' + day + '</div>';
 
-            if (record) {
+            if (dow >= 5) {
+                cell.classList.add('off-day');
+                html += '<div class="st cl6">Cuối tuần</div>';
+                if (isOtDay) {
+                    html += '<div class="mt-1"><span class="badge bg-warning text-dark px-2 py-1">OT</span></div>';
+                }
+            } else if (record) {
                 var hasIn = record.timeIn && record.timeIn.length === 5 && record.timeIn !== '00:00';
                 var hasOut = record.timeOut && record.timeOut.length === 5 && record.timeOut !== '00:00';
 

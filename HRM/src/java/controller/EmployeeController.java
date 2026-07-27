@@ -3124,8 +3124,13 @@ public class EmployeeController extends HttpServlet {
         String taxCode = trimToNull(request.getParameter("taxCode"));
         String reason = trimToNull(request.getParameter("note"));
 
-        if (fullName == null || relationship == null || rawDateOfBirth == null) {
-            request.setAttribute("error", "Vui lòng nhập tên, quan hệ và ngày sinh người phụ thuộc.");
+        if (fullName == null || relationship == null || rawDateOfBirth == null || taxCode == null) {
+            request.setAttribute("error", "Vui lòng nhập đầy đủ tên, quan hệ, ngày sinh và mã số thuế người phụ thuộc.");
+            displayDependentForm(request, response, user);
+            return;
+        }
+        if (!taxCode.matches("\\d+")) {
+            request.setAttribute("error", "Mã số thuế chỉ được nhập số.");
             displayDependentForm(request, response, user);
             return;
         }
