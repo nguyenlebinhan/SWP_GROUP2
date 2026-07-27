@@ -124,9 +124,6 @@
                                     </td>
                                     <td>
                                         <span class="badge-status status-${req.status}">${req.statusLabel}</span>
-                                        <c:if test="${req.status == 2}">
-                                            <div class="small text-danger mt-1">Lý do: ${req.approverNote}</div>
-                                        </c:if>
                                     </td>
                                     <td>
                                         <c:choose>
