@@ -503,6 +503,47 @@ public class EmployeeDAO {
         return false;
     }
 
+    public boolean removeAsManager(int managerEmployeeId) {
+        LOGGER.log(Level.INFO, "Removing employeeId={0} as manager from Departments and Employees", managerEmployeeId);
+        String sqlDept = "UPDATE Departments SET managerId = NULL WHERE managerId = ?";
+        String sqlEmp = "UPDATE Employees SET managerId = NULL WHERE managerId = ?";
+        Connection conn = null;
+        try {
+            conn = dbContext.getConnection();
+            conn.setAutoCommit(false);
+
+            try (PreparedStatement ps = conn.prepareStatement(sqlDept)) {
+                ps.setInt(1, managerEmployeeId);
+                ps.executeUpdate();
+            }
+
+            try (PreparedStatement ps = conn.prepareStatement(sqlEmp)) {
+                ps.setInt(1, managerEmployeeId);
+                ps.executeUpdate();
+            }
+
+            conn.commit();
+            return true;
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Cannot remove manager role for employeeId: " + managerEmployeeId, e);
+            if (conn != null) {
+                try {
+                    conn.rollback();
+                } catch (SQLException ignored) {
+                }
+            }
+        } finally {
+            if (conn != null) {
+                try {
+                    conn.setAutoCommit(true);
+                    conn.close();
+                } catch (SQLException ignored) {
+                }
+            }
+        }
+        return false;
+    }
+
     public boolean setEmployeeManager(int employeeId, int managerEmployeeId) {
         String SQL = "UPDATE Employees SET managerId = ? WHERE employeeId = ?";
         try (Connection conn = dbContext.getConnection(); PreparedStatement ps = conn.prepareStatement(SQL)) {
@@ -580,6 +621,7 @@ public class EmployeeDAO {
         LOGGER.log(Level.INFO, "Reassigning employeeId={0} to departmentId={1}",
                 new Object[]{employeeId, newDepartmentId});
         String clearOldDeptManager = "UPDATE Departments SET managerId = NULL WHERE managerId = ?";
+        String clearSubordinates = "UPDATE Employees SET managerId = NULL WHERE managerId = ?";
         String updateEmp = "UPDATE Employees SET departmentId = ?, positionId = ?, managerId = NULL WHERE employeeId = ?";
         Connection conn = null;
         try {
@@ -587,6 +629,10 @@ public class EmployeeDAO {
             conn.setAutoCommit(false);
 
             try (PreparedStatement ps = conn.prepareStatement(clearOldDeptManager)) {
+                ps.setInt(1, employeeId);
+                ps.executeUpdate();
+            }
+            try (PreparedStatement ps = conn.prepareStatement(clearSubordinates)) {
                 ps.setInt(1, employeeId);
                 ps.executeUpdate();
             }
