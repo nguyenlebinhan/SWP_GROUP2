@@ -69,15 +69,13 @@ public class AttendanceService {
         return workingDaysBetween(LocalDate.of(year, month, 1),
                 LocalDate.of(year, month, 1).withDayOfMonth(LocalDate.of(year, month, 1).lengthOfMonth()));
     }
+    
 
-    public int workingDaysBetween(Date startDate, Date endDate) {
-        if (startDate == null || endDate == null) {
+
+    private int workingDaysBetween(LocalDate start, LocalDate end) {  
+        if (start == null || end == null) {
             return 0;
         }
-        return workingDaysBetween(startDate.toLocalDate(), endDate.toLocalDate());
-    }
-
-    private int workingDaysBetween(LocalDate start, LocalDate end) {
         LocalDate cursor = start;
         int count = 0;
         while (!cursor.isAfter(end)) {
@@ -139,8 +137,6 @@ public class AttendanceService {
                         summary.incrementPaidLeaveDays();
                         summary.incrementPaidWorkingDays();
                     } else if (status == 2 || status == 3 || status == 7) {
-                        // status 7 (quên chấm công): coi như vắng không phép cho tới khi
-                        // khiếu nại được duyệt và cập nhật lại thành status 0 (PRESENT).
                         summary.incrementUnauthorizedAbsentDays();
                     }
                 }

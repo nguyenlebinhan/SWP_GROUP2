@@ -133,7 +133,7 @@ public class DBInitializer {
                 + "employeeId INT PRIMARY KEY AUTO_INCREMENT,"
                 + "employeeCode VARCHAR(50) NOT NULL UNIQUE,"
                 + "userId INT NOT NULL,"
-                + "departmentId INT NULL," // NULL = chưa phân công phòng ban (gán sau qua assign-department)
+                + "departmentId INT NULL,"
                 + "positionId INT NULL," // NULL = chưa phân công vị trí
                 + "phoneNumber VARCHAR(20),"
                 + "skills NVARCHAR(255),"
@@ -731,8 +731,6 @@ public class DBInitializer {
                 insertPermission(conn, "VIEW_OWN_CONTRACT", "Xem hợp đồng của mình", "Quyền xem hợp đồng và lịch sử hợp đồng của chính mình");
                 insertPermission(conn, "VIEW_ALL_CONTRACTS", "Xem tất cả hợp đồng", "Quyền xem lịch sử hợp đồng của nhân viên");
                 insertPermission(conn, "EDIT_DEPARTMENTS", "Chỉnh sửa phòng ban", "Quyền chỉnh sửa phòng ban ");
-                insertPermission(conn, "ASSIGN_DEPARTMENT", "Gán nhân viên vào phòng ban", "Quyền gán nhân viên vào phòng ban");
-                insertPermission(conn, "UNASSIGN_DEPARTMENT", "Xóa gán phòng ban nhân viên", "Quyền xóa gán nhân viên sang phòng ban khác");
                 insertPermission(conn, "ADD_DEPARTMENT", "Thêm phòng ban", "Quyền thêm phòng ban");
                 insertPermission(conn, "VIEW_DEPARTMENT_ATTENDANCE", "Xem chấm công phòng ban", "Quyền xem dashboard chấm công của phòng ban mình quản lý (Manager)");
                 insertPermission(conn, "VIEW_ALL_ATTENDANCE", "Xem toàn bộ chấm công", "Quyền xem dashboard chấm công của tất cả phòng ban trong toàn công ty (HR)");
@@ -748,6 +746,7 @@ public class DBInitializer {
 
             }
             insertPermission(conn, "CONFIG_PAYROLL", "Cấu hình lương", "Quyền cấu hình lương và gửi yêu cầu duyệt");
+            removeLegacyDepartmentAssignmentPermissions(conn);
 
             if (countRows(conn, "Positions") == 0) {
                 insertPosition(conn, "Thực tập sinh", 1, "Sinh viên thực tập tại công ty");
@@ -1141,6 +1140,16 @@ public class DBInitializer {
             ps.setString(2, name);
             ps.setNString(3, description);
             ps.executeUpdate();
+        }
+    }
+
+    private void removeLegacyDepartmentAssignmentPermissions(Connection conn) throws SQLException {
+        String codes = "'ASSIGN_DEPARTMENT', 'UNASSIGN_DEPARTMENT', 'REASSIGN_DEPARTMENT'";
+        try (Statement stmt = conn.createStatement()) {
+            stmt.executeUpdate("DELETE rp FROM Role_Permissions rp "
+                    + "JOIN Permissions p ON p.permissionId = rp.permissionId "
+                    + "WHERE p.permissionCode IN (" + codes + ")");
+            stmt.executeUpdate("DELETE FROM Permissions WHERE permissionCode IN (" + codes + ")");
         }
     }
 

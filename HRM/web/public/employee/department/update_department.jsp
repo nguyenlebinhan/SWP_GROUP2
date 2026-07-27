@@ -234,7 +234,7 @@
                                 </c:forEach>
                             </div>
                             <span class="hint" style="margin-top:8px;">
-                                Để trống = phòng ban nhận mọi vai trò. Nếu tick, chỉ nhân viên có vai trò được chọn mới được phân công vào phòng này.
+                                Để trống = phòng ban nhận mọi vai trò. Nếu tick, chỉ nhân viên có vai trò được chọn mới có thể thuyên chuyển vào phòng này.
                             </span>
                         </c:otherwise>
                     </c:choose>

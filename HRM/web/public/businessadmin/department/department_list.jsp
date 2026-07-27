@@ -224,26 +224,6 @@
                                            class="btn btn-unassign me-1" style="color:#475569;border-color:#cbd5e1;">
                                             Sửa
                                         </a>
-                                        <c:if test="${dept.status == 1}">
-                                            <a href="${pageContext.request.contextPath}/v1/businessadmin/department/assign?id=${dept.departmentId}"
-                                               class="btn btn-assign me-1">
-                                                
-                                                <c:choose>
-                                                    <c:when test="${not empty managerMap[dept.departmentId]}">Đổi</c:when>
-                                                    <c:otherwise>Assign</c:otherwise>
-                                                </c:choose>
-                                            </a>
-                                            <c:if test="${not empty managerMap[dept.departmentId]}">
-                                                <button type="button"
-                                                        class="btn btn-unassign"
-                                                        onclick="confirmUnassign(${dept.departmentId}, '${dept.departmentName}')">
-                                                    Gỡ
-                                                </button>
-                                            </c:if>
-                                        </c:if>
-                                        <c:if test="${dept.status != 1}">
-                                            <span class="text-muted" style="font-size:12px;">—</span>
-                                        </c:if>
                                     </td>
                                 </tr>
                             </c:forEach>
@@ -255,43 +235,6 @@
     </div>
 </div>
 
-<%-- Form ẩn để POST unassign --%>
-<form id="unassignForm" method="post" action="${pageContext.request.contextPath}/v1/businessadmin/department/unassign">
-    <input type="hidden" name="departmentId" id="unassignDeptId" />
-</form>
-
-<%-- Modal xác nhận unassign --%>
-<div class="modal fade" id="unassignModal" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content" style="border-radius:16px;border:none;">
-            <div class="modal-body p-4 text-center">
-                <div style="width:60px;height:60px;background:#fee2e2;border-radius:50%;margin:0 auto 16px;display:flex;align-items:center;justify-content:center;">
-                    
-                </div>
-                <h5 class="fw-bold mb-2">Xác nhận gỡ Manager</h5>
-                <p class="text-muted mb-0" id="unassignModalMsg">Bạn có chắc muốn gỡ manager khỏi phòng ban này?</p>
-            </div>
-            <div class="modal-footer border-0 justify-content-center pb-4 gap-2">
-                <button type="button" class="btn btn-light px-4" data-bs-dismiss="modal">Hủy</button>
-                <button type="button" class="btn btn-danger px-4 fw-semibold" id="confirmUnassignBtn">
-                    Gỡ Manager
-                </button>
-            </div>
-        </div>
-    </div>
-</div>
-
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-<script>
-    function confirmUnassign(deptId, deptName) {
-        document.getElementById('unassignDeptId').value = deptId;
-        document.getElementById('unassignModalMsg').textContent =
-            'Bạn có chắc muốn gỡ manager khỏi phòng ban "' + deptName + '"?';
-        document.getElementById('confirmUnassignBtn').onclick = function () {
-            document.getElementById('unassignForm').submit();
-        };
-        new bootstrap.Modal(document.getElementById('unassignModal')).show();
-    }
-</script>
 </body>
 </html>

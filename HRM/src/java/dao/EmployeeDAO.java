@@ -18,7 +18,6 @@ import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import model.Employee;
-import model.User;
 import dto.EmployeeDTO;
 import dto.EmployeeDetailDTO;
 
@@ -403,181 +402,12 @@ public class EmployeeDAO {
         }
     }
 
-    public List<User> getEmployees(int userId) {
-        List<User> list = new ArrayList<>();
-        String SQL = "SELECT u.userId, u.username, u.email, u.password, u.fullName, u.dob, "
-                + "u.gender, u.address, r.roleName, u.isTemporaryPassword, u.isActive "
-                + "FROM Users u "
-                + "JOIN Roles r ON r.roleId = u.roleId "
-                + "JOIN Employees e on e.userId = u.userId "
-                + "WHERE e.departmentId IS NULL "
-                + "AND r.roleId NOT IN (1,2)  AND u.userId != ? "
-                + "ORDER BY u.fullName ";
-        try (Connection conn = dbContext.getConnection(); PreparedStatement ps = conn.prepareStatement(SQL)) {
-            ps.setInt(1, userId);
-            try (ResultSet rs = ps.executeQuery()) {
-                while (rs.next()) {
-                    list.add(new User(
-                            rs.getInt("userId"),
-                            rs.getString("username"),
-                            rs.getString("email"),
-                            rs.getString("password"),
-                            rs.getNString("fullName"),
-                            rs.getString("dob"),
-                            rs.getNString("gender"),
-                            rs.getString("address"),
-                            rs.getString("roleName"),
-                            rs.getBoolean("isTemporaryPassword"),
-                            rs.getInt("isActive")));
-                }
-            }
-        } catch (SQLException e) {
-            LOGGER.log(Level.SEVERE, "Cannot retrieve users not yet employees", e);
-        }
-        return list;
-    }
-
-    public boolean assignEmployeeToDepartment(int userId, int departmentId, int positionId,
-            String phoneNumber, String skills,
-            String experience, String degree) {
-        LOGGER.log(Level.INFO, "Assigning userId={0} to departmentId={1}", new Object[]{userId, departmentId});
-        String SQL = "UPDATE Employees SET departmentId = ?, positionId = ?, phoneNumber = ?, "
-                + "skills = ?, experience = ?, degree = ?, status = 1 "
-                + "WHERE userId = ? AND departmentId IS NULL";
-        try (Connection conn = dbContext.getConnection(); PreparedStatement ps = conn.prepareStatement(SQL)) {
-            ps.setInt(1, departmentId);
-            ps.setInt(2, positionId);
-            ps.setString(3, phoneNumber);
-            ps.setString(4, skills);
-            ps.setString(5, experience);
-            ps.setString(6, degree);
-            ps.setInt(7, userId);
-            return ps.executeUpdate() > 0;
-        } catch (SQLException e) {
-            LOGGER.log(Level.SEVERE, "Cannot assign employee to department for userId: " + userId, e);
-        }
-        return false;
-    }
-
-    public boolean assignAsManager(int departmentId, int managerEmployeeId) {
-        LOGGER.log(Level.INFO, "Setting employeeId={0} as manager of departmentId={1}",
-                new Object[]{managerEmployeeId, departmentId});
-        String sqlDept = "UPDATE Departments SET managerId = ? WHERE departmentId = ?";
-        String sqlEmp = "UPDATE Employees SET managerId = ? WHERE departmentId = ? ";
-        Connection conn = null;
-        try {
-            conn = dbContext.getConnection();
-            conn.setAutoCommit(false);
-
-            try (PreparedStatement ps = conn.prepareStatement(sqlDept)) {
-                ps.setInt(1, managerEmployeeId);
-                ps.setInt(2, departmentId);
-                ps.executeUpdate();
-            }
-
-            try (PreparedStatement ps = conn.prepareStatement(sqlEmp)) {
-                ps.setInt(1, managerEmployeeId);
-                ps.setInt(2, departmentId);
-                ps.executeUpdate();
-            }
-
-            conn.commit();
-            return true;
-        } catch (SQLException e) {
-            LOGGER.log(Level.SEVERE, "Cannot assign manager for departmentId: " + departmentId, e);
-            if (conn != null) {
-                try {
-                    conn.rollback();
-                } catch (SQLException ignored) {
-                }
-            }
-        } finally {
-            if (conn != null) {
-                try {
-                    conn.setAutoCommit(true);
-                    conn.close();
-                } catch (SQLException ignored) {
-                }
-            }
-        }
-        return false;
-    }
-
-    public boolean setEmployeeManager(int employeeId, int managerEmployeeId) {
-        String SQL = "UPDATE Employees SET managerId = ? WHERE employeeId = ?";
-        try (Connection conn = dbContext.getConnection(); PreparedStatement ps = conn.prepareStatement(SQL)) {
-            ps.setInt(1, managerEmployeeId);
-            ps.setInt(2, employeeId);
-            return ps.executeUpdate() > 0;
-        } catch (SQLException e) {
-            LOGGER.log(Level.SEVERE, "Cannot set managerId for employeeId: " + employeeId, e);
-        }
-        return false;
-    }
-
-    public boolean updateEmployeeDepartment(int employeeId, int departmentId) {
-        String SQL = "UPDATE Employees SET departmentId = ? WHERE employeeId = ?";
-        try (Connection conn = dbContext.getConnection(); PreparedStatement ps = conn.prepareStatement(SQL)) {
-            ps.setInt(1, departmentId);
-            ps.setInt(2, employeeId);
-            return ps.executeUpdate() > 0;
-        } catch (SQLException e) {
-            LOGGER.log(Level.SEVERE, "Cannot update department for employeeId: " + employeeId, e);
-        }
-        return false;
-    }
-
-    public boolean updateEmployeePosition(int employeeId, int positionId) {
-        String SQL = "UPDATE Employees SET positionId = ? WHERE employeeId = ?";
-        try (Connection conn = dbContext.getConnection(); PreparedStatement ps = conn.prepareStatement(SQL)) {
-            ps.setInt(1, positionId);
-            ps.setInt(2, employeeId);
-            return ps.executeUpdate() > 0;
-        } catch (SQLException e) {
-            LOGGER.log(Level.SEVERE, "Cannot update position for employeeId: " + employeeId, e);
-        }
-        return false;
-    }
-
     /**
-     * Danh sách nhân viên đã được phân công phòng ban (departmentId IS NOT
-     * NULL), dùng cho màn hình chuyển phòng ban. Loại trừ chính người đang đăng
-     * nhập.
+     * Áp dụng thay đổi phòng ban sau khi đơn thuyên chuyển đã được duyệt.
+     * Đồng thời gỡ các liên kết quản lý thuộc phòng ban cũ.
      */
-    public List<EmployeeDetailDTO> getAssignedEmployees(int userId) {
-        List<EmployeeDetailDTO> list = new ArrayList<>();
-        String SQL = "SELECT e.employeeId, e.employeeCode, e.userId, e.departmentId, e.positionId, "
-                + "e.phoneNumber, e.skills, e.experience, e.degree, e.dependentCount, e.unionMember, e.status, e.managerId, "
-                + "u.fullName, u.email, u.username, "
-                + "d.departmentName, p.positionName, r.roleName "
-                + "FROM Employees e "
-                + "JOIN Users u ON u.userId = e.userId "
-                + "LEFT JOIN Departments d ON d.departmentId = e.departmentId "
-                + "LEFT JOIN Positions p ON p.positionId = e.positionId "
-                + "JOIN Roles r ON r.roleId = u.roleId "
-                + "WHERE e.userId != ? AND e.departmentId IS NOT NULL "
-                + "ORDER BY u.fullName";
-        try (Connection conn = dbContext.getConnection(); PreparedStatement ps = conn.prepareStatement(SQL)) {
-            ps.setInt(1, userId);
-            try (ResultSet rs = ps.executeQuery()) {
-                while (rs.next()) {
-                    list.add(mapEmployeeDTO(rs));
-                }
-            }
-        } catch (SQLException e) {
-            LOGGER.log(Level.SEVERE, "Cannot retrieve assigned employees", e);
-        }
-        return list;
-    }
-
-    /**
-     * Chuyển nhân viên sang phòng ban / vị trí mới trong 1 transaction. Đồng
-     * thời gỡ liên kết quản lý cũ: nếu nhân viên đang là trưởng phòng cũ thì
-     * xóa managerId của phòng đó, và reset managerId của chính nhân viên (sẽ
-     * được thiết lập lại theo phòng ban mới ở tầng controller).
-     */
-    public boolean reassignEmployeeDepartment(int employeeId, int newDepartmentId, int newPositionId) {
-        LOGGER.log(Level.INFO, "Reassigning employeeId={0} to departmentId={1}",
+    public boolean applyApprovedDepartmentTransfer(int employeeId, int newDepartmentId, int newPositionId) {
+        LOGGER.log(Level.INFO, "Applying approved department transfer: employeeId={0}, departmentId={1}",
                 new Object[]{employeeId, newDepartmentId});
         String clearOldDeptManager = "UPDATE Departments SET managerId = NULL WHERE managerId = ?";
         String updateEmp = "UPDATE Employees SET departmentId = ?, positionId = ?, managerId = NULL WHERE employeeId = ?";
@@ -602,7 +432,7 @@ public class EmployeeDAO {
             conn.commit();
             return rowsAffected > 0;
         } catch (SQLException e) {
-            LOGGER.log(Level.SEVERE, "Cannot reassign department for employeeId: " + employeeId, e);
+            LOGGER.log(Level.SEVERE, "Cannot apply approved department transfer for employeeId: " + employeeId, e);
             if (conn != null) {
                 try {
                     conn.rollback();
@@ -635,56 +465,6 @@ public class EmployeeDAO {
         }
     }
 
-    public boolean unassignEmployee(int employeeId) {
-        LOGGER.log(Level.INFO, "Unassigning employeeId={0} from department", employeeId);
-        // Nếu nhân viên này đang là quản lý của 1 phòng → gỡ luôn khỏi phòng đó.
-        String clearDeptManager = "UPDATE Departments SET managerId = NULL WHERE managerId = ?";
-        // Cấp dưới đang trỏ tới người này làm quản lý → gỡ liên kết để tránh treo.
-        String clearSubordinates = "UPDATE Employees SET managerId = NULL WHERE managerId = ?";
-        String clearEmp = "UPDATE Employees SET departmentId = NULL, positionId = NULL, managerId = NULL "
-                + "WHERE employeeId = ? AND departmentId IS NOT NULL";
-        Connection conn = null;
-        try {
-            conn = dbContext.getConnection();
-            conn.setAutoCommit(false);
-
-            try (PreparedStatement ps = conn.prepareStatement(clearDeptManager)) {
-                ps.setInt(1, employeeId);
-                ps.executeUpdate();
-            }
-            try (PreparedStatement ps = conn.prepareStatement(clearSubordinates)) {
-                ps.setInt(1, employeeId);
-                ps.executeUpdate();
-            }
-
-            int rowsAffected;
-            try (PreparedStatement ps = conn.prepareStatement(clearEmp)) {
-                ps.setInt(1, employeeId);
-                rowsAffected = ps.executeUpdate();
-            }
-
-            conn.commit();
-            return rowsAffected > 0;
-        } catch (SQLException e) {
-            LOGGER.log(Level.SEVERE, "Cannot unassign employeeId: " + employeeId, e);
-            if (conn != null) {
-                try {
-                    conn.rollback();
-                } catch (SQLException ignored) {
-                }
-            }
-        } finally {
-            if (conn != null) {
-                try {
-                    conn.setAutoCommit(true);
-                    conn.close();
-                } catch (SQLException ignored) {
-                }
-            }
-        }
-        return false;
-    }
-
     public boolean isUserAlreadyEmployee(int userId) {
         String SQL = "SELECT 1 FROM Employees WHERE userId = ? LIMIT 1";
         try (Connection conn = dbContext.getConnection(); PreparedStatement ps = conn.prepareStatement(SQL)) {
@@ -694,19 +474,6 @@ public class EmployeeDAO {
             }
         } catch (SQLException e) {
             LOGGER.log(Level.SEVERE, "Cannot check if user is employee", e);
-        }
-        return false;
-    }
-
-    public boolean isUserAssignedToDepartment(int userId) {
-        String SQL = "SELECT 1 FROM Employees WHERE userId = ? AND departmentId IS NOT NULL LIMIT 1";
-        try (Connection conn = dbContext.getConnection(); PreparedStatement ps = conn.prepareStatement(SQL)) {
-            ps.setInt(1, userId);
-            try (ResultSet rs = ps.executeQuery()) {
-                return rs.next();
-            }
-        } catch (SQLException e) {
-            LOGGER.log(Level.SEVERE, "Cannot check if user is assigned to a department", e);
         }
         return false;
     }

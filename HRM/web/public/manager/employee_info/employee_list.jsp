@@ -122,12 +122,6 @@
                 <h5 class="fw-bold mb-1">Nhân viên</h5>
                 <span class="text-muted small">${employees.size()} nhân viên</span>
             </div>
-            <c:if test="${canAssignDept}">
-                <a href="${pageContext.request.contextPath}/v1/manager/department/assign"
-                   class="btn btn-primary btn-sm" style="background:#2563eb;border:none">
-                    <i class="fa-solid fa-plus me-1"></i> Phân công nhân viên
-                </a>
-            </c:if>
         </div>
 
         <div class="search-bar" id="filterBar">

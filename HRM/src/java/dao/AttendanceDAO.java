@@ -387,9 +387,9 @@ public class AttendanceDAO {
     public List<Attendance> getDailyAttendance(int employeeId, int month, int year) {
         List<Attendance> list = new ArrayList<>();
         String sql =
-                "SELECT a.attendanceId, a.attendanceCode, a.employeeId, a.workDate, a.timeIn, a.timeOut, "
+                "SELECT a.attendanceId, a.attendanceCode, a.employeeId, a.employeeCode, a.fullName, a.workDate, a.timeIn, a.timeOut, "
                 + "a.hoursWorked, a.attendanceStatus, a.fileId, "
-                + "a.employeeCode, a.departmentId, a.fullName, a.departmentName, a.positionId, a.positionName, "
+                + "a.departmentId, a.departmentName, a.positionId, a.positionName, "
                 + "EXISTS(SELECT 1 FROM Attendance_Adjustment_History h WHERE h.attendanceId = a.attendanceId) AS isEdited "
                 + "FROM Attendance a "
                 + "WHERE a.employeeId = ? AND MONTH(a.workDate) = ? AND YEAR(a.workDate) = ? "
