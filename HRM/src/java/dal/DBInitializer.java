@@ -668,6 +668,7 @@ public class DBInitializer {
                         case "Payroll_Settings":  createTablePayrollSettings(conn);   break;
                         case "Payroll_Deduction_Rules": createTablePayrollDeductionRules(conn); break;
                         case "Payroll_Tax_Brackets": createTablePayrollTaxBrackets(conn); break;
+                        case "Payroll_Allowance_Types": createTablePayrollAllowanceTypes(conn); break;
                         case "Payroll_Config_Change_Requests": createTablePayrollConfigChangeRequests(conn); break;
                         case "Audit_Logs":        createTableAuditLogs(conn);         break;
                         default: LOGGER.log(Level.WARNING, "Unknown table: {0}", table);     break;
