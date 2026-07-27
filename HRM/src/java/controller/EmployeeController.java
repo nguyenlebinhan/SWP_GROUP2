@@ -2458,8 +2458,11 @@ public class EmployeeController extends HttpServlet {
         request.setAttribute("filterDay", day);
         request.setAttribute("filterMonth", month);
         request.setAttribute("filterYear", year);
-        request.setAttribute("forms",
-                formRequestDAO.getAllFormRequestsByEmployeeId(em.getEmployeeId(), day, month, year));
+        java.util.List<dto.FormRequestDTO> forms = formRequestDAO.getAllFormRequestsByEmployeeId(em.getEmployeeId(), day, month, year)
+                .stream()
+                .filter(f -> !"OVERTIME".equals(f.getFormTypeCode()))
+                .collect(java.util.stream.Collectors.toList());
+        request.setAttribute("forms", forms);
         request.getRequestDispatcher("/public/employee/forms/my_form_list.jsp").forward(request, response);
     }
 
@@ -2476,7 +2479,11 @@ public class EmployeeController extends HttpServlet {
         Integer year = parseIntOrNull(request.getParameter("year"));
         String keyword = request.getParameter("keyword");
 
-        request.setAttribute("forms", formRequestDAO.getAllFormRequests(day, month, year, keyword));
+        java.util.List<dto.FormRequestDTO> forms = formRequestDAO.getAllFormRequests(day, month, year, keyword)
+                .stream()
+                .filter(f -> !"OVERTIME".equals(f.getFormTypeCode()))
+                .collect(java.util.stream.Collectors.toList());
+        request.setAttribute("forms", forms);
         request.setAttribute("departments", departmentDAO.getAllActiveDepartments());
 
         request.setAttribute("filterDay", day);
