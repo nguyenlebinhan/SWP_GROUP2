@@ -501,11 +501,6 @@ public class EmployeeController extends HttpServlet {
 
     private void displayContractDetail(HttpServletRequest request, HttpServletResponse response,
             User user) throws ServletException, IOException {
-        if (!isHrStaff(user) || !hasPermission(user, "ADD_EMPLOYMENT_CONTRACT")) {
-            request.getSession().setAttribute("error", "Bạn không có quyền xem hợp đồng.");
-            response.sendRedirect(request.getContextPath() + "/v1/employee/dashboard");
-            return;
-        }
 
         EmploymentContract contract = getContractFromRequest(request);
         if (contract == null) {
@@ -576,11 +571,6 @@ public class EmployeeController extends HttpServlet {
 
     private void displayMyContracts(HttpServletRequest request, HttpServletResponse response,
             User user) throws ServletException, IOException {
-        if (!isHrStaff(user)) {
-            request.getSession().setAttribute("error", "Bạn không có quyền xem hợp đồng.");
-            response.sendRedirect(request.getContextPath() + "/v1/employee/dashboard");
-            return;
-        }
 
         Set<String> perms = getPermissions(user);
         request.getSession().setAttribute("userPermissions", perms);
@@ -619,11 +609,6 @@ public class EmployeeController extends HttpServlet {
 
     private void downloadSignedContract(HttpServletRequest request, HttpServletResponse response,
             User user) throws IOException {
-        if (!isHrStaff(user) || !hasPermission(user, "ADD_EMPLOYMENT_CONTRACT")) {
-            response.sendError(403, "Bạn không có quyền tải hợp đồng.");
-            return;
-        }
-
         String idParam = request.getParameter("contractId");
         if (idParam == null || idParam.isEmpty()) {
             response.sendError(400, "Missing contract id");
