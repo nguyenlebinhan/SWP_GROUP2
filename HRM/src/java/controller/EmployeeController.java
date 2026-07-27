@@ -1861,7 +1861,7 @@ public class EmployeeController extends HttpServlet {
 
         LOGGER.log(Level.INFO, "Employee assigned: userId={0} → deptId={1}", new Object[]{userId, departmentId});
 
-        request.getSession().setAttribute("success", "Phân cóng nhân viên vào phòng ban thành cóng.");
+        request.getSession().setAttribute("success", "Phân công nhân viên vào phòng ban thành công.");
         response.sendRedirect(request.getContextPath() + "/v1/employee/dashboard");
     }
 
@@ -1986,7 +1986,7 @@ public class EmployeeController extends HttpServlet {
         }
 
         LOGGER.log(Level.INFO, "Department created: code={0} by userId={1}", new Object[]{code, user.getUserId()});
-        request.getSession().setAttribute("success", "Thêm phòng ban \"" + name.trim() + "\" thành cóng.");
+        request.getSession().setAttribute("success", "Thêm phòng ban \"" + name.trim() + "\" thành công.");
         response.sendRedirect(request.getContextPath() + "/v1/employee/dashboard");
     }
 
@@ -2094,7 +2094,7 @@ public class EmployeeController extends HttpServlet {
         boolean success = departmentDAO.updateDepartmentInfo(dept);
         if (success) {
             departmentDAO.replaceDepartmentRoles(deptId, roleIds);
-            request.getSession().setAttribute("success", "Cập nhật phòng ban thành cóng.");
+            request.getSession().setAttribute("success", "Cập nhật phòng ban thành công.");
             response.sendRedirect(request.getContextPath() + "/v1/employee/department/list");
         } else {
             request.getSession().setAttribute("error", "Cập nhật thất bại. Vui lêng thử lại.");
@@ -2168,7 +2168,7 @@ public class EmployeeController extends HttpServlet {
 
         boolean success = employeeDAO.updateEmployee(emp);
         if (success) {
-            request.getSession().setAttribute("success", "Cập nhật thông tin nhân viên thành cóng.");
+            request.getSession().setAttribute("success", "Cập nhật thông tin nhân viên thành công.");
             response.sendRedirect(request.getContextPath() + "/v1/employee/employee-detail?id=" + employeeId);
         } else {
             request.getSession().setAttribute("error", "Cập nhật nhân viên thất bại. Vui lêng thử lại.");
@@ -2374,7 +2374,7 @@ public class EmployeeController extends HttpServlet {
                 isBlank(degree) ? null : degree.trim());
 
         if (success) {
-            request.getSession().setAttribute("success", "Cập nhật hồ sơ thành cóng.");
+            request.getSession().setAttribute("success", "Cập nhật hồ sơ thành công.");
         } else {
             request.getSession().setAttribute("error", "Cập nhật thất bại. Vui lêng thử lại.");
         }
@@ -2429,7 +2429,7 @@ public class EmployeeController extends HttpServlet {
                 isBlank(degree) ? null : degree.trim());
 
         if (statusSuccess || profileSuccess) {
-            request.getSession().setAttribute("success", "Cập nhật nhân viên thành cóng.");
+            request.getSession().setAttribute("success", "Cập nhật nhân viên thành công.");
         } else {
             request.getSession().setAttribute("error", "Cập nhật thất bại hoặc không có thay đổi.");
         }

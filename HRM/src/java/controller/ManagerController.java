@@ -1753,7 +1753,7 @@ public class ManagerController extends HttpServlet {
 
         LOGGER.log(Level.INFO, "Employee assigned: userId={0} → deptId={1}", new Object[]{userId, departmentId});
 
-        request.getSession().setAttribute("success", "Phân cóng nhân viên vào phòng ban thành cóng.");
+        request.getSession().setAttribute("success", "Phân công nhân viên vào phòng ban thành công.");
         response.sendRedirect(request.getContextPath() + "/v1/manager/dashboard");
     }
 
@@ -1862,7 +1862,7 @@ public class ManagerController extends HttpServlet {
         }
 
         LOGGER.log(Level.INFO, "Department created: code={0} by userId={1}", new Object[]{code, user.getUserId()});
-        request.getSession().setAttribute("success", "Thêm phòng ban \"" + name.trim() + "\" thành cóng.");
+        request.getSession().setAttribute("success", "Thêm phòng ban \"" + name.trim() + "\" thành công.");
         response.sendRedirect(request.getContextPath() + "/v1/manager/dashboard");
     }
 
@@ -1957,7 +1957,7 @@ public class ManagerController extends HttpServlet {
         boolean success = departmentDAO.updateDepartmentInfo(dept);
         if (success) {
             departmentDAO.replaceDepartmentRoles(deptId, roleIds);
-            request.getSession().setAttribute("success", "Cập nhật phòng ban thành cóng.");
+            request.getSession().setAttribute("success", "Cập nhật phòng ban thành công.");
             response.sendRedirect(request.getContextPath() + "/v1/manager/department/list");
         } else {
             request.getSession().setAttribute("error", "Cập nhật thất bại. Vui lêng thử lại.");
@@ -2025,7 +2025,7 @@ public class ManagerController extends HttpServlet {
 
         boolean success = employeeDAO.updateEmployee(emp);
         if (success) {
-            request.getSession().setAttribute("success", "Cập nhật thông tin nhân viên thành cóng.");
+            request.getSession().setAttribute("success", "Cập nhật thông tin nhân viên thành công.");
             response.sendRedirect(request.getContextPath() + "/v1/manager/employee/detail?id=" + employeeId);
         } else {
             request.getSession().setAttribute("error", "Cập nhật nhân viên thất bại. Vui lêng thử lại.");
@@ -2862,6 +2862,12 @@ public class ManagerController extends HttpServlet {
                 return;
             }
 
+            if ("OVERTIME".equals(form.getFormTypeCode())) {
+                request.getSession().setAttribute("error", "Đơn tăng ca chỉ do Business Admin duyệt.");
+                response.sendRedirect(request.getContextPath() + "/v1/manager/forms/dept-forms");
+                return;
+            }
+
             if ("LEAVE".equals(form.getFormTypeCode())) {
                 LeaveFormRequestDTO leaveForm = (LeaveFormRequestDTO) form;
                 int year = (leaveForm.getStartDate() != null)
@@ -3076,6 +3082,12 @@ public class ManagerController extends HttpServlet {
                 response.sendRedirect(request.getContextPath() + "/v1/manager/forms/dept-forms");
                 return;
             }
+            FormRequestDTO form = formRequestDAO.getFormRequestById(formId);
+            if (form != null && "OVERTIME".equals(form.getFormTypeCode())) {
+                request.getSession().setAttribute("error", "Đơn tăng ca chỉ do Business Admin từ chối.");
+                response.sendRedirect(request.getContextPath() + "/v1/manager/forms/dept-forms");
+                return;
+            }
             boolean ok = formRequestDAO.rejectFormRequest(formId, me.getEmployeeId(), note);
             request.getSession().setAttribute(ok ? "success" : "error",
                     ok ? "Từ chối đơn thành công." : "Từ chối đơn thất bại.");
@@ -3264,7 +3276,7 @@ public class ManagerController extends HttpServlet {
         );
 
         if (success) {
-            request.getSession().setAttribute("success", "Cập nhật hồ sơ thành cóng.");
+            request.getSession().setAttribute("success", "Cập nhật hồ sơ thành công.");
         } else {
             request.getSession().setAttribute("error", "Cập nhật thất bại. Vui lêng thử lại.");
         }
@@ -3313,7 +3325,7 @@ public class ManagerController extends HttpServlet {
         );
 
         if (statusSuccess || profileSuccess) {
-            request.getSession().setAttribute("success", "Cập nhật nhân viên thành cóng.");
+            request.getSession().setAttribute("success", "Cập nhật nhân viên thành công.");
         } else {
             request.getSession().setAttribute("error", "Cập nhật thất bại hoặc không có thay đổi.");
         }
@@ -3432,7 +3444,7 @@ public class ManagerController extends HttpServlet {
                 if (fr != null && fr.getEmployeeId() == manager.getEmployeeId() && fr.getStatus() == 0) {
                     boolean success = formRequestDAO.updateFormRequest(formId, 3, manager.getEmployeeId(), "Đã hủy bởi người tạo");
                     if (success) {
-                        request.getSession().setAttribute("success", "Đã hủy đơn OT thành cóng.");
+                        request.getSession().setAttribute("success", "Đã hủy đơn OT thành công.");
                     } else {
                         request.getSession().setAttribute("error", "Lỗi khi cập nhật trạng thái hủy đơn. Vui lòng thử lại.");
                     }
@@ -3554,7 +3566,7 @@ public class ManagerController extends HttpServlet {
                 boolean detailAdded = overtimeDAO.addOvertimeDetails(newFormId, otDate, startTime, endTime, dayType);
                 boolean assigneesAdded = overtimeDAO.addOvertimeAssignees(newFormId, assigneeIds);
                 if (detailAdded && assigneesAdded) {
-                    request.getSession().setAttribute("success", "Đã tạo đơn Overtime thành cóng (Mã đơn: " + formCode + ") và gửi chờ duyệt.");
+                    request.getSession().setAttribute("success", "Đã tạo đơn Overtime thành công (Mã đơn: " + formCode + ") và gửi chờ duyệt.");
                     response.sendRedirect(request.getContextPath() + "/v1/manager/forms/ot-requests");
                     return;
                 }
