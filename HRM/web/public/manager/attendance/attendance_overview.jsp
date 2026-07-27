@@ -128,20 +128,42 @@
                 <i class="fa-solid fa-lock me-2"></i>Quy trình chốt bảng chấm công — Tháng ${selectedMonth}/${selectedYear}
             </h5>
             <div class="d-flex gap-2 flex-wrap">
-                <c:if test="${canManagerConfirm}">
-                    <form method="post" action="${pageContext.request.contextPath}/v1/manager/attendance/confirm"
-                          onsubmit="return confirm('Xác nhận chốt bảng chấm công của phòng? Sau khi chốt sẽ không sửa được nữa.');">
-                        <input type="hidden" name="month" value="${selectedMonth}">
-                        <input type="hidden" name="year" value="${selectedYear}">
-                        <input type="hidden" name="departmentId" value="${closingDepartmentId}">
-                        <button class="btn btn-warning"><i class="fa-solid fa-check me-1"></i>Chốt bảng chấm công phòng</button>
-                    </form>
-                </c:if>
-                <c:if test="${closingConfirmed}">
-                    <span class="badge bg-success align-self-center p-2">
-                        <i class="fa-solid fa-circle-check me-1"></i>Phòng đã chốt
-                    </span>
-                </c:if>
+                <c:choose>
+                    <c:when test="${hrClosingMode}">
+                        <c:if test="${closingCanOpen}">
+                            <form method="post" action="${pageContext.request.contextPath}/v1/manager/attendance/close-period"
+                                  onsubmit="return confirm('Đóng kỳ và gửi bảng chấm công cho trưởng các phòng ban để chốt?');">
+                                <input type="hidden" name="month" value="${selectedMonth}">
+                                <input type="hidden" name="year" value="${selectedYear}">
+                                <button class="btn btn-warning">
+                                    <i class="fa-solid fa-paper-plane me-1"></i>Đóng kỳ &amp; gửi trưởng phòng
+                                </button>
+                            </form>
+                        </c:if>
+                        <c:if test="${closingCanFinalize}">
+                            <form method="post" action="${pageContext.request.contextPath}/v1/manager/attendance/finalize"
+                                  onsubmit="return confirm('Chốt cuối toàn bộ bảng chấm công kỳ này? Sau khi chốt sẽ có thể tính lương và không thể sửa chấm công.');">
+                                <input type="hidden" name="month" value="${selectedMonth}">
+                                <input type="hidden" name="year" value="${selectedYear}">
+                                <button class="btn btn-success">
+                                    <i class="fa-solid fa-circle-check me-1"></i>HR chốt cuối
+                                </button>
+                            </form>
+                        </c:if>
+                        <c:if test="${closingLocked}">
+                            <span class="badge bg-success align-self-center p-2">
+                                <i class="fa-solid fa-circle-check me-1"></i>Đã chốt — được tính lương
+                            </span>
+                        </c:if>
+                    </c:when>
+                    <c:otherwise>
+                        <c:if test="${closingConfirmed}">
+                            <span class="badge bg-success align-self-center p-2">
+                                <i class="fa-solid fa-circle-check me-1"></i>Phòng đã chốt
+                            </span>
+                        </c:if>
+                    </c:otherwise>
+                </c:choose>
             </div>
         </div>
         <div class="table-responsive">
