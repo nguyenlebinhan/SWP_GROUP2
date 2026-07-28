@@ -105,7 +105,7 @@
                                     </td>
                                     <td>${f.createdAt}</td>
                                     <td>
-                                        <a href="${pageContext.request.contextPath}/v1/employee/forms/detail?id=${f.formId}"
+                                        <a href="${pageContext.request.contextPath}/v1/manager/forms/detail?id=${f.formId}"
                                            class="btn btn-sm btn-outline-primary">Xem chi tiết</a>
                                     </td>
                                 </tr>

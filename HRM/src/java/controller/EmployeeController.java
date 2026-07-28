@@ -3096,8 +3096,8 @@ public class EmployeeController extends HttpServlet {
             throws ServletException, IOException {
         List<Department> depts = departmentDAO.getAllActiveDepartments();
         Map<Integer, String> deptRolesMap = new HashMap<>();
-        for (model.Department d : depts) {
-            java.util.List<String> rNames = departmentDAO.getAllowedRoleNames(d.getDepartmentId());
+        for (Department d : depts) {
+            List<String> rNames = departmentDAO.getAllowedRoleNames(d.getDepartmentId());
             deptRolesMap.put(d.getDepartmentId(), String.join(",", rNames));
         }
         request.setAttribute("departments", depts);
@@ -3111,9 +3111,9 @@ public class EmployeeController extends HttpServlet {
             throws ServletException, IOException {
         EmployeeDetailDTO me = employeeDAO.getEmployeeByUserId(user.getUserId());
         boolean isHr = isHrStaff(user);
-        java.util.List<EmployeeDetailDTO> employees;
-        java.util.List<model.Role> roles;
-        java.util.List<model.Department> departments;
+        List<EmployeeDetailDTO> employees;
+        List<Role> roles;
+        List<Department> departments;
 
         if (!isHr && me != null) {
             employees = new java.util.ArrayList<>();
@@ -3122,9 +3122,9 @@ public class EmployeeController extends HttpServlet {
             model.Department myDept = departmentDAO.getDepartmentById(me.getDepartmentId());
             if (myDept != null) departments.add(myDept);
 
-            java.util.List<String> allowedRoleNames = departmentDAO.getAllowedRoleNames(me.getDepartmentId());
-            java.util.List<model.Role> allRoles = roleDAO.getAllActiveRoles();
-            roles = new java.util.ArrayList<>();
+            List<String> allowedRoleNames = departmentDAO.getAllowedRoleNames(me.getDepartmentId());
+            List<Role> allRoles = roleDAO.getAllActiveRoles();
+            roles = new ArrayList<>();
             for (model.Role r : allRoles) {
                 if (allowedRoleNames.contains(r.getRoleName())) {
                     roles.add(r);
