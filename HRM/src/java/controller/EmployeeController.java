@@ -3136,7 +3136,7 @@ public class EmployeeController extends HttpServlet {
             roles = roleDAO.getAllActiveRoles();
         }
 
-        java.util.Map<Integer, String> deptRolesMap = new java.util.HashMap<>();
+        Map<Integer, String> deptRolesMap = new HashMap<>();
         for (model.Department d : departments) {
             java.util.List<String> rNames = departmentDAO.getAllowedRoleNames(d.getDepartmentId());
             deptRolesMap.put(d.getDepartmentId(), String.join(",", rNames));

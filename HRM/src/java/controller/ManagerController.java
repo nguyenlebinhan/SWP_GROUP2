@@ -2941,7 +2941,7 @@ public class ManagerController extends HttpServlet {
                 LeaveFormRequestDTO leaveForm = (LeaveFormRequestDTO) form;
                 int year = (leaveForm.getStartDate() != null)
                         ? leaveForm.getStartDate().toLocalDate().getYear()
-                        : java.time.LocalDate.now().getYear();
+                        : LocalDate.now().getYear();
                 LeaveBalance lb = formService.getOrInitializeLeaveBalance(form.getEmployeeId(), year);
                 if (lb != null) {
                     int remaining = lb.getRemainingDays();
@@ -3140,8 +3140,6 @@ public class ManagerController extends HttpServlet {
             hoursWorked = standardHours;
         }
 
-        // Dùng lại logic tính status từ AttendanceImportService (WORK_START = 08:00)
-        // để đảm bảo nhất quán với luồng import chấm công
         AttendanceStatus resolvedStatus;
         try {
             resolvedStatus = importService.resolveStatus(
@@ -3177,7 +3175,6 @@ public class ManagerController extends HttpServlet {
                 return false;
             }
         } else {
-            // Không INSERT mới — chỉ báo warning
             LOGGER.log(Level.WARNING,
                     "Complaint formId={0}: no attendance record found for employeeId={1} on date={2}. Attendance NOT inserted.",
                     new Object[]{form.getFormId(), form.getEmployeeId(), compForm.getStartDate()});

@@ -19,9 +19,11 @@ import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.sql.Date;
 import java.sql.Time;
+import java.util.List;
 import model.ComplaintFormRequest;
 import model.Department;
 import model.DependentFormRequest;
+import model.EmploymentContract;
 import model.FormOperationalResult;
 import model.LeaveBalance;
 import model.LeaveFormRequest;
@@ -61,21 +63,21 @@ public class FormService {
     }
 
     public int calculateEntitledLeaveDays(int employeeId, int targetYear) {
-        model.EmploymentContract activeContract = employmentContractDAO.getActiveOrPendingContract(employeeId);
+        EmploymentContract activeContract = employmentContractDAO.getActiveOrPendingContract(employeeId);
         if (activeContract == null || activeContract.getStatus() != enums.ContractStatus.ACTIVE) {
             return 0;
         }
-        java.time.LocalDate earliestStartDate = null;
+        LocalDate earliestStartDate = null;
         try {
-            java.util.List<model.EmploymentContract> contracts = employmentContractDAO.getAllContractsByEmployeeId(employeeId);
-            for (model.EmploymentContract c : contracts) {
+            List<EmploymentContract> contracts = employmentContractDAO.getAllContractsByEmployeeId(employeeId);
+            for (EmploymentContract c : contracts) {
                 if (c.getEffectiveDate() != null) {
-                    java.time.LocalDate eff = c.getEffectiveDate().toLocalDate();
+                    LocalDate eff = c.getEffectiveDate().toLocalDate();
                     if (earliestStartDate == null || eff.isBefore(earliestStartDate)) {
                         earliestStartDate = eff;
                     }
                 } else if (c.getSignedDate() != null) {
-                    java.time.LocalDate sig = c.getSignedDate().toLocalDate();
+                    LocalDate sig = c.getSignedDate().toLocalDate();
                     if (earliestStartDate == null || sig.isBefore(earliestStartDate)) {
                         earliestStartDate = sig;
                     }
@@ -102,7 +104,7 @@ public class FormService {
 
         // Những năm còn lại (tính 12 ngày chuẩn + thưởng thâm niên 5 năm + 1 ngày)
         int baseDays = 12;
-        java.time.LocalDate referenceDate = (targetYear == java.time.LocalDate.now().getYear()) ? java.time.LocalDate.now() : java.time.LocalDate.of(targetYear, 12, 31);
+        LocalDate referenceDate = (targetYear == java.time.LocalDate.now().getYear()) ? java.time.LocalDate.now() : java.time.LocalDate.of(targetYear, 12, 31);
         long yearsOfService = java.time.temporal.ChronoUnit.YEARS.between(earliestStartDate, referenceDate);
         if (yearsOfService > 0) {
             int seniorityBonus = (int) (yearsOfService / 5);
