@@ -725,8 +725,9 @@ public class DBInitializer {
                 insertPermission(conn, "REJECT_CONTRACT", "Từ chối hợp đồng", "Quyền từ chối hợp đồng lao động");
                 insertPermission(conn, "TERMINATE_CONTRACT", "Chấm dứt hợp đồng", "Quyền chấm dứt sớm hợp đồng đang hiệu lực");
                 insertPermission(conn, "VIEW_PENDING_CONTRACTS", "Xem hợp đồng chờ duyệt", "Quyền xem danh sách hợp đồng đang chờ duyệt");
-                insertPermission(conn, "VIEW_OWN_CONTRACT", "Xem hợp đồng của mình", "Quyền xem hợp đồng và lịch sử hợp đồng của chính mình");
+
                 insertPermission(conn, "VIEW_ALL_CONTRACTS", "Xem tất cả hợp đồng", "Quyền xem lịch sử hợp đồng của nhân viên");
+                insertPermission(conn, "VIEW_DEPARTMENTS", "Xem phòng ban", "Quyền xem danh sách phòng ban");
                 insertPermission(conn, "EDIT_DEPARTMENTS", "Chỉnh sửa phòng ban", "Quyền chỉnh sửa phòng ban ");
                 insertPermission(conn, "ASSIGN_DEPARTMENT", "Gán nhân viên vào phòng ban", "Quyền gán nhân viên vào phòng ban");
                 insertPermission(conn, "UNASSIGN_DEPARTMENT", "Xóa gán phòng ban nhân viên", "Quyền xóa gán nhân viên sang phòng ban khác");
@@ -850,16 +851,63 @@ public class DBInitializer {
             ensureRolePermission(conn, "HRManager", "TERMINATE_CONTRACT");
             ensureRolePermission(conn, "HRManager", "VIEW_PENDING_CONTRACTS");
             ensureRolePermission(conn, "HRManager", "VIEW_ALL_CONTRACTS");
-            ensureRolePermission(conn, "HRManager", "VIEW_OWN_CONTRACT");
+
             ensureRolePermission(conn, "HRManager", "VIEW_ALL_ATTENDANCE");
+            ensureRolePermission(conn, "HRManager", "VIEW_DEPARTMENT_ATTENDANCE");
+            ensureRolePermission(conn, "HRManager", "IMPORT_ATTENDANCE");
+            ensureRolePermission(conn, "HRManager", "EDIT_ATTENDANCE");
+
+            ensureRolePermission(conn, "HRManager", "CONFIG_PAYROLL");
+            ensureRolePermission(conn, "HRManager", "VIEW_ALL_SALARY");
+            ensureRolePermission(conn, "HRManager", "APPROVE_PAYROLL");
+            ensureRolePermission(conn, "HRManager", "EXPORT_PAYROLL");
+
+            ensureRolePermission(conn, "HRManager", "VIEW_EMPLOYEES");
+            ensureRolePermission(conn, "HRManager", "ADD_EMPLOYEE");
+            ensureRolePermission(conn, "HRManager", "EDIT_EMPLOYEE");
+            ensureRolePermission(conn, "HRManager", "VIEW_DEPARTMENT_EMPLOYEES_DETAIL");
+
+            ensureRolePermission(conn, "HRManager", "VIEW_ALL_FORMS");
+            ensureRolePermission(conn, "HRManager", "VIEW_ALL_DEPT_FORMS");
+            
+            ensureRolePermission(conn, "HRManager", "VIEW_DEPARTMENTS");
+            ensureRolePermission(conn, "HRManager", "EDIT_DEPARTMENTS");
+            ensureRolePermission(conn, "HRManager", "ASSIGN_DEPARTMENT");
+            ensureRolePermission(conn, "HRManager", "UNASSIGN_DEPARTMENT");
+            ensureRolePermission(conn, "HRManager", "ADD_DEPARTMENT");
 
             ensureRolePermission(conn, "HREmployee", "ADD_EMPLOYMENT_CONTRACT");
-            ensureRolePermission(conn, "HREmployee", "VIEW_OWN_CONTRACT");
+            ensureRolePermission(conn, "HREmployee", "APPROVE_CONTRACT");
+            ensureRolePermission(conn, "HREmployee", "REJECT_CONTRACT");
+            ensureRolePermission(conn, "HREmployee", "TERMINATE_CONTRACT");
+            ensureRolePermission(conn, "HREmployee", "VIEW_PENDING_CONTRACTS");
+            ensureRolePermission(conn, "HREmployee", "VIEW_ALL_CONTRACTS");
 
-            ensureRolePermission(conn, "ITManager", "VIEW_OWN_CONTRACT");
-            ensureRolePermission(conn, "ITEmployee", "VIEW_OWN_CONTRACT");
-            ensureRolePermission(conn, "FIManager", "VIEW_OWN_CONTRACT");
-            ensureRolePermission(conn, "FIEmployee", "VIEW_OWN_CONTRACT");
+            ensureRolePermission(conn, "HREmployee", "VIEW_ALL_ATTENDANCE");
+            ensureRolePermission(conn, "HREmployee", "VIEW_DEPARTMENT_ATTENDANCE");
+            ensureRolePermission(conn, "HREmployee", "IMPORT_ATTENDANCE");
+            ensureRolePermission(conn, "HREmployee", "EDIT_ATTENDANCE");
+
+            ensureRolePermission(conn, "HREmployee", "CONFIG_PAYROLL");
+            ensureRolePermission(conn, "HREmployee", "VIEW_ALL_SALARY");
+            ensureRolePermission(conn, "HREmployee", "APPROVE_PAYROLL");
+            ensureRolePermission(conn, "HREmployee", "EXPORT_PAYROLL");
+
+            ensureRolePermission(conn, "HREmployee", "VIEW_EMPLOYEES");
+            ensureRolePermission(conn, "HREmployee", "ADD_EMPLOYEE");
+            ensureRolePermission(conn, "HREmployee", "EDIT_EMPLOYEE");
+            ensureRolePermission(conn, "HREmployee", "VIEW_DEPARTMENT_EMPLOYEES_DETAIL");
+
+            ensureRolePermission(conn, "HREmployee", "VIEW_ALL_FORMS");
+            ensureRolePermission(conn, "HREmployee", "VIEW_ALL_DEPT_FORMS");
+
+            ensureRolePermission(conn, "HREmployee", "VIEW_DEPARTMENTS");
+            ensureRolePermission(conn, "HREmployee", "EDIT_DEPARTMENTS");
+            ensureRolePermission(conn, "HREmployee", "ASSIGN_DEPARTMENT");
+            ensureRolePermission(conn, "HREmployee", "UNASSIGN_DEPARTMENT");
+            ensureRolePermission(conn, "HREmployee", "ADD_DEPARTMENT");
+
+
 
             List<String> systemAdminPermissions = Arrays.asList(
                     "EDIT_USER",
@@ -875,10 +923,28 @@ public class DBInitializer {
             for (String permissionCode : systemAdminPermissions) {
                 ensureRolePermission(conn, "SystemAdmin", permissionCode);
             }
-            String businessAdminSql = "SELECT permissionCode FROM Permissions WHERE permissionCode NOT IN (?, ?, ?, ?, ?, ?, ?, ?, ?)";
-            try (PreparedStatement ps = conn.prepareStatement(businessAdminSql)) {
-                for (int i = 0; i < systemAdminPermissions.size(); i++) {
-                    ps.setString(i + 1, systemAdminPermissions.get(i));
+            List<String> excludedForBA = new java.util.ArrayList<>(systemAdminPermissions);
+            excludedForBA.addAll(Arrays.asList(
+                    "ADD_EMPLOYMENT_CONTRACT", "APPROVE_CONTRACT", "REJECT_CONTRACT", "TERMINATE_CONTRACT",
+                    "VIEW_PENDING_CONTRACTS", "VIEW_ALL_CONTRACTS",
+                    "IMPORT_ATTENDANCE", "EDIT_ATTENDANCE", "CONFIG_PAYROLL", "VIEW_ALL_SALARY", "EXPORT_PAYROLL",
+                    "ADD_EMPLOYEE", "EDIT_EMPLOYEE", "VIEW_DEPARTMENT_EMPLOYEES_DETAIL",
+                    "EDIT_DEPARTMENTS",
+                    "ASSIGN_DEPARTMENT", "UNASSIGN_DEPARTMENT", "ADD_DEPARTMENT"
+            ));
+
+            StringBuilder sqlBuilder = new StringBuilder("SELECT permissionCode FROM Permissions WHERE permissionCode NOT IN (");
+            for (int i = 0; i < excludedForBA.size(); i++) {
+                sqlBuilder.append("?");
+                if (i < excludedForBA.size() - 1) {
+                    sqlBuilder.append(", ");
+                }
+            }
+            sqlBuilder.append(")");
+
+            try (PreparedStatement ps = conn.prepareStatement(sqlBuilder.toString())) {
+                for (int i = 0; i < excludedForBA.size(); i++) {
+                    ps.setString(i + 1, excludedForBA.get(i));
                 }
                 try (ResultSet rs = ps.executeQuery()) {
                     while (rs.next()) {

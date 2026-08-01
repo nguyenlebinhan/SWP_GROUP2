@@ -144,11 +144,9 @@
 
     </c:if>
 
-    <c:if test="${sessionScope.userPermissions.contains('VIEW_OWN_CONTRACT')}">
         <a href="${pageContext.request.contextPath}/v1/manager/contract/self">
             Hợp đồng của tôi
         </a>
-    </c:if>
 
     <c:if test="${sessionScope.userPermissions.contains('VIEW_ALL_CONTRACTS')}">
         <a href="${pageContext.request.contextPath}/v1/manager/contract/status">

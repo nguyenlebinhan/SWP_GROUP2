@@ -68,7 +68,7 @@
             <div>
                 <h5 class="fw-bold mb-1">Nhân viên</h5>
                 <span class="text-muted small">${employees.size()} nhân viên</span>
-            </div>         
+            </div>
         </div>
 
         <c:choose>
