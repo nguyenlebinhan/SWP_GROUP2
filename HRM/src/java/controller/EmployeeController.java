@@ -2601,7 +2601,8 @@ public class EmployeeController extends HttpServlet {
             return;
         }
         if (!dependentDAO.canRequestStatusChange(dependentId, me.getEmployeeId())) {
-            request.getSession().setAttribute("error", "Người phụ thuộc không hợp lệ hoặc đang có yêu cầu chờ duyệt.");
+            request.getSession().setAttribute("error", "Người phụ thuộc không hợp "
+                    + "lệ hoặc đang có yêu cầu chờ duyệt.");
             response.sendRedirect(request.getContextPath() + "/v1/employee/my-profile");
             return;
         }
@@ -3073,7 +3074,7 @@ public class EmployeeController extends HttpServlet {
         request.setAttribute("canViewOwnSalary", true);
         request.setAttribute("canViewAllSalary", perms.contains("VIEW_ALL_SALARY"));
         request.setAttribute("canExportPayroll", perms.contains("EXPORT_PAYROLL"));
-        request.setAttribute("canViewOwnContract", perms.contains("VIEW_OWN_CONTRACT"));
+        request.setAttribute("canViewOwnContract", true);
         request.setAttribute("canViewAllContracts", perms.contains("VIEW_ALL_CONTRACTS"));
         request.setAttribute("canViewPendingContracts", perms.contains("VIEW_PENDING_CONTRACTS"));
         request.setAttribute("canApproveContract", isHrMgr);

@@ -286,7 +286,7 @@
                         <div class="row g-3 mb-2">
                             <c:forEach var="p" items="${allPermissions}">
                                 <c:if test="${p.permissionCode == 'ADD_EMPLOYMENT_CONTRACT' || p.permissionCode == 'VIEW_ALL_CONTRACTS' || 
-                                              p.permissionCode == 'VIEW_PENDING_CONTRACTS' || p.permissionCode == 'VIEW_OWN_CONTRACT'}">
+                                              p.permissionCode == 'VIEW_PENDING_CONTRACTS'}">
                                     <div class="col-md-3">
                                         <label class="perm-card ${assignedPermissionIds.contains(p.permissionId) ? 'selected' : ''}">
                                             <input type="checkbox" name="permissionIds" value="${p.permissionId}" ${assignedPermissionIds.contains(p.permissionId) ? 'checked' : ''}/>
