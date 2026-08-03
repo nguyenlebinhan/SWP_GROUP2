@@ -195,32 +195,36 @@
                                                if (data.effectiveDate && data.endDate && data.contractType !== 'INDEFINITE') {
                                                    const start = new Date(data.effectiveDate);
                                                    const end = new Date(data.endDate);
-                                                   const diffYears = end.getFullYear() - start.getFullYear();
-                                                   const diffMonths = (diffYears * 12) + (end.getMonth() - start.getMonth());
+
+                                                   const diffDays = Math.round((end - start) / 86400000);
+
+                                                   const unitToDays = {DAY: 1, MONTH: 30, YEAR: 365};
 
                                                    const durSelect = document.getElementById('durationValue');
-                                                   let found = false;
+                                                   let best = null;
+                                                   let bestGap = Infinity;
+
                                                    for (let i = 0; i < durSelect.options.length; i++) {
                                                        const opt = durSelect.options[i];
-                                                       if (data.contractType === 'FIXED_TERM' && diffYears == opt.value) {
-                                                           durSelect.value = opt.value;
-                                                           document.getElementById('durationUnit').value = opt.dataset.unit || 'YEAR';
-                                                           found = true;
-                                                           break;
-                                                       } else if (data.contractType === 'PROBATION' && diffMonths == opt.value) {
-                                                           durSelect.value = opt.value;
-                                                           document.getElementById('durationUnit').value = opt.dataset.unit || 'DAY';
-                                                           found = true;
-                                                           break;
-                                                       } else if (data.contractType === 'INTERNSHIP' && diffMonths == opt.value) {
-                                                           durSelect.value = opt.value;
-                                                           document.getElementById('durationUnit').value = opt.dataset.unit || 'MONTH';
-                                                           found = true;
-                                                           break;
+                                                       if (!opt.value)
+                                                           continue;
+
+                                                       const optDays = Number(opt.value) * (unitToDays[opt.dataset.unit] || 1);
+                                                       const gap = Math.abs(diffDays - optDays);
+                                                       if (gap < bestGap) {
+                                                           bestGap = gap;
+                                                           best = opt;
                                                        }
                                                    }
-                                                   if (found) {
+
+                                                   if (best && bestGap <= 3) {
+                                                       durSelect.value = best.value;
+                                                       document.getElementById('durationUnit').value = best.dataset.unit || '';
                                                        durSelect.dispatchEvent(new Event('change'));
+                                                   } else {
+
+                                                       statusDiv.textContent = 'Không tìm thấy thời hạn khớp (' + diffDays + ' ngày), vui lòng chọn thủ công.';
+                                                       statusDiv.className = 'form-text text-warning';
                                                    }
                                                }
 
