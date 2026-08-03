@@ -309,17 +309,7 @@
                                                             </a>
                                                         </c:otherwise>
                                                     </c:choose>
-                                                    <c:choose>    
-                                                        <c:when test="${r.roleName == 'Admin' || r.roleCode == 'SA' || r.roleCode == 'BA'}">
-                                                            <!-- Đã có 1 nút bảo vệ ở trên -->
-                                                        </c:when>  
-                                                        <c:otherwise>
-                                                            <a href="${pageContext.request.contextPath}/v1/systemadmin/delete-role?id=${r.roleId}" class="btn-action btn-delete">
-                                                                Xóa
-                                                            </a>                                        
-                                                        </c:otherwise>
-
-                                                    </c:choose>
+                                                    
                                                 </div>
                                             </td>
                                         </tr>

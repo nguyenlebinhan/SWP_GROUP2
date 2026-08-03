@@ -458,11 +458,10 @@ public class ManagerController extends HttpServlet {
             deptTotalEmployees = departmentEmployees.size();
             int currentYear = java.time.LocalDate.now().getYear();
 
-            dao.LeaveBalanceDAO lbDAO = new dao.LeaveBalanceDAO();
             for (EmployeeDetailDTO emp : departmentEmployees) {
-                model.LeaveBalance lb = lbDAO.getLeaveBalance(emp.getEmployeeId(), currentYear);
+                model.LeaveBalance lb = formService.getOrInitializeLeaveBalance(emp.getEmployeeId(), currentYear);
                 if (lb != null) {
-                    leaveBalances.put(emp.getEmployeeId(), lb.getTotalAllowed() - lb.getUsedDays());
+                    leaveBalances.put(emp.getEmployeeId(), lb.getRemainingDays());
                 } else {
                     leaveBalances.put(emp.getEmployeeId(), 0);
                 }
@@ -2942,8 +2941,8 @@ public class ManagerController extends HttpServlet {
                 LeaveFormRequestDTO leaveForm = (LeaveFormRequestDTO) form;
                 int year = (leaveForm.getStartDate() != null)
                         ? leaveForm.getStartDate().toLocalDate().getYear()
-                        : java.time.LocalDate.now().getYear();
-                LeaveBalance lb = leaveBalanceDAO.getLeaveBalance(form.getEmployeeId(), year);
+                        : LocalDate.now().getYear();
+                LeaveBalance lb = formService.getOrInitializeLeaveBalance(form.getEmployeeId(), year);
                 if (lb != null) {
                     int remaining = lb.getRemainingDays();
                     if (leaveForm.getTotalDays() != null && leaveForm.getTotalDays() > remaining) {
@@ -2962,9 +2961,6 @@ public class ManagerController extends HttpServlet {
                             break;
                         case "COMPLAINT":
                             onManagerApproveComplaint(form, me);
-                            break;
-                        case "DEPENDENT":
-                            LOGGER.log(Level.INFO, "Manager approved dependent formId={0}, waiting for HR second approval.", form.getFormId());
                             break;
                         default:
                             break;
@@ -2985,7 +2981,7 @@ public class ManagerController extends HttpServlet {
             int year = (leaveForm.getStartDate() != null)
                     ? leaveForm.getStartDate().toLocalDate().getYear()
                     : java.time.LocalDate.now().getYear();
-            LeaveBalance lb = leaveBalanceDAO.getLeaveBalance(form.getEmployeeId(), year);
+            LeaveBalance lb = formService.getOrInitializeLeaveBalance(form.getEmployeeId(), year);
             if (lb != null && leaveForm.getTotalDays() != null) {
                 leaveBalanceDAO.updateUsedDays(form.getEmployeeId(), year, leaveForm.getTotalDays());
             }
@@ -3141,8 +3137,6 @@ public class ManagerController extends HttpServlet {
             hoursWorked = standardHours;
         }
 
-        // Dùng lại logic tính status từ AttendanceImportService (WORK_START = 08:00)
-        // để đảm bảo nhất quán với luồng import chấm công
         AttendanceStatus resolvedStatus;
         try {
             resolvedStatus = importService.resolveStatus(
@@ -3178,7 +3172,6 @@ public class ManagerController extends HttpServlet {
                 return false;
             }
         } else {
-            // Không INSERT mới — chỉ báo warning
             LOGGER.log(Level.WARNING,
                     "Complaint formId={0}: no attendance record found for employeeId={1} on date={2}. Attendance NOT inserted.",
                     new Object[]{form.getFormId(), form.getEmployeeId(), compForm.getStartDate()});
@@ -4020,6 +4013,12 @@ public class ManagerController extends HttpServlet {
 
     private void displayLeaveForm(HttpServletRequest request, HttpServletResponse response, User user)
             throws ServletException, IOException {
+        EmployeeDetailDTO me = employeeDAO.getEmployeeByUserId(user.getUserId());
+        if (me != null) {
+            int currentYear = java.time.LocalDate.now().getYear();
+            model.LeaveBalance lb = formService.getOrInitializeLeaveBalance(me.getEmployeeId(), currentYear);
+            request.setAttribute("remainingDays", lb != null ? lb.getRemainingDays() : 0);
+        }
         request.setAttribute("formAction",
                 request.getContextPath()
                 + (request.getRequestURI().contains("manager") ? "/v1/manager/forms/leave/submit"
@@ -4239,8 +4238,8 @@ public class ManagerController extends HttpServlet {
         }
 
         EmployeeDetailDTO me = employeeDAO.getEmployeeByUserId(user.getUserId());
-        if (me == null || me.getDepartmentId() <= 0) {
-            request.getSession().setAttribute("error", "Bạn chưa được phân công vào phòng ban nào.");
+        if (me == null) {
+            request.getSession().setAttribute("error", "Không tìm thấy thông tin nhân viên.");
             response.sendRedirect(request.getContextPath()
                     + (request.getRequestURI().contains("manager") ? "/v1/manager/forms/transfer/new"
                     : "/v1/employee/forms/transfer/new"));
