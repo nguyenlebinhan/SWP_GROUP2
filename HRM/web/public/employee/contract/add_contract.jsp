@@ -6,7 +6,7 @@
 <html lang="vi">
     <head>
         <meta charset="UTF-8"/>
-        <title>Thêm hợp đồng lao động - HRM</title>
+        <title>Nhập hợp đồng lao động - HRM</title>
         <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
         <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
         <style>
@@ -37,7 +37,7 @@
 
         <div class="main">
             <jsp:include page="/public/components/employeeTopBar.jsp">
-                <jsp:param name="title" value="Thêm hợp đồng lao động" />
+                <jsp:param name="title" value="Nhập hợp đồng lao động" />
                 <jsp:param name="backUrl" value="/v1/employee/dashboard" />
             </jsp:include>
 

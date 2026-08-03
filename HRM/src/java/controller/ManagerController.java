@@ -1372,7 +1372,7 @@ public class ManagerController extends HttpServlet {
     private void displayAddContractForm(HttpServletRequest request, HttpServletResponse response,
             User user) throws ServletException, IOException {
         if (!isHrStaff(user) || !hasPermission(user, "ADD_EMPLOYMENT_CONTRACT")) {
-            request.getSession().setAttribute("error", "Bạn không có quyền thêm hợp đồng lao động.");
+            request.getSession().setAttribute("error", "Bạn không có quyền nhập hợp đồng lao động.");
             response.sendRedirect(request.getContextPath() + "/v1/manager/dashboard");
             return;
         }
@@ -2092,7 +2092,7 @@ public class ManagerController extends HttpServlet {
             User user) throws ServletException, IOException {
 
         if (!isHrStaff(user) || !hasPermission(user, "ADD_EMPLOYMENT_CONTRACT")) {
-            request.getSession().setAttribute("error", "Bạn không có quyền thêm hợp đồng lao động.");
+            request.getSession().setAttribute("error", "Bạn không có quyền nhập hợp đồng lao động.");
             response.sendRedirect(request.getContextPath() + "/v1/manager/dashboard");
             return;
         }
@@ -2217,7 +2217,7 @@ public class ManagerController extends HttpServlet {
             boolean unionMember = request.getParameter("unionMember") != null;
             employeeDAO.updateUnionMember(contract.getEmployeeId(), unionMember);
 
-            request.getSession().setAttribute("success", "Thêm hợp đồng lao động thành công.");
+            request.getSession().setAttribute("success", "Nhập hợp đồng lao động thành công.");
             EmploymentContract createdContract = contractDAO.getLatestContractByEmployeeId(contract.getEmployeeId());
             if (createdContract != null) {
                 response.sendRedirect(request.getContextPath()
@@ -2226,7 +2226,7 @@ public class ManagerController extends HttpServlet {
                 response.sendRedirect(request.getContextPath() + "/v1/manager/contract/history");
             }
         } else {
-            request.setAttribute("error", "Thêm hợp đồng thất bại: " + result.getMessage());
+            request.setAttribute("error", "Nhập hợp đồng thất bại: " + result.getMessage());
             request.setAttribute("employees", employeeDAO.getAllEmployees());
             String newCode = contractService.generateNextContractCode();
             request.setAttribute("generatedCode", newCode);

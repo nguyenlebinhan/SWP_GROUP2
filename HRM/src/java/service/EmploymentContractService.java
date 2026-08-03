@@ -170,15 +170,15 @@ public class EmploymentContractService {
 
                 contractDAO.insertAuditLog(conn, contractId,
                         null, ContractStatus.PENDING_APPROVAL.name(),
-                        contract.getCreatedBy(), "Tạo hợp đồng");
+                        contract.getCreatedBy(), "Nhập hợp đồng");
 
                 conn.commit();
                 LOGGER.log(Level.INFO, "Contract created successfully for employee {0}, contractId={1}", new Object[]{contract.getEmployeeId(), contractId});
-                return new ContractOperationResult(true, null, "Tạo hợp đồng thành công.");
+                return new ContractOperationResult(true, null, "Nhập hợp đồng thành công.");
             } else {
                 conn.rollback();
                 return new ContractOperationResult(false,
-                        ContractErrorCode.DATABASE_ERROR.name(), "Không thể thêm hợp đồng vào database.");
+                        ContractErrorCode.DATABASE_ERROR.name(), "Không thể nhập hợp đồng vào database.");
             }
         } catch (SQLException e) {
             if (conn != null) try {
@@ -187,7 +187,7 @@ public class EmploymentContractService {
             }
             LOGGER.log(Level.SEVERE, "Database error during contract creation", e);
             return new ContractOperationResult(false,
-                    ContractErrorCode.DATABASE_ERROR.name(), "Lỗi hệ thống khi tạo hợp đồng: " + e.getMessage());
+                    ContractErrorCode.DATABASE_ERROR.name(), "Lỗi hệ thống khi nhập hợp đồng: " + e.getMessage());
         } finally {
             if (conn != null) try {
                 conn.close();

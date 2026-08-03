@@ -83,7 +83,7 @@
                         <i class="fa-solid fa-print me-1"></i>In hợp đồng
                     </a>
                     <a class="btn btn-primary btn-sm" href="${pageContext.request.contextPath}/v1/manager/contract/add?employeeId=${employee.employeeId}">
-                        <i class="fa-solid fa-file-contract me-1"></i>Thêm hợp đồng
+                        <i class="fa-solid fa-file-contract me-1"></i>Nhập hợp đồng
                     </a>
                 </c:if>
             </div>
