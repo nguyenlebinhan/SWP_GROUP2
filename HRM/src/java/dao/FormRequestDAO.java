@@ -490,7 +490,7 @@ public class FormRequestDAO {
             SQL.append(" AND YEAR(fr.createdAt) = ?");
             param.add(year);
         }
-        
+
         if (name != null && !name.trim().isEmpty()) {
             SQL.append(" AND u.fullName LIKE ?");
             param.add("%" + name.trim() + "%");

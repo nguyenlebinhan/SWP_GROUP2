@@ -2563,9 +2563,6 @@ public class EmployeeController extends HttpServlet {
             int currentYear = LocalDate.now().getYear();
             LeaveBalance lb = formService.getOrInitializeLeaveBalance(me.getEmployeeId(), currentYear);
             request.setAttribute("remainingDays", lb != null ? lb.getRemainingDays() : 0);
-            if (lb != null && lb.getTotalAllowed() <= 0) {
-                request.setAttribute("noContractWarning", "Bạn chưa có hợp đồng lao động hiệu lực nên chưa có ngày phép năm.");
-            }
         }
 
         request.getRequestDispatcher("/public/employee/forms/leave_form.jsp").forward(request, response);

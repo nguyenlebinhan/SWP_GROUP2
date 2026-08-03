@@ -2962,9 +2962,6 @@ public class ManagerController extends HttpServlet {
                         case "COMPLAINT":
                             onManagerApproveComplaint(form, me);
                             break;
-                        case "DEPENDENT":
-                            LOGGER.log(Level.INFO, "Manager approved dependent formId={0}, waiting for HR second approval.", form.getFormId());
-                            break;
                         default:
                             break;
                     }
@@ -4016,6 +4013,12 @@ public class ManagerController extends HttpServlet {
 
     private void displayLeaveForm(HttpServletRequest request, HttpServletResponse response, User user)
             throws ServletException, IOException {
+        EmployeeDetailDTO me = employeeDAO.getEmployeeByUserId(user.getUserId());
+        if (me != null) {
+            int currentYear = java.time.LocalDate.now().getYear();
+            model.LeaveBalance lb = formService.getOrInitializeLeaveBalance(me.getEmployeeId(), currentYear);
+            request.setAttribute("remainingDays", lb != null ? lb.getRemainingDays() : 0);
+        }
         request.setAttribute("formAction",
                 request.getContextPath()
                 + (request.getRequestURI().contains("manager") ? "/v1/manager/forms/leave/submit"
