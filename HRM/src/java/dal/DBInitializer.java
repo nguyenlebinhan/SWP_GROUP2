@@ -844,7 +844,38 @@ public class DBInitializer {
             }
 
             insertFormTypeIfAbsent(conn, "DEPENDENT", "Đăng ký người phụ thuộc");
+            ensureRolePermission(conn, "BusinessAdmin", "ADD_EMPLOYMENT_CONTRACT");
+            ensureRolePermission(conn, "BusinessAdmin", "APPROVE_CONTRACT");
+            ensureRolePermission(conn, "BusinessAdmin", "REJECT_CONTRACT");
+            ensureRolePermission(conn, "BusinessAdmin", "TERMINATE_CONTRACT");
+            ensureRolePermission(conn, "BusinessAdmin", "VIEW_PENDING_CONTRACTS");
+            ensureRolePermission(conn, "BusinessAdmin", "VIEW_ALL_CONTRACTS");
 
+            ensureRolePermission(conn, "BusinessAdmin", "VIEW_ALL_ATTENDANCE");
+            ensureRolePermission(conn, "BusinessAdmin", "VIEW_DEPARTMENT_ATTENDANCE");
+            ensureRolePermission(conn, "BusinessAdmin", "IMPORT_ATTENDANCE");
+            ensureRolePermission(conn, "BusinessAdmin", "EDIT_ATTENDANCE");
+
+            ensureRolePermission(conn, "BusinessAdmin", "CONFIG_PAYROLL");
+            ensureRolePermission(conn, "BusinessAdmin", "VIEW_ALL_SALARY");
+            ensureRolePermission(conn, "BusinessAdmin", "APPROVE_PAYROLL");
+            ensureRolePermission(conn, "BusinessAdmin", "EXPORT_PAYROLL");
+
+            ensureRolePermission(conn, "BusinessAdmin", "VIEW_EMPLOYEES");
+            ensureRolePermission(conn, "BusinessAdmin", "ADD_EMPLOYEE");
+            ensureRolePermission(conn, "BusinessAdmin", "EDIT_EMPLOYEE");
+            ensureRolePermission(conn, "BusinessAdmin", "VIEW_DEPARTMENT_EMPLOYEES_DETAIL");
+
+            ensureRolePermission(conn, "BusinessAdmin", "VIEW_ALL_FORMS");
+            ensureRolePermission(conn, "BusinessAdmin", "VIEW_ALL_DEPT_FORMS");
+            
+            ensureRolePermission(conn, "BusinessAdmin", "VIEW_DEPARTMENTS");
+            ensureRolePermission(conn, "BusinessAdmin", "EDIT_DEPARTMENTS");
+            ensureRolePermission(conn, "BusinessAdmin", "ASSIGN_DEPARTMENT");
+            ensureRolePermission(conn, "BusinessAdmin", "UNASSIGN_DEPARTMENT");
+            ensureRolePermission(conn, "BusinessAdmin", "ADD_DEPARTMENT");
+            
+            //
             ensureRolePermission(conn, "HRManager", "ADD_EMPLOYMENT_CONTRACT");
             ensureRolePermission(conn, "HRManager", "APPROVE_CONTRACT");
             ensureRolePermission(conn, "HRManager", "REJECT_CONTRACT");
@@ -875,7 +906,8 @@ public class DBInitializer {
             ensureRolePermission(conn, "HRManager", "ASSIGN_DEPARTMENT");
             ensureRolePermission(conn, "HRManager", "UNASSIGN_DEPARTMENT");
             ensureRolePermission(conn, "HRManager", "ADD_DEPARTMENT");
-
+            
+            //
             ensureRolePermission(conn, "HREmployee", "ADD_EMPLOYMENT_CONTRACT");
             ensureRolePermission(conn, "HREmployee", "APPROVE_CONTRACT");
             ensureRolePermission(conn, "HREmployee", "REJECT_CONTRACT");
