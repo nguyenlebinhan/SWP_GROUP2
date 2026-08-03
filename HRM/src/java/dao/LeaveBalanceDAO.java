@@ -70,4 +70,18 @@ public class LeaveBalanceDAO {
         }
         return false;
     }
+
+    public boolean updateTotalAllowed(int employeeId, int year, int newTotalAllowed) {
+        String sql = "UPDATE Leave_Balances SET totalAllowed = ? WHERE employeeId = ? AND year = ?";
+        try (Connection conn = dbContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, newTotalAllowed);
+            ps.setInt(2, employeeId);
+            ps.setInt(3, year);
+            return ps.executeUpdate() > 0;
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Error updating total allowed days", e);
+        }
+        return false;
+    }
 }

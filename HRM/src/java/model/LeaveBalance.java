@@ -61,6 +61,6 @@ public class LeaveBalance {
     }
 
     public int getRemainingDays() {
-        return totalAllowed - usedDays;
+        return Math.max(0, totalAllowed - usedDays);
     }
 }

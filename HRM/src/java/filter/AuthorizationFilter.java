@@ -61,7 +61,7 @@ public class AuthorizationFilter implements Filter {
             return role.contains("manager");
         }
         if(lowerPath.contains("/v1/employee/")){
-            return role.contains("employee");
+            return role.contains("employee") || role.contains("manager") || role.contains("admin");
         }
         return true;
     }
