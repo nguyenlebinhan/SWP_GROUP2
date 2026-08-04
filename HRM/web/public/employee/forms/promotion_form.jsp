@@ -66,31 +66,50 @@
             <div class="row g-3">
                 <div class="col-md-4">
                     <label class="form-label fw-bold">Phòng ban <span class="text-danger">*</span></label>
-                    <select id="deptFilter" class="form-select" onchange="onDepartmentChange()" required>
-                        <c:if test="${isHr}">
-                            <option value="">-- Tất cả phòng ban --</option>
-                        </c:if>
-                        <c:forEach var="dept" items="${departments}">
-                            <option value="${dept.departmentId}" data-roles="${deptRolesMap[dept.departmentId]}"
-                                    <c:if test="${not empty myDepartmentId and myDepartmentId == dept.departmentId}">selected</c:if>>
-                                ${dept.departmentName}
-                            </option>
-                        </c:forEach>
-                    </select>
+                    <c:choose>
+                        <c:when test="${isSelf}">
+                            <c:forEach var="dept" items="${departments}">
+                                <input type="text" class="form-control" value="${dept.departmentName}" readonly>
+                            </c:forEach>
+                        </c:when>
+                        <c:otherwise>
+                            <select id="deptFilter" class="form-select" onchange="onDepartmentChange()" required>
+                                <c:if test="${isHr}">
+                                    <option value="">-- Tất cả phòng ban --</option>
+                                </c:if>
+                                <c:forEach var="dept" items="${departments}">
+                                    <option value="${dept.departmentId}" data-roles="${deptRolesMap[dept.departmentId]}"
+                                            <c:if test="${not empty myDepartmentId and myDepartmentId == dept.departmentId}">selected</c:if>>
+                                        ${dept.departmentName}
+                                    </option>
+                                </c:forEach>
+                            </select>
+                        </c:otherwise>
+                    </c:choose>
                 </div>
 
                 <div class="col-md-4">
                     <label class="form-label fw-bold">Nhân viên <span class="text-danger">*</span></label>
-                    <div class="input-group mb-1">
-                        <span class="input-group-text"><i class="fas fa-search"></i></span>
-                        <input type="text" id="empSearchInput" class="form-control form-control-sm" placeholder="Lọc nhanh tên/mã (1000+ nv)..." oninput="filterEmployees()">
-                    </div>
-                    <select name="employeeId" id="employeeSelect" class="form-select" onchange="onEmployeeSelect()" required>
-                        <option value="">-- Chọn nhân viên --</option>
-                        <c:forEach var="emp" items="${employees}">
-                            <option value="${emp.employeeId}" data-dept="${emp.departmentId}">${emp.employeeCode} - ${emp.fullName}</option>
-                        </c:forEach>
-                    </select>
+                    <c:choose>
+                        <c:when test="${isSelf}">
+                            <c:forEach var="emp" items="${employees}">
+                                <input type="text" class="form-control" value="${emp.employeeCode} - ${emp.fullName}" readonly>
+                                <input type="hidden" name="employeeId" value="${emp.employeeId}">
+                            </c:forEach>
+                        </c:when>
+                        <c:otherwise>
+                            <div class="input-group mb-1">
+                                <span class="input-group-text"><i class="fas fa-search"></i></span>
+                                <input type="text" id="empSearchInput" class="form-control form-control-sm" placeholder="Lọc nhanh tên/mã (1000+ nv)..." oninput="filterEmployees()">
+                            </div>
+                            <select name="employeeId" id="employeeSelect" class="form-select" onchange="onEmployeeSelect()" required>
+                                <option value="">-- Chọn nhân viên --</option>
+                                <c:forEach var="emp" items="${employees}">
+                                    <option value="${emp.employeeId}" data-dept="${emp.departmentId}">${emp.employeeCode} - ${emp.fullName}</option>
+                                </c:forEach>
+                            </select>
+                        </c:otherwise>
+                    </c:choose>
                 </div>
 
                 <div class="col-md-4">
@@ -132,12 +151,13 @@
 <script>
 function onDepartmentChange() {
     var deptSelect = document.getElementById("deptFilter");
+    if (!deptSelect) return;
     var selectedOption = deptSelect.options[deptSelect.selectedIndex];
     var deptId = deptSelect.value;
     var rolesStr = selectedOption ? selectedOption.getAttribute("data-roles") : null;
-    
+
     var roleSelect = document.getElementById("targetRoleId");
-    roleSelect.value = ""; 
+    roleSelect.value = "";
     var allowedRoles = rolesStr ? rolesStr.split(",") : null;
     for (var i = 1; i < roleSelect.options.length; i++) {
         var option = roleSelect.options[i];
@@ -148,23 +168,27 @@ function onDepartmentChange() {
             option.style.display = "none";
         }
     }
-    
+
     filterEmployees();
 }
 
 function filterEmployees() {
-    var deptId = document.getElementById("deptFilter").value;
-    var searchText = document.getElementById("empSearchInput").value.toLowerCase().trim();
+    var deptSelect = document.getElementById("deptFilter");
     var empSelect = document.getElementById("employeeSelect");
-    
+    var empSearchInput = document.getElementById("empSearchInput");
+    if (!deptSelect || !empSelect) return;
+
+    var deptId = deptSelect.value;
+    var searchText = empSearchInput ? empSearchInput.value.toLowerCase().trim() : "";
+
     for (var i = 1; i < empSelect.options.length; i++) {
         var option = empSelect.options[i];
         var empDept = option.getAttribute("data-dept");
         var empText = option.text.toLowerCase();
-        
+
         var matchDept = !deptId || empDept === deptId;
         var matchText = !searchText || empText.indexOf(searchText) > -1;
-        
+
         if (matchDept && matchText) {
             option.style.display = "";
         } else {
@@ -176,11 +200,12 @@ function filterEmployees() {
 
 function onEmployeeSelect() {
     var empSelect = document.getElementById("employeeSelect");
+    if (!empSelect) return;
     var selectedOption = empSelect.options[empSelect.selectedIndex];
     if (selectedOption && selectedOption.value) {
         var empDept = selectedOption.getAttribute("data-dept");
         var deptSelect = document.getElementById("deptFilter");
-        if (deptSelect.value !== empDept && empDept) {
+        if (deptSelect && deptSelect.value !== empDept && empDept) {
             deptSelect.value = empDept;
             onDepartmentChange();
             empSelect.value = selectedOption.value;
@@ -189,7 +214,9 @@ function onEmployeeSelect() {
 }
 
 document.addEventListener("DOMContentLoaded", function() {
-    onDepartmentChange();
+    if (document.getElementById("deptFilter")) {
+        onDepartmentChange();
+    }
 });
 </script>
 </body>

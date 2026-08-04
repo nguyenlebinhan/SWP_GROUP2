@@ -2,11 +2,6 @@ package dto;
 
 import java.sql.Date;
 
-/**
- * DTO dành riêng cho Đơn Người Phụ Thuộc (formTypeCode = "DEPENDENT").
- * Kế thừa toàn bộ trường chung từ FormRequestDTO và bổ sung
- * thông tin người phụ thuộc.
- */
 public class DependentFormRequestDTO extends FormRequestDTO {
 
     private String dependentName;
@@ -30,11 +25,11 @@ public class DependentFormRequestDTO extends FormRequestDTO {
         this.dependentRelationship = dependentRelationship;
     }
 
-    public java.sql.Date getDependentDob() {
+    public Date getDependentDob() {
         return dependentDob;
     }
 
-    public void setDependentDob(java.sql.Date dependentDob) {
+    public void setDependentDob(Date dependentDob) {
         this.dependentDob = dependentDob;
     }
 

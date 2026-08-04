@@ -99,11 +99,9 @@
 
     <div class="nav-section">Hợp đồng lao động</div>
    
-    <c:if test="${sessionScope.userPermissions.contains('VIEW_OWN_CONTRACT')}">
         <a href="${pageContext.request.contextPath}/v1/employee/contract/self">
             Hợp đồng của tôi
         </a>
-    </c:if> 
     
     <c:if test="${sessionScope.userPermissions.contains('ADD_EMPLOYMENT_CONTRACT')}">
         <a href="${pageContext.request.contextPath}/v1/employee/contract/status">

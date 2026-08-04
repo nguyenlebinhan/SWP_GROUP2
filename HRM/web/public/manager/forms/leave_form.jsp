@@ -55,15 +55,12 @@
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
     </c:if>
-
     <div class="section-card">
         <div class="d-flex justify-content-between align-items-center mb-4">
             <h5 class="mb-0">Tạo Đơn Xin Nghỉ Phép</h5>
-            <c:if test="${not empty remainingDays}">
-                <span class="badge bg-info text-dark" style="font-size: 0.95em;">
-                    Số ngày phép còn lại: ${remainingDays} ngày
-                </span>
-            </c:if>
+            <span class="badge ${remainingDays > 0 ? 'bg-info text-dark' : 'bg-danger text-white'}" style="font-size: 0.95em;">
+                Số ngày phép còn lại: ${remainingDays} ngày
+            </span>
         </div>
                 <form method="post" action="${pageContext.request.contextPath}/v1/manager/forms/leave/submit"
               enctype="multipart/form-data">
@@ -112,13 +109,12 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-
     function calcTotalDays() {
         const s = document.getElementById('startDate').value;
         const e = document.getElementById('endDate').value;
         if (s && e) {
             let start = new Date(s);
-            let end = new Date(e);
+            let end   = new Date(e);
             if (end < start) {
                 document.getElementById('totalDays').value = '';
                 return;
@@ -127,7 +123,7 @@
             let current = new Date(start);
             while (current <= end) {
                 let dayOfWeek = current.getDay();
-                if (dayOfWeek !== 0 && dayOfWeek !== 6) { // 0 = Sunday, 6 = Saturday
+                if (dayOfWeek !== 0 && dayOfWeek !== 6) {
                     diff++;
                 }
                 current.setDate(current.getDate() + 1);
@@ -138,9 +134,7 @@
         }
     }
 
-    document.getElementById('startDate').addEventListener('change', function () {
-        calcTotalDays();
-    });
+    document.getElementById('startDate').addEventListener('change', calcTotalDays);
     document.getElementById('endDate').addEventListener('change', calcTotalDays);
 </script>
 </body>

@@ -2560,12 +2560,8 @@ public class EmployeeController extends HttpServlet {
         EmployeeDetailDTO me = employeeDAO.getEmployeeByUserId(user.getUserId());
         if (me != null) {
             int currentYear = LocalDate.now().getYear();
-            LeaveBalance lb = leaveBalanceDAO.getLeaveBalance(me.getEmployeeId(), currentYear);
-            if (lb == null) {
-                lb = new LeaveBalance(0, me.getEmployeeId(), currentYear, 12, 0);
-                leaveBalanceDAO.createLeaveBalance(lb);
-            }
-            request.setAttribute("remainingDays", lb.getRemainingDays());
+            LeaveBalance lb = formService.getOrInitializeLeaveBalance(me.getEmployeeId(), currentYear);
+            request.setAttribute("remainingDays", lb != null ? lb.getRemainingDays() : 0);
         }
 
         request.getRequestDispatcher("/public/employee/forms/leave_form.jsp").forward(request, response);
@@ -2600,7 +2596,8 @@ public class EmployeeController extends HttpServlet {
             return;
         }
         if (!dependentDAO.canRequestStatusChange(dependentId, me.getEmployeeId())) {
-            request.getSession().setAttribute("error", "Người phụ thuộc không hợp lệ hoặc đang có yêu cầu chờ duyệt.");
+            request.getSession().setAttribute("error", "Người phụ thuộc không hợp "
+                    + "lệ hoặc đang có yêu cầu chờ duyệt.");
             response.sendRedirect(request.getContextPath() + "/v1/employee/my-profile");
             return;
         }
@@ -3072,7 +3069,7 @@ public class EmployeeController extends HttpServlet {
         request.setAttribute("canViewOwnSalary", true);
         request.setAttribute("canViewAllSalary", perms.contains("VIEW_ALL_SALARY"));
         request.setAttribute("canExportPayroll", perms.contains("EXPORT_PAYROLL"));
-        request.setAttribute("canViewOwnContract", perms.contains("VIEW_OWN_CONTRACT"));
+        request.setAttribute("canViewOwnContract", true);
         request.setAttribute("canViewAllContracts", perms.contains("VIEW_ALL_CONTRACTS"));
         request.setAttribute("canViewPendingContracts", perms.contains("VIEW_PENDING_CONTRACTS"));
         request.setAttribute("canApproveContract", isHrMgr);
@@ -3096,8 +3093,8 @@ public class EmployeeController extends HttpServlet {
             throws ServletException, IOException {
         List<Department> depts = departmentDAO.getAllActiveDepartments();
         Map<Integer, String> deptRolesMap = new HashMap<>();
-        for (model.Department d : depts) {
-            java.util.List<String> rNames = departmentDAO.getAllowedRoleNames(d.getDepartmentId());
+        for (Department d : depts) {
+            List<String> rNames = departmentDAO.getAllowedRoleNames(d.getDepartmentId());
             deptRolesMap.put(d.getDepartmentId(), String.join(",", rNames));
         }
         request.setAttribute("departments", depts);
@@ -3111,19 +3108,20 @@ public class EmployeeController extends HttpServlet {
             throws ServletException, IOException {
         EmployeeDetailDTO me = employeeDAO.getEmployeeByUserId(user.getUserId());
         boolean isHr = isHrStaff(user);
-        java.util.List<EmployeeDetailDTO> employees;
-        java.util.List<model.Role> roles;
-        java.util.List<model.Department> departments;
+        List<EmployeeDetailDTO> employees;
+        List<Role> roles;
+        List<Department> departments;
 
         if (!isHr && me != null) {
-            employees = employeeDAO.getEmployeesByDepartmentId(me.getDepartmentId());
+            employees = new java.util.ArrayList<>();
+            employees.add(me);
             departments = new java.util.ArrayList<>();
             model.Department myDept = departmentDAO.getDepartmentById(me.getDepartmentId());
             if (myDept != null) departments.add(myDept);
 
-            java.util.List<String> allowedRoleNames = departmentDAO.getAllowedRoleNames(me.getDepartmentId());
-            java.util.List<model.Role> allRoles = roleDAO.getAllActiveRoles();
-            roles = new java.util.ArrayList<>();
+            List<String> allowedRoleNames = departmentDAO.getAllowedRoleNames(me.getDepartmentId());
+            List<Role> allRoles = roleDAO.getAllActiveRoles();
+            roles = new ArrayList<>();
             for (model.Role r : allRoles) {
                 if (allowedRoleNames.contains(r.getRoleName())) {
                     roles.add(r);
@@ -3135,7 +3133,7 @@ public class EmployeeController extends HttpServlet {
             roles = roleDAO.getAllActiveRoles();
         }
 
-        java.util.Map<Integer, String> deptRolesMap = new java.util.HashMap<>();
+        Map<Integer, String> deptRolesMap = new HashMap<>();
         for (model.Department d : departments) {
             java.util.List<String> rNames = departmentDAO.getAllowedRoleNames(d.getDepartmentId());
             deptRolesMap.put(d.getDepartmentId(), String.join(",", rNames));
@@ -3146,8 +3144,10 @@ public class EmployeeController extends HttpServlet {
         request.setAttribute("departments", departments);
         request.setAttribute("deptRolesMap", deptRolesMap);
         request.setAttribute("isHr", isHr);
+        request.setAttribute("isSelf", !isHr);
         if (me != null) {
             request.setAttribute("myDepartmentId", me.getDepartmentId());
+            request.setAttribute("myEmployeeId", me.getEmployeeId());
         }
         request.setAttribute("positions", departmentDAO.getAllPositions());
         request.getRequestDispatcher("/public/employee/forms/promotion_form.jsp").forward(request, response);
@@ -3376,8 +3376,8 @@ public class EmployeeController extends HttpServlet {
         }
 
         EmployeeDetailDTO me = employeeDAO.getEmployeeByUserId(user.getUserId());
-        if (me == null || me.getDepartmentId() <= 0) {
-            request.getSession().setAttribute("error", "Bạn chưa được phân công vào phòng ban nào.");
+        if (me == null) {
+            request.getSession().setAttribute("error", "Không tìm thấy thông tin nhân viên.");
             response.sendRedirect(request.getContextPath() + "/v1/employee/forms/transfer/new");
             return;
         }
